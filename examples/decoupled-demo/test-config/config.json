@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "projectPath": "/code/personal/claude-testing/examples/decoupled-demo/sample-react-app",
+  "projectRoot": "/code/personal/claude-testing/examples/decoupled-demo/sample-react-app",
+  "configDir": "/code/personal/claude-testing/examples/decoupled-demo/test-config",
+  "language": "javascript",
+  "projectType": "frontend",
+  "frameworks": [
+    "react"
+  ],
+  "testing": {
+    "framework": "jest",
+    "types": [
+      "unit",
+      "integration"
+    ],
+    "coverage": {
+      "threshold": 80,
+      "reporters": [
+        "text",
+        "html",
+        "lcov"
+      ],
+      "collectFrom": []
+    },
+    "watch": true
+  },
+  "environment": {
+    "testEnv": "test",
+    "nodeEnv": "test",
+    "setupFiles": [],
+    "teardownFiles": []
+  },
+  "patterns": {
+    "testFiles": [
+      "**/*.test.js",
+      "**/*.spec.js",
+      "**/__tests__/**/*.js"
+    ],
+    "sourceFiles": [
+      "**/*.js",
+      "**/*.jsx"
+    ],
+    "ignorePatterns": [
+      "node_modules/",
+      "*.log",
+      "coverage/",
+      "dist/",
+      "build/"
+    ]
+  },
+  "scripts": {
+    "test": "npm run test:run",
+    "test:watch": "npm run test:run -- --watch",
+    "test:coverage": "npm run test:run -- --coverage",
+    "test:ci": "npm run test:run -- --ci --coverage --watchAll=false"
+  },
+  "ci": null,
+  "metadata": {
+    "createdAt": "2025-06-27T12:17:51.913Z",
+    "adapter": "unknown",
+    "version": "1.0.0",
+    "lastUpdated": "2025-06-27T12:17:51.919Z"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "test-config-sample-react-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:run",
+    "test:watch": "npm run test:run -- --watch",
+    "test:coverage": "npm run test:run -- --coverage",
+    "test:ci": "npm run test:run -- --ci --coverage --watchAll=false"
+  }
+}

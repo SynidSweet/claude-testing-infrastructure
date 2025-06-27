@@ -1,0 +1,49 @@
+{
+  "name": "ai-testing-template",
+  "version": "1.0.0",
+  "description": "A comprehensive, AI-agent-friendly testing template repository for JavaScript/TypeScript and Python projects",
+  "main": "index.js",
+  "scripts": {
+    "init": "node scripts/init.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext .js,.ts",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "testing",
+    "template",
+    "ai-agent",
+    "javascript",
+    "typescript",
+    "python",
+    "jest",
+    "pytest",
+    "tdd",
+    "test-driven-development"
+  ],
+  "author": "AI Testing Template Project",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^9.4.1",
+    "inquirer": "^8.2.5",
+    "fs-extra": "^10.1.0",
+    "glob": "^8.0.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.25.0",
+    "eslint-config-prettier": "^8.5.0",
+    "prettier": "^2.7.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ai-testing-template/ai-testing-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ai-testing-template/ai-testing-template/issues"
+  },
+  "homepage": "https://github.com/ai-testing-template/ai-testing-template#readme"
+}
