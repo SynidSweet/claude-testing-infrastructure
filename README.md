@@ -34,10 +34,11 @@ This infrastructure helps you:
 ## 📖 For AI Agents: Navigation Guide
 
 1. **First Time?** Read `CLAUDE.md` for comprehensive project navigation
-2. **Architecture Questions?** See `ARCHITECTURE.md` for design philosophy
+2. **Architecture Questions?** See `/docs/architecture/overview.md` for design philosophy
 3. **Implementation Details?** Check approach-specific CLAUDE.md files:
    - `ai-testing-template/CLAUDE.md` - Template approach guide
    - `decoupled-testing-suite/CLAUDE.md` - Decoupled approach guide
+4. **Full Documentation Hub?** See `PROJECT_CONTEXT.md` for modular documentation structure
 
 ## 🔧 Installation & Setup
 
@@ -296,9 +297,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🔗 Quick Links
 
-- [Architecture Documentation](ARCHITECTURE.md)
+- [Documentation Hub](PROJECT_CONTEXT.md)
+- [Architecture Overview](/docs/architecture/overview.md)
 - [AI Agent Navigation Guide](CLAUDE.md)
-- [Refactoring Plan](REFACTORING_PLAN.md)
+- [Refactoring Tasks](/docs/planning/refactoring-tasks.md)
 - [Template Approach Guide](ai-testing-template/CLAUDE.md)
 - [Decoupled Approach Guide](decoupled-testing-suite/CLAUDE.md)
 

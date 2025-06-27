@@ -1,7 +1,7 @@
 # Language Adapter Pattern Implementation Summary
 
 *Date: 2025-06-27*
-*Refactoring Task: Implement Language Adapter Pattern (from `/docs/planning/refactoring-tasks.md`)*
+*Refactoring Task: Implement Language Adapter Pattern (Steps 1-6)*
 
 ## Executive Summary
 

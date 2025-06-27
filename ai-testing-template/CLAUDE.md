@@ -254,7 +254,7 @@ Templates support variable substitution:
 
 ## 📊 Refactoring Notes
 
-From `REFACTORING_PLAN.md`, this approach needs:
+From `/docs/planning/refactoring-tasks.md`, this approach needs:
 - Split large methods in `init.js` (some >50 lines)
 - Implement proper adapter pattern for language support
 - Improve error handling and aggregation
@@ -263,10 +263,13 @@ From `REFACTORING_PLAN.md`, this approach needs:
 ## 🔗 Related Documentation
 
 - **Parent Guide**: `/CLAUDE.md`
-- **Architecture**: `/ARCHITECTURE.md`
+- **Architecture**: `/docs/architecture/overview.md`
+- **Technical Stack**: `/docs/architecture/technical-stack.md`
+- **Adapter Pattern**: `/docs/architecture/adapter-pattern.md`
 - **Other Approach**: `/decoupled-testing-suite/CLAUDE.md`
 - **Setup Guide**: `docs/AGENT_README.md`
 - **Test Patterns**: `docs/AGENT_TEST_GUIDE.md`
+- **Navigation Hub**: `/PROJECT_CONTEXT.md`
 
 ## 💡 Key Insights
 

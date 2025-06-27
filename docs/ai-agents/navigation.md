@@ -13,7 +13,7 @@ Both support JavaScript/TypeScript AND Python projects through **language adapte
 
 ### First Steps
 1. Read `/docs/architecture/overview.md` to understand the system design
-2. Review `PROJECT_CONTEXT.md` for the documentation navigation hub
+2. Review `PROJECT_CONTEXT.md` for comprehensive project details
 3. Check `/docs/planning/refactoring-tasks.md` for current improvement priorities
 4. Choose the appropriate approach based on your task
 
@@ -22,12 +22,10 @@ Both support JavaScript/TypeScript AND Python projects through **language adapte
 ```
 claude-testing/
 ├── 📋 Documentation (Start Here)
-│   ├── PROJECT_CONTEXT.md       # Documentation navigation hub
-│   ├── CLAUDE.md               # This file - AI navigation guide
-│   └── docs/                   # Modular documentation
-│       ├── architecture/       # System design & patterns
-│       ├── planning/          # Roadmap & refactoring tasks
-│       └── ai-agents/         # Agent-specific guides
+│   ├── docs/architecture/       # System design philosophy
+│   ├── PROJECT_CONTEXT.md       # Comprehensive project overview
+│   ├── docs/planning/          # Current improvement roadmap
+│   └── CLAUDE.md               # This file - AI navigation guide
 │
 ├── 🚀 Template-Based Approach
 │   └── ai-testing-template/
@@ -75,13 +73,13 @@ npm run init
 ### Task: Understand the architecture
 1. Start with `/docs/architecture/overview.md`
 2. Focus on the "Why Two Approaches?" section
-3. Understand the Language Adapter pattern in `/docs/architecture/adapter-pattern.md`
-4. Review architectural insights in `/docs/architecture/insights.md`
+3. Understand the Language Adapter pattern (✅ Implemented 2025-06-27)
+4. Review ADRs (Architecture Decision Records)
 
 ### Task: Work on refactoring
 1. Check `/docs/planning/refactoring-tasks.md` (Major milestone completed 2025-06-27!)
-2. Review `/docs/architecture/adapter-pattern.md` for adapter details
-3. See `/docs/ai-agents/migration-guide.md` for migration instructions
+2. Review `ADAPTER_IMPLEMENTATION_SUMMARY.md` for adapter details
+3. See `ADAPTER_MIGRATION_GUIDE.md` for migration instructions
 4. Test with `shared/examples/adapter-usage.js`
 
 ## 🔑 Critical Concepts
@@ -129,9 +127,8 @@ class PythonAdapter implements IProjectAdapter { /* Python-specific */ }
 - **Templates**: Both approaches have `templates/` directories
 
 ### Documentation
-- **Navigation Hub**: `PROJECT_CONTEXT.md`
-- **Agent Guides**: `/docs/ai-agents/` directory
-- **Implementation Plans**: `/docs/planning/implementation-plans.md`
+- **Agent Guides**: `AGENT_README.md`, `AGENT_TEST_GUIDE.md`
+- **Implementation Plans**: `Planning Documents/` directory
 
 ## 🛠️ Development Workflow
 
@@ -219,10 +216,9 @@ npm run
 
 ## 📚 Further Reading
 
-- **For documentation hub**: See `PROJECT_CONTEXT.md`
 - **For architecture questions**: See `/docs/architecture/overview.md`
+- **For project details**: See `PROJECT_CONTEXT.md`
 - **For current work**: See `/docs/planning/refactoring-tasks.md`
 - **For approach-specific details**: See approach-specific `CLAUDE.md` files
-- **For AI agent guidelines**: See `/docs/ai-agents/` directory
 
 Remember: This project supports BOTH JavaScript/TypeScript AND Python through intentional design, not duplication. When in doubt, check the architecture documentation!

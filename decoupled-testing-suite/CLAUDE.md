@@ -314,7 +314,7 @@ Store project-specific configuration:
 
 ## 📊 Refactoring Notes
 
-From `REFACTORING_PLAN.md`, this approach needs:
+From `/docs/planning/refactoring-tasks.md`, this approach needs:
 - Complete interface implementation
 - Adapter pattern for all frameworks
 - Better error aggregation
@@ -323,9 +323,12 @@ From `REFACTORING_PLAN.md`, this approach needs:
 ## 🔗 Related Documentation
 
 - **Parent Guide**: `/CLAUDE.md`
-- **Architecture**: `/ARCHITECTURE.md`
+- **Architecture**: `/docs/architecture/overview.md`
+- **Technical Stack**: `/docs/architecture/technical-stack.md`
+- **Adapter Pattern**: `/docs/architecture/adapter-pattern.md`
 - **Other Approach**: `/ai-testing-template/CLAUDE.md`
-- **Implementation Plan**: `/DECOUPLED_TESTING_ARCHITECTURE_IMPLEMENTATION_PLAN.md`
+- **Implementation Plan**: `/docs/planning/implementation-plans.md`
+- **Navigation Hub**: `/PROJECT_CONTEXT.md`
 
 ## 💡 Key Insights
 
