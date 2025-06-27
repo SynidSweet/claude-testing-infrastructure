@@ -4,7 +4,13 @@
   "description": "A comprehensive, AI-agent-friendly testing template repository for JavaScript/TypeScript and Python projects",
   "main": "index.js",
   "scripts": {
-    "init": "node scripts/init.js",
+    "init": "node scripts/init-auto.js",
+    "init:interactive": "node scripts/init.js",
+    "init:auto": "node scripts/init-auto.js --auto",
+    "init:minimal": "node scripts/init-auto.js --preset minimal --yes",
+    "init:recommended": "node scripts/init-auto.js --preset recommended --yes",
+    "init:comprehensive": "node scripts/init-auto.js --preset comprehensive --yes",
+    "preview": "node scripts/init-auto.js --dry-run --preset recommended",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint . --ext .js,.ts",
     "format": "prettier --write ."
@@ -28,7 +34,8 @@
     "commander": "^9.4.1",
     "inquirer": "^8.2.5",
     "fs-extra": "^10.1.0",
-    "glob": "^8.0.3"
+    "glob": "^8.0.3",
+    "yargs": "^17.6.0"
   },
   "devDependencies": {
     "eslint": "^8.25.0",
