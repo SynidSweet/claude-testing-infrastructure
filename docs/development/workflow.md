@@ -7,7 +7,7 @@
 - ✅ Clone this repo into your project directory
 - ✅ Use without modifying any infrastructure files
 - ✅ Pull updates regularly: `git pull origin main`
-- ✅ Report bugs via GitHub issues
+- ✅ Report bugs via GitHub issues (mention `@claude` for automated assistance)
 - ❌ NEVER modify files in this testing infrastructure
 
 ## Getting Started

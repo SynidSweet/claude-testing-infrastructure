@@ -82,7 +82,7 @@ The Claude Testing Infrastructure provides two comprehensive testing solutions f
 
 - ✅ **CLONE** into your project and use as external infrastructure
 - ✅ **PULL** updates regularly: `git pull origin main`
-- ✅ **REPORT** bugs via GitHub issues
+- ✅ **REPORT** bugs via GitHub issues (mention `@claude` for automated assistance)
 - ❌ **NEVER** modify infrastructure files
 - ❌ **DON'T** commit changes to this testing suite
 

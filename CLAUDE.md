@@ -136,7 +136,7 @@ This testing infrastructure is designed to be **cloned into your project and use
 ### ✅ What TO Do
 - ✅ Clone into your project and use as external infrastructure
 - ✅ Pull updates regularly to stay current
-- ✅ Create GitHub issues if you find problems
+- ✅ Create GitHub issues if you find problems (mention `@claude` for automated assistance)
 - ✅ Follow the testing patterns and templates provided
 
 ## 📍 Key File Locations

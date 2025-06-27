@@ -8,7 +8,7 @@ A comprehensive, AI-agent-friendly testing infrastructure for JavaScript/TypeScr
 
 - ✅ Clone into your project directory
 - ✅ Pull updates regularly: `git pull origin main`
-- ✅ Report bugs via GitHub issues
+- ✅ Report bugs via GitHub issues (mention `@claude` for automated assistance)
 - ❌ Never modify infrastructure files
 
 ## 🚀 Quick Start for AI Agents
