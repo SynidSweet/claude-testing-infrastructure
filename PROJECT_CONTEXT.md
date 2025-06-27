@@ -76,6 +76,16 @@ The Claude Testing Infrastructure provides two comprehensive testing solutions f
 3. **Complexity handles real-world cases** - Don't oversimplify detection logic
 4. **Documentation is modular** - Each topic has its own focused file
 
+## 🔒 CRITICAL: Infrastructure Usage Rules
+
+**This is testing infrastructure - clone and use, don't modify:**
+
+- ✅ **CLONE** into your project and use as external infrastructure
+- ✅ **PULL** updates regularly: `git pull origin main`
+- ✅ **REPORT** bugs via GitHub issues
+- ❌ **NEVER** modify infrastructure files
+- ❌ **DON'T** commit changes to this testing suite
+
 ## 🔗 Quick Links
 
 - **Working Examples**: 

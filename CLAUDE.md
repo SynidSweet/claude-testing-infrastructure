@@ -116,6 +116,29 @@ class PythonAdapter implements IProjectAdapter { /* Python-specific */ }
 ### ❌ WRONG: "Complex detection logic should be simplified"
 ✅ **RIGHT**: It handles real-world edge cases intentionally
 
+## 🔒 CRITICAL: This is Infrastructure - Do NOT Modify
+
+### ⚠️ Proper Usage Pattern
+This testing infrastructure is designed to be **cloned into your project and used as-is**:
+
+1. **CLONE** this repo into your project directory
+2. **USE** the testing infrastructure without modifying it
+3. **PULL** updates regularly to get latest improvements: `git pull origin main`
+4. **REPORT** bugs via GitHub issues instead of trying to fix them
+5. **KEEP** the infrastructure separate from your project code
+
+### 🚫 What NOT to Do
+- ❌ Don't modify files in this testing infrastructure
+- ❌ Don't try to "fix" bugs you encounter - report them instead
+- ❌ Don't commit changes to the testing infrastructure files
+- ❌ Don't treat this as part of your project's source code
+
+### ✅ What TO Do
+- ✅ Clone into your project and use as external infrastructure
+- ✅ Pull updates regularly to stay current
+- ✅ Create GitHub issues if you find problems
+- ✅ Follow the testing patterns and templates provided
+
 ## 📍 Key File Locations
 
 ### Core Logic

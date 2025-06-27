@@ -2,9 +2,18 @@
 
 A comprehensive, AI-agent-friendly testing infrastructure for JavaScript/TypeScript and Python projects. This project provides two powerful approaches to implement testing in any codebase within minutes, not hours.
 
+## 🔒 IMPORTANT: This is Infrastructure
+
+**Clone this repo into your project and use as-is. Do NOT modify files.**
+
+- ✅ Clone into your project directory
+- ✅ Pull updates regularly: `git pull origin main`
+- ✅ Report bugs via GitHub issues
+- ❌ Never modify infrastructure files
+
 ## 🚀 Quick Start for AI Agents
 
-After cloning this repository, you have two approaches available:
+After cloning this repository into your project, you have two approaches available:
 
 ### Option 1: Template-Based Testing (Modifies Your Project)
 ```bash

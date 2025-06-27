@@ -1,8 +1,18 @@
 # Development Workflow
 
+## 🔒 CRITICAL: Infrastructure Usage
+
+**This is testing infrastructure - clone into your project and use as-is:**
+
+- ✅ Clone this repo into your project directory
+- ✅ Use without modifying any infrastructure files
+- ✅ Pull updates regularly: `git pull origin main`
+- ✅ Report bugs via GitHub issues
+- ❌ NEVER modify files in this testing infrastructure
+
 ## Getting Started
 - **Setup steps**: 
-  1. Clone appropriate repository (ai-testing-template or decoupled-testing-suite)
+  1. Clone this repository into your project directory
   2. Run `npm install` to install dependencies
   3. Execute `npm run init` or discovery commands
   4. Follow verification steps in AGENT_README.md
