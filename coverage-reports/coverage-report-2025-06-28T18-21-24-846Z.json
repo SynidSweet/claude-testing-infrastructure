@@ -1,0 +1,156 @@
+{
+  "timestamp": "2025-06-28T18:21:24.847Z",
+  "projectName": "Test Project",
+  "summary": {
+    "statements": 66.66666666666666,
+    "branches": 0,
+    "functions": 50,
+    "lines": 66.66666666666666
+  },
+  "files": {
+    "src/utils.js": {
+      "path": "/test/project/src/utils.js",
+      "summary": {
+        "statements": 66.66666666666666,
+        "branches": 0,
+        "functions": 50,
+        "lines": 66.66666666666666
+      },
+      "uncoveredLines": [
+        5
+      ],
+      "uncoveredBranches": [
+        {
+          "line": 3,
+          "type": "if"
+        }
+      ],
+      "uncoveredFunctions": [
+        "helperFunction"
+      ]
+    }
+  },
+  "uncoveredAreas": [
+    {
+      "file": "src/utils.js",
+      "type": "line",
+      "line": 5,
+      "description": "Uncovered line 5 in src/utils.js"
+    },
+    {
+      "file": "src/utils.js",
+      "type": "branch",
+      "line": 3,
+      "description": "Uncovered if branch at line 3 in src/utils.js"
+    },
+    {
+      "file": "src/utils.js",
+      "type": "function",
+      "line": 0,
+      "function": "helperFunction",
+      "description": "Uncovered function 'helperFunction' in src/utils.js"
+    }
+  ],
+  "thresholds": {
+    "lines": 80,
+    "statements": 75,
+    "branches": 70,
+    "functions": 85
+  },
+  "meetsThreshold": false,
+  "gapAnalysis": {
+    "totalGaps": 3,
+    "gapsByType": {
+      "statement": [],
+      "branch": [
+        {
+          "file": "src/utils.js",
+          "type": "branch",
+          "line": 3,
+          "description": "Uncovered if branch at line 3 in src/utils.js"
+        }
+      ],
+      "function": [
+        {
+          "file": "src/utils.js",
+          "type": "function",
+          "line": 0,
+          "function": "helperFunction",
+          "description": "Uncovered function 'helperFunction' in src/utils.js"
+        }
+      ],
+      "line": [
+        {
+          "file": "src/utils.js",
+          "type": "line",
+          "line": 5,
+          "description": "Uncovered line 5 in src/utils.js"
+        }
+      ]
+    },
+    "gapsByFile": {
+      "src/utils.js": [
+        {
+          "file": "src/utils.js",
+          "type": "line",
+          "line": 5,
+          "description": "Uncovered line 5 in src/utils.js"
+        },
+        {
+          "file": "src/utils.js",
+          "type": "branch",
+          "line": 3,
+          "description": "Uncovered if branch at line 3 in src/utils.js"
+        },
+        {
+          "file": "src/utils.js",
+          "type": "function",
+          "line": 0,
+          "function": "helperFunction",
+          "description": "Uncovered function 'helperFunction' in src/utils.js"
+        }
+      ]
+    },
+    "highPriorityGaps": [
+      {
+        "file": "src/utils.js",
+        "type": "function",
+        "line": 0,
+        "function": "helperFunction",
+        "description": "Uncovered function 'helperFunction' in src/utils.js"
+      }
+    ],
+    "suggestions": [
+      {
+        "type": "test_missing_function",
+        "file": "src/utils.js",
+        "target": "helperFunction",
+        "description": "Add tests for function 'helperFunction' in src/utils.js",
+        "priority": 8,
+        "effort": "low"
+      },
+      {
+        "type": "test_edge_cases",
+        "file": "src/utils.js",
+        "target": "Branch Coverage",
+        "description": "Add tests for conditional branches in src/utils.js",
+        "priority": 7,
+        "effort": "medium"
+      },
+      {
+        "type": "test_missing_function",
+        "file": "src/utils.js",
+        "target": "Overall Coverage",
+        "description": "Increase test coverage for src/utils.js (currently 66.7%)",
+        "priority": 6,
+        "effort": "medium"
+      }
+    ],
+    "improvementPotential": {
+      "statements": 30,
+      "branches": 25,
+      "functions": 20,
+      "lines": 30
+    }
+  }
+}

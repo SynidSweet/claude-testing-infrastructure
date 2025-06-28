@@ -1,10 +1,16 @@
-# AI Testing Infrastructure Architecture
+# System Architecture Overview
 
-*Last updated: 2025-06-27 | Major architectural shift to single approach*
+*Last updated: 2025-06-28 | Production-ready v2.0 with AI integration foundation*
 
-## System Overview
+## Architecture Summary
 
-This project is transitioning to a **single, focused approach** - a decoupled testing infrastructure that provides true infrastructure benefits through external test management and AI-powered generation.
+The Claude Testing Infrastructure implements a **decoupled external testing architecture** that generates comprehensive tests without modifying target projects. The system uses a Language Adapter Pattern to support multiple frameworks and integrates AI for intelligent test generation.
+
+### Core Design Philosophy
+- **Zero modification**: Never changes target project files
+- **Infrastructure approach**: Updates via `git pull` with continuous improvements
+- **AI-powered**: Intelligent test generation with cost optimization
+- **Multi-language**: JavaScript/TypeScript and Python with framework detection
 
 ### The Single Approach: Decoupled Architecture
 
@@ -17,22 +23,22 @@ This project is transitioning to a **single, focused approach** - a decoupled te
   - AI-powered intelligent test generation
   - Incremental updates based on code changes
 
-#### Why Single Approach?
+#### Why Single Approach? (Decision Complete)
 
-After careful consideration, we've decided to focus exclusively on the decoupled approach because:
+We successfully focused exclusively on the decoupled approach because:
 
 1. **True Infrastructure**: Only the decoupled approach provides genuine infrastructure that improves over time
 2. **AI Agent Optimization**: Simpler mental model with one clear workflow
 3. **Maintenance Philosophy**: Aligns with the "pull to update" principle
 4. **Cost Efficiency**: Incremental testing reduces AI token usage by 80-90%
 
-### Deprecation Notice
+### Template-Based Approach Removal (Complete)
 
-The template-based approach is being removed because:
-- It contradicts the infrastructure philosophy (one-time copy vs. continuous updates)
-- It splits development effort and documentation
-- It creates decision paralysis for users
-- The decoupled approach can serve all use cases with better long-term benefits
+The template-based approach has been successfully removed because:
+- ✅ It contradicted the infrastructure philosophy (one-time copy vs. continuous updates)
+- ✅ It split development effort and documentation
+- ✅ It created decision paralysis for users
+- ✅ The decoupled approach serves all use cases with better long-term benefits
 
 ## Multi-Language Support Architecture
 
@@ -252,29 +258,132 @@ const multiAdapter = await adapterFactory.createMultiLanguageAdapter(projectPath
 // Generates unified configuration
 ```
 
-## AI-Powered Test Generation
+## Test Generation Architecture (Phase 3 Complete)
 
-### Architectural Components
+### Core Components (Implemented 2025-06-28)
 
-1. **Structural Test Generation**: Static analysis creates basic tests
-2. **Gap Analysis Engine**: Identifies missing business logic coverage
-3. **Claude Integration**: Spawns headless Claude processes for intelligent tests
-4. **Incremental System**: Tracks changes and regenerates only affected tests
+1. **TestGenerator Base Class**: Abstract foundation with lifecycle management and configuration
+2. **StructuralTestGenerator**: Concrete implementation for automated test scaffolding
+3. **TestTemplateEngine**: Framework-specific template system with intelligent fallback
+4. **File Analysis System**: Language/framework detection and test type inference
 
-### Test Generation Flow
+### Test Generation Flow (Current Implementation)
 
 ```
-Project Analysis → Basic Tests → Gap Detection → AI Enhancement → Final Suite
-                        ↓              ↓               ↓
-                   (Automatic)    (Smart Analysis)  (Claude Headless)
+Project Analysis → File Analysis → Template Selection → Test Generation → Output
+        ↓                ↓              ↓               ↓
+   (ProjectAnalyzer) (Language/Framework) (TestTemplateEngine) (StructuralTestGenerator)
 ```
+
+### Implemented Features
+
+- **Multi-Language Support**: JavaScript/TypeScript + Python with framework detection
+- **Template System**: 8+ built-in templates (Jest, React, Express, pytest, FastAPI, Django)
+- **Intelligent Analysis**: Automatic test type detection and dependency extraction
+- **Mock Generation**: Automatic mock file creation for dependencies
+- **Setup Files**: Framework-specific test setup generation
+
+## Test Gap Analysis Architecture (Phase 5.1 Complete)
+
+### Core Components (Implemented 2025-06-28)
+
+1. **TestGapAnalyzer Class**: Core gap analysis engine with configurable thresholds
+2. **Complexity Scorer**: Multi-factor complexity calculation (1-10 scale)
+3. **Coverage Analyzer**: Structural vs logical test coverage comparison
+4. **Priority Calculator**: Weighted scoring for AI generation resource allocation
+5. **Context Extractor**: Code snippet and metadata extraction for AI prompts
+6. **Cost Estimator**: Token prediction and USD cost calculation for AI generation
+
+### Test Gap Analysis Flow (Current Implementation)
+
+```
+Generated Tests → Complexity Analysis → Coverage Assessment → Gap Identification
+       ↓                ↓                    ↓                    ↓
+   (Structural)  (File Complexity)   (Structural Coverage)  (Business Logic)
+                                                                     ↓
+Priority Calculation → Context Extraction → Cost Estimation → Gap Analysis Report
+        ↓                      ↓                 ↓                    ↓
+  (Weighted Score)    (Code Snippets)    (Token Prediction)    (JSON/MD/Text)
+```
+
+### Implemented Features
+
+- **Multi-Dimensional Analysis**: Business logic, edge cases, and integration gaps
+- **Language Support**: JavaScript/TypeScript and Python with framework detection
+- **Intelligent Filtering**: Configurable complexity thresholds to optimize AI costs
+- **Context Preparation**: Automated extraction of relevant code snippets for AI prompts
+- **Cost Optimization**: Token estimation and batch planning for efficient AI resource usage
+- **CLI Integration**: Complete `analyze-gaps` command with multiple output formats
+
+## AI Integration Architecture (Phase 5 Complete)
+
+### Core AI Components (Implemented 2025-06-28)
+
+1. **AITaskPreparation**: Intelligent task queue management and context extraction
+2. **ClaudeOrchestrator**: Parallel AI process execution with concurrency control
+3. **PromptTemplates**: Framework-aware prompt generation system
+4. **CostEstimator**: Token prediction and budget optimization engine
+
+### AI Generation Flow (Current Implementation)
+
+```
+Gap Analysis → Task Preparation → Prompt Generation → Claude Orchestration → Test Integration
+       ↓              ↓                  ↓                    ↓                    ↓
+ (TestGapAnalyzer) (AITaskPreparation) (PromptTemplates) (ClaudeOrchestrator) (File System)
+```
+
+### Implemented Features
+
+- **Multi-Model Support**: Claude 3 Opus, Sonnet, and Haiku with automatic selection
+- **Batch Processing**: Concurrent AI task execution with configurable limits
+- **Context Awareness**: Framework and test type specific prompt generation
+- **Cost Management**: Budget controls, token estimation, and usage tracking
+- **CLI Integration**: `generate-logical` and `test-ai` commands
+- **Event-Based Progress**: Real-time status updates during generation
+
+## Test Execution Architecture (Phase 4 Complete)
+
+### Core Components (Implemented 2025-06-28)
+
+1. **TestRunner Base Class**: Abstract foundation with lifecycle management and error handling
+2. **JestRunner**: JavaScript/TypeScript test execution with enhanced coverage processing
+3. **PytestRunner**: Python test execution with integrated coverage analysis
+4. **TestRunnerFactory**: Automatic runner selection and framework recommendation
+5. **Coverage Reporter System**: Comprehensive coverage analysis, aggregation, and visualization
+
+### Test Execution Flow (Current Implementation)
+
+```
+Generated Tests → Runner Selection → Test Execution → Coverage Processing → Report Generation
+       ↓               ↓               ↓               ↓                    ↓
+  (.claude-testing) (Factory)    (Jest/Pytest)  (Coverage Reporter)  (Multi-format Reports)
+```
+
+### Implemented Features
+
+- **Multi-Framework Support**: Jest for JavaScript/TypeScript, pytest for Python
+- **Advanced Coverage Processing**: Istanbul and coverage.py format parsing with aggregation
+- **Professional Reporting**: HTML, JSON, Markdown, Text, and XML output formats
+- **Gap Analysis**: Intelligent coverage gap identification with priority scoring
+- **Multi-Source Aggregation**: Union, intersection, latest, and highest strategies
+- **Watch Mode**: Continuous testing during development
+- **JUnit XML**: CI/CD integration reports
+- **Error Handling**: Graceful degradation and detailed error reporting
+- **CLI Integration**: Complete `run` command with enhanced coverage options
+
+### AI-Powered Enhancement (Phase 5 - COMPLETE)
+
+1. ✅ **Gap Analysis Engine**: TestGapAnalyzer with intelligent coverage assessment (Phase 5.1 COMPLETE)
+2. ✅ **Gap Report Generator**: Enhanced visualization and detailed reporting (Phase 5.2 COMPLETE)
+3. ✅ **Claude Integration**: AI task preparation and orchestration system (Phase 5.3 COMPLETE)
+4. 🔄 **Incremental System**: Tracks changes and regenerates only affected tests (Phase 6 - NEXT)
 
 ### Key Innovations
 
-- **Parallel AI Processing**: Multiple Claude instances for faster generation
-- **Context-Aware Prompts**: Business domain understanding for better tests
-- **Cost Optimization**: Only uses AI where structural tests insufficient
-- **Incremental Updates**: Git-based tracking reduces costs by 80-90%
+- **Template Fallback Logic**: Intelligent template selection with graceful degradation
+- **Multi-Framework Support**: Single generator supports multiple test frameworks per language
+- **Extensible Architecture**: Easy addition of new languages and frameworks
+- **Type-Safe Implementation**: Full TypeScript support with comprehensive interfaces
 
 ## Navigation Guide for AI Agents
 

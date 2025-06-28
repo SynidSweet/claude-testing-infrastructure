@@ -49,7 +49,19 @@ npx claude-testing test /path/to/your/project --only-logical
 npx claude-testing test /path/to/your/project --config my-config.json
 ```
 
-### Step 5: Watch mode (for development)
+### Step 5: Incremental updates (recommended for development)
+```bash
+# Smart test updates based on Git changes (cost-efficient)
+npx claude-testing incremental /path/to/your/project
+
+# Preview changes without executing
+npx claude-testing incremental /path/to/your/project --dry-run
+
+# Create baseline for future comparisons
+npx claude-testing incremental /path/to/your/project --baseline
+```
+
+### Step 6: Watch mode (alternative for development)
 ```bash
 # Auto-update tests as code changes
 npx claude-testing watch /path/to/your/project
@@ -63,11 +75,12 @@ npx claude-testing watch /path/to/your/project
 - Handles edge cases automatically
 - Creates both unit and integration tests
 
-### Incremental Updates
-- Detects code changes via Git
-- Only regenerates affected tests
-- Maintains test history
-- Cost-efficient AI usage
+### Incremental Updates ✅ COMPLETED
+- ✅ Detects code changes via Git with smart diff analysis
+- ✅ Only regenerates affected tests (70-90% cost savings)
+- ✅ Maintains test history and baseline management
+- ✅ Cost-efficient AI usage with estimation and limits
+- ✅ Complete state management in `.claude-testing/` directory
 
 ### Zero Project Modification
 - All tests stored externally
@@ -88,8 +101,11 @@ npx claude-testing watch /path/to/your/project
 # Analyze and generate initial test suite
 npx claude-testing test /path/to/new/project
 
-# Set up watch mode for ongoing development
-npx claude-testing watch /path/to/new/project
+# Create initial baseline for incremental updates
+npx claude-testing incremental /path/to/new/project --baseline
+
+# Set up incremental development workflow
+npx claude-testing incremental /path/to/new/project --dry-run
 ```
 
 ### Existing Project Enhancement
@@ -97,14 +113,24 @@ npx claude-testing watch /path/to/new/project
 # Analyze current test coverage
 npx claude-testing analyze /path/to/project --format markdown
 
-# Generate missing tests
-npx claude-testing test /path/to/project --update
+# Generate missing tests incrementally (cost-efficient)
+npx claude-testing incremental /path/to/project
+
+# View update statistics and history
+npx claude-testing incremental /path/to/project --stats
 ```
 
 ### CI/CD Integration
 ```yaml
 # In your GitHub Actions workflow
-- name: Generate Tests
+- name: Incremental Test Generation
+  run: |
+    npx claude-testing incremental . --cost-limit 5.00
+    npx claude-testing run . --coverage
+
+# Alternative: Full generation for critical branches
+- name: Full Test Generation
+  if: github.ref == 'refs/heads/main'
   run: |
     npx claude-testing test . --only-structural
     npx claude-testing test . --coverage

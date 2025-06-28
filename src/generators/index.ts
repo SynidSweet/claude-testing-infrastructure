@@ -4,12 +4,33 @@
  * This module contains test generators for different frameworks and patterns
  */
 
-// Placeholder exports for generators
-export const generators = {
-  // Add generator exports here
-};
+// Export the base TestGenerator class and related types
+export {
+  TestGenerator,
+  TestGeneratorConfig,
+  TestGeneratorOptions,
+  TestGenerationResult,
+  GeneratedTest,
+  GeneratedFile,
+  TestType,
+  NamingConventions,
+  GenerationStats
+} from './TestGenerator';
 
-// Example generator interface (to be implemented)
+// Export concrete implementations
+export {
+  StructuralTestGenerator,
+  StructuralTestGeneratorOptions
+} from './StructuralTestGenerator';
+
+// Export template engine
+export {
+  TestTemplateEngine,
+  Template,
+  TemplateContext
+} from './templates/TestTemplateEngine';
+
+// Legacy interfaces (deprecated - use TestGenerator instead)
 export interface Generator {
   name: string;
   generate(config: GeneratorConfig): Promise<GeneratorResult>;
@@ -28,7 +49,7 @@ export interface GeneratorResult {
   errors?: string[];
 }
 
-// Placeholder function
+// Placeholder function (deprecated - use TestGenerator instead)
 export async function generateTests(_config: GeneratorConfig): Promise<GeneratorResult> {
   // TODO: Implement test generation logic
   return {

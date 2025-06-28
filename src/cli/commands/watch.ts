@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { logger } from '@utils/logger';
+import { logger } from '../../utils/logger';
 
 export async function watchCommand(path: string, _options: any): Promise<void> {
   console.log(chalk.cyan(`\n👁  Watching project: ${path}`));

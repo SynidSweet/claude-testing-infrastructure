@@ -4,40 +4,55 @@
  * This module contains test runners for different testing frameworks
  */
 
-// Placeholder exports for runners
-export const runners = {
-  // Add runner exports here
-};
+// Export test runner classes and interfaces
+export { 
+  TestRunner, 
+  type TestRunnerConfig, 
+  type TestResult, 
+  type TestFailure, 
+  type CoverageResult, 
+  type CoverageConfig, 
+  type ReporterConfig 
+} from './TestRunner';
 
-// Example runner interface (to be implemented)
-export interface Runner {
-  name: string;
-  run(config: RunnerConfig): Promise<RunnerResult>;
-}
+export { JestRunner } from './JestRunner';
+export { PytestRunner } from './PytestRunner';
+export { TestRunnerFactory } from './TestRunnerFactory';
 
-export interface RunnerConfig {
-  // Add configuration properties
-  testPath?: string;
-  framework?: string;
-  watch?: boolean;
-  options?: Record<string, any>;
-}
+// Coverage system exports
+export { 
+  CoverageParser, 
+  CoverageParserFactory,
+  type CoverageData,
+  type FileCoverage,
+  type UncoveredArea,
+  type CoverageThresholds
+} from './CoverageParser';
 
-export interface RunnerResult {
-  success: boolean;
-  passed?: number;
-  failed?: number;
-  skipped?: number;
-  errors?: string[];
-}
+export {
+  CoverageAggregator,
+  type AggregatedCoverageData,
+  type AggregationConfig,
+  type CoverageSource
+} from './CoverageAggregator';
 
-// Placeholder function
-export async function runTests(_config: RunnerConfig): Promise<RunnerResult> {
-  // TODO: Implement test running logic
-  return {
-    success: true,
-    passed: 0,
-    failed: 0,
-    skipped: 0
-  };
-}
+export {
+  CoverageVisualizer,
+  type CoverageReportConfig,
+  type CoverageGapAnalysis
+} from './CoverageVisualizer';
+
+export {
+  CoverageReporter,
+  CoverageReporterFactory,
+  type CoverageReporterConfig,
+  type CoverageReport
+} from './CoverageReporter';
+
+// Re-export factory methods for convenience
+import { TestRunnerFactory } from './TestRunnerFactory';
+
+export const createRunner = TestRunnerFactory.createRunner.bind(TestRunnerFactory);
+export const getSupportedFrameworks = TestRunnerFactory.getSupportedFrameworks.bind(TestRunnerFactory);
+export const isFrameworkSupported = TestRunnerFactory.isFrameworkSupported.bind(TestRunnerFactory);
+export const getRecommendedFramework = TestRunnerFactory.getRecommendedFramework.bind(TestRunnerFactory);

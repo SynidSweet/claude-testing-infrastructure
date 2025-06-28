@@ -9,6 +9,10 @@
 - **Project Detection** (ai-testing-template/scripts/utils/fileSystem.js): Automatically detects JavaScript/TypeScript/Python projects and their frameworks
 - **Template Management** (ai-testing-template/scripts/utils/templateManager.js): Copies and customizes test templates based on project type
 - **Configuration Generation**: Creates Jest, pytest, Playwright configs with appropriate settings for detected project type
+- **TestGenerator System** (src/generators/): Core test generation engine with framework-specific templates
+  - **TestGenerator** (src/generators/TestGenerator.ts): Abstract base class with lifecycle management
+  - **StructuralTestGenerator** (src/generators/StructuralTestGenerator.ts): Intelligent test scaffolding and file analysis
+  - **TestTemplateEngine** (src/generators/templates/TestTemplateEngine.ts): Framework-specific template system
 - **Decoupled Discovery** (decoupled-testing-suite/core/discovery/): Analyzes project components and generates test plans without modifying source
 - **Framework Adapters** (decoupled-testing-suite/config/adapters/): Project-specific testing strategies for React, Vue, Node.js, Python frameworks
 - **Decoupled Scripts** (decoupled-testing-suite/scripts/): Complete suite of automation scripts:

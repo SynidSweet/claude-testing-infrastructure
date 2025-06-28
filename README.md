@@ -1,6 +1,6 @@
 # Claude Testing Infrastructure
 
-A comprehensive, AI-agent-friendly testing infrastructure for JavaScript/TypeScript and Python projects. This project provides two powerful approaches to implement testing in any codebase within minutes, not hours.
+A comprehensive, AI-agent-friendly testing infrastructure for JavaScript/TypeScript and Python projects. This decoupled approach implements comprehensive testing in any codebase within minutes, not hours.
 
 ## 🔒 IMPORTANT: This is Infrastructure
 
@@ -13,23 +13,23 @@ A comprehensive, AI-agent-friendly testing infrastructure for JavaScript/TypeScr
 
 ## 🚀 Quick Start for AI Agents
 
-After cloning this repository into your project, you have two approaches available:
+After cloning this repository:
 
-### Option 1: Template-Based Testing (Modifies Your Project)
+### Decoupled Testing Infrastructure (Zero Project Modification)
 ```bash
-cd ai-testing-template
 npm install
-npm run init
-```
-This copies testing infrastructure directly into your project - perfect for new projects or when you want full control.
+npm run build
 
-### Option 2: Decoupled Testing Suite (Zero Modification)
-```bash
-cd decoupled-testing-suite
-npm install
-npm run discover
+# Analyze any project
+npx claude-testing analyze /path/to/your/project
+
+# Generate comprehensive tests
+npx claude-testing test /path/to/your/project
+
+# Run tests with coverage
+npx claude-testing run /path/to/your/project --coverage
 ```
-This maintains tests in a separate repository - ideal for existing projects or when you need version-safe testing.
+This maintains tests externally while providing complete testing infrastructure that updates via `git pull`.
 
 ## 🎯 What This Project Does
 
@@ -44,10 +44,8 @@ This infrastructure helps you:
 
 1. **First Time?** Read `CLAUDE.md` for comprehensive project navigation
 2. **Architecture Questions?** See `/docs/architecture/overview.md` for design philosophy
-3. **Implementation Details?** Check approach-specific CLAUDE.md files:
-   - `ai-testing-template/CLAUDE.md` - Template approach guide
-   - `decoupled-testing-suite/CLAUDE.md` - Decoupled approach guide
-4. **Full Documentation Hub?** See `PROJECT_CONTEXT.md` for modular documentation structure
+3. **Full Documentation Hub?** See `PROJECT_CONTEXT.md` for modular documentation structure
+4. **User Guide?** See `/docs/user/getting-started.md` for complete usage examples
 
 ## 🔧 Installation & Setup
 
@@ -56,57 +54,34 @@ This infrastructure helps you:
 - Git
 - Target project runtime (Python 3.9+ for Python projects)
 
-### Template-Based Approach
+### Production-Ready CLI
 
-1. **Clone and Navigate**
+1. **Clone and Build**
    ```bash
    git clone <repository-url>
-   cd claude-testing/ai-testing-template
-   ```
-
-2. **Install Dependencies**
-   ```bash
+   cd claude-testing
    npm install
+   npm run build
    ```
 
-3. **Initialize Testing**
+2. **Analyze Your Project**
    ```bash
-   npm run init
-   ```
-   Follow the interactive prompts to configure testing for your project.
-
-4. **Verify Setup**
-   ```bash
-   npm test
-   npm run test:coverage
+   npx claude-testing analyze /path/to/your/project
    ```
 
-### Decoupled Testing Suite
-
-1. **Clone and Navigate**
+3. **Generate Tests**
    ```bash
-   git clone <repository-url>
-   cd claude-testing/decoupled-testing-suite
+   npx claude-testing test /path/to/your/project
    ```
 
-2. **Install Dependencies**
+4. **Run Tests with Coverage**
    ```bash
-   npm install
+   npx claude-testing run /path/to/your/project --coverage
    ```
 
-3. **Discover Project Structure**
+5. **Watch Mode for Development**
    ```bash
-   npm run discover -- --project-path /path/to/your/project
-   ```
-
-4. **Initialize Testing Configuration**
-   ```bash
-   npm run init
-   ```
-
-5. **Run Tests**
-   ```bash
-   npm run test
+   npx claude-testing watch /path/to/your/project
    ```
 
 ## 🎓 Examples
@@ -200,15 +175,16 @@ When implementing testing for a project:
    ls package.json setup.py pyproject.toml requirements.txt
    ```
 
-2. **Choose Your Approach**
-   - **New/Greenfield Projects**: Use template-based approach
-   - **Existing/Sensitive Projects**: Use decoupled approach
+2. **Analyze Project Structure**
+   ```bash
+   npx claude-testing analyze /path/to/your/project
+   ```
 
-3. **Follow the Setup Flow**
-   - Run initialization commands
-   - Answer framework-specific prompts
-   - Verify generated configuration
-   - Run tests to confirm setup
+3. **Generate and Run Tests**
+   ```bash
+   npx claude-testing test /path/to/your/project
+   npx claude-testing run /path/to/your/project --coverage
+   ```
 
 4. **Customize as Needed**
    - Modify test templates for project-specific needs
@@ -218,23 +194,17 @@ When implementing testing for a project:
 
 ## 🛠️ Available Commands
 
-### Template-Based Commands
+### Production CLI Commands
 ```bash
-npm run init          # Initialize testing setup
-npm test             # Run all tests  
-npm run test:coverage # Run tests with coverage
-npm run test:watch   # Run tests in watch mode
-npm run test:e2e     # Run end-to-end tests
-```
+npx claude-testing analyze <path>     # Analyze project structure
+npx claude-testing test <path>        # Generate comprehensive tests
+npx claude-testing run <path>         # Run generated tests
+npx claude-testing watch <path>       # Watch mode for development
 
-### Decoupled Suite Commands
-```bash
-npm run discover     # Analyze project structure
-npm run init        # Initialize test configuration
-npm run test        # Run all tests
-npm run analyze     # Deep project analysis
-npm run update      # Update test suite
-npm run coverage    # Generate coverage report
+# Additional options
+npx claude-testing test <path> --only-structural  # Skip AI generation
+npx claude-testing run <path> --coverage          # With coverage report
+npx claude-testing test <path> --config <file>    # Custom configuration
 ```
 
 ## 📋 Configuration
@@ -309,9 +279,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [Documentation Hub](PROJECT_CONTEXT.md)
 - [Architecture Overview](/docs/architecture/overview.md)
 - [AI Agent Navigation Guide](CLAUDE.md)
-- [Refactoring Tasks](/docs/planning/refactoring-tasks.md)
-- [Template Approach Guide](ai-testing-template/CLAUDE.md)
-- [Decoupled Approach Guide](decoupled-testing-suite/CLAUDE.md)
+- [User Guide](/docs/user/getting-started.md)
+- [API Reference](/docs/api/interfaces.md)
 
 ---
 

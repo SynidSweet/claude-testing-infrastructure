@@ -3,10 +3,15 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { version } from '../../package.json';
-import { logger } from '@utils/logger';
+import { logger } from '../utils/logger';
 import { analyzeCommand } from './commands/analyze';
 import { testCommand } from './commands/test';
+import { runCommand } from './commands/run';
 import { watchCommand } from './commands/watch';
+import { analyzeGapsCommand } from './commands/analyze-gaps';
+import { generateLogicalCommand } from './commands/generate-logical';
+import { testAICommand } from './commands/test-ai';
+import { createIncrementalCommand } from './commands/incremental';
 
 const program = new Command();
 
@@ -31,14 +36,15 @@ program
   .description('Analyze a project and generate test recommendations')
   .argument('<path>', 'Path to the project to analyze')
   .option('-o, --output <path>', 'Output path for analysis results')
-  .option('--format <format>', 'Output format (json|html|markdown)', 'json')
+  .option('--format <format>', 'Output format (json|markdown|console)', 'console')
+  .option('-v, --verbose', 'Show detailed analysis information')
   .action(analyzeCommand);
 
 // Test command
 program
   .command('test')
   .alias('generate')
-  .description('Generate and run tests for a project')
+  .description('Generate tests for a project')
   .argument('<path>', 'Path to the project to test')
   .option('-c, --config <path>', 'Path to configuration file')
   .option('--only-structural', 'Generate only structural tests')
@@ -47,6 +53,19 @@ program
   .option('--update', 'Update existing tests based on changes')
   .action(testCommand);
 
+// Run command
+program
+  .command('run')
+  .description('Run generated tests for a project')
+  .argument('<path>', 'Path to the project with generated tests')
+  .option('-c, --config <path>', 'Path to configuration file')
+  .option('-f, --framework <framework>', 'Test framework to use (jest, pytest)')
+  .option('--coverage', 'Generate coverage report')
+  .option('--watch', 'Run tests in watch mode')
+  .option('--junit', 'Generate JUnit XML reports')
+  .option('--threshold <threshold>', 'Coverage threshold (e.g., "80" or "statements:80,branches:70")')
+  .action(runCommand);
+
 // Watch command
 program
   .command('watch')
@@ -54,6 +73,18 @@ program
   .argument('<path>', 'Path to the project to watch')
   .option('-c, --config <path>', 'Path to configuration file')
   .action(watchCommand);
+
+// Add the analyze-gaps command
+program.addCommand(analyzeGapsCommand);
+
+// Add the generate-logical command
+program.addCommand(generateLogicalCommand);
+
+// Add the test-ai command
+program.addCommand(testAICommand);
+
+// Add the incremental command
+program.addCommand(createIncrementalCommand());
 
 // Error handling
 program.exitOverride();
@@ -64,9 +95,14 @@ try {
   if (error.code === 'commander.unknownCommand') {
     console.error(chalk.red(`Unknown command: ${error.command || 'undefined'}`));
     console.log('\nAvailable commands:');
-    console.log('  analyze  - Analyze a project');
-    console.log('  test     - Generate and run tests');
-    console.log('  watch    - Watch for changes');
+    console.log('  analyze         - Analyze a project');
+    console.log('  test            - Generate tests');
+    console.log('  test-ai         - Complete AI-enhanced testing workflow');
+    console.log('  run             - Run generated tests');
+    console.log('  watch           - Watch for changes');
+    console.log('  analyze-gaps    - Analyze test gaps for AI generation');
+    console.log('  generate-logical - Generate logical tests using AI');
+    console.log('  incremental     - Perform incremental test generation');
     console.log('\nRun claude-testing --help for more information');
   } else if (error.code === 'commander.help') {
     // Help was displayed, exit normally

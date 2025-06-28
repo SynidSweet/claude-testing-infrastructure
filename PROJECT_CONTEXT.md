@@ -1,121 +1,192 @@
-# Claude Testing Infrastructure - Project Context
+# Project Context & AI Agent Guide
 
-*This is the navigation hub for the Claude Testing Infrastructure project. Detailed documentation has been organized into modular files for better maintainability.*
+*Last updated: 2025-06-28 | Updated by: /document command*
 
-*Last updated: 2025-06-27 | Updated by: /document command*
+## Recent Updates
+- **2025-06-28**: ✅ **PHASE 6 INCREMENTAL TESTING COMPLETE** - Full Git-based incremental testing system with state management
+- **2025-06-28**: ✅ **CRITICAL COMPILATION ERRORS RESOLVED** - Fixed TypeScript strict mode violations blocking build process
+- **2025-06-28**: Implemented complete `.claude-testing/` state directory structure with manifest and history tracking
 
-## 🚨 Architectural Decision (2025-06-27)
+## 🎯 Project Overview
 
-**IMPORTANT**: This project is transitioning to a **single decoupled-only approach** that:
-- Provides true infrastructure that updates via `git pull`
-- Never modifies target projects
-- Generates comprehensive tests externally
-- Integrates AI for intelligent test generation
+### Core Purpose
+AI-powered decoupled testing infrastructure that generates comprehensive tests without modifying target projects. Uses intelligent analysis and AI test generation to achieve 80%+ coverage for JavaScript/TypeScript and Python projects.
 
-📖 **See transition plan**: [`DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md`](./DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md)
+**Target Users**: AI agents, developers, teams needing rapid test implementation
+**Business Value**: Reduces testing setup from days to minutes while maintaining quality
+**Current Status**: Production-ready v2.0 with complete CLI and AI integration foundation
 
-## 🚀 Quick Start
+### Key Success Metrics
+- Zero modification of target projects (100% decoupled approach)
+- 80%+ test coverage generation with structural + AI-powered logical tests
+- Sub-10 minute setup time for comprehensive testing infrastructure
+- Multi-language support (JavaScript/TypeScript, Python) with framework detection
 
-The Claude Testing Infrastructure is becoming a focused **decoupled testing solution** that maintains tests OUTSIDE your project for zero modification and continuous updates.
+## 🏗️ Architecture & Technical Stack
 
-📖 **See details**: [`/docs/project/overview.md`](./docs/project/overview.md)
+### Quick Overview
+**Technology**: TypeScript with Node.js CLI, supports JavaScript/TypeScript + Python projects
+**Architecture**: Decoupled external testing infrastructure with AI integration
+**Core Pattern**: Language Adapter Pattern for multi-framework support
 
-## 📁 Documentation Structure
+📖 **See detailed architecture**: [`/docs/architecture/overview.md`](./docs/architecture/overview.md)
+📖 **See technical stack**: [`/docs/architecture/technical-stack.md`](./docs/architecture/technical-stack.md)
 
-### 🏗️ Architecture
-- 📖 **System Overview**: [`/docs/architecture/overview.md`](./docs/architecture/overview.md) - Dual-approach design philosophy
-- 📖 **Technical Stack**: [`/docs/architecture/technical-stack.md`](./docs/architecture/technical-stack.md) - Technologies and project structure
-- 📖 **Dependencies**: [`/docs/architecture/dependencies.md`](./docs/architecture/dependencies.md) - External libraries and services
-- 📖 **Key Insights**: [`/docs/architecture/insights.md`](./docs/architecture/insights.md) - Critical architectural decisions
-- 📖 **Adapter Pattern**: [`/docs/architecture/adapter-pattern.md`](./docs/architecture/adapter-pattern.md) - Language adapter implementation
+## 🔧 Development Patterns & Conventions
 
-### 🎯 Project Information
-- 📖 **Overview**: [`/docs/project/overview.md`](./docs/project/overview.md) - Purpose and success metrics
-- 📖 **Changelog**: [`/docs/project/changelog.md`](./docs/project/changelog.md) - Recent updates and milestones
-- 📖 **Navigation**: [`/docs/project/navigation.md`](./docs/project/navigation.md) - Where to find things
+### Key Principles
+- Language Adapter Pattern for multi-framework support (JavaScript/TypeScript, Python)
+- Zero target project modification (all tests stored in `.claude-testing/` directory)
+- AI-powered logical test generation with cost optimization
 
-### 🔧 Development
-- 📖 **Conventions**: [`/docs/development/conventions.md`](./docs/development/conventions.md) - Code standards and patterns
-- 📖 **Workflow**: [`/docs/development/workflow.md`](./docs/development/workflow.md) - Setup and development practices
-- 📖 **Gotchas**: [`/docs/development/gotchas.md`](./docs/development/gotchas.md) - Common pitfalls and constraints
+📖 **See coding conventions**: [`/docs/development/conventions.md`](./docs/development/conventions.md)
+📖 **See development workflow**: [`/docs/development/workflow.md`](./docs/development/workflow.md)
 
-### ✨ Features
-- 📖 **Core Features**: [`/docs/features/core-features.md`](./docs/features/core-features.md) - User journeys and modules
+## 🚀 Core Features & User Journeys
 
-### 📋 Planning
-- 📖 **Roadmap**: [`/docs/planning/roadmap.md`](./docs/planning/roadmap.md) - Current priorities and future features
-- 📖 **Refactoring Tasks**: [`/docs/planning/refactoring-tasks.md`](./docs/planning/refactoring-tasks.md) - Improvement priorities
-- 📖 **Implementation Plans**: [`/docs/planning/implementation-plans.md`](./docs/planning/implementation-plans.md) - Detailed plan links
-- 🆕 **AI Test Generation**: [`AI_POWERED_TEST_GENERATION_PLAN.md`](./AI_POWERED_TEST_GENERATION_PLAN.md) - AI integration strategy
-- 🆕 **Incremental Testing**: [`INCREMENTAL_TESTING_STRATEGY.md`](./INCREMENTAL_TESTING_STRATEGY.md) - Smart change detection
-- 🆕 **Complete Implementation**: [`IMPLEMENTATION_PLAN_COMPLETE.md`](./IMPLEMENTATION_PLAN_COMPLETE.md) - 6-week roadmap
+### Primary User Flows
+1. **Project Analysis**: `npx claude-testing analyze /path/to/project` - Detects languages, frameworks, and generates recommendations
+2. **Test Generation**: `npx claude-testing test /path/to/project` - Creates comprehensive structural tests with AI-powered logical tests
+3. **Test Execution**: `npx claude-testing run /path/to/project --coverage` - Runs tests with coverage reporting and gap analysis
+4. **Incremental Updates**: `npx claude-testing incremental /path/to/project` - Smart test updates based on Git changes
 
-### 🤖 AI Agents
-- 📖 **Navigation Guide**: [`/docs/ai-agents/navigation.md`](./docs/ai-agents/navigation.md) - Complete AI agent guide
-- 📖 **Guidelines**: [`/docs/ai-agents/guidelines.md`](./docs/ai-agents/guidelines.md) - Best practices and anti-patterns
-- 📖 **Migration Guide**: [`/docs/ai-agents/migration-guide.md`](./docs/ai-agents/migration-guide.md) - Adapter pattern migration
+### Feature Modules
+- **ProjectAnalyzer** (`src/analyzers/ProjectAnalyzer.ts`): Language/framework detection with 8+ framework support
+- **TestGenerator** (`src/generators/TestGenerator.ts`): Structural + AI-powered test generation system
+- **TestRunner** (`src/runners/TestRunner.ts`): Jest/pytest execution with coverage reporting
+- **TestGapAnalyzer** (`src/analyzers/TestGapAnalyzer.ts`): AI-powered gap analysis with cost estimation
+- **Coverage Reporter** (`src/runners/CoverageReporter.ts`): Multi-format coverage analysis and visualization
+- **Incremental System** (`src/state/`): Git-based change detection with smart test updates and cost optimization
 
-### 📚 Reference
-- 📖 **Commands**: [`/docs/reference/commands.md`](./docs/reference/commands.md) - All available CLI commands
+### Data Models & Entities
+- **ProjectAnalysis**: Comprehensive project structure analysis with complexity metrics
+- **TestGeneratorConfig**: Test generation configuration with framework-specific options
+- **TestRunnerConfig**: Test execution configuration with coverage and reporting options
+- **TestManifest**: State tracking for incremental testing with file hashes and baseline management
+- **ChangeAnalysis**: Git-based file change detection with impact scoring and cost estimation
 
-## 🎯 Current Status
+## 🔌 Integrations & External Dependencies
 
-**TRANSITIONING TO SINGLE APPROACH** - Moving from dual-approach to focused decoupled-only infrastructure.
+### APIs & Services
+- **Claude AI Integration**: ✅ Complete intelligent logical test generation (Phase 5.3)
+- **Git Integration**: ✅ Complete change detection for incremental testing (Phase 6)
+- **CI/CD Integration**: GitHub Actions, GitLab CI templates with JUnit XML reports
 
-### Recent Achievements (2025-06-27)
-- ✅ Created comprehensive CLAUDE.md navigation guides for AI agents
-- ✅ Updated documentation for non-interactive AI agent workflows
-- ✅ Made architectural decision to focus on decoupled-only approach
-- ✅ Designed AI-powered logical test generation system
-- ✅ Created incremental testing strategy with smart change detection
-- ✅ Developed comprehensive 6-week implementation plan
+### Third-Party Libraries
+- **@babel/parser**: JavaScript/TypeScript AST parsing for test generation
+- **commander**: CLI framework for the `claude-testing` command interface
+- **fast-glob**: High-performance file pattern matching for project analysis
+- **winston**: Structured logging with configurable output levels
 
-### Major Decisions Today
-- 🔄 **Single Approach**: Removing template-based in favor of decoupled-only
-- 🤖 **AI Integration**: Claude headless mode for intelligent test generation
-- 📈 **Incremental Updates**: Git-based change tracking for efficient retesting
-- 🎯 **True Infrastructure**: Focus on updatable via `git pull` philosophy
+## 🛠️ Development Workflow
 
-## 🚦 Getting Started
+### Getting Started
+- **Setup steps**: `git clone → npm install → npm run build`
+- **Required tools**: Node.js 18+, Git, target project runtime
+- **Common commands**: `analyze`, `test`, `run`, `watch`, `analyze-gaps`, `incremental`
 
-### For AI Agents
-1. Read the main [`CLAUDE.md`](./CLAUDE.md) file - single entry point for AI agents
-2. Review [`DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md`](./DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md) for new architecture
-3. Check [`AI_POWERED_TEST_GENERATION_PLAN.md`](./AI_POWERED_TEST_GENERATION_PLAN.md) for AI integration details
-3. Check [`/docs/planning/roadmap.md`](./docs/planning/roadmap.md) for current priorities
+### Development Practices
+- **Branch strategy**: Main branch with feature branches and automated testing
+- **Code review process**: TypeScript strict mode, comprehensive test suite (97 tests)
+- **Deployment process**: NPM package distribution with semantic versioning
 
-### For Developers
-1. Choose your approach:
-   - **Template-based**: `cd ai-testing-template && npm run init`
-   - **Decoupled**: `cd decoupled-testing-suite && npm run discover`
-2. Follow the approach-specific CLAUDE.md guide
-3. Use [`/docs/reference/commands.md`](./docs/reference/commands.md) for command reference
+## ⚠️ Important Constraints & Gotchas
 
-## 🔑 Key Principles
+### Technical Constraints
+- **Zero modification requirement**: Never changes target project files
+- **Language support**: Currently JavaScript/TypeScript and Python only
+- **AI integration**: Requires Claude API key for logical test generation
 
-1. **Two approaches serve different needs** - Don't try to merge them
-2. **Language adapters are intentional** - JavaScript and Python need different handling
-3. **Complexity handles real-world cases** - Don't oversimplify detection logic
-4. **Documentation is modular** - Each topic has its own focused file
+### Development Gotchas
+- **Language adapters are intentional**: Similar patterns for JS/Python are not duplication
+- **External test storage**: All tests stored in `.claude-testing/` directory
+- **Infrastructure philosophy**: Clone and use, never modify the testing infrastructure
 
-## 🔒 CRITICAL: Infrastructure Usage Rules
+## 📍 Where to Find Things
 
-**This is testing infrastructure - clone and use, don't modify:**
+### Key Files & Locations
+- **CLI entry point**: `src/cli/index.ts` - Main command interface
+- **Core analysis logic**: `src/analyzers/ProjectAnalyzer.ts` - Project detection engine
+- **Test generation**: `src/generators/TestGenerator.ts` - Test creation system
+- **Incremental system**: `src/state/` - State management and change detection
+- **Configuration**: `tsconfig.json`, `jest.config.js`, `package.json`
 
-- ✅ **CLONE** into your project and use as external infrastructure
-- ✅ **PULL** updates regularly: `git pull origin main`
-- ✅ **REPORT** bugs via GitHub issues (mention `@claude` for automated assistance)
-- ❌ **NEVER** modify infrastructure files
-- ❌ **DON'T** commit changes to this testing suite
+### Documentation Locations
+- **API documentation**: `/docs/api/interfaces.md` - TypeScript interfaces
+- **Architecture decisions**: `/docs/architecture/overview.md` - System design
+- **User guides**: `/docs/user/getting-started.md` - Complete usage examples
 
-## 🔗 Quick Links
+## 🎯 Current Priorities & Roadmap
 
-- **Working Examples**: 
-  - Template approach: `ai-testing-template/examples/`
-  - Decoupled approach: `examples/decoupled-demo/`
-- **Approach-Specific Guides**:
-  - `ai-testing-template/CLAUDE.md`
-  - `decoupled-testing-suite/CLAUDE.md`
-- **Implementation Details**:
-  - `shared/examples/adapter-usage.js` - Adapter pattern examples
-  - `MVP_COMPLETION_PLAN.md` - Detailed implementation checklist
+### Active Development
+**Phase 6 COMPLETED**: Incremental Testing & Git Integration - Full state management and smart change detection
+
+📖 **See roadmap**: [`/docs/planning/roadmap.md`](./docs/planning/roadmap.md)
+📖 **See AI integration plan**: [`AI_POWERED_TEST_GENERATION_PLAN.md`](./AI_POWERED_TEST_GENERATION_PLAN.md)
+
+### Completed Phases (2025-06-28)
+- ✅ **Phase 1-4**: Foundation → Analysis → Generation → Execution → Coverage complete
+- ✅ **Phase 5.1-5.3**: Gap Analysis → Report Generation → AI Integration complete
+- ✅ **Phase 6**: Incremental Testing & Git Integration complete
+- ✅ **Coverage Reporter System**: Multi-format reporting with gap analysis
+- ✅ **AI Infrastructure**: Complete AI task preparation and Claude orchestration
+- ✅ **Production CLI**: Enhanced with AI commands (`generate-logical`, `test-ai`, `incremental`)
+- ✅ **State Management**: Complete `.claude-testing/` directory with manifest and history tracking
+
+### Next Priorities
+- **✅ RESOLVED**: TypeScript compilation errors fixed - build process operational
+- **✅ COMPLETED**: Phase 6 - Incremental Testing & Git Integration
+- **🔄 Current**: Phase 7+ - Advanced Features (dependency analysis, multi-project support)
+- **Enhanced Templates**: Framework-specific test patterns and best practices
+- **Performance Optimization**: Large codebase handling and caching mechanisms
+
+## 💡 AI Agent Guidelines
+
+### Essential Workflow
+1. Read this PROJECT_CONTEXT.md first
+2. Check relevant `/docs/` modules for detailed information
+3. Follow established patterns and conventions
+4. Update documentation after changes
+
+### Quick Reference
+- **Main entry point**: [`CLAUDE.md`](./CLAUDE.md) - Complete AI agent guide
+- **Architecture**: Language Adapter Pattern with decoupled external testing
+- **Core commands**: `analyze → test → run → analyze-gaps → incremental` workflow
+- **Key constraint**: Never modify target projects, all tests external
+
+### Quick Success Example
+```bash
+# Build the infrastructure
+npm install && npm run build
+
+# Complete workflow with any project
+npx claude-testing analyze /path/to/project     # Detect languages/frameworks
+npx claude-testing test /path/to/project        # Generate comprehensive tests
+npx claude-testing run /path/to/project --coverage  # Execute with coverage
+npx claude-testing analyze-gaps /path/to/project    # Identify gaps for AI generation
+
+# Incremental updates (after initial setup)
+npx claude-testing incremental /path/to/project # Smart updates based on Git changes
+npx claude-testing incremental /path/to/project --stats # View update statistics
+```
+
+## 📋 Documentation Structure Reference
+
+### Core Navigation
+- **📖 Architecture**: [`/docs/architecture/`](./docs/architecture/) - System design and technical decisions
+- **📖 Development**: [`/docs/development/`](./docs/development/) - Conventions, workflow, and gotchas
+- **📖 Features**: [`/docs/features/`](./docs/features/) - Detailed component documentation
+- **📖 Planning**: [`/docs/planning/`](./docs/planning/) - Roadmap and implementation plans
+- **📖 User Guides**: [`/docs/user/`](./docs/user/) - Getting started and troubleshooting
+- **📖 API Reference**: [`/docs/api/`](./docs/api/) - TypeScript interfaces and programmatic usage
+- **📖 AI Agent Guides**: [`/docs/ai-agents/`](./docs/ai-agents/) - Specialized guidance for AI agents
+
+### Essential Reading Order
+1. **This file** (PROJECT_CONTEXT.md) - Overview and navigation
+2. **[`CLAUDE.md`](./CLAUDE.md)** - AI agent entry point and usage guide  
+3. **[`/docs/architecture/overview.md`](./docs/architecture/overview.md)** - System architecture
+4. **[`/docs/development/workflow.md`](./docs/development/workflow.md)** - Development practices
+
+---
+
+**Version**: 2.0.0 | **Architecture**: Decoupled-only | **AI**: Claude-powered | **Status**: Production Ready

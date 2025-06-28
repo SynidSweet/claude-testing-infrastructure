@@ -68,8 +68,6 @@ temp/
 *.tmp
 *.temp
 
-# Archive (from migration)
-archive/
 
 # OS files
 Thumbs.db

@@ -1,0 +1,198 @@
+{
+  "$schema": "https://claude-testing-infrastructure.schema.json/gap-analysis/v1",
+  "metadata": {
+    "version": "1.0.0",
+    "generatedAt": "2025-06-28T16:35:38.702Z",
+    "projectPath": "/code/personal/claude-testing/test-examples/react-demo",
+    "duration": 65
+  },
+  "summary": {
+    "totalFiles": 2,
+    "filesWithTests": 2,
+    "filesNeedingLogicalTests": 2,
+    "totalGaps": 14,
+    "overallAssessment": "poor",
+    "priorityDistribution": {
+      "high": 1,
+      "medium": 1,
+      "critical": 0,
+      "low": 0
+    }
+  },
+  "cost": {
+    "numberOfTasks": 14,
+    "estimatedTokens": 17920,
+    "estimatedCostUSD": 0.1792,
+    "complexityDistribution": {
+      "low": 4,
+      "medium": 6,
+      "high": 4
+    }
+  },
+  "recommendations": {
+    "immediate": [],
+    "shortTerm": [
+      "Focus on 1 high-priority files with business logic gaps",
+      "Generate 6 logical tests for business logic validation",
+      "Create 4 integration tests for external dependencies"
+    ],
+    "longTerm": []
+  },
+  "gaps": [
+    {
+      "sourceFile": "/code/personal/claude-testing/test-examples/react-demo/src/components/UserProfile.jsx",
+      "testFile": "/code/personal/claude-testing/test-examples/react-demo/.claude-testing/src/components/UserProfile.component.test.js",
+      "priority": "high",
+      "complexity": 7,
+      "gapCount": 7,
+      "framework": "react",
+      "language": "javascript",
+      "gaps": [
+        {
+          "type": "business-logic",
+          "description": "Complex conditional logic not thoroughly tested",
+          "priority": "high",
+          "estimatedEffort": "medium"
+        },
+        {
+          "type": "business-logic",
+          "description": "Async operations may need error handling tests",
+          "priority": "high",
+          "estimatedEffort": "medium"
+        },
+        {
+          "type": "business-logic",
+          "description": "Data transformation logic needs validation",
+          "priority": "high",
+          "estimatedEffort": "medium"
+        },
+        {
+          "type": "edge-case",
+          "description": "Error handling scenarios need testing",
+          "priority": "medium",
+          "estimatedEffort": "low"
+        },
+        {
+          "type": "edge-case",
+          "description": "Boundary conditions (empty arrays, null values) need testing",
+          "priority": "medium",
+          "estimatedEffort": "low"
+        },
+        {
+          "type": "integration",
+          "description": "External dependencies need integration testing",
+          "priority": "high",
+          "estimatedEffort": "high"
+        },
+        {
+          "type": "integration",
+          "description": "API integration points need testing",
+          "priority": "high",
+          "estimatedEffort": "high"
+        }
+      ],
+      "context": {
+        "dependencies": [
+          "react"
+        ],
+        "codeSnippets": [
+          {
+            "name": "UserProfile",
+            "complexity": {
+              "hasAsync": false,
+              "hasConditionals": false,
+              "hasLoops": false,
+              "hasErrorHandling": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sourceFile": "/code/personal/claude-testing/test-examples/react-demo/src/utils/validation.js",
+      "testFile": "/code/personal/claude-testing/test-examples/react-demo/.claude-testing/src/utils/validation.unit.test.js",
+      "priority": "medium",
+      "complexity": 4,
+      "gapCount": 7,
+      "framework": "unknown",
+      "language": "javascript",
+      "gaps": [
+        {
+          "type": "business-logic",
+          "description": "Complex conditional logic not thoroughly tested",
+          "priority": "high",
+          "estimatedEffort": "medium"
+        },
+        {
+          "type": "business-logic",
+          "description": "Async operations may need error handling tests",
+          "priority": "high",
+          "estimatedEffort": "medium"
+        },
+        {
+          "type": "business-logic",
+          "description": "Data transformation logic needs validation",
+          "priority": "high",
+          "estimatedEffort": "medium"
+        },
+        {
+          "type": "edge-case",
+          "description": "Error handling scenarios need testing",
+          "priority": "medium",
+          "estimatedEffort": "low"
+        },
+        {
+          "type": "edge-case",
+          "description": "Boundary conditions (empty arrays, null values) need testing",
+          "priority": "medium",
+          "estimatedEffort": "low"
+        },
+        {
+          "type": "integration",
+          "description": "External dependencies need integration testing",
+          "priority": "high",
+          "estimatedEffort": "high"
+        },
+        {
+          "type": "integration",
+          "description": "API integration points need testing",
+          "priority": "high",
+          "estimatedEffort": "high"
+        }
+      ],
+      "context": {
+        "dependencies": [],
+        "codeSnippets": [
+          {
+            "name": "validateEmail",
+            "complexity": {
+              "hasAsync": false,
+              "hasConditionals": false,
+              "hasLoops": false,
+              "hasErrorHandling": false
+            }
+          },
+          {
+            "name": "validateAge",
+            "complexity": {
+              "hasAsync": false,
+              "hasConditionals": true,
+              "hasLoops": false,
+              "hasErrorHandling": false
+            }
+          },
+          {
+            "name": "sanitizeInput",
+            "complexity": {
+              "hasAsync": false,
+              "hasConditionals": true,
+              "hasLoops": false,
+              "hasErrorHandling": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "insights": []
+}
