@@ -3,6 +3,9 @@ import path from 'path';
 import { CoverageData, FileCoverage, UncoveredArea } from './CoverageParser';
 import { AggregatedCoverageData } from './CoverageAggregator';
 import { logger } from '../utils/logger';
+import { HtmlTemplateEngine } from './templates/HtmlTemplateEngine';
+import { MarkdownTemplateEngine } from './templates/MarkdownTemplateEngine';
+import { XmlTemplateEngine } from './templates/XmlTemplateEngine';
 
 /**
  * Coverage report configuration
@@ -71,6 +74,9 @@ export interface CoverageSuggestion {
  */
 export class CoverageVisualizer {
   private config: CoverageReportConfig;
+  private htmlTemplateEngine: HtmlTemplateEngine;
+  private markdownTemplateEngine: MarkdownTemplateEngine;
+  private xmlTemplateEngine: XmlTemplateEngine;
 
   constructor(config: Partial<CoverageReportConfig> = {}) {
     this.config = {
@@ -82,6 +88,9 @@ export class CoverageVisualizer {
       poorCoverageThreshold: 50,
       ...config
     };
+    this.htmlTemplateEngine = new HtmlTemplateEngine();
+    this.markdownTemplateEngine = new MarkdownTemplateEngine();
+    this.xmlTemplateEngine = new XmlTemplateEngine();
   }
 
   /**
@@ -242,115 +251,20 @@ export class CoverageVisualizer {
   private async generateHtmlReport(data: CoverageData | AggregatedCoverageData, filePath: string): Promise<void> {
     const gaps = this.analyzeGaps(data);
     
-    const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coverage Report - ${this.config.projectName || 'Project'}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .metric { background: white; border: 1px solid #ddd; padding: 15px; border-radius: 5px; text-align: center; }
-        .metric-value { font-size: 24px; font-weight: bold; }
-        .good { color: #28a745; }
-        .warning { color: #ffc107; }
-        .poor { color: #dc3545; }
-        .file-list { margin-top: 20px; }
-        .file-item { background: #f9f9f9; margin: 5px 0; padding: 10px; border-radius: 3px; }
-        .uncovered-area { background: #fff3cd; border-left: 4px solid #ffc107; padding: 8px; margin: 2px 0; }
-        .suggestion { background: #d1ecf1; border-left: 4px solid #bee5eb; padding: 8px; margin: 2px 0; }
-        .progress-bar { width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #dc3545 0%, #ffc107 50%, #28a745 100%); }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Coverage Report</h1>
-        <p>Generated on: ${new Date().toLocaleString()}</p>
-        ${this.config.projectName ? `<p>Project: ${this.config.projectName}</p>` : ''}
-    </div>
-
-    <div class="summary">
-        <div class="metric">
-            <div class="metric-value ${this.getCoverageClass(data.summary.statements)}">
-                ${data.summary.statements.toFixed(1)}%
-            </div>
-            <div>Statements</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${data.summary.statements}%"></div>
-            </div>
-        </div>
-        <div class="metric">
-            <div class="metric-value ${this.getCoverageClass(data.summary.branches)}">
-                ${data.summary.branches.toFixed(1)}%
-            </div>
-            <div>Branches</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${data.summary.branches}%"></div>
-            </div>
-        </div>
-        <div class="metric">
-            <div class="metric-value ${this.getCoverageClass(data.summary.functions)}">
-                ${data.summary.functions.toFixed(1)}%
-            </div>
-            <div>Functions</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${data.summary.functions}%"></div>
-            </div>
-        </div>
-        <div class="metric">
-            <div class="metric-value ${this.getCoverageClass(data.summary.lines)}">
-                ${data.summary.lines.toFixed(1)}%
-            </div>
-            <div>Lines</div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${data.summary.lines}%"></div>
-            </div>
-        </div>
-    </div>
-
-    <h2>File Coverage</h2>
-    <div class="file-list">
-        ${Object.entries(data.files).map(([file, coverage]) => `
-            <div class="file-item">
-                <h3>${file}</h3>
-                <p>Lines: ${coverage.summary.lines.toFixed(1)}% | 
-                   Statements: ${coverage.summary.statements.toFixed(1)}% | 
-                   Branches: ${coverage.summary.branches.toFixed(1)}% | 
-                   Functions: ${coverage.summary.functions.toFixed(1)}%</p>
-                ${coverage.uncoveredLines.length > 0 ? 
-                  `<p><strong>Uncovered lines:</strong> ${coverage.uncoveredLines.join(', ')}</p>` : 
-                  ''}
-            </div>
-        `).join('')}
-    </div>
-
-    ${gaps.suggestions.length > 0 ? `
-    <h2>Coverage Improvement Suggestions</h2>
-    ${gaps.suggestions.map(suggestion => `
-        <div class="suggestion">
-            <strong>${suggestion.target}</strong> in ${suggestion.file}<br>
-            ${suggestion.description}<br>
-            <small>Priority: ${suggestion.priority}/10 | Effort: ${suggestion.effort}</small>
-        </div>
-    `).join('')}
-    ` : ''}
-
-    ${data.uncoveredAreas.length > 0 ? `
-    <h2>Uncovered Areas</h2>
-    ${data.uncoveredAreas.map(area => `
-        <div class="uncovered-area">
-            <strong>${area.type}</strong> in ${area.file}:${area.line}<br>
-            ${area.description}
-        </div>
-    `).join('')}
-    ` : ''}
-</body>
-</html>`;
-
+    // Load the HTML template
+    const template = await this.htmlTemplateEngine.loadTemplate('coverage-report');
+    
+    // Prepare template data
+    const templateData = this.htmlTemplateEngine.prepareTemplateData(
+      data,
+      gaps,
+      this.config.projectName
+    );
+    
+    // Render the template
+    const html = this.htmlTemplateEngine.render(template, templateData);
+    
+    // Write the rendered HTML to file
     await fs.writeFile(filePath, html, 'utf8');
   }
 
@@ -375,51 +289,18 @@ export class CoverageVisualizer {
   private async generateMarkdownReport(data: CoverageData | AggregatedCoverageData, filePath: string): Promise<void> {
     const gaps = this.analyzeGaps(data);
     
-    const lines = [
-      `# Coverage Report${this.config.projectName ? ` - ${this.config.projectName}` : ''}`,
-      '',
-      `Generated on: ${new Date().toLocaleString()}`,
-      '',
-      '## Summary',
-      '',
-      '| Metric | Coverage |',
-      '|--------|----------|',
-      `| Statements | ${this.formatPercentage(data.summary.statements)} |`,
-      `| Branches | ${this.formatPercentage(data.summary.branches)} |`,
-      `| Functions | ${this.formatPercentage(data.summary.functions)} |`,
-      `| Lines | ${this.formatPercentage(data.summary.lines)} |`,
-      '',
-    ];
-
-    if (data.thresholds) {
-      lines.push(`**Meets Thresholds:** ${data.meetsThreshold ? '✅ Yes' : '❌ No'}`);
-      lines.push('');
-    }
-
-    if (Object.keys(data.files).length > 0) {
-      lines.push('## File Coverage');
-      lines.push('');
-      lines.push('| File | Lines | Statements | Branches | Functions |');
-      lines.push('|------|-------|------------|----------|-----------|');
-      
-      Object.entries(data.files).forEach(([file, coverage]) => {
-        lines.push(`| ${file} | ${coverage.summary.lines.toFixed(1)}% | ${coverage.summary.statements.toFixed(1)}% | ${coverage.summary.branches.toFixed(1)}% | ${coverage.summary.functions.toFixed(1)}% |`);
-      });
-      lines.push('');
-    }
-
-    if (gaps.suggestions.length > 0) {
-      lines.push('## Improvement Suggestions');
-      lines.push('');
-      gaps.suggestions.forEach((suggestion, i) => {
-        lines.push(`${i + 1}. **${suggestion.target}** in \`${suggestion.file}\``);
-        lines.push(`   - ${suggestion.description}`);
-        lines.push(`   - Priority: ${suggestion.priority}/10 | Effort: ${suggestion.effort}`);
-        lines.push('');
-      });
-    }
-
-    await fs.writeFile(filePath, lines.join('\n'), 'utf8');
+    // Prepare template data
+    const templateData = this.markdownTemplateEngine.prepareTemplateData(
+      data,
+      gaps,
+      this.config.projectName
+    );
+    
+    // Render the markdown
+    const markdown = this.markdownTemplateEngine.render(templateData);
+    
+    // Write the rendered markdown to file
+    await fs.writeFile(filePath, markdown, 'utf8');
   }
 
   private async generateTextReport(data: CoverageData | AggregatedCoverageData, filePath: string): Promise<void> {
@@ -428,45 +309,18 @@ export class CoverageVisualizer {
   }
 
   private async generateXmlReport(data: CoverageData | AggregatedCoverageData, filePath: string): Promise<void> {
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<coverage timestamp="${new Date().toISOString()}">
-    <summary>
-        <statements>${data.summary.statements}</statements>
-        <branches>${data.summary.branches}</branches>
-        <functions>${data.summary.functions}</functions>
-        <lines>${data.summary.lines}</lines>
-    </summary>
-    <files>
-        ${Object.entries(data.files).map(([file, coverage]) => `
-        <file path="${file}">
-            <summary>
-                <statements>${coverage.summary.statements}</statements>
-                <branches>${coverage.summary.branches}</branches>
-                <functions>${coverage.summary.functions}</functions>
-                <lines>${coverage.summary.lines}</lines>
-            </summary>
-            <uncovered_lines>${coverage.uncoveredLines.join(',')}</uncovered_lines>
-        </file>`).join('')}
-    </files>
-    <uncovered_areas>
-        ${data.uncoveredAreas.map(area => `
-        <area file="${area.file}" line="${area.line}" type="${area.type}">
-            ${area.description}
-        </area>`).join('')}
-    </uncovered_areas>
-</coverage>`;
-
+    // Prepare template data
+    const templateData = this.xmlTemplateEngine.prepareTemplateData(data);
+    
+    // Render the XML
+    const xml = this.xmlTemplateEngine.render(templateData);
+    
+    // Write the rendered XML to file
     await fs.writeFile(filePath, xml, 'utf8');
   }
 
   private formatPercentage(value: number): string {
     return `${value.toFixed(1)}%`;
-  }
-
-  private getCoverageClass(value: number): string {
-    if (value >= this.config.goodCoverageThreshold) return 'good';
-    if (value >= this.config.poorCoverageThreshold) return 'warning';
-    return 'poor';
   }
 
   private identifyHighPriorityGaps(gaps: UncoveredArea[], files: Record<string, FileCoverage>): UncoveredArea[] {

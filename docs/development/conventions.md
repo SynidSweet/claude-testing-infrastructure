@@ -43,6 +43,12 @@ src/
 - **Test generation**: Structural vs AI-powered logical generation
 - **Benefits**: Flexible approaches, easy to extend
 
+### Template Method Pattern
+- **Purpose**: Separate report content from presentation logic
+- **Implementation**: External HTML/Markdown templates with template engine
+- **Example**: `CoverageVisualizer` using `HtmlTemplateEngine` for report generation
+- **Benefits**: Reduces method complexity, improves maintainability, easier to customize
+
 ## Error Handling Approach
 ### Graceful Degradation
 ```typescript
