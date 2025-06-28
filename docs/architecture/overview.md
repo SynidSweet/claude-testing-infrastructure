@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-06-28 | Production-ready v2.0 with clean decoupled-only architecture*
+*Last updated: 2025-06-28 | Updated by: /document command | Template Method pattern implementation complete*
 
 ## Architecture Summary
 
@@ -370,6 +370,23 @@ Generated Tests → Runner Selection → Test Execution → Coverage Processing 
 - **JUnit XML**: CI/CD integration reports
 - **Error Handling**: Graceful degradation and detailed error reporting
 - **CLI Integration**: Complete `run` command with enhanced coverage options
+
+### Template Method Pattern Implementation (Session 2 Complete)
+
+The Coverage Reporter system now uses the Template Method pattern for report generation:
+
+1. **HtmlTemplateEngine**: Renders external HTML templates with variable substitution
+2. **MarkdownTemplateEngine**: Generates structured Markdown reports
+3. **XmlTemplateEngine**: Creates JUnit-compatible XML reports
+
+Benefits achieved:
+- Reduced `generateHtmlReport` from 137 lines to 16 lines (88% reduction)
+- Reduced `generateMarkdownReport` from 48 lines to 14 lines (71% reduction)
+- Reduced `generateXmlReport` from 30 lines to 9 lines (70% reduction)
+- Separation of content (templates) from logic (engines)
+- Easy customization without code modification
+
+Template engines location: `/src/runners/templates/`
 
 ### AI-Powered Enhancement (Phase 5 - COMPLETE)
 

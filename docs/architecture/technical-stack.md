@@ -1,5 +1,7 @@
 # Technical Stack
 
+*Last updated: 2025-06-28 | Updated by: /document command | Added template engines*
+
 ## Technology Foundation
 - **Primary language(s)**: TypeScript (compiled to Node.js 18+), JavaScript ES6+, Python 3.9+
 - **Framework(s)**: Core Node.js with framework-specific adapters (React, Vue, Express, FastAPI, Flask, Django)
@@ -11,6 +13,7 @@
   - **Validation**: ajv (JSON validation), ajv-formats (format validation), zod (TypeScript validation)
   - **Testing Infrastructure**: jest (internal testing), jest/vitest (JS testing), pytest (Python testing)
   - **Configuration**: cosmiconfig (flexible configuration loading), winston (logging)
+  - **Coverage System**: istanbul/nyc (JS coverage), coverage.py (Python coverage), custom template engines
 - **Infrastructure**: Standalone TypeScript repositories with Git-based distribution, CI/CD templates for GitHub Actions
 
 ## System Architecture
@@ -45,6 +48,11 @@ claude-testing/
 │   │       └── watch.ts        # Watch mode command (placeholder)
 │   ├── generators/             # Test generation engine (future)
 │   ├── runners/                # Test execution engine (future)
+│   │   └── templates/          # ⭐ NEW: Template engines for report generation
+│   │       ├── HtmlTemplateEngine.ts      # HTML report generator
+│   │       ├── MarkdownTemplateEngine.ts  # Markdown report generator
+│   │       ├── XmlTemplateEngine.ts       # XML report generator
+│   │       └── coverage-report.html       # External HTML template
 │   ├── adapters/               # Language adapters (future)
 │   └── utils/                  # Shared utilities
 │       └── logger.ts          # Winston-based logging
