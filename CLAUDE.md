@@ -1,174 +1,205 @@
-# AI Agent Guide - START HERE
+# Claude Testing Infrastructure v2.0 - AI Agent Guide
 
 **🤖 AI AGENTS: This is your ONLY entry point. Read this file completely before starting any work.**
 
-## 📍 Important: Which File to Read
+## 🚨 Major Update: Single Decoupled Approach
 
-- **READ THIS FILE**: `/CLAUDE.md` (you're reading it now!)
-- **IGNORE**: Other CLAUDE.md files in subdirectories - they're implementation details
-- **THIS IS THE SINGLE SOURCE OF TRUTH** for AI agents using this infrastructure
+This infrastructure has been completely redesigned as a **single, focused solution** that:
+- Never modifies target projects
+- Generates comprehensive tests externally
+- Uses AI for intelligent test generation
+- Updates via simple `git pull`
 
-## 🚀 How to Use This Infrastructure (Complete Instructions)
+## 🚀 How to Use This Infrastructure
 
-### Step 1: Clone this infrastructure into your project
+### Step 1: Clone this infrastructure
 ```bash
-# From your project root directory:
+# Clone it anywhere - it works independently
 git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
+cd claude-testing-infrastructure
 ```
 
-### Step 2: Choose your approach based on your needs
-
-#### Option A: Template-Based (Copies tests INTO your project)
+### Step 2: Install and build
 ```bash
-cd claude-testing-infrastructure/ai-testing-template
 npm install
-npm run init:auto  # Fully automated - no prompts!
+npm run build
 ```
 
-#### Option B: Decoupled (Tests OUTSIDE your project)
+### Step 3: Analyze your target project
 ```bash
-cd claude-testing-infrastructure/decoupled-testing-suite
-npm install
-npm run discover  # Analyzes without modifying your project
+# Basic analysis
+npx claude-testing analyze /path/to/your/project
+
+# With output file
+npx claude-testing analyze /path/to/your/project --output analysis.json
 ```
 
-### Step 3: Verify it worked
+### Step 4: Generate tests
 ```bash
-# For template-based:
-npm test
+# Generate all tests (structural + AI-powered logical)
+npx claude-testing test /path/to/your/project
 
-# For decoupled:
-npm run test:target
+# Only structural tests (no AI required)
+npx claude-testing test /path/to/your/project --only-structural
+
+# Only logical tests (requires Claude)
+npx claude-testing test /path/to/your/project --only-logical
+
+# With custom config
+npx claude-testing test /path/to/your/project --config my-config.json
 ```
 
-**That's it! Everything is automated. No user interaction required.**
-
-## 📊 When to Use Each Approach
-
-| Scenario | Use Template-Based | Use Decoupled |
-|----------|-------------------|---------------|
-| New project | ✅ | ❌ |
-| Existing project with no tests | ✅ | ✅ |
-| Existing project with tests | ❌ | ✅ |
-| Need to modify project structure | ✅ | ❌ |
-| Strict no-modification policy | ❌ | ✅ |
-| Want tests inside project | ✅ | ❌ |
-| Want tests outside project | ❌ | ✅ |
-
-## 🎯 Common Commands (All Non-Interactive!)
-
-### Template-Based Commands
+### Step 5: Watch mode (for development)
 ```bash
-# Automated setup with smart defaults
-npm run init:auto
-
-# Preset configurations
-npm run init:minimal       # Basic unit tests only
-npm run init:recommended   # Unit + integration tests (most common)
-npm run init:comprehensive # Full testing pyramid
-
-# Preview without making changes
-npm run preview
+# Auto-update tests as code changes
+npx claude-testing watch /path/to/your/project
 ```
 
-### Decoupled Commands
+## 📊 Key Features
+
+### AI-Powered Test Generation
+- Analyzes code structure and intent
+- Generates meaningful test cases
+- Handles edge cases automatically
+- Creates both unit and integration tests
+
+### Incremental Updates
+- Detects code changes via Git
+- Only regenerates affected tests
+- Maintains test history
+- Cost-efficient AI usage
+
+### Zero Project Modification
+- All tests stored externally
+- No changes to target codebase
+- Clean separation of concerns
+- Easy to update infrastructure
+
+### Multi-Language Support
+- JavaScript/TypeScript (React, Vue, Angular, Node.js)
+- Python (FastAPI, Flask, Django)
+- Automatic framework detection
+- Language-specific best practices
+
+## 🎯 Common Usage Patterns
+
+### New Project Setup
 ```bash
-# Discover and analyze project
-npm run discover
+# Analyze and generate initial test suite
+npx claude-testing test /path/to/new/project
 
-# Run tests against target
-npm run test:target
-
-# Update test configuration
-npm run update:config
+# Set up watch mode for ongoing development
+npx claude-testing watch /path/to/new/project
 ```
 
-### Custom Configuration
+### Existing Project Enhancement
 ```bash
-# Override specific aspects while keeping automation
-npm run init:auto -- --frameworks "jest,playwright" --ci github --structure separate
+# Analyze current test coverage
+npx claude-testing analyze /path/to/project --format markdown
 
-# Available flags:
-# --frameworks: jest,vitest,playwright,cypress,pytest
-# --ci: github,gitlab,circle,none
-# --structure: separate,colocated,both
-# --features: coverage,visual,performance,a11y,database
-# --dry-run: Preview without changes
+# Generate missing tests
+npx claude-testing test /path/to/project --update
 ```
 
-## 💡 Confidence Scoring
+### CI/CD Integration
+```yaml
+# In your GitHub Actions workflow
+- name: Generate Tests
+  run: |
+    npx claude-testing test . --only-structural
+    npx claude-testing test . --coverage
+```
 
-The automated system includes intelligent confidence scoring:
+## 🔧 Configuration
 
-- **High Confidence (>80%)**: Clear project structure, recognized frameworks
-  - Example: React app with package.json, clear dependencies
-  - Action: Applies full recommended setup automatically
+Create `.claude-testing.config.json` in your project root:
 
-- **Medium Confidence (50-80%)**: Partial detection, some ambiguity
-  - Example: Mixed signals, unclear project structure
-  - Action: Applies conservative defaults, focuses on basics
+```json
+{
+  "include": ["src/**/*.{js,ts,jsx,tsx,py}"],
+  "exclude": ["**/*.test.*", "**/*.spec.*"],
+  "testFramework": "jest",
+  "aiModel": "claude-3",
+  "features": {
+    "coverage": true,
+    "edgeCases": true,
+    "integrationTests": true
+  }
+}
+```
 
-- **Low Confidence (<50%)**: Minimal information available
-  - Example: Empty project, no clear indicators
-  - Action: Applies minimal setup, just essentials
+## 💡 How It Works
 
-## 🔧 Supported Technologies
+1. **Analysis Phase**
+   - Scans project structure
+   - Detects languages and frameworks
+   - Identifies testable components
+   - Creates dependency graph
 
-### JavaScript/TypeScript
-- **Frameworks**: React, Vue, Angular, Next.js, Express, Fastify, NestJS
-- **Test Runners**: Jest, Vitest, Mocha
-- **E2E**: Playwright, Cypress
-- **Tools**: ESLint, Prettier, TypeScript
+2. **Generation Phase**
+   - Creates structural tests (immediate)
+   - Queues AI tasks for logical tests
+   - Optimizes for batch processing
+   - Manages token usage
 
-### Python
-- **Frameworks**: FastAPI, Flask, Django
-- **Test Runners**: pytest, unittest
-- **Tools**: Black, isort, mypy, coverage.py
+3. **Execution Phase**
+   - Runs generated tests
+   - Collects coverage data
+   - Identifies gaps
+   - Suggests improvements
+
+4. **Incremental Updates**
+   - Monitors file changes
+   - Analyzes Git diffs
+   - Updates only affected tests
+   - Maintains consistency
 
 ## 🚨 Important Notes
 
 1. **This is infrastructure** - Clone and use, don't modify
-2. **Everything is automated** - No prompts or user interaction
-3. **Pull updates regularly** - `git pull origin main` for latest features
-4. **Report issues** - Create GitHub issues, mention `@claude` for AI assistance
+2. **AI features require Claude API** - Set ANTHROPIC_API_KEY
+3. **Tests are stored in `.claude-testing/`** - Add to .gitignore
+4. **Pull updates regularly** - `git pull origin main`
 
-## ❓ Quick Troubleshooting
+## ❓ Troubleshooting
 
 ### "Command not found"
 ```bash
-# Make sure you're in the right directory
-cd claude-testing-infrastructure/ai-testing-template
-# or
-cd claude-testing-infrastructure/decoupled-testing-suite
+# Ensure you're in the infrastructure directory
+cd claude-testing-infrastructure
 
-# Install dependencies
-npm install
+# Rebuild if needed
+npm run build
 ```
 
-### "No tests found"
+### "No tests generated"
 ```bash
-# For template-based, ensure init completed
-npm run init:auto
+# Check analysis results first
+npx claude-testing analyze /path/to/project
 
-# For decoupled, ensure discovery ran
-npm run discover
+# Verify file patterns in config
+cat .claude-testing.config.json
 ```
 
-### "Permission denied"
+### "AI tests not generating"
 ```bash
-# Fix permissions
-chmod +x scripts/*.js
+# Check API key
+echo $ANTHROPIC_API_KEY
+
+# Try structural tests only
+npx claude-testing test /path/to/project --only-structural
 ```
 
 ## 🎯 Summary for AI Agents
 
-1. **Clone** the infrastructure into your project
-2. **Choose** template-based (modifies project) or decoupled (external tests)
-3. **Run** the automated commands - no interaction needed
-4. **Test** to verify everything works
+1. **Clone** the infrastructure (don't modify target projects)
+2. **Analyze** to understand the codebase
+3. **Generate** comprehensive tests with AI assistance
+4. **Watch** for changes during development
+5. **Update** infrastructure with git pull
 
-All commands are fully automated. No prompts. No user interaction. Just run and go.
+All commands work externally - no project modification required.
 
 ---
 
-**Remember**: When instructed to "set up testing", this is the infrastructure to use. Always start by reading this file.
+**Version**: 2.0.0 | **Architecture**: Decoupled-only | **AI**: Claude-powered
