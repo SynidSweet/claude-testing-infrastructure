@@ -1,0 +1,253 @@
+name: Auto-Generate Tests with Claude
+
+on:
+  push:
+    paths:
+      - 'src/**/*.js'
+      - 'src/**/*.ts'
+      - 'src/**/*.py'
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      target_path:
+        description: 'Path to generate tests for (file or directory)'
+        required: false
+        default: 'src/'
+
+jobs:
+  generate-tests:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit for diff
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+      
+      - name: Set up Claude API key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Claude Code uses the API key from environment
+          echo "Claude API key configured"
+      
+      - name: Detect changed files
+        id: changed-files
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Get changed files from the push
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E '\.(js|ts|jsx|tsx|py)$' | grep -v test || true)
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Get changed files from PR
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(js|ts|jsx|tsx|py)$' | grep -v test || true)
+          else
+            # Manual trigger - use input or default
+            CHANGED_FILES="${{ github.event.inputs.target_path }}"
+          fi
+          
+          # Save to output
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Count files
+          FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
+          echo "count=$FILE_COUNT" >> $GITHUB_OUTPUT
+      
+      - name: Generate tests for changed files
+        if: steps.changed-files.outputs.count > 0
+        run: |
+          # Create a script to generate tests
+          cat > generate-tests.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          FILES="${{ steps.changed-files.outputs.files }}"
+          GENERATED_COUNT=0
+          FAILED_COUNT=0
+          
+          echo "Processing files:"
+          echo "$FILES"
+          
+          # Process each file
+          while IFS= read -r file; do
+            if [ -z "$file" ]; then
+              continue
+            fi
+            
+            echo "Generating test for: $file"
+            
+            # Determine test file name
+            if [[ "$file" == *.py ]]; then
+              TEST_FILE="${file%.py}_test.py"
+            else
+              TEST_FILE="${file%.*}.test.${file##*.}"
+            fi
+            
+            # Skip if test already exists
+            if [ -f "$TEST_FILE" ]; then
+              echo "Test already exists: $TEST_FILE"
+              continue
+            fi
+            
+            # Generate test using Claude
+            if claude -p "Generate comprehensive tests for this code. Use appropriate testing framework (Jest for JS/TS, pytest for Python). Include edge cases and error handling: $(cat "$file")" --output-format json > temp_result.json; then
+              # Extract test code from JSON
+              TEST_CODE=$(jq -r '.result' temp_result.json)
+              
+              # Save test file
+              echo "$TEST_CODE" > "$TEST_FILE"
+              echo "✓ Generated: $TEST_FILE"
+              ((GENERATED_COUNT++))
+              
+              # Add to git
+              git add "$TEST_FILE"
+            else
+              echo "✗ Failed to generate test for: $file"
+              ((FAILED_COUNT++))
+            fi
+            
+            # Clean up
+            rm -f temp_result.json
+            
+            # Rate limiting
+            sleep 2
+          done <<< "$FILES"
+          
+          echo ""
+          echo "Summary:"
+          echo "  Generated: $GENERATED_COUNT tests"
+          echo "  Failed: $FAILED_COUNT"
+          
+          # Save summary for later steps
+          echo "generated=$GENERATED_COUNT" >> $GITHUB_ENV
+          echo "failed=$FAILED_COUNT" >> $GITHUB_ENV
+          EOF
+          
+          chmod +x generate-tests.sh
+          ./generate-tests.sh
+      
+      - name: Run generated tests
+        if: env.generated > 0
+        continue-on-error: true
+        run: |
+          echo "Running generated tests..."
+          
+          # Run JavaScript/TypeScript tests if npm is configured
+          if [ -f "package.json" ]; then
+            npm test || true
+          fi
+          
+          # Run Python tests if pytest is available
+          if command -v pytest &> /dev/null; then
+            pytest --tb=short || true
+          fi
+      
+      - name: Commit generated tests
+        if: env.generated > 0 && github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          if git diff --staged --quiet; then
+            echo "No tests to commit"
+          else
+            git commit -m "Auto-generate tests for recent changes
+            
+            Generated ${{ env.generated }} test file(s) using Claude Code
+            
+            Co-authored-by: Claude <claude@anthropic.com>"
+            
+            git push
+          fi
+      
+      - name: Create PR comment
+        if: env.generated > 0 && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const generated = process.env.generated;
+            const failed = process.env.failed;
+            
+            const comment = `## 🤖 Auto-Generated Tests
+            
+            Claude has generated ${generated} test file(s) for the changes in this PR.
+            ${failed > 0 ? `\n⚠️ Failed to generate ${failed} test(s).` : ''}
+            
+            ### Next Steps:
+            1. Review the generated tests
+            2. Run them locally with \`npm test\` or \`pytest\`
+            3. Modify as needed to match your testing standards
+            4. Commit the tests to include them in this PR
+            
+            <details>
+            <summary>How to run the tests locally</summary>
+            
+            \`\`\`bash
+            # For JavaScript/TypeScript
+            npm test
+            
+            # For Python
+            pytest
+            \`\`\`
+            </details>`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      - name: Upload test generation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-generation-report
+          path: |
+            generate-tests.sh
+            **/temp_result.json
+          retention-days: 7
+
+  # Optional: Create issue if test generation fails
+  create-issue-on-failure:
+    runs-on: ubuntu-latest
+    needs: generate-tests
+    if: failure()
+    
+    steps:
+      - name: Create issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Test Generation Failed';
+            const body = `The automated test generation workflow failed.
+            
+            **Workflow Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+            **Triggered by:** ${context.eventName}
+            **Commit:** ${context.sha}
+            
+            Please check the workflow logs for details.`;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['bug', 'automated-testing']
+            });

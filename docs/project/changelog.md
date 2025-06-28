@@ -1,6 +1,28 @@
 # Changelog
 
+*Last updated: 2025-06-27*
+
 ## Recent Updates
+
+- **2025-06-27 (Evening)**: Major Architectural Decision - Single Approach Focus 🚨
+  - **Strategic Pivot**: Decided to focus exclusively on decoupled approach
+  - **Updated Documentation**:
+    - ✅ Simplified CLAUDE.md to be single entry point for AI agents
+    - ✅ Updated all documentation to be non-interactive by default
+    - ✅ Added architectural decision notice to PROJECT_CONTEXT.md
+    - ✅ Revised architecture overview for single approach
+    - ✅ Updated roadmap with new 6-week implementation plan
+  - **Created Implementation Plans**:
+    - ✅ `AI_POWERED_TEST_GENERATION_PLAN.md` - Claude integration strategy
+    - ✅ `INCREMENTAL_TESTING_STRATEGY.md` - Smart change detection
+    - ✅ `IMPLEMENTATION_PLAN_COMPLETE.md` - Comprehensive 200+ task plan
+    - ✅ `DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md` - Transition strategy
+  - **Key Decisions**:
+    - Remove template-based approach (contradicts infrastructure philosophy)
+    - Integrate Claude headless mode for AI-powered logical tests
+    - Implement git-based incremental testing
+    - Focus on true "pull to update" infrastructure
+    
 - **2025-01-27**: MVP COMPLETED! 🎉 The Claude Testing Infrastructure is now fully functional
   - **Created comprehensive README.md** as primary entry point for AI agents
   - **Implemented all decoupled suite scripts**:

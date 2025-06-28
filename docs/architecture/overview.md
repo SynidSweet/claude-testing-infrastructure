@@ -1,37 +1,38 @@
 # AI Testing Infrastructure Architecture
 
+*Last updated: 2025-06-27 | Major architectural shift to single approach*
+
 ## System Overview
 
-This project provides **two complementary approaches** to implementing comprehensive testing infrastructure for JavaScript and Python projects. Both approaches are designed to be **AI-agent-first**, optimizing for autonomous execution by AI coding assistants.
+This project is transitioning to a **single, focused approach** - a decoupled testing infrastructure that provides true infrastructure benefits through external test management and AI-powered generation.
 
-### The Two Approaches
+### The Single Approach: Decoupled Architecture
 
-#### 1. Template-Based Approach (`ai-testing-template/`)
-- **Purpose**: Quick initialization of testing infrastructure in any project
-- **Method**: Copies and configures test templates directly into the target project
-- **When to use**: 
-  - New projects starting with TDD
-  - Teams wanting standardized testing setup
-  - Projects that need full control over test configuration
-- **Key benefit**: Fast setup, fully customizable, becomes part of the project
+#### Core Philosophy
+- **Purpose**: True testing infrastructure that updates via `git pull`
+- **Method**: External test generation and execution without modifying target projects
+- **Key benefits**: 
+  - Zero modification of target project
+  - Continuously improving test strategies
+  - AI-powered intelligent test generation
+  - Incremental updates based on code changes
 
-#### 2. Decoupled Architecture (`decoupled-testing-suite/`)
-- **Purpose**: Maintainable testing infrastructure that evolves separately from the project
-- **Method**: External test repository that analyzes and tests the target project without modifying it
-- **When to use**:
-  - Existing projects with established structure
-  - Version-sensitive codebases
-  - Teams wanting centralized test management
-- **Key benefit**: Zero modification of target project, independently updateable
+#### Why Single Approach?
 
-## Why Two Approaches?
+After careful consideration, we've decided to focus exclusively on the decoupled approach because:
 
-Both approaches solve different problems and serve different use cases:
+1. **True Infrastructure**: Only the decoupled approach provides genuine infrastructure that improves over time
+2. **AI Agent Optimization**: Simpler mental model with one clear workflow
+3. **Maintenance Philosophy**: Aligns with the "pull to update" principle
+4. **Cost Efficiency**: Incremental testing reduces AI token usage by 80-90%
 
-1. **Different team preferences**: Some teams want tests embedded in their project, others prefer separation
-2. **Evolution paths**: Start with templates for quick setup, migrate to decoupled for long-term maintenance
-3. **Risk profiles**: Templates modify the project (higher risk, higher integration), decoupled leaves project untouched
-4. **AI agent flexibility**: Agents can choose the appropriate approach based on project constraints
+### Deprecation Notice
+
+The template-based approach is being removed because:
+- It contradicts the infrastructure philosophy (one-time copy vs. continuous updates)
+- It splits development effort and documentation
+- It creates decision paralysis for users
+- The decoupled approach can serve all use cases with better long-term benefits
 
 ## Multi-Language Support Architecture
 
@@ -251,12 +252,36 @@ const multiAdapter = await adapterFactory.createMultiLanguageAdapter(projectPath
 // Generates unified configuration
 ```
 
+## AI-Powered Test Generation
+
+### Architectural Components
+
+1. **Structural Test Generation**: Static analysis creates basic tests
+2. **Gap Analysis Engine**: Identifies missing business logic coverage
+3. **Claude Integration**: Spawns headless Claude processes for intelligent tests
+4. **Incremental System**: Tracks changes and regenerates only affected tests
+
+### Test Generation Flow
+
+```
+Project Analysis → Basic Tests → Gap Detection → AI Enhancement → Final Suite
+                        ↓              ↓               ↓
+                   (Automatic)    (Smart Analysis)  (Claude Headless)
+```
+
+### Key Innovations
+
+- **Parallel AI Processing**: Multiple Claude instances for faster generation
+- **Context-Aware Prompts**: Business domain understanding for better tests
+- **Cost Optimization**: Only uses AI where structural tests insufficient
+- **Incremental Updates**: Git-based tracking reduces costs by 80-90%
+
 ## Navigation Guide for AI Agents
 
-- **Starting point**: This ARCHITECTURE.md file
-- **Approach selection**: Check project requirements against approach characteristics
-- **Language work**: Find the appropriate adapter in `/adapters/`
-- **Adding features**: Extend adapters, don't duplicate code
-- **Testing changes**: Each approach has its own test suite
+- **Starting point**: Main `/CLAUDE.md` file (single entry point)
+- **Architecture details**: This file for system design
+- **Implementation plan**: See `IMPLEMENTATION_PLAN_COMPLETE.md`
+- **AI features**: See `AI_POWERED_TEST_GENERATION_PLAN.md`
+- **Incremental testing**: See `INCREMENTAL_TESTING_STRATEGY.md`
 
-Remember: The goal is to make testing setup take <10 minutes while supporting the full complexity of real-world projects across multiple languages and frameworks.
+Remember: The goal is to provide true testing infrastructure that improves over time without ever modifying the target project.

@@ -15,12 +15,23 @@ cd ai-testing-template
 npm install
 ```
 
-### Step 3: Run the Initialization Script
+### Step 3: Run the Initialization Script (Fully Automated)
 ```bash
-npm run init
+# Recommended: Fully automated with smart defaults
+npm run init:auto
+
+# OR use preset configurations:
+npm run init:minimal     # Basic unit tests only
+npm run init:recommended # Unit + integration tests (default)
+npm run init:comprehensive # Full testing pyramid
+
+# OR preview without making changes:
+npm run preview
 ```
 
-**Expected Output**: The script will analyze your project structure and prompt for configuration options. Answer the prompts based on your project needs.
+**🤖 AI Agent Note**: The initialization is **completely non-interactive**. No prompts will appear - everything is detected and configured automatically.
+
+**Expected Output**: The script will analyze your project structure and apply appropriate testing setup without any user interaction.
 
 **Success Indicator**: You should see "🎉 Testing setup complete!" at the end.
 
@@ -43,9 +54,40 @@ The initialization script automatically detects:
 - **Support**: Both JavaScript and Python in the same project
 - **Setup**: Templates for both languages will be configured
 
-## 3. Configuration Options
+## 3. Automated Configuration (No User Input Required)
 
-### Project Type Selection (for empty projects)
+### How Auto-Init Works
+
+The `init:auto` command automatically:
+1. **Detects** your project type (JavaScript/TypeScript/Python)
+2. **Analyzes** frameworks and dependencies
+3. **Applies** appropriate testing setup
+4. **Configures** based on confidence scoring
+
+### Command Line Options for Fine Control
+
+```bash
+# Override specific aspects while keeping automation:
+npm run init:auto -- --frameworks "jest,playwright" --ci github --structure separate
+
+# Available flags:
+--frameworks    # Comma-separated: jest,vitest,playwright,cypress,pytest
+--ci           # CI provider: github,gitlab,circle,none
+--structure    # Test structure: separate,colocated,both
+--features     # Additional features: coverage,visual,performance,a11y,database
+--dry-run      # Preview changes without applying them
+```
+
+### Confidence Scoring System
+
+The auto-init includes confidence scoring:
+- **High confidence (>80%)**: Proceeds automatically
+- **Medium confidence (50-80%)**: Applies conservative defaults
+- **Low confidence (<50%)**: Uses minimal setup
+
+### Configuration Options (Applied Automatically)
+
+#### Project Type Selection (for empty projects)
 ```
 - JavaScript Frontend (React, Vue, etc.)
 - JavaScript Backend (Node.js, Express, etc.)  

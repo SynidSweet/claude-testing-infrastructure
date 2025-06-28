@@ -1,251 +1,174 @@
-# AI Agent Navigation Guide
+# AI Agent Guide - START HERE
 
-Welcome to the AI-First Testing Infrastructure project. This guide helps AI agents navigate and understand the codebase efficiently.
+**🤖 AI AGENTS: This is your ONLY entry point. Read this file completely before starting any work.**
 
-## 🎯 Quick Start for AI Agents
+## 📍 Important: Which File to Read
 
-### What This Project Is
-A **dual-approach testing infrastructure** that provides:
-1. **Template-based testing** - Quick setup by copying tests into projects
-2. **Decoupled testing suite** - External testing that never modifies target code
+- **READ THIS FILE**: `/CLAUDE.md` (you're reading it now!)
+- **IGNORE**: Other CLAUDE.md files in subdirectories - they're implementation details
+- **THIS IS THE SINGLE SOURCE OF TRUTH** for AI agents using this infrastructure
 
-Both support JavaScript/TypeScript AND Python projects through **language adapters** (not code duplication).
+## 🚀 How to Use This Infrastructure (Complete Instructions)
 
-### First Steps
-1. Read `/docs/architecture/overview.md` to understand the system design
-2. Review `PROJECT_CONTEXT.md` for the documentation navigation hub
-3. Check `/docs/planning/refactoring-tasks.md` for current improvement priorities
-4. Choose the appropriate approach based on your task
-
-## 🗺️ Project Structure Navigation
-
-```
-claude-testing/
-├── 📋 Documentation (Start Here)
-│   ├── PROJECT_CONTEXT.md       # Documentation navigation hub
-│   ├── CLAUDE.md               # This file - AI navigation guide
-│   └── docs/                   # Modular documentation
-│       ├── architecture/       # System design & patterns
-│       ├── planning/          # Roadmap & refactoring tasks
-│       └── ai-agents/         # Agent-specific guides
-│
-├── 🚀 Template-Based Approach
-│   └── ai-testing-template/
-│       ├── scripts/            # Initialization logic
-│       ├── templates/          # Test templates by language
-│       ├── examples/           # Working implementations
-│       └── CLAUDE.md          # Approach-specific guide
-│
-├── 🔧 Decoupled Testing Suite
-│   └── decoupled-testing-suite/
-│       ├── core/              # Discovery and execution
-│       ├── config/            # Configuration management
-│       ├── templates/         # External test templates
-│       └── CLAUDE.md          # Approach-specific guide
-│
-└── 📚 Planning Documents/
-    └── Various implementation plans and specifications
-```
-
-## 🎯 Common AI Agent Tasks
-
-### Task: Add testing to a JavaScript/TypeScript project
+### Step 1: Clone this infrastructure into your project
 ```bash
-# Navigate to template approach
-cd ai-testing-template
-
-# Review available templates
-ls templates/javascript/
-
-# Run initialization
-npm run init
+# From your project root directory:
+git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
 ```
 
-### Task: Add testing to a Python project
+### Step 2: Choose your approach based on your needs
+
+#### Option A: Template-Based (Copies tests INTO your project)
 ```bash
-# For existing projects (safer)
-cd decoupled-testing-suite
-npm run discover
-
-# For new projects
-cd ai-testing-template
-npm run init
+cd claude-testing-infrastructure/ai-testing-template
+npm install
+npm run init:auto  # Fully automated - no prompts!
 ```
 
-### Task: Understand the architecture
-1. Start with `/docs/architecture/overview.md`
-2. Focus on the "Why Two Approaches?" section
-3. Understand the Language Adapter pattern in `/docs/architecture/adapter-pattern.md`
-4. Review architectural insights in `/docs/architecture/insights.md`
-
-### Task: Work on refactoring
-1. Check `/docs/planning/refactoring-tasks.md` (Major milestone completed 2025-06-27!)
-2. Review `/docs/architecture/adapter-pattern.md` for adapter details
-3. See `/docs/ai-agents/migration-guide.md` for migration instructions
-4. Test with `shared/examples/adapter-usage.js`
-
-## 🔑 Critical Concepts
-
-### Language Adapters (NOT Duplication)
-```javascript
-// This pattern appears for both JS and Python - it's intentional!
-interface IProjectAdapter {
-    detect(projectPath: string): Promise<boolean>
-    analyze(projectPath: string): Promise<Analysis>
-    configure(analysis: Analysis): Promise<Config>
-}
-
-// Each language has specific implementation
-class JavaScriptAdapter implements IProjectAdapter { /* JS-specific */ }
-class PythonAdapter implements IProjectAdapter { /* Python-specific */ }
-```
-
-### Two Approaches Serve Different Needs
-- **Template-based**: Modifies project, quick setup, full control
-- **Decoupled**: Zero modification, updateable, version-safe
-- **Both needed**: Different teams have different requirements
-
-## 🚫 Common Misconceptions
-
-### ❌ WRONG: "There's duplicate code for JS and Python"
-✅ **RIGHT**: Each language needs specific handling through adapters
-
-### ❌ WRONG: "We should merge the two approaches"
-✅ **RIGHT**: They solve different problems for different users
-
-### ❌ WRONG: "Complex detection logic should be simplified"
-✅ **RIGHT**: It handles real-world edge cases intentionally
-
-## 🔒 CRITICAL: This is Infrastructure - Do NOT Modify
-
-### ⚠️ Proper Usage Pattern
-This testing infrastructure is designed to be **cloned into your project and used as-is**:
-
-1. **CLONE** this repo into your project directory
-2. **USE** the testing infrastructure without modifying it
-3. **PULL** updates regularly to get latest improvements: `git pull origin main`
-4. **REPORT** bugs via GitHub issues instead of trying to fix them
-5. **KEEP** the infrastructure separate from your project code
-
-### 🚫 What NOT to Do
-- ❌ Don't modify files in this testing infrastructure
-- ❌ Don't try to "fix" bugs you encounter - report them instead
-- ❌ Don't commit changes to the testing infrastructure files
-- ❌ Don't treat this as part of your project's source code
-
-### ✅ What TO Do
-- ✅ Clone into your project and use as external infrastructure
-- ✅ Pull updates regularly to stay current
-- ✅ Create GitHub issues if you find problems (mention `@claude` for automated assistance)
-- ✅ Follow the testing patterns and templates provided
-
-## 📍 Key File Locations
-
-### Core Logic
-- **Initialization**: `ai-testing-template/scripts/init.js:26`
-- **Project Detection**: `ai-testing-template/scripts/utils/fileSystem.js:257`
-- **Discovery Engine**: `decoupled-testing-suite/core/discovery/project-discovery.js:74`
-
-### Configuration
-- **Schemas**: `decoupled-testing-suite/config/schemas/`
-- **Adapters**: `decoupled-testing-suite/config/adapters/`
-- **Templates**: Both approaches have `templates/` directories
-
-### Documentation
-- **Navigation Hub**: `PROJECT_CONTEXT.md`
-- **Agent Guides**: `/docs/ai-agents/` directory
-- **Implementation Plans**: `/docs/planning/implementation-plans.md`
-
-## 🛠️ Development Workflow
-
-### Before Making Changes
-1. Understand which approach you're working on
-2. Check if it's language-specific (use adapters) or shared
-3. Review existing patterns in similar files
-4. Consider impact on both JavaScript AND Python support
-
-### Testing Changes
+#### Option B: Decoupled (Tests OUTSIDE your project)
 ```bash
-# JavaScript/TypeScript projects
-npm test
-npm run test:coverage
-
-# Python projects
-pytest --cov
-
-# Cross-platform verification
-npm run verify:all
+cd claude-testing-infrastructure/decoupled-testing-suite
+npm install
+npm run discover  # Analyzes without modifying your project
 ```
 
-### Adding New Features
-1. Determine if it's approach-specific or shared
-2. Implement for one language first (usually JavaScript)
-3. Add corresponding support for other language
-4. Update templates and documentation
-5. Test with example projects
-
-## 🎯 Current Priorities
-
-From `/docs/planning/refactoring-tasks.md`:
-1. **Documentation**: Creating CLAUDE.md files (in progress)
-2. **Adapter Pattern**: Implementing proper language adapters
-3. **Boundaries**: Clear separation between approaches
-
-## 💡 Tips for Success
-
-### Understanding the Codebase
-- Start with documentation before diving into code
-- Trace through one complete flow (e.g., init process)
-- Understand the adapter pattern deeply
-- Respect the dual-approach design
-
-### Making Changes
-- Small, focused commits
-- Test after each change
-- Update documentation immediately
-- Consider both languages when changing shared code
-
-### Common Patterns
-```javascript
-// Project detection pattern
-if (await this.hasFile('package.json')) {
-    // JavaScript project logic
-} else if (await this.hasFile('setup.py') || await this.hasFile('pyproject.toml')) {
-    // Python project logic
-}
-
-// Adapter selection pattern
-const adapter = await AdapterFactory.getAdapter(projectPath);
-const analysis = await adapter.analyze();
-const config = await adapter.configure(analysis);
-```
-
-## 🔄 Quick Commands
-
-### Most Used Commands
+### Step 3: Verify it worked
 ```bash
-# Initialize testing (template approach)
-npm run init
-
-# Discover project (decoupled approach)
-npm run discover
-
-# Run all tests
+# For template-based:
 npm test
 
-# Check code quality
-npm run lint
-
-# See all available commands
-npm run
+# For decoupled:
+npm run test:target
 ```
 
-## 📚 Further Reading
+**That's it! Everything is automated. No user interaction required.**
 
-- **For documentation hub**: See `PROJECT_CONTEXT.md`
-- **For architecture questions**: See `/docs/architecture/overview.md`
-- **For current work**: See `/docs/planning/refactoring-tasks.md`
-- **For approach-specific details**: See approach-specific `CLAUDE.md` files
-- **For AI agent guidelines**: See `/docs/ai-agents/` directory
+## 📊 When to Use Each Approach
 
-Remember: This project supports BOTH JavaScript/TypeScript AND Python through intentional design, not duplication. When in doubt, check the architecture documentation!
+| Scenario | Use Template-Based | Use Decoupled |
+|----------|-------------------|---------------|
+| New project | ✅ | ❌ |
+| Existing project with no tests | ✅ | ✅ |
+| Existing project with tests | ❌ | ✅ |
+| Need to modify project structure | ✅ | ❌ |
+| Strict no-modification policy | ❌ | ✅ |
+| Want tests inside project | ✅ | ❌ |
+| Want tests outside project | ❌ | ✅ |
+
+## 🎯 Common Commands (All Non-Interactive!)
+
+### Template-Based Commands
+```bash
+# Automated setup with smart defaults
+npm run init:auto
+
+# Preset configurations
+npm run init:minimal       # Basic unit tests only
+npm run init:recommended   # Unit + integration tests (most common)
+npm run init:comprehensive # Full testing pyramid
+
+# Preview without making changes
+npm run preview
+```
+
+### Decoupled Commands
+```bash
+# Discover and analyze project
+npm run discover
+
+# Run tests against target
+npm run test:target
+
+# Update test configuration
+npm run update:config
+```
+
+### Custom Configuration
+```bash
+# Override specific aspects while keeping automation
+npm run init:auto -- --frameworks "jest,playwright" --ci github --structure separate
+
+# Available flags:
+# --frameworks: jest,vitest,playwright,cypress,pytest
+# --ci: github,gitlab,circle,none
+# --structure: separate,colocated,both
+# --features: coverage,visual,performance,a11y,database
+# --dry-run: Preview without changes
+```
+
+## 💡 Confidence Scoring
+
+The automated system includes intelligent confidence scoring:
+
+- **High Confidence (>80%)**: Clear project structure, recognized frameworks
+  - Example: React app with package.json, clear dependencies
+  - Action: Applies full recommended setup automatically
+
+- **Medium Confidence (50-80%)**: Partial detection, some ambiguity
+  - Example: Mixed signals, unclear project structure
+  - Action: Applies conservative defaults, focuses on basics
+
+- **Low Confidence (<50%)**: Minimal information available
+  - Example: Empty project, no clear indicators
+  - Action: Applies minimal setup, just essentials
+
+## 🔧 Supported Technologies
+
+### JavaScript/TypeScript
+- **Frameworks**: React, Vue, Angular, Next.js, Express, Fastify, NestJS
+- **Test Runners**: Jest, Vitest, Mocha
+- **E2E**: Playwright, Cypress
+- **Tools**: ESLint, Prettier, TypeScript
+
+### Python
+- **Frameworks**: FastAPI, Flask, Django
+- **Test Runners**: pytest, unittest
+- **Tools**: Black, isort, mypy, coverage.py
+
+## 🚨 Important Notes
+
+1. **This is infrastructure** - Clone and use, don't modify
+2. **Everything is automated** - No prompts or user interaction
+3. **Pull updates regularly** - `git pull origin main` for latest features
+4. **Report issues** - Create GitHub issues, mention `@claude` for AI assistance
+
+## ❓ Quick Troubleshooting
+
+### "Command not found"
+```bash
+# Make sure you're in the right directory
+cd claude-testing-infrastructure/ai-testing-template
+# or
+cd claude-testing-infrastructure/decoupled-testing-suite
+
+# Install dependencies
+npm install
+```
+
+### "No tests found"
+```bash
+# For template-based, ensure init completed
+npm run init:auto
+
+# For decoupled, ensure discovery ran
+npm run discover
+```
+
+### "Permission denied"
+```bash
+# Fix permissions
+chmod +x scripts/*.js
+```
+
+## 🎯 Summary for AI Agents
+
+1. **Clone** the infrastructure into your project
+2. **Choose** template-based (modifies project) or decoupled (external tests)
+3. **Run** the automated commands - no interaction needed
+4. **Test** to verify everything works
+
+All commands are fully automated. No prompts. No user interaction. Just run and go.
+
+---
+
+**Remember**: When instructed to "set up testing", this is the infrastructure to use. Always start by reading this file.

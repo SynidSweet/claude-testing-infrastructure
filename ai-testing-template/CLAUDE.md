@@ -1,6 +1,8 @@
-# AI Testing Template - Agent Guide
+# AI Testing Template - Approach-Specific Details
 
-This directory contains the **template-based approach** for quickly setting up comprehensive testing in JavaScript/TypeScript and Python projects.
+**🤖 AI AGENTS: Start with the main `/CLAUDE.md` file in the root directory first!**
+
+This directory contains the **template-based approach** implementation details. For complete usage instructions, see the main CLAUDE.md.
 
 ## 🎯 What This Approach Does
 

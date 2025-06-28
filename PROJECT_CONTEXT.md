@@ -2,11 +2,21 @@
 
 *This is the navigation hub for the Claude Testing Infrastructure project. Detailed documentation has been organized into modular files for better maintainability.*
 
+*Last updated: 2025-06-27 | Updated by: /document command*
+
+## 🚨 Architectural Decision (2025-06-27)
+
+**IMPORTANT**: This project is transitioning to a **single decoupled-only approach** that:
+- Provides true infrastructure that updates via `git pull`
+- Never modifies target projects
+- Generates comprehensive tests externally
+- Integrates AI for intelligent test generation
+
+📖 **See transition plan**: [`DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md`](./DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md)
+
 ## 🚀 Quick Start
 
-The Claude Testing Infrastructure provides two comprehensive testing solutions for JavaScript/TypeScript and Python projects:
-1. **Template-based approach** - Copies testing infrastructure INTO your project for quick setup
-2. **Decoupled approach** - Maintains testing OUTSIDE your project for zero modification
+The Claude Testing Infrastructure is becoming a focused **decoupled testing solution** that maintains tests OUTSIDE your project for zero modification and continuous updates.
 
 📖 **See details**: [`/docs/project/overview.md`](./docs/project/overview.md)
 
@@ -36,6 +46,9 @@ The Claude Testing Infrastructure provides two comprehensive testing solutions f
 - 📖 **Roadmap**: [`/docs/planning/roadmap.md`](./docs/planning/roadmap.md) - Current priorities and future features
 - 📖 **Refactoring Tasks**: [`/docs/planning/refactoring-tasks.md`](./docs/planning/refactoring-tasks.md) - Improvement priorities
 - 📖 **Implementation Plans**: [`/docs/planning/implementation-plans.md`](./docs/planning/implementation-plans.md) - Detailed plan links
+- 🆕 **AI Test Generation**: [`AI_POWERED_TEST_GENERATION_PLAN.md`](./AI_POWERED_TEST_GENERATION_PLAN.md) - AI integration strategy
+- 🆕 **Incremental Testing**: [`INCREMENTAL_TESTING_STRATEGY.md`](./INCREMENTAL_TESTING_STRATEGY.md) - Smart change detection
+- 🆕 **Complete Implementation**: [`IMPLEMENTATION_PLAN_COMPLETE.md`](./IMPLEMENTATION_PLAN_COMPLETE.md) - 6-week roadmap
 
 ### 🤖 AI Agents
 - 📖 **Navigation Guide**: [`/docs/ai-agents/navigation.md`](./docs/ai-agents/navigation.md) - Complete AI agent guide
@@ -47,21 +60,28 @@ The Claude Testing Infrastructure provides two comprehensive testing solutions f
 
 ## 🎯 Current Status
 
-**MVP COMPLETE ✅** - Both template-based and decoupled approaches are fully functional with all promised features implemented.
+**TRANSITIONING TO SINGLE APPROACH** - Moving from dual-approach to focused decoupled-only infrastructure.
 
 ### Recent Achievements (2025-06-27)
 - ✅ Created comprehensive CLAUDE.md navigation guides for AI agents
-- ✅ Implemented Language Adapter Pattern with full backward compatibility
-- ✅ All decoupled suite scripts implemented and tested
-- ✅ Working demos available for both approaches
-- ✅ Complete modular documentation system established
-- ✅ AI-agent-optimized workflows and guidelines implemented
+- ✅ Updated documentation for non-interactive AI agent workflows
+- ✅ Made architectural decision to focus on decoupled-only approach
+- ✅ Designed AI-powered logical test generation system
+- ✅ Created incremental testing strategy with smart change detection
+- ✅ Developed comprehensive 6-week implementation plan
+
+### Major Decisions Today
+- 🔄 **Single Approach**: Removing template-based in favor of decoupled-only
+- 🤖 **AI Integration**: Claude headless mode for intelligent test generation
+- 📈 **Incremental Updates**: Git-based change tracking for efficient retesting
+- 🎯 **True Infrastructure**: Focus on updatable via `git pull` philosophy
 
 ## 🚦 Getting Started
 
 ### For AI Agents
-1. Start with [`/docs/ai-agents/navigation.md`](./docs/ai-agents/navigation.md) for comprehensive understanding
-2. Review [`/docs/architecture/overview.md`](./docs/architecture/overview.md) to understand the dual-approach design
+1. Read the main [`CLAUDE.md`](./CLAUDE.md) file - single entry point for AI agents
+2. Review [`DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md`](./DECOUPLED_ONLY_IMPLEMENTATION_PLAN.md) for new architecture
+3. Check [`AI_POWERED_TEST_GENERATION_PLAN.md`](./AI_POWERED_TEST_GENERATION_PLAN.md) for AI integration details
 3. Check [`/docs/planning/roadmap.md`](./docs/planning/roadmap.md) for current priorities
 
 ### For Developers

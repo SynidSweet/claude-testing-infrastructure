@@ -1,6 +1,8 @@
-# Decoupled Testing Suite - Agent Guide
+# Decoupled Testing Suite - Approach-Specific Details
 
-This directory contains the **decoupled testing approach** that maintains testing infrastructure separately from target projects, enabling zero-modification testing.
+**🤖 AI AGENTS: Start with the main `/CLAUDE.md` file in the root directory first!**
+
+This directory contains the **decoupled testing approach** implementation details. For complete usage instructions, see the main CLAUDE.md.
 
 ## 🎯 What This Approach Does
 
