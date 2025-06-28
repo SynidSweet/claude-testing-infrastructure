@@ -125,9 +125,9 @@ class JestJavaScriptTemplate implements Template {
     
     let importStatement = '';
     if (hasDefaultExport) {
-      importStatement = `import ${moduleName} from './${moduleName}';`;
+      importStatement = `const ${moduleName} = require('./${moduleName}');`;
     } else if (exports.length > 0) {
-      importStatement = `import { ${exports.join(', ')} } from './${moduleName}';`;
+      importStatement = `const { ${exports.join(', ')} } = require('./${moduleName}');`;
     }
 
     let testContent = `${importStatement}
@@ -174,10 +174,10 @@ class JestReactComponentTemplate implements Template {
     
     const componentName = hasDefaultExport ? moduleName : 'Component';
     
-    return `import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
-${hasDefaultExport ? `import ${componentName} from './${moduleName}';` : `import { ${componentName} } from './${moduleName}';`}
+    return `const React = require('react');
+const { render, screen } = require('@testing-library/react');
+require('@testing-library/jest-dom');
+${hasDefaultExport ? `const ${componentName} = require('./${moduleName}');` : `const { ${componentName} } = require('./${moduleName}');`}
 
 describe('${componentName}', () => {
   it('should render without crashing', () => {
@@ -224,9 +224,9 @@ class JestExpressApiTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, exports } = context;
     
-    return `import request from 'supertest';
-import express from 'express';
-import { ${exports.join(', ')} } from './${moduleName}';
+    return `const request = require('supertest');
+const express = require('express');
+const { ${exports.join(', ')} } = require('./${moduleName}');
 
 const app = express();
 app.use(express.json());
@@ -280,9 +280,9 @@ class JestTypeScriptTemplate implements Template {
     
     let importStatement = '';
     if (hasDefaultExport) {
-      importStatement = `import ${moduleName} from './${moduleName}';`;
+      importStatement = `const ${moduleName} = require('./${moduleName}');`;
     } else if (exports.length > 0) {
-      importStatement = `import { ${exports.join(', ')} } from './${moduleName}';`;
+      importStatement = `const { ${exports.join(', ')} } = require('./${moduleName}');`;
     }
 
     let testContent = `${importStatement}
@@ -334,10 +334,10 @@ class JestReactTypeScriptTemplate implements Template {
     
     const componentName = hasDefaultExport ? moduleName : 'Component';
     
-    return `import React from 'react';
-import { render, screen, RenderResult } from '@testing-library/react';
-import '@testing-library/jest-dom';
-${hasDefaultExport ? `import ${componentName} from './${moduleName}';` : `import { ${componentName} } from './${moduleName}';`}
+    return `const React = require('react');
+const { render, screen } = require('@testing-library/react');
+require('@testing-library/jest-dom');
+${hasDefaultExport ? `const ${componentName} = require('./${moduleName}');` : `const { ${componentName} } = require('./${moduleName}');`}
 
 describe('${componentName}', () => {
   let renderResult: RenderResult;

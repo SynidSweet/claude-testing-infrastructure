@@ -113,9 +113,86 @@ When splitting methods, ensure language-specific logic remains cohesive within a
 - Check adapter implementations for language-specific logic
 - Refer to specifications in Downloads folder for design rationale
 
+---
+
+## 📋 Refactoring Task: Fix Test Execution Core Issues
+
+### Problem Summary
+Three critical issues identified during deployment readiness testing:
+1. **Jest Configuration**: Generated `.test.js` files not found by Jest due to TypeScript config mismatch
+2. **Empty Test Content**: Structural tests contain minimal/empty content reducing user value  
+3. **Coverage Parsing Failures**: 3 test failures related to mock coverage data handling
+
+### Success Criteria
+- [ ] `npx claude-testing run .` successfully executes generated tests
+- [ ] Generated tests contain meaningful structural assertions
+- [ ] Coverage parsing handles edge cases without failures
+- [ ] Test suite passes 116/116 tests (currently 113/116)
+- [ ] No breaking changes to CLI interface
+
+### Detailed Implementation Steps
+
+**Phase 1: Preparation** (5 minutes)
+- [ ] Create feature branch: `git checkout -b refactor/test-execution-fixes`
+- [ ] Run baseline: `npm test` to confirm current 113/116 passing
+- [ ] Generate test sample: `npx claude-testing test . --only-structural`
+- [ ] Document current Jest config behavior
+
+**Phase 2: Jest Configuration Fix** (15 minutes)
+- [ ] **Step 1**: Update `src/runners/JestRunner.ts:configureJest()` to include `.js` test patterns
+- [ ] **Step 2**: Add `testMatch: ["**/*.test.{js,ts,jsx,tsx}"]` to Jest config
+- [ ] **Step 3**: Set `testPathIgnorePatterns` to exclude source `.test.*` files 
+- [ ] **Step 4**: Test: `cd .claude-testing && npx jest --testMatch="**/*.test.js"`
+- [ ] **Verification**: Jest should find and run generated tests
+
+**Phase 3: Test Content Enhancement** (15 minutes)  
+- [ ] **Step 1**: Examine `src/generators/TestGenerator.ts:generateTestContent()`
+- [ ] **Step 2**: Enhance template engine to include basic assertions
+- [ ] **Step 3**: Add function signature detection for generated tests
+- [ ] **Step 4**: Test: Generate new tests and verify they contain assertions
+- [ ] **Verification**: Generated tests should have meaningful content
+
+**Phase 4: Coverage Parsing Hardening** (10 minutes)
+- [ ] **Step 1**: Add error handling in `src/runners/CoverageReporter.ts:parseCoverage()`
+- [ ] **Step 2**: Add validation for malformed coverage data
+- [ ] **Step 3**: Implement graceful degradation for parsing failures
+- [ ] **Step 4**: Test: Run test suite to verify 116/116 passing
+- [ ] **Verification**: No coverage-related test failures
+
+**Phase 5: Cleanup & Documentation** (5 minutes)
+- [ ] Run full test suite: `npm test`
+- [ ] Test complete workflow: `npx claude-testing analyze . && npx claude-testing test . --only-structural && npx claude-testing run .`
+- [ ] Update CLAUDE.md if Jest config changes affect usage
+- [ ] Commit with message: "fix: resolve test execution core issues"
+
+### Before/After Code Structure
+```
+BEFORE:
+JestRunner.configureJest() → Only TypeScript patterns
+TestGenerator.generateTestContent() → Empty describe blocks  
+CoverageReporter.parseCoverage() → Throws on invalid data
+
+AFTER:  
+JestRunner.configureJest() → Include .js/.ts patterns
+TestGenerator.generateTestContent() → Basic assertions included
+CoverageReporter.parseCoverage() → Graceful error handling
+```
+
+### Risk Assessment
+- **Breaking changes**: None expected - Jest config enhanced, not replaced
+- **Testing strategy**: Run test suite after each phase, verify CLI workflow end-to-end
+- **Rollback plan**: `git checkout main && git branch -D refactor/test-execution-fixes`
+
+### Estimated Effort
+**Total time**: 50 minutes (single session recommended: Yes)
+**Complexity**: Medium (multiple files, but focused changes)
+**AI Agent suitability**: Well-suited - clear file boundaries and testable steps
+
+---
+
 ## Next Steps
 
-1. **Immediate**: Test adapter integration with real projects
-2. **Short-term**: Complete decoupled approach migration
-3. **Medium-term**: Add TypeScript-specific adapter
-4. **Long-term**: Build framework-specific sub-adapters
+1. **Immediate**: Execute test execution fixes refactoring
+2. **Short-term**: Complete additional test content improvements
+3. **Medium-term**: Add framework-specific test patterns
+4. **Long-term**: Enhance AI integration reliability

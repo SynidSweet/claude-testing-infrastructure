@@ -181,18 +181,36 @@ export class JestCoverageParser extends CoverageParser {
 
   async parse(data: string | object): Promise<CoverageData> {
     try {
+      // Validate input data
+      if (!data) {
+        logger.warn('Empty coverage data provided, returning empty coverage');
+        return this.createEmptyCoverage();
+      }
+
       let coverageData: any;
 
       if (typeof data === 'string') {
+        if (data.trim().length === 0) {
+          logger.warn('Empty coverage string provided, returning empty coverage');
+          return this.createEmptyCoverage();
+        }
+        
         // Try to parse as JSON first
         try {
           coverageData = JSON.parse(data);
-        } catch {
+        } catch (parseError) {
           // If not JSON, try to extract from Jest output
+          logger.debug('Failed to parse as JSON, trying text extraction', { parseError });
           return this.parseJestTextOutput(data);
         }
       } else {
         coverageData = data;
+      }
+
+      // Validate that coverageData is an object
+      if (!coverageData || typeof coverageData !== 'object') {
+        logger.warn('Invalid coverage data format, returning empty coverage');
+        return this.createEmptyCoverage();
       }
 
       // Check if it's Istanbul coverage format (used by Jest)
@@ -205,9 +223,17 @@ export class JestCoverageParser extends CoverageParser {
         return this.parseJestJsonFormat(coverageData);
       }
 
-      throw new Error('Unrecognized Jest coverage format');
+      logger.warn('Unrecognized Jest coverage format, returning empty coverage', { 
+        hasKeys: Object.keys(coverageData),
+        dataType: typeof coverageData 
+      });
+      return this.createEmptyCoverage();
     } catch (error) {
-      logger.error('Failed to parse Jest coverage', { error });
+      logger.error('Failed to parse Jest coverage', { 
+        error: error instanceof Error ? error.message : String(error),
+        dataType: typeof data,
+        dataLength: typeof data === 'string' ? data.length : 'N/A'
+      });
       return this.createEmptyCoverage();
     }
   }
@@ -220,23 +246,41 @@ export class JestCoverageParser extends CoverageParser {
     let totalLines = 0;
     let fileCount = 0;
 
-    // Istanbul format has file paths as keys
-    const coverageMap = coverageData.coverageMap || coverageData;
-    
-    for (const [filePath, fileData] of Object.entries(coverageMap)) {
-      if (typeof fileData !== 'object' || !fileData) continue;
-
-      const normalizedPath = this.normalizePath(filePath);
-      const coverage = this.parseIstanbulFileData(fileData as any);
+    try {
+      // Istanbul format has file paths as keys
+      const coverageMap = coverageData.coverageMap || coverageData;
       
-      if (coverage) {
-        files[normalizedPath] = coverage;
-        totalStatements += coverage.summary.statements;
-        totalBranches += coverage.summary.branches;
-        totalFunctions += coverage.summary.functions;
-        totalLines += coverage.summary.lines;
-        fileCount++;
+      if (!coverageMap || typeof coverageMap !== 'object') {
+        logger.warn('Invalid coverage map format, returning empty coverage');
+        return this.createEmptyCoverage();
       }
+      
+      for (const [filePath, fileData] of Object.entries(coverageMap)) {
+        if (typeof fileData !== 'object' || !fileData) continue;
+
+        try {
+          const normalizedPath = this.normalizePath(filePath);
+          const coverage = this.parseIstanbulFileData(fileData as any);
+          
+          if (coverage) {
+            files[normalizedPath] = coverage;
+            totalStatements += coverage.summary.statements;
+            totalBranches += coverage.summary.branches;
+            totalFunctions += coverage.summary.functions;
+            totalLines += coverage.summary.lines;
+            fileCount++;
+          }
+        } catch (fileError) {
+          logger.warn('Failed to parse coverage for file, skipping', { 
+            filePath, 
+            error: fileError instanceof Error ? fileError.message : String(fileError) 
+          });
+          continue;
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to parse Istanbul format coverage', { error });
+      return this.createEmptyCoverage();
     }
 
     const summary = {

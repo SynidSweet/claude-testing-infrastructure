@@ -104,10 +104,13 @@ export class JestRunner extends TestRunner {
   }
 
   protected getRunCommand(): { command: string; args: string[] } {
-    const args: string[] = [];
+    const args: string[] = ['jest']; // Add jest as first arg for npx
 
-    // Base configuration
+    // Base configuration - Configure Jest to find generated .js test files
     args.push('--testPathPattern', this.config.testPath);
+    args.push('--testMatch', '**/*.test.{js,ts,jsx,tsx}'); // Include .js test files
+    args.push('--roots', this.config.testPath); // Set root to test directory
+    args.push('--transform', '{}'); // Disable transforms for .js files (treat as CommonJS)
     args.push('--passWithNoTests');
     args.push('--json'); // Get JSON output for parsing
 
