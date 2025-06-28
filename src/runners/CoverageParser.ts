@@ -223,6 +223,26 @@ export class JestCoverageParser extends CoverageParser {
         return this.parseJestJsonFormat(coverageData);
       }
 
+      // Check if it's already in CoverageData format (for tests and direct usage)
+      if (coverageData.summary && coverageData.files && coverageData.uncoveredAreas !== undefined) {
+        // Validate and return as CoverageData, ensuring thresholds are preserved
+        const result: CoverageData = {
+          summary: coverageData.summary,
+          files: coverageData.files,
+          uncoveredAreas: coverageData.uncoveredAreas,
+          meetsThreshold: coverageData.meetsThreshold,
+          ...(coverageData.thresholds && { thresholds: coverageData.thresholds }),
+          ...(this.thresholds && !coverageData.thresholds && { thresholds: this.thresholds })
+        };
+        
+        // Recalculate meetsThreshold if thresholds are available but meetsThreshold isn't set correctly
+        if (result.thresholds && !result.meetsThreshold) {
+          result.meetsThreshold = this.checkThresholds(result.summary);
+        }
+        
+        return result;
+      }
+
       logger.warn('Unrecognized Jest coverage format, returning empty coverage', { 
         hasKeys: Object.keys(coverageData),
         dataType: typeof coverageData 

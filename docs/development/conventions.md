@@ -134,6 +134,11 @@ import { logger } from '@/utils/logger';
 import { ProjectAnalysis } from '@/analyzers/types';
 ```
 
+### Modern Node.js API Usage
+- **File System Operations**: Use modern `fs.rm()` instead of deprecated `fs.rmdir()` for recursive directory removal
+- **Compatibility**: Always use the latest stable Node.js filesystem APIs to avoid deprecation warnings
+- **Example**: `await fs.rm(tempDir, { recursive: true })` for cleaning up test directories
+
 ## AI Integration Patterns
 ### Cost-Aware Design
 - **Batch processing**: Group multiple test generations

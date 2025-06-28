@@ -1,6 +1,6 @@
 # TestRunner System
 
-*Last updated: 2025-06-28 | Implementation complete*
+*Last updated: 2025-06-28 | Implementation complete | Test execution fixes deployed*
 
 ## Overview
 
@@ -34,6 +34,8 @@ The TestRunner System provides a framework-agnostic test execution engine that c
 ### Framework Support
 
 #### Jest Runner
+- **Enhanced Configuration** - Includes `.js` test files in testMatch patterns and proper root directory mapping
+- **CommonJS Compatibility** - Generated tests use require() statements compatible with Node.js
 - **JSON Output Parsing** - Structured test result extraction
 - **Coverage Integration** - Istanbul coverage with HTML/JSON reports
 - **React Support** - Component testing with proper setup
@@ -140,9 +142,10 @@ interface TestResult {
 ### Error Handling
 
 - **Process Errors**: Graceful handling of test runner crashes
-- **Parse Errors**: Fallback parsing strategies
+- **Parse Errors**: Fallback parsing strategies with improved Jest configuration
 - **Configuration Errors**: Clear validation messages
 - **File System Errors**: Proper error reporting
+- **Coverage Parsing**: Robust error handling for malformed coverage data with graceful degradation
 
 ## Framework Detection
 

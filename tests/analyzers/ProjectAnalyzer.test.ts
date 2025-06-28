@@ -13,7 +13,7 @@ describe('ProjectAnalyzer', () => {
   });
 
   afterEach(async () => {
-    await fs.rmdir(tempDir, { recursive: true });
+    await fs.rm(tempDir, { recursive: true });
   });
 
   describe('analyze()', () => {

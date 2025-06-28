@@ -25,7 +25,7 @@ describe('TestTemplateEngine', () => {
 
       const result = engine.generateTest(context);
       
-      expect(result).toContain("import { add, subtract } from './calculator';");
+      expect(result).toContain("const { add, subtract } = require('./calculator');");
       expect(result).toContain("describe('calculator', () => {");
       expect(result).toContain("describe('add', () => {");
       expect(result).toContain("describe('subtract', () => {");
@@ -49,9 +49,9 @@ describe('TestTemplateEngine', () => {
 
       const result = engine.generateTest(context);
       
-      expect(result).toContain("import React from 'react';");
-      expect(result).toContain("import { render, screen } from '@testing-library/react';");
-      expect(result).toContain("import Button from './Button';");
+      expect(result).toContain("const React = require('react');");
+      expect(result).toContain("const { render, screen } = require('@testing-library/react');");
+      expect(result).toContain("const Button = require('./Button');");
       expect(result).toContain('render(<Button />)');
       expect(result).toContain('should render without crashing');
       expect(result).toContain('should match snapshot');
@@ -73,9 +73,9 @@ describe('TestTemplateEngine', () => {
 
       const result = engine.generateTest(context);
       
-      expect(result).toContain("import request from 'supertest';");
-      expect(result).toContain("import express from 'express';");
-      expect(result).toContain("import { getUser, createUser } from './userRoutes';");
+      expect(result).toContain("const request = require('supertest');");
+      expect(result).toContain("const express = require('express');");
+      expect(result).toContain("const { getUser, createUser } = require('./userRoutes');");
       expect(result).toContain('describe(\'getUser\', () => {');
       expect(result).toContain('describe(\'createUser\', () => {');
       expect(result).toContain('.expect(200)');
@@ -100,7 +100,7 @@ describe('TestTemplateEngine', () => {
 
       const result = engine.generateTest(context);
       
-      expect(result).toContain("import { UserService } from './userService';");
+      expect(result).toContain("const { UserService } = require('./userService');");
       expect(result).toContain("describe('userService', () => {");
       expect(result).toContain('should have correct TypeScript types');
       expect(result).toContain("expect(typeof UserService).toBe('function')");
@@ -122,10 +122,10 @@ describe('TestTemplateEngine', () => {
 
       const result = engine.generateTest(context);
       
-      expect(result).toContain("import React from 'react';");
-      expect(result).toContain("import { render, screen, RenderResult } from '@testing-library/react';");
-      expect(result).toContain("import UserCard from './UserCard';");
-      expect(result).toContain('let renderResult: RenderResult;');
+      expect(result).toContain("const React = require('react');");
+      expect(result).toContain("const { render, screen } = require('@testing-library/react');");
+      expect(result).toContain("const UserCard = require('./UserCard');");
+      expect(result).toContain('render(<UserCard />)');
       expect(result).toContain('should have correct TypeScript props');
       expect(result).toContain('should handle user interactions with type safety');
     });

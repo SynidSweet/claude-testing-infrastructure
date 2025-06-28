@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-06-28 | Completed Phase 2 implementation*
+*Last updated: 2025-06-28 | Completed Phase 2 implementation | CommonJS template compatibility added*
 
 ## Overview
 
@@ -52,11 +52,11 @@ Concrete implementation that creates structural test scaffolding:
 Framework-specific template system with intelligent fallback:
 
 **Built-in Templates**:
-- **JavaScript Jest**: Basic unit tests with describe/it structure
-- **React Component**: Testing Library integration with snapshots and interactions
-- **Express API**: Supertest-based endpoint testing
-- **TypeScript Jest**: Type-safe testing with TypeScript features
-- **React TypeScript**: Typed component testing with RenderResult
+- **JavaScript Jest**: Basic unit tests with CommonJS require() statements for Jest compatibility
+- **React Component**: Testing Library integration with require() imports and snapshots
+- **Express API**: Supertest-based endpoint testing using CommonJS modules
+- **TypeScript Jest**: Type-safe testing with CommonJS require() for Jest execution
+- **React TypeScript**: Typed component testing with CommonJS compatibility
 - **Python pytest**: Class-based test structure with fixtures
 - **FastAPI**: TestClient-based API testing
 - **Django**: Django test client with database integration

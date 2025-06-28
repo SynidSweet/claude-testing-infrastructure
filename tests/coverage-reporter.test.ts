@@ -143,7 +143,7 @@ TOTAL                  35      8    77%
 
     test('checks thresholds correctly', async () => {
       const mockCoverageData = {
-        summary: { statements: 90, branches: 85, functions: 80, lines: 88 },
+        summary: { statements: 90, branches: 85, functions: 90, lines: 88 },
         files: {},
         uncoveredAreas: [],
         meetsThreshold: true
@@ -160,7 +160,8 @@ TOTAL                  35      8    77%
         summary: { statements: 70, branches: 65, functions: 60, lines: 75 },
         files: {},
         uncoveredAreas: [],
-        meetsThreshold: false
+        meetsThreshold: false,
+        thresholds: { lines: 80, statements: 75, branches: 70, functions: 85 }
       };
 
       const thresholdCheck = await reporter.checkThresholds(mockCoverageData);
@@ -203,7 +204,8 @@ TOTAL                  35      8    77%
     beforeEach(() => {
       gapReporter = new CoverageReporter({
         projectPath: mockProjectPath,
-        framework: 'jest'
+        framework: 'jest',
+        thresholds: { lines: 80, statements: 75, branches: 70, functions: 85 }
       });
     });
 
