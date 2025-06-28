@@ -102,8 +102,13 @@ npm run format
 LOG_LEVEL=debug
 DEBUG=claude-testing:*
 
-# For AI features (Phase 5.3)
-ANTHROPIC_API_KEY=sk-...
+# For AI features (Phase 5.3) - Claude Code CLI Integration
+# No API key needed if using Claude Code CLI with Max subscription
+# ANTHROPIC_API_KEY=sk-...  # Only needed for direct API access
+
+# Timeout configuration for complex AI operations
+BASH_DEFAULT_TIMEOUT_MS=900000  # 15 minutes default
+BASH_MAX_TIMEOUT_MS=1800000     # 30 minutes maximum
 
 # For testing different scenarios
 TEST_PROJECT_PATH=/path/to/test/project

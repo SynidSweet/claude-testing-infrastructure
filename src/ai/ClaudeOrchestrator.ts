@@ -17,6 +17,7 @@ import * as path from 'path';
 export interface ClaudeOrchestratorConfig {
   maxConcurrent?: number;
   model?: string;
+  fallbackModel?: string;
   retryAttempts?: number;
   retryDelay?: number;
   timeout?: number;
@@ -53,10 +54,11 @@ export class ClaudeOrchestrator extends EventEmitter {
     super();
     this.config = {
       maxConcurrent: 3,
-      model: 'claude-3-sonnet',
+      model: 'opus', // Use alias for latest model with Max subscription
+      fallbackModel: 'sonnet', // Automatic fallback when usage limits reached
       retryAttempts: 2,
       retryDelay: 1000,
-      timeout: 300000, // 5 minutes
+      timeout: 900000, // 15 minutes (increased for complex analysis)
       outputFormat: 'json',
       verbose: false,
       ...config
@@ -193,12 +195,25 @@ export class ClaudeOrchestrator extends EventEmitter {
         '--output-format', this.config.outputFormat!
       ];
 
+      // Add fallback model if configured (helps with Max subscription limits)
+      if (this.config.fallbackModel) {
+        args.push('--fallback-model', this.config.fallbackModel);
+      }
+
       if (this.config.verbose) {
         console.log(`Executing Claude for task ${task.id}...`);
       }
 
+      // Set up environment with extended timeouts for headless AI generation
+      const claudeEnv = {
+        ...process.env,
+        // Only affect this specific headless Claude process, not interactive sessions
+        BASH_DEFAULT_TIMEOUT_MS: String(this.config.timeout),
+        BASH_MAX_TIMEOUT_MS: String(this.config.timeout)
+      };
+
       const claude = spawn('claude', args, {
-        env: { ...process.env },
+        env: claudeEnv,
         shell: false
       });
 
@@ -335,6 +350,7 @@ export class ClaudeOrchestrator extends EventEmitter {
       '',
       '## Configuration',
       `- Model: ${this.config.model}`,
+      `- Fallback Model: ${this.config.fallbackModel || 'None'}`,
       `- Max Concurrent: ${this.config.maxConcurrent}`,
       `- Retry Attempts: ${this.config.retryAttempts}`,
       ''

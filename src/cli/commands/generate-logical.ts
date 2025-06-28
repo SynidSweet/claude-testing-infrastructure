@@ -31,6 +31,7 @@ export const generateLogicalCommand = new Command()
   .option('-c, --concurrent <number>', 'Max concurrent Claude processes', '3')
   .option('-b, --budget <amount>', 'Maximum budget in USD')
   .option('--min-complexity <number>', 'Minimum complexity for AI generation', '5')
+  .option('--timeout <seconds>', 'Timeout per AI task in seconds (default: 900)', '900')
   .option('--dry-run', 'Show what would be generated without executing')
   .option('-o, --output <path>', 'Output directory for reports')
   .option('-v, --verbose', 'Enable verbose logging')
@@ -88,7 +89,7 @@ export const generateLogicalCommand = new Command()
       // Step 2: Prepare AI tasks
       spinner.start('Preparing AI tasks...');
       const taskPrep = new AITaskPreparation({
-        model: `claude-3-${options.model}`,
+        model: options.model, // Use alias directly
         maxConcurrentTasks: parseInt(options.concurrent) || 3,
         minComplexityForAI: parseInt(options.minComplexity) || 5
       });
@@ -97,7 +98,7 @@ export const generateLogicalCommand = new Command()
 
       // Step 3: Cost estimation and budget optimization
       spinner.text = 'Estimating costs...';
-      const estimator = new CostEstimator(`claude-3-${options.model}`);
+      const estimator = new CostEstimator(options.model);
       const costReport = estimator.estimateReportCost(gapReport);
 
       console.log('\n' + chalk.blue('Cost Estimation:'));
@@ -157,19 +158,26 @@ export const generateLogicalCommand = new Command()
       // Step 4: Execute AI generation
       console.log('\n' + chalk.blue('Starting AI test generation...'));
       
-      // Check if Claude is available
+      // Check if Claude Code CLI is available
       try {
         const { execSync } = require('child_process');
-        execSync('which claude', { stdio: 'ignore' });
+        execSync('claude --version', { stdio: 'ignore' });
       } catch {
-        throw new Error('Claude CLI not found. Please install it first: https://docs.anthropic.com/claude/docs/claude-cli');
+        throw new Error('Claude Code CLI not found. Please install it first: npm install -g @anthropic-ai/claude-code');
       }
 
+      const timeoutMs = parseInt(options.timeout) * 1000;
       const orchestrator = new ClaudeOrchestrator({
         maxConcurrent: parseInt(options.concurrent) || 3,
-        model: `claude-3-${options.model}`,
+        model: options.model, // Use alias directly (opus, sonnet, haiku)
+        fallbackModel: options.model === 'opus' ? 'sonnet' : 'haiku',
+        timeout: timeoutMs, // Convert seconds to milliseconds
         verbose: options.verbose
       });
+
+      if (options.verbose) {
+        console.log(chalk.gray(`Using ${timeoutMs / 1000}s timeout per AI task`));
+      }
 
       // Set up progress tracking
       let completed = 0;
@@ -219,7 +227,7 @@ export const generateLogicalCommand = new Command()
       const orchStats = (orchestrator as any).stats;
       estimator.trackUsage(
         absoluteProjectPath,
-        `claude-3-${options.model}`,
+        options.model,
         orchStats.totalTokensUsed,
         orchStats.totalCost
       );

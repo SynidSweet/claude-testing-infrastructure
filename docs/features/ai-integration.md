@@ -1,6 +1,6 @@
 # AI Integration Features
 
-*Last updated: 2025-06-28 | Phase 5.3 Complete*
+*Last updated: 2025-06-28 | Phase 5.3 Complete + Claude Code CLI Timeout Optimization*
 
 ## Overview
 
@@ -23,6 +23,8 @@ Orchestrates parallel Claude processes for test generation:
 - **Progress Tracking**: Real-time status updates via event emitters
 - **Error Handling**: Retry logic with exponential backoff
 - **Result Aggregation**: Collects and processes generated tests
+- **Advanced Timeout Management**: Session-isolated timeout configuration for headless processes (15-30 min) without affecting interactive Claude Code sessions
+- **Environment Isolation**: Process-specific environment variables to preserve standard 2-minute timeouts for other operations
 
 #### 3. PromptTemplates (`src/ai/PromptTemplates.ts`)
 Provides framework-specific prompt templates:
@@ -199,10 +201,37 @@ Create `.claude-testing.config.json` in your project:
 }
 ```
 
-### Environment Variables
+### Claude Code CLI Integration
+
+The AI integration leverages Claude Code CLI for headless operation with optimal configuration:
+
+#### Authentication
+- **Max Subscription**: Automatic authentication when logged in to Claude Code CLI
+- **No API Key Required**: Uses your existing Claude subscription for seamless operation
+- **Session Isolation**: Each headless process operates independently
+
+#### Timeout Configuration
+```typescript
+// ClaudeOrchestrator automatically configures timeouts for headless processes
+const claudeEnv = {
+  ...process.env,
+  BASH_DEFAULT_TIMEOUT_MS: String(this.config.timeout), // 15-30 minutes
+  BASH_MAX_TIMEOUT_MS: String(this.config.timeout)
+};
+```
+
+#### Model Configuration with Fallback
+```bash
+# Use latest model with automatic fallback for Max subscription limits
+npx claude-testing generate-logical /path/to/project --model opus --timeout 1800
+
+# The system automatically falls back to sonnet when opus usage limits are reached
+```
+
+### Environment Variables (Optional)
 
 ```bash
-# Required for AI features
+# Optional: Only needed if not using Claude Code CLI Max subscription
 export ANTHROPIC_API_KEY=your-api-key
 
 # Optional configuration

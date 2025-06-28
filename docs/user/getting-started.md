@@ -1,5 +1,7 @@
 # Getting Started with Claude Testing Infrastructure
 
+*Last updated: 2025-06-28 | Updated by: /document command*
+
 *A comprehensive guide for end users to quickly set up testing for their projects*
 
 ## 🎯 What is Claude Testing Infrastructure?
@@ -14,9 +16,10 @@ The Claude Testing Infrastructure is an AI-powered, decoupled testing solution t
 ## 🚀 Quick Start (5 Minutes)
 
 ### Prerequisites
-- **Node.js 18+** installed
+- **Node.js 18+** installed (verify with `node --version`)
 - **Git** installed  
 - Your project in **JavaScript/TypeScript** or **Python**
+- **Claude CLI** installed and authenticated (for AI features - verify with `claude --version`)
 
 ### Step 1: Get the Infrastructure
 ```bash
@@ -32,44 +35,61 @@ npm run build
 ### Step 2: Analyze Your Project
 ```bash
 # Analyze any project (shows what we detected)
-npx claude-testing analyze /path/to/your/project
+node dist/cli/index.js analyze /path/to/your/project
 
 # Save analysis to file for review
-npx claude-testing analyze /path/to/your/project --output analysis.json --format json
+node dist/cli/index.js analyze /path/to/your/project --output analysis.json --format json
 ```
 
 ### Step 3: Generate Tests
 ```bash
 # Generate comprehensive test suite
-npx claude-testing test /path/to/your/project
+node dist/cli/index.js test /path/to/your/project
 
 # Generate only structural tests (faster, no AI required)
-npx claude-testing test /path/to/your/project --only-structural
+node dist/cli/index.js test /path/to/your/project --only-structural
 ```
 
 ### Step 4: Run Tests
 ```bash
 # Run all generated tests
-npx claude-testing run /path/to/your/project
+node dist/cli/index.js run /path/to/your/project
 
 # Run with coverage reporting
-npx claude-testing run /path/to/your/project --coverage
+node dist/cli/index.js run /path/to/your/project --coverage
 
 # Run in watch mode during development
-npx claude-testing run /path/to/your/project --watch
+node dist/cli/index.js run /path/to/your/project --watch
 ```
 
 ### Step 5: Analyze Test Gaps (NEW in v2.0)
 ```bash
 # Analyze gaps in test coverage with beautiful reporting
-npx claude-testing analyze-gaps /path/to/your/project
+node dist/cli/index.js analyze-gaps /path/to/your/project
 
 # Generate detailed Markdown report
-npx claude-testing analyze-gaps /path/to/your/project --format markdown --output gaps.md --include-details
+node dist/cli/index.js analyze-gaps /path/to/your/project --format markdown --output gaps.md --include-details
 
 # Get structured JSON data for CI/CD integration
-npx claude-testing analyze-gaps /path/to/your/project --format json --output gaps.json
+node dist/cli/index.js analyze-gaps /path/to/your/project --format json --output gaps.json
 ```
+
+### Step 6: AI-Powered Logical Test Generation (NEW in v2.0)
+```bash
+# Generate intelligent logical tests using Claude Code CLI
+node dist/cli/index.js generate-logical /path/to/your/project
+
+# Use latest model with automatic fallback for Max subscription
+node dist/cli/index.js generate-logical /path/to/your/project --model opus --timeout 1800
+
+# Budget-controlled generation with cost optimization
+node dist/cli/index.js generate-logical /path/to/your/project --budget 5.00 --min-complexity 3
+
+# Dry run to see what would be generated
+node dist/cli/index.js generate-logical /path/to/your/project --dry-run --output ./ai-analysis
+```
+
+**Timeout Configuration**: The system automatically configures extended timeouts (15-30 minutes) for complex AI analysis while preserving your standard 2-minute timeout for other Claude Code operations through session isolation.
 
 ## 🎓 Common Use Cases
 
@@ -84,7 +104,7 @@ npx claude-testing analyze-gaps /path/to/your/project --format json --output gap
 # └── public/
 
 # Generate tests
-npx claude-testing test ./my-react-app
+node dist/cli/index.js test ./my-react-app
 
 # Output: ./my-react-app/.claude-testing/
 # ├── setupTests.js
@@ -93,7 +113,7 @@ npx claude-testing test ./my-react-app
 #     └── (mirror of your src/ with .test.js files)
 
 # Run tests
-npx claude-testing run ./my-react-app --coverage
+node dist/cli/index.js run ./my-react-app --coverage
 ```
 
 ### Python FastAPI Backend
@@ -107,7 +127,7 @@ npx claude-testing run ./my-react-app --coverage
 #     └── routes/
 
 # Generate tests
-npx claude-testing test ./my-api
+node dist/cli/index.js test ./my-api
 
 # Output: ./my-api/.claude-testing/
 # ├── conftest.py
@@ -116,7 +136,7 @@ npx claude-testing test ./my-api
 #     └── (mirror of your app/ with test_*.py files)
 
 # Run tests
-npx claude-testing run ./my-api --coverage
+node dist/cli/index.js run ./my-api --coverage
 ```
 
 ### Full-Stack Project (JavaScript + Python)
@@ -129,23 +149,23 @@ npx claude-testing run ./my-api --coverage
 #     └── requirements.txt
 
 # Analyze both parts
-npx claude-testing analyze ./full-stack-app/frontend
-npx claude-testing analyze ./full-stack-app/backend
+node dist/cli/index.js analyze ./full-stack-app/frontend
+node dist/cli/index.js analyze ./full-stack-app/backend
 
 # Generate tests for each
-npx claude-testing test ./full-stack-app/frontend
-npx claude-testing test ./full-stack-app/backend
+node dist/cli/index.js test ./full-stack-app/frontend
+node dist/cli/index.js test ./full-stack-app/backend
 
 # Run tests for each
-npx claude-testing run ./full-stack-app/frontend --coverage
-npx claude-testing run ./full-stack-app/backend --coverage
+node dist/cli/index.js run ./full-stack-app/frontend --coverage
+node dist/cli/index.js run ./full-stack-app/backend --coverage
 ```
 
 ## 📊 Understanding the Output
 
 ### Analysis Results
 ```bash
-npx claude-testing analyze ./my-project --verbose
+node dist/cli/index.js analyze ./my-project --verbose
 ```
 
 Shows:
@@ -172,7 +192,7 @@ your-project/
 
 ### Test Execution Results
 ```bash
-npx claude-testing run ./my-project --coverage
+node dist/cli/index.js run ./my-project --coverage
 ```
 
 Provides:
@@ -256,13 +276,13 @@ Currently supported:
 ls -la your-project/.claude-testing/
 
 # Regenerate tests if missing
-npx claude-testing test your-project --only-structural
+node dist/cli/index.js test your-project --only-structural
 ```
 
 **"Project analysis failed"**
 ```bash
 # Run with debug output
-npx claude-testing analyze your-project --verbose
+node dist/cli/index.js analyze your-project --verbose
 
 # Check project structure
 ls package.json requirements.txt pyproject.toml
@@ -274,13 +294,13 @@ ls package.json requirements.txt pyproject.toml
 cd your-project && npm install  # or pip install -r requirements.txt
 
 # Run tests with verbose output
-npx claude-testing run your-project --verbose
+node dist/cli/index.js run your-project --verbose
 ```
 
 ### Debug Mode
 ```bash
 # Enable debug logging for any command
-DEBUG=* npx claude-testing analyze your-project
+DEBUG=* node dist/cli/index.js analyze your-project
 ```
 
 ## 🚀 Next Steps
