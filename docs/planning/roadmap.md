@@ -1,6 +1,6 @@
 # Current Priorities & Roadmap
 
-*Last updated: 2025-06-28 | Phase 6 Incremental Testing completed - Git integration functional*
+*Last updated: 2025-06-28 | Architecture cleanup completed - clean decoupled-only structure*
 
 ## 🚨 Strategic Pivot (2025-06-27)
 
@@ -38,6 +38,7 @@
 ### Completed Transitions
 - ✅ Non-interactive initialization (completed)
 - ✅ Core TypeScript infrastructure (completed)
+- ✅ **ARCHITECTURE CLEANUP (2025-06-28)**: Removed legacy template-based approach remnants (completed)
 - ✅ Project analysis engine (completed) 
 - ✅ CLI test generation integration (completed)
 - ✅ **NEW**: Test execution system implementation (completed)

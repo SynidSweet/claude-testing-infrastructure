@@ -12,13 +12,15 @@ This document provides links to the various implementation plans for the Claude 
 
 ## Archived Implementation Plans
 These plans have been completed or deprecated:
-- **MVP Completion Plan**: [`MVP_COMPLETION_PLAN.md`](../../MVP_COMPLETION_PLAN.md) - ✅ Completed 2025-06-27
-- **AI Testing Template Implementation**: [`AI_TESTING_TEMPLATE_IMPLEMENTATION_PLAN.md`](../../AI_TESTING_TEMPLATE_IMPLEMENTATION_PLAN.md) - Deprecated (template approach being removed)
-- **Decoupled Testing Architecture Implementation**: [`DECOUPLED_TESTING_ARCHITECTURE_IMPLEMENTATION_PLAN.md`](../../DECOUPLED_TESTING_ARCHITECTURE_IMPLEMENTATION_PLAN.md) - Superseded by complete implementation plan
+- **MVP Completion Plan**: ✅ Completed 2025-06-27 (removed)
+- **AI Testing Template Implementation**: ✅ Deprecated and removed 2025-06-28 (template approach eliminated)
+- **Decoupled Testing Architecture Implementation**: ✅ Superseded by complete implementation plan (removed)
+- **Adapter Migration Guide**: ✅ Completed and removed 2025-06-28 (migration finished)
+- **Adapter Implementation Summary**: ✅ Completed and removed 2025-06-28 (implementation finished)
+- **Migration Report**: ✅ Completed and removed 2025-06-28 (migration complete)
 
-## Adapter Pattern Documentation
-- **Implementation Summary**: [`/docs/architecture/adapter-pattern.md`](../architecture/adapter-pattern.md)
-- **Migration Guide**: [`ADAPTER_MIGRATION_GUIDE.md`](../../ADAPTER_MIGRATION_GUIDE.md)
+## Legacy Cleanup (2025-06-28)
+**Architecture Cleanup Completed**: All template-based approach remnants and obsolete documentation have been removed. Project now has clean, focused decoupled-only architecture.
 
 ## See Also
 - 📖 **Roadmap**: [`/docs/planning/roadmap.md`](./roadmap.md)

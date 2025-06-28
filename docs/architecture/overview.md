@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-06-28 | Production-ready v2.0 with AI integration foundation*
+*Last updated: 2025-06-28 | Production-ready v2.0 with clean decoupled-only architecture*
 
 ## Architecture Summary
 
