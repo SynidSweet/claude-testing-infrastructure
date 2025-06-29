@@ -370,13 +370,23 @@ export class StructuralTestGenerator extends TestGenerator {
       
       let match;
       while ((match = functionRegex.exec(content)) !== null) {
-        if (match[1] && match[1].trim()) {
+        if (match[1] && match[1].trim() && !match[1].startsWith('_')) {
           exports.push(match[1].trim());
         }
       }
       
       while ((match = classRegex.exec(content)) !== null) {
-        if (match[1] && match[1].trim()) {
+        if (match[1] && match[1].trim() && !match[1].startsWith('_')) {
+          exports.push(match[1].trim());
+        }
+      }
+      
+      // Also look for module-level variables that might be exports
+      const variableRegex = /^(\w+)\s*=\s*[^=]/gm;
+      while ((match = variableRegex.exec(content)) !== null) {
+        if (match[1] && match[1].trim() && !match[1].startsWith('_') && 
+            match[1] !== 'if' && match[1] !== 'for' && match[1] !== 'while' && 
+            match[1] !== 'import' && match[1] !== 'from') {
           exports.push(match[1].trim());
         }
       }
@@ -386,17 +396,36 @@ export class StructuralTestGenerator extends TestGenerator {
       const exportList = content.match(/export\s*\{\s*([^}]+)\s*\}/g);
       
       if (namedExports) {
-        exports.push(...namedExports.map(match => match.split(/\s+/).pop()!));
+        namedExports.forEach(match => {
+          const parts = match.split(/\s+/);
+          const exportName = parts[parts.length - 1];
+          if (exportName && exportName.trim()) {
+            exports.push(exportName.trim());
+          }
+        });
       }
       if (exportList) {
         exportList.forEach(match => {
-          const names = match.replace(/export\s*\{\s*|\s*\}/g, '').split(',').map(s => s.trim());
+          const namesSection = match.replace(/export\s*\{\s*|\s*\}/g, '');
+          const names = namesSection.split(',')
+            .map(s => s.trim())
+            .filter(s => s && !s.includes('as')); // Skip renamed exports for now
           exports.push(...names);
         });
       }
+      
+      // Also look for default exports
+      const defaultExportMatch = content.match(/export\s+default\s+(?:class\s+(\w+)|function\s+(\w+)|(\w+))/);
+      if (defaultExportMatch) {
+        const exportName = defaultExportMatch[1] || defaultExportMatch[2] || defaultExportMatch[3];
+        if (exportName && exportName.trim()) {
+          exports.push(exportName.trim());
+        }
+      }
     }
     
-    return exports;
+    // Remove duplicates and empty strings
+    return [...new Set(exports.filter(exp => exp && exp.trim()))];
   }
 
   private extractDependencies(content: string, language: string): string[] {

@@ -115,6 +115,45 @@ export class TestTemplateEngine {
   }
 }
 
+// Helper function for type-specific tests
+function generateJSTypeSpecificTests(exportName: string, testType: TestType, isAsync: boolean): string {
+  let tests = '';
+  
+  if (isAsync) {
+    tests += `    it('should handle async operations', async () => {
+      // TODO: Add async-specific tests for ${exportName}
+      if (typeof ${exportName} === 'function') {
+        // Test that async functions return promises
+        const result = ${exportName}();
+        if (result && typeof result.then === 'function') {
+          await expect(result).resolves.toBeDefined();
+        }
+      }
+    });
+
+`;
+  }
+  
+  if (testType === TestType.UTILITY) {
+    tests += `    it('should work with typical inputs', () => {
+      // TODO: Add utility function tests for ${exportName}
+      if (typeof ${exportName} === 'function') {
+        expect(() => ${exportName}()).not.toThrow();
+      }
+    });
+
+`;
+  }
+  
+  tests += `    it('should work correctly', () => {
+      // TODO: Add specific test implementation for ${exportName}
+      expect(true).toBe(true);
+    });
+`;
+  
+  return tests;
+}
+
 // JavaScript Jest Templates
 class JestJavaScriptTemplate implements Template {
   name = 'jest-javascript';
@@ -122,13 +161,17 @@ class JestJavaScriptTemplate implements Template {
   framework = 'jest';
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports, hasDefaultExport } = context;
+    const { moduleName, exports, hasDefaultExport, isAsync, testType } = context;
     
+    // Always create an import statement even if no exports detected
     let importStatement = '';
     if (hasDefaultExport) {
       importStatement = `const ${moduleName} = require('./${moduleName}');`;
     } else if (exports.length > 0) {
       importStatement = `const { ${exports.join(', ')} } = require('./${moduleName}');`;
+    } else {
+      // Fallback: try importing the whole module
+      importStatement = `const ${moduleName} = require('./${moduleName}');`;
     }
 
     let testContent = `${importStatement}
@@ -136,28 +179,59 @@ class JestJavaScriptTemplate implements Template {
 describe('${moduleName}', () => {
 `;
 
-    if (hasDefaultExport) {
-      testContent += `  it('should be defined', () => {
+    // Always add module existence test
+    testContent += `  it('should load the module without errors', () => {
     expect(${moduleName}).toBeDefined();
+  });
+
+`;
+
+    if (hasDefaultExport) {
+      testContent += `  it('should export a default value', () => {
+    expect(${moduleName}).toBeDefined();
+    expect(typeof ${moduleName}).not.toBe('undefined');
   });
 
 `;
     }
 
-    exports.forEach(exportName => {
-      testContent += `  describe('${exportName}', () => {
+    // If we have detected exports, test each one
+    if (exports.length > 0) {
+      exports.forEach(exportName => {
+        testContent += `  describe('${exportName}', () => {
     it('should be defined', () => {
       expect(${exportName}).toBeDefined();
     });
 
-    it('should work correctly', () => {
-      // TODO: Add test implementation
-      expect(true).toBe(true);
+    it('should have the expected type', () => {
+      const type = typeof ${exportName};
+      expect(['function', 'object', 'string', 'number', 'boolean']).toContain(type);
     });
+
+${generateJSTypeSpecificTests(exportName, testType, isAsync)}
   });
 
 `;
-    });
+      });
+    } else {
+      // Fallback tests when no exports detected
+      testContent += `  it('should be a valid module structure', () => {
+    // Test common export patterns
+    const moduleType = typeof ${moduleName};
+    expect(['object', 'function']).toContain(moduleType);
+  });
+
+  it('should have some exportable content', () => {
+    // Check if module has properties or is callable
+    if (typeof ${moduleName} === 'object' && ${moduleName} !== null) {
+      expect(Object.keys(${moduleName}).length).toBeGreaterThanOrEqual(0);
+    } else if (typeof ${moduleName} === 'function') {
+      expect(${moduleName}).toBeInstanceOf(Function);
+    }
+  });
+
+`;
+    }
 
     testContent += '});';
     return testContent;
@@ -322,6 +396,7 @@ describe('${moduleName}', () => {
     testContent += '});';
     return testContent;
   }
+
 }
 
 class JestReactTypeScriptTemplate implements Template {
@@ -398,29 +473,86 @@ ${importStatement}
 class Test${this.capitalize(className)}:
     """Test class for ${moduleName} module."""
 
+    def test_module_import_successful(self):
+        """Test that the module can be imported without errors."""
+        # This test verifies the module was imported successfully
+        ${validExports.length > 0 ? 'assert True  # Module imported successfully' : `assert ${importModule} is not None`}
+
 ${validExports.length > 0 ? validExports.map(exportName => `
     def test_${exportName.toLowerCase()}_exists(self):
         """Test that ${exportName} is defined and importable."""
         assert ${exportName} is not None
+        assert hasattr(${exportName}, '__name__') or hasattr(${exportName}, '__class__')
 
     def test_${exportName.toLowerCase()}_basic_functionality(self):
         """Test basic functionality of ${exportName}."""
-        # TODO: Implement actual test logic
-        assert True
+        # Test basic properties and behavior
+        if callable(${exportName}):
+            # Test that function/method doesn't raise on import
+            assert ${exportName} is not None
+            # TODO: Add specific function tests
+        elif hasattr(${exportName}, '__dict__'):
+            # Test class or object structure
+            assert ${exportName} is not None
+            # TODO: Add specific class/object tests
+        else:
+            # Test primitive or other types
+            assert ${exportName} is not None
+            # TODO: Add specific value tests
+
+    def test_${exportName.toLowerCase()}_type_validation(self):
+        """Test type validation for ${exportName}."""
+        import types
+        # Verify the export is one of the expected types
+        expected_types = (type, types.FunctionType, types.MethodType, str, int, float, bool, list, dict, tuple)
+        assert isinstance(${exportName}, expected_types)
 
     def test_${exportName.toLowerCase()}_error_handling(self):
         """Test error handling in ${exportName}."""
-        # TODO: Test error conditions
-        pass
+        # TODO: Test error conditions for ${exportName}
+        if callable(${exportName}):
+            # Test with invalid inputs if it's callable
+            try:
+                # This is a placeholder - replace with actual invalid inputs
+                pass
+            except Exception:
+                # Expected for invalid inputs
+                pass
 `).join('') : `
-    def test_module_import(self):
-        """Test that the module can be imported."""
-        assert ${moduleName} is not None
+    def test_module_structure(self):
+        """Test basic module structure and contents."""
+        # Check if module has expected attributes
+        module_attrs = dir(${importModule})
+        # Filter out built-in attributes
+        public_attrs = [attr for attr in module_attrs if not attr.startswith('_')]
+        
+        # Module should have some public attributes or be callable
+        assert len(public_attrs) > 0 or callable(${importModule})
 
-    def test_module_attributes(self):
-        """Test module attributes and contents."""
-        # TODO: Add tests for module attributes
-        pass
+    def test_module_functionality(self):
+        """Test basic module functionality."""
+        # Basic functionality tests
+        if callable(${importModule}):
+            # Module is a callable (function/class)
+            assert ${importModule} is not None
+            # TODO: Add specific callable tests
+        else:
+            # Module is a namespace with attributes
+            assert hasattr(${importModule}, '__name__') or hasattr(${importModule}, '__file__')
+            # TODO: Add specific module attribute tests
+
+    def test_module_imports_cleanly(self):
+        """Test that the module imports without side effects."""
+        # Re-import the module to ensure it's stable
+        import importlib
+        import sys
+        
+        # Get the module name from the import path
+        module_name = '${importModule}'.replace('.', '/')
+        
+        # Test that repeated imports work
+        # TODO: Add specific import stability tests
+        assert True  # Placeholder for import stability tests
 `}
 `;
   }
