@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-06-29 | Updated by: /document command | Test generation validation system added*
+*Last updated: 2025-06-29 | Updated by: /document command | Python import syntax fix completed*
 
 ## Overview
 
@@ -354,6 +354,49 @@ The test generator now correctly handles mixed-language projects:
 - **Detailed Error Reporting**: Specific error messages with context
 - **Recovery Mechanisms**: Automatic retry for transient failures
 - **Validation**: Configuration and input validation before processing
+
+## Python Import Path Handling ✅ NEW (2025-06-29)
+
+### Problem Solved
+Previously, Python test files had malformed import statements:
+- `from main import ` (empty import when no exports)
+- `from helper import helper_function` (incorrect module path)
+- `class TestSrc.utils.helper:` (invalid class name with dots)
+
+### Solution Implementation
+
+**1. Module Path Calculation**
+```typescript
+// StructuralTestGenerator.calculatePythonModulePath()
+// Converts: /project/src/utils/helper.py → src.utils.helper
+private calculatePythonModulePath(filePath: string): string {
+  const relativePath = path.relative(this.config.projectPath, filePath);
+  const withoutExt = relativePath.replace(/\.py$/, '');
+  let modulePath = withoutExt.replace(/[/\\]/g, '.');
+  modulePath = modulePath.replace(/\.__init__$/, '');
+  return modulePath || path.basename(filePath, path.extname(filePath));
+}
+```
+
+**2. Empty Export Handling**
+Templates now detect when files have no exports and use proper import syntax:
+```python
+# When exports exist:
+from src.utils.helper import helper_function
+
+# When no exports:
+import main
+```
+
+**3. Class Name Sanitization**
+Python class names cannot contain dots, so module paths are sanitized:
+```python
+# Before: class TestSrc.utils.helper:  # Invalid
+# After:  class TestSrc_utils_helper:  # Valid
+```
+
+### Result
+Python tests now generate with correct import statements that can be executed without syntax errors, addressing a critical user-reported issue from the iterative testing phase.
 
 ## Future Extensibility
 

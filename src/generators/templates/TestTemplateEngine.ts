@@ -2,6 +2,7 @@ import { TestType } from '../TestGenerator';
 
 export interface TemplateContext {
   moduleName: string;
+  modulePath?: string; // For Python: proper module path (e.g., 'src.utils.helpers')
   imports: string[];
   exports: string[];
   hasDefaultExport: boolean;
@@ -373,17 +374,28 @@ class PytestTemplate implements Template {
   framework = 'pytest';
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports } = context;
+    const { moduleName, modulePath, exports } = context;
+    
+    // Use modulePath for imports, fall back to moduleName if not provided
+    const importModule = modulePath || moduleName;
+    
+    // Handle empty exports case
+    const importStatement = exports.length > 0 
+      ? `from ${importModule} import ${exports.join(', ')}`
+      : `import ${importModule}`;
+    
+    // Clean moduleName for class name (replace dots and hyphens with underscores)
+    const className = moduleName.replace(/[\.-]/g, '_');
     
     return `"""Tests for ${moduleName} module."""
 import pytest
-from ${moduleName} import ${exports.join(', ')}
+${importStatement}
 
 
-class Test${this.capitalize(moduleName)}:
+class Test${this.capitalize(className)}:
     """Test class for ${moduleName} module."""
 
-${exports.map(exportName => `
+${exports.length > 0 ? exports.map(exportName => `
     def test_${exportName.toLowerCase()}_exists(self):
         """Test that ${exportName} is defined and importable."""
         assert ${exportName} is not None
@@ -397,7 +409,16 @@ ${exports.map(exportName => `
         """Test error handling in ${exportName}."""
         # TODO: Test error conditions
         pass
-`).join('')}
+`).join('') : `
+    def test_module_import(self):
+        """Test that the module can be imported."""
+        assert ${moduleName} is not None
+
+    def test_module_attributes(self):
+        """Test module attributes and contents."""
+        # TODO: Add tests for module attributes
+        pass
+`}
 `;
   }
 
@@ -413,12 +434,20 @@ class PytestFastApiTemplate implements Template {
   testType = TestType.API;
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports } = context;
+    const { moduleName, modulePath, exports } = context;
+    
+    // Use modulePath for imports, fall back to moduleName if not provided
+    const importModule = modulePath || moduleName;
+    
+    // Handle empty exports case
+    const importStatement = exports.length > 0 
+      ? `from ${importModule} import ${exports.join(', ')}`
+      : `import ${importModule}`;
     
     return `"""Tests for ${moduleName} FastAPI endpoints."""
 import pytest
 from fastapi.testclient import TestClient
-from ${moduleName} import ${exports.join(', ')}
+${importStatement}
 
 
 @pytest.fixture
@@ -470,13 +499,21 @@ class PytestDjangoTemplate implements Template {
   testType = TestType.API;
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports } = context;
+    const { moduleName, modulePath, exports } = context;
+    
+    // Use modulePath for imports, fall back to moduleName if not provided
+    const importModule = modulePath || moduleName;
+    
+    // Handle empty exports case
+    const importStatement = exports.length > 0 
+      ? `from ${importModule} import ${exports.join(', ')}`
+      : `import ${importModule}`;
     
     return `"""Tests for ${moduleName} Django views."""
 import pytest
 from django.test import Client
 from django.urls import reverse
-from ${moduleName} import ${exports.join(', ')}
+${importStatement}
 
 
 @pytest.mark.django_db

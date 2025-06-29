@@ -2,7 +2,7 @@
 
 *Common issues and solutions when using Claude Testing Infrastructure*
 
-*Last updated: 2025-06-28 | Added timeout configuration and Claude Code CLI integration troubleshooting*
+*Last updated: 2025-06-29 | Added Python import syntax fix information*
 
 ## 🔍 Quick Diagnosis
 
@@ -144,6 +144,32 @@ node dist/cli/index.js test . --only-structural
 
 # Check supported frameworks in documentation
 node dist/cli/index.js --help
+```
+
+#### Python Import Syntax Errors ✅ FIXED (2025-06-29)
+**Previous Issue**: Python test files had malformed import statements
+```python
+# Malformed imports that would cause syntax errors:
+from main import     # Empty import
+from helper import helper_function  # Wrong module path
+class TestSrc.utils.helper:  # Invalid class name
+```
+
+**Current Status**: This issue has been fixed in the latest version. Python tests now generate with:
+- Correct module paths (`from src.utils.helper import helper_function`)
+- Proper handling of files with no exports (`import main`)
+- Valid class names (`class TestSrc_utils_helper:`)
+
+**If You Still See This Issue**:
+```bash
+# Ensure you have the latest version
+git pull origin main
+npm install
+npm run build
+
+# Regenerate your tests
+rm -rf .claude-testing
+node dist/cli/index.js test . --only-structural
 ```
 
 #### "Out of memory" during test generation

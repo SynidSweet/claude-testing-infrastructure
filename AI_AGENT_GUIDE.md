@@ -14,7 +14,14 @@ This infrastructure has been completely redesigned as a **single, focused soluti
 
 ## 🚀 How to Use This Infrastructure
 
-### Step 0: Verify Prerequisites
+### Step 0: Check User Feedback (ITERATIVE TESTING PHASE)
+```bash
+# CRITICAL: Check for user-reported issues during testing phase
+cat ~/Documents/testing-feedback.md 2>/dev/null || echo "No feedback file found - proceeding with normal usage"
+```
+**⚠️ IMPORTANT**: During the current iterative testing phase, always check `~/Documents/testing-feedback.md` for user-reported issues that need to be addressed before proceeding with development work.
+
+### Step 1: Verify Prerequisites
 ```bash
 # Check Node.js version (required: 18+)
 node --version

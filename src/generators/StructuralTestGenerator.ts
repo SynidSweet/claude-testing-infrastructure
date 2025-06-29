@@ -214,7 +214,25 @@ export class StructuralTestGenerator extends TestGenerator {
       dependencies: analysis.dependencies
     };
     
+    // Add modulePath only for Python files
+    if (analysis.language === 'python') {
+      context.modulePath = this.getPythonModulePath(filePath);
+    }
+    
     return templateEngine.generateTest(context);
+  }
+
+  private getPythonModulePath(filePath: string): string {
+    // Get relative path from project root to source file
+    const relativePath = path.relative(this.config.projectPath, filePath);
+    
+    // Remove .py extension and convert path separators to dots
+    const modulePath = relativePath
+      .replace(/\.py$/, '')
+      .split(path.sep)
+      .join('.');
+    
+    return modulePath;
   }
 
   private async generateMockFileForDependencies(filePath: string, dependencies: string[]): Promise<GeneratedFile | null> {
