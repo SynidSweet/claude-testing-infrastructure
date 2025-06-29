@@ -343,6 +343,17 @@ The test generator now correctly handles mixed-language projects:
 - **Language Detection**: Analyzes each file individually rather than using project-wide language
 - **Backward Compatible**: Optional language parameter maintains API compatibility
 
+### Python Import Syntax Fix (2025-06-29)
+The test generator now correctly handles Python import statements:
+- **Module Path Calculation**: Converts file paths to proper Python module paths
+  - Example: `src/utils/helper.py` → `from src.utils.helper import ...`
+- **Empty Export Handling**: Files with no exports use `import module` syntax
+  - Previously: `from module import` (syntax error)
+  - Now: `import module` (valid Python)
+- **Class Name Sanitization**: Converts invalid characters to underscores
+  - Example: `TestSrc.utils.helper` → `TestSrc_utils_helper`
+- **All Python Templates Updated**: PytestTemplate, PytestFastApiTemplate, PytestDjangoTemplate
+
 ### Comprehensive Test Suite (61 Tests)
 - **Base Class Tests**: Lifecycle, configuration, error handling
 - **Structural Generator Tests**: File analysis, test generation, mock creation, mixed-language support
