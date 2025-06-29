@@ -379,9 +379,12 @@ class PytestTemplate implements Template {
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
     
+    // Filter out empty or whitespace-only exports
+    const validExports = exports.filter(exp => exp && exp.trim());
+    
     // Handle empty exports case
-    const importStatement = exports.length > 0 
-      ? `from ${importModule} import ${exports.join(', ')}`
+    const importStatement = validExports.length > 0 
+      ? `from ${importModule} import ${validExports.join(', ')}`
       : `import ${importModule}`;
     
     // Clean moduleName for class name (replace dots and hyphens with underscores)
@@ -395,7 +398,7 @@ ${importStatement}
 class Test${this.capitalize(className)}:
     """Test class for ${moduleName} module."""
 
-${exports.length > 0 ? exports.map(exportName => `
+${validExports.length > 0 ? validExports.map(exportName => `
     def test_${exportName.toLowerCase()}_exists(self):
         """Test that ${exportName} is defined and importable."""
         assert ${exportName} is not None
@@ -439,9 +442,12 @@ class PytestFastApiTemplate implements Template {
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
     
+    // Filter out empty or whitespace-only exports
+    const validExports = exports.filter(exp => exp && exp.trim());
+    
     // Handle empty exports case
-    const importStatement = exports.length > 0 
-      ? `from ${importModule} import ${exports.join(', ')}`
+    const importStatement = validExports.length > 0 
+      ? `from ${importModule} import ${validExports.join(', ')}`
       : `import ${importModule}`;
     
     return `"""Tests for ${moduleName} FastAPI endpoints."""
@@ -460,7 +466,7 @@ def client():
 class Test${this.capitalize(moduleName)}Api:
     """Test class for ${moduleName} API endpoints."""
 
-${exports.map(exportName => `
+${validExports.map(exportName => `
     def test_${exportName.toLowerCase()}_get_success(self, client):
         """Test successful GET request for ${exportName}."""
         response = client.get("/api/${exportName.toLowerCase()}")  # TODO: Update endpoint
@@ -504,9 +510,12 @@ class PytestDjangoTemplate implements Template {
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
     
+    // Filter out empty or whitespace-only exports
+    const validExports = exports.filter(exp => exp && exp.trim());
+    
     // Handle empty exports case
-    const importStatement = exports.length > 0 
-      ? `from ${importModule} import ${exports.join(', ')}`
+    const importStatement = validExports.length > 0 
+      ? `from ${importModule} import ${validExports.join(', ')}`
       : `import ${importModule}`;
     
     return `"""Tests for ${moduleName} Django views."""
@@ -525,7 +534,7 @@ class Test${this.capitalize(moduleName)}Views:
         self.client = Client()
         # TODO: Create test data
 
-${exports.map(exportName => `
+${validExports.map(exportName => `
     def test_${exportName.toLowerCase()}_get_success(self):
         """Test successful GET request for ${exportName}."""
         url = reverse('${exportName.toLowerCase()}')  # TODO: Update URL name
