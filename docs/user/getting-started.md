@@ -1,6 +1,6 @@
 # Getting Started with Claude Testing Infrastructure
 
-*Last updated: 2025-06-28 | Updated by: /document command*
+*Last updated: 2025-06-29 | Updated by: /document command | Added configuration validation guide*
 
 *A comprehensive guide for end users to quickly set up testing for their projects*
 
@@ -27,6 +27,9 @@ The Claude Testing Infrastructure is an AI-powered, decoupled testing solution t
 git clone https://github.com/YourOrg/claude-testing-infrastructure.git
 cd claude-testing-infrastructure
 
+# Configure git ownership if needed (common for AI agents)
+git config --global --add safe.directory "$(pwd)"
+
 # Install and build
 npm install
 npm run build
@@ -37,14 +40,23 @@ npm run build
 # Analyze any project (shows what we detected)
 node dist/cli/index.js analyze /path/to/your/project
 
+# Detailed analysis with verbose output
+node dist/cli/index.js analyze /path/to/your/project --verbose
+
 # Save analysis to file for review
 node dist/cli/index.js analyze /path/to/your/project --output analysis.json --format json
+
+# Validate configuration file (if you have .claude-testing.config.json)
+node dist/cli/index.js analyze /path/to/your/project --validate-config
 ```
 
 ### Step 3: Generate Tests
 ```bash
 # Generate comprehensive test suite
 node dist/cli/index.js test /path/to/your/project
+
+# Generate with detailed progress information
+node dist/cli/index.js test /path/to/your/project --verbose
 
 # Generate only structural tests (faster, no AI required)
 node dist/cli/index.js test /path/to/your/project --only-structural
@@ -203,7 +215,7 @@ Provides:
 
 ## 🔧 Configuration Options
 
-### Project-Specific Configuration
+### Project-Specific Configuration ✅ NEW
 Create `.claude-testing.config.json` in your project:
 
 ```json
@@ -211,21 +223,33 @@ Create `.claude-testing.config.json` in your project:
   "include": ["src/**/*.{js,ts,jsx,tsx,py}"],
   "exclude": ["**/*.test.*", "**/*.spec.*", "**/node_modules/**"],
   "testFramework": "jest",
-  "coverage": {
-    "threshold": {
-      "statements": 80,
-      "branches": 70,
-      "functions": 80,
-      "lines": 80
-    }
-  },
+  "aiModel": "claude-3-5-sonnet-20241022",
   "features": {
-    "mocking": true,
-    "integration": true,
-    "edgeCases": true
+    "coverage": true,
+    "edgeCases": true,
+    "integrationTests": true
+  },
+  "ai": {
+    "maxCost": 5.00
   }
 }
 ```
+
+### Configuration Validation ✅ NEW
+```bash
+# Validate your configuration file
+node dist/cli/index.js analyze /path/to/your/project --validate-config
+
+# Example output:
+# 📋 Configuration Validation Results
+# =====================================
+# ✓ Configuration is valid
+# 
+# ⚠️  Warnings:
+#   • High incremental cost limit may result in unexpected AI charges
+```
+
+📖 **Complete Configuration Guide**: [`/docs/configuration.md`](../configuration.md) - Full reference with examples for all project types
 
 ### Command-Line Options
 ```bash
@@ -233,6 +257,7 @@ Create `.claude-testing.config.json` in your project:
 --output <file>          # Save analysis results
 --format json|markdown   # Output format
 --verbose               # Show detailed information
+--validate-config       # Validate .claude-testing.config.json
 
 # Test generation options
 --only-structural       # Skip AI-powered logical tests

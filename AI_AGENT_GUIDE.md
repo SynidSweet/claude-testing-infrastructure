@@ -42,6 +42,9 @@ df -h .
 # Clone it anywhere - it works independently
 git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
 cd claude-testing-infrastructure
+
+# If you encounter git dubious ownership warnings, configure safe.directory
+git config --global --add safe.directory "$(pwd)"
 ```
 
 ### Step 2: Install and build

@@ -1,6 +1,6 @@
 # Core Features & User Journeys
 
-*Last updated: 2025-06-28 | Watch Mode Added*
+*Last updated: 2025-06-29 | Error handling standardization added*
 
 ## Primary User Flows
 1. **Project Analysis**: `analyze` → Detect languages, frameworks, and generate recommendations
@@ -38,6 +38,9 @@
 - **Watch Command** (`src/cli/commands/watch.ts`): Real-time file monitoring with debounced incremental test generation
 - **FileWatcher** (`src/utils/FileWatcher.ts`): Cross-platform file system monitoring with intelligent filtering  
 - **Debouncer** (`src/utils/Debouncer.ts`): Smart event batching utility for reducing excessive processing
+
+### Error Handling & Reliability
+- **Error Handling System** (`src/utils/error-handling.ts`): Standardized error handling with custom error classes and wrapper functions
 
 ## Data Models & Entities
 - **ProjectAnalysis**: Framework detection results, project type classification, existing test structure analysis

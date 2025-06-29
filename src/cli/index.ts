@@ -38,6 +38,7 @@ program
   .option('-o, --output <path>', 'Output path for analysis results')
   .option('--format <format>', 'Output format (json|markdown|console)', 'console')
   .option('-v, --verbose', 'Show detailed analysis information')
+  .option('--validate-config', 'Validate .claude-testing.config.json configuration')
   .action(analyzeCommand);
 
 // Test command
@@ -51,6 +52,8 @@ program
   .option('--only-logical', 'Generate only logical tests (requires AI)')
   .option('--coverage', 'Generate coverage report')
   .option('--update', 'Update existing tests based on changes')
+  .option('--force', 'Skip validation checks (e.g., test-to-source ratio)')
+  .option('-v, --verbose', 'Show detailed test generation information')
   .action(testCommand);
 
 // Run command
@@ -64,6 +67,7 @@ program
   .option('--watch', 'Run tests in watch mode')
   .option('--junit', 'Generate JUnit XML reports')
   .option('--threshold <threshold>', 'Coverage threshold (e.g., "80" or "statements:80,branches:70")')
+  .option('-v, --verbose', 'Show detailed test execution information')
   .action(runCommand);
 
 // Add the watch command

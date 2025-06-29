@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-06-29 | Mixed-language project support added - file-specific test extensions*
+*Last updated: 2025-06-29 | Updated by: /document command | Test generation validation system added*
 
 ## Overview
 
@@ -24,6 +24,7 @@ abstract class TestGenerator {
 **Key Features**:
 - Lifecycle management (pre-generation, generation, post-generation)
 - Configuration validation and error handling
+- Test generation validation with ratio checking (2025-06-29)
 - Naming conventions system with customizable patterns
 - Progress tracking and comprehensive statistics
 - Extensible hook system for custom behavior
@@ -119,6 +120,83 @@ interface NamingConventions {
   testDirectory?: string;     // Default: '__tests__'
   mockFileSuffix?: string;    // Default: '.mock'
 }
+```
+
+## Test Generation Validation ✅ NEW (2025-06-29)
+
+The TestGenerator includes comprehensive validation to prevent accidental creation of unmaintainable test suites.
+
+### Ratio Validation
+
+**Purpose**: Prevents generating excessive test files that would be difficult to maintain.
+
+**How it works**:
+1. Counts source files in the project (excludes test files, node_modules, build directories)
+2. Counts files selected for test generation
+3. Calculates ratio and compares against thresholds
+4. Provides clear warnings or blocks generation when thresholds exceeded
+
+### Validation Thresholds
+
+```typescript
+// Validation logic in TestGenerator.validateTestGenerationRatio()
+const ratio = testFileCount / sourceFileCount;
+const maxRatio = 10; // Configurable threshold
+
+if (ratio > 5) {
+  // Warning logged but generation continues
+  logger.warn(`High test ratio: ${ratio.toFixed(1)}x`);
+}
+
+if (ratio > 10) {
+  // Generation blocked with helpful error message
+  throw new Error('Test generation ratio exceeds maximum recommended threshold');
+}
+```
+
+### Source File Detection
+
+The validation system intelligently counts source files using these patterns:
+
+**Included**:
+- `**/*.{js,ts,jsx,tsx,py,java,cs,go,rb,php}`
+
+**Excluded**:
+- Test files: `**/*.test.*`, `**/*.spec.*`
+- Dependencies: `**/node_modules/**`, `**/vendor/**`
+- Build outputs: `**/dist/**`, `**/build/**`, `**/target/**`
+- Generated files: `**/__pycache__/**`, `**/coverage/**`
+
+### Bypass Options
+
+**CLI Override**:
+```bash
+# Skip validation entirely
+node dist/cli/index.js test <path> --force
+```
+
+**Programmatic Override**:
+```typescript
+const generator = new StructuralTestGenerator(config, analysis, {
+  skipValidation: true  // Bypasses ratio checking
+});
+```
+
+### Error Messages
+
+When validation fails, users receive clear guidance:
+
+```
+⚠️  WARNING: Test generation would create 150 test files for 10 source files
+   This is a 15.0x ratio, which exceeds the recommended 10x maximum.
+   This may create an unmaintainable test suite.
+
+   Options:
+   • Review your include/exclude patterns
+   • Use --force to bypass this check
+   • Consider using --only-logical for targeted test generation
+
+   To proceed anyway, add the --force flag to your command.
 ```
 
 ## Usage Examples

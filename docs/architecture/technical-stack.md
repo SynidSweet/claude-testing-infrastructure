@@ -1,6 +1,6 @@
 # Technical Stack
 
-*Last updated: 2025-06-28 | Updated by: /document command | Added template engines*
+*Last updated: 2025-06-29 | Updated by: /document command | Added configuration schema system*
 
 ## Technology Foundation
 - **Primary language(s)**: TypeScript (compiled to Node.js 18+), JavaScript ES6+, Python 3.9+
@@ -13,6 +13,8 @@
   - **Validation**: ajv (JSON validation), ajv-formats (format validation), zod (TypeScript validation)
   - **Testing Infrastructure**: jest (internal testing), jest/vitest (JS testing), pytest (Python testing)
   - **Configuration**: cosmiconfig (flexible configuration loading), winston (logging)
+  - **Error Handling**: Custom standardized error system with context-aware error classes
+  - **Configuration Schema**: Complete TypeScript interfaces and JSON schema validation for .claude-testing.config.json
   - **Coverage System**: istanbul/nyc (JS coverage), coverage.py (Python coverage), custom template engines
 - **Infrastructure**: Standalone TypeScript repositories with Git-based distribution, CI/CD templates for GitHub Actions
 
@@ -54,12 +56,21 @@ claude-testing/
 │   │       ├── XmlTemplateEngine.ts       # XML report generator
 │   │       └── coverage-report.html       # External HTML template
 │   ├── adapters/               # Language adapters (future)
+│   ├── types/                  # ⭐ NEW: TypeScript type definitions
+│   │   ├── config.ts           # Complete configuration interfaces for .claude-testing.config.json
+│   │   └── index.ts            # Type definition exports
 │   └── utils/                  # Shared utilities
-│       └── logger.ts          # Winston-based logging
+│       ├── logger.ts          # Winston-based logging
+│       ├── error-handling.ts  # ⭐ NEW: Standardized error system with custom classes
+│       ├── config-validation.ts # ⭐ NEW: Configuration validation with detailed error messages
+│       ├── common-imports.ts  # Consolidated common imports
+│       └── analyzer-imports.ts # Consolidated analyzer imports
 ├── tests/                      # TypeScript test suite
 │   ├── analyzers/              # Analyzer tests
 │   │   └── ProjectAnalyzer.test.ts # ⭐ COMPREHENSIVE: 10 test cases
 │   └── utils/                  # Utility tests
+├── schemas/                    # ⭐ NEW: JSON schema definitions
+│   └── claude-testing.config.schema.json # Configuration validation schema
 ├── dist/                       # Compiled JavaScript output
 ├── shared/                     # Legacy: Shared components (adapter pattern)
 │   ├── interfaces/              # Core interfaces (IProjectAdapter, etc.)

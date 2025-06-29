@@ -1,6 +1,7 @@
 import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 import { TestRunnerFactory, TestRunnerConfig } from '../../runners';
+import { handleValidation, formatErrorMessage } from '../../utils/error-handling';
 
 interface RunOptions {
   config?: string;
@@ -19,14 +20,16 @@ export async function runCommand(projectPath: string, options: RunOptions = {}):
     logger.info(`Starting test execution for project: ${projectPath}`);
     
     // Step 1: Validate project path
-    try {
-      const stats = await fs.stat(projectPath);
-      if (!stats.isDirectory()) {
-        throw new Error(`Path ${projectPath} is not a directory`);
-      }
-    } catch (error) {
-      throw new Error(`Invalid project path: ${projectPath}`);
-    }
+    await handleValidation(
+      async () => {
+        const stats = await fs.stat(projectPath);
+        if (!stats.isDirectory()) {
+          throw new Error(`Path is not a directory: ${projectPath}`);
+        }
+      },
+      `validating project path`,
+      projectPath
+    );
     
     // Step 2: Analyze project
     const analyzer = new ProjectAnalyzer(projectPath);
@@ -80,14 +83,7 @@ export async function runCommand(projectPath: string, options: RunOptions = {}):
     
   } catch (error) {
     spinner.fail('Test execution failed');
-    logger.error('Test execution error:', error);
-    
-    if (error instanceof Error) {
-      console.log(chalk.red(`\n❌ ${error.message}\n`));
-    } else {
-      console.log(chalk.red('\n❌ An unexpected error occurred\n'));
-    }
-    
+    console.error(chalk.red(`\n✗ ${formatErrorMessage(error)}`));
     process.exit(1);
   }
 }

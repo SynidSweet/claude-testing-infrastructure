@@ -1,10 +1,12 @@
-import { chalk, ora, logger } from '../../utils/common-imports';
+import { chalk, ora, logger, loadAndValidateConfig } from '../../utils/common-imports';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
+import { handleAnalysisOperation, handleFileOperation, formatErrorMessage } from '../../utils/error-handling';
 
 interface AnalyzeOptions {
   output?: string;
   format?: 'json' | 'markdown' | 'console';
   verbose?: boolean;
+  validateConfig?: boolean;
 }
 
 export async function analyzeCommand(projectPath: string, options: AnalyzeOptions = {}): Promise<void> {
@@ -13,8 +15,53 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
   try {
     logger.info(`Starting analysis of project: ${projectPath}`);
     
-    const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyzeProject();
+    // Validate configuration if requested
+    if (options.validateConfig) {
+      spinner.text = 'Validating configuration...';
+      const configResult = await loadAndValidateConfig(projectPath);
+      
+      spinner.stop();
+      console.log(chalk.blue('\n📋 Configuration Validation Results'));
+      console.log(chalk.blue('====================================='));
+      
+      if (configResult.valid) {
+        console.log(chalk.green('✓ Configuration is valid'));
+        if (configResult.warnings.length > 0) {
+          console.log(chalk.yellow('\n⚠️  Warnings:'));
+          configResult.warnings.forEach(warning => 
+            console.log(chalk.yellow(`  • ${warning}`))
+          );
+        }
+      } else {
+        console.log(chalk.red('✗ Configuration validation failed'));
+        console.log(chalk.red('\nErrors:'));
+        configResult.errors.forEach(error => 
+          console.log(chalk.red(`  • ${error}`))
+        );
+        if (configResult.warnings.length > 0) {
+          console.log(chalk.yellow('\nWarnings:'));
+          configResult.warnings.forEach(warning => 
+            console.log(chalk.yellow(`  • ${warning}`))
+          );
+        }
+        process.exit(1);
+      }
+      
+      console.log(chalk.blue('\n📊 Resolved Configuration:'));
+      console.log(JSON.stringify(configResult.config, null, 2));
+      console.log('');
+      
+      spinner.start('Analyzing project...');
+    }
+    
+    const analysis = await handleAnalysisOperation(
+      async () => {
+        const analyzer = new ProjectAnalyzer(projectPath);
+        return await analyzer.analyzeProject();
+      },
+      'project analysis',
+      projectPath
+    );
     
     spinner.succeed('Analysis complete');
     
@@ -24,8 +71,14 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
       console.log(output);
       
       if (options.output) {
-        const fs = await import('fs/promises');
-        await fs.writeFile(options.output, output);
+        await handleFileOperation(
+          async () => {
+            const fs = await import('fs/promises');
+            await fs.writeFile(options.output!, output);
+          },
+          `writing analysis output to file`,
+          options.output
+        );
         console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
       }
     } else if (options.format === 'markdown') {
@@ -33,8 +86,14 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
       console.log(markdown);
       
       if (options.output) {
-        const fs = await import('fs/promises');
-        await fs.writeFile(options.output, markdown);
+        await handleFileOperation(
+          async () => {
+            const fs = await import('fs/promises');
+            await fs.writeFile(options.output!, markdown);
+          },
+          `writing markdown analysis to file`,
+          options.output
+        );
         console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
       }
     } else {
@@ -44,7 +103,7 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
     
   } catch (error) {
     spinner.fail('Analysis failed');
-    logger.error('Analysis error:', error);
+    console.error(chalk.red(`\n✗ ${formatErrorMessage(error)}`));
     process.exit(1);
   }
 }

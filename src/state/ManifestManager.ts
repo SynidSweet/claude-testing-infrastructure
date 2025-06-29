@@ -5,6 +5,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { handleFileOperation } from '../utils/error-handling';
 
 export interface TestManifest {
   version: string;
@@ -103,24 +104,28 @@ export class ManifestManager {
    * Load manifest from disk
    */
   async load(): Promise<TestManifest> {
-    try {
-      const content = await fs.readFile(this.manifestPath, 'utf-8');
-      return JSON.parse(content);
-    } catch (error) {
-      throw new Error(`Failed to load manifest: ${error}`);
-    }
+    return await handleFileOperation(
+      async () => {
+        const content = await fs.readFile(this.manifestPath, 'utf-8');
+        return JSON.parse(content);
+      },
+      'loading manifest file',
+      this.manifestPath
+    );
   }
 
   /**
    * Save manifest to disk
    */
   async save(manifest: TestManifest): Promise<void> {
-    try {
-      const content = JSON.stringify(manifest, null, 2);
-      await fs.writeFile(this.manifestPath, content);
-    } catch (error) {
-      throw new Error(`Failed to save manifest: ${error}`);
-    }
+    await handleFileOperation(
+      async () => {
+        const content = JSON.stringify(manifest, null, 2);
+        await fs.writeFile(this.manifestPath, content);
+      },
+      'saving manifest file',
+      this.manifestPath
+    );
   }
 
   /**

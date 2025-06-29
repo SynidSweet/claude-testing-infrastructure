@@ -14,3 +14,6 @@ export { logger } from './logger';
 export { default as chalk } from 'chalk';
 export { default as ora } from 'ora';
 export { default as fg } from 'fast-glob';
+
+// Configuration utilities
+export { ConfigurationManager, loadAndValidateConfig, validateConfig } from './config-validation';

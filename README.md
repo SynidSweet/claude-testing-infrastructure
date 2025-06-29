@@ -54,6 +54,16 @@ This infrastructure helps you:
 - Git
 - Target project runtime (Python 3.9+ for Python projects)
 
+### Git Ownership Setup
+If you encounter git dubious ownership warnings:
+```bash
+# Add the infrastructure directory to git safe.directory
+git config --global --add safe.directory "$(pwd)"
+
+# Or for the target project if needed
+git config --global --add safe.directory "/path/to/your/project"
+```
+
 ### Production-Ready CLI
 
 1. **Clone and Build**

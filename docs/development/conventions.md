@@ -1,6 +1,6 @@
 # Development Patterns & Conventions
 
-*Last updated: 2025-06-29 | Updated by: /document command | Function naming clarity patterns and guidelines added*
+*Last updated: 2025-06-29 | Updated by: /document command | Error handling patterns and validation patterns added*
 
 ## Naming Conventions
 
@@ -87,6 +87,47 @@ src/
 - **Implementation**: External HTML/Markdown templates with template engine
 - **Example**: `CoverageVisualizer` using `HtmlTemplateEngine` for report generation
 - **Benefits**: Reduces method complexity, improves maintainability, easier to customize
+
+### Validation Pattern ✅ NEW (2025-06-29)
+- **Purpose**: Prevent invalid operations with clear user guidance
+- **Implementation**: Pre-operation validation with bypass options
+- **Example**: Test generation ratio validation with `--force` override
+- **Pattern**:
+  ```typescript
+  // 1. Check skip conditions first
+  if (skipValidation) {
+    logger.debug('Validation skipped');
+    return;
+  }
+  
+  // 2. Perform validation logic
+  const ratio = calculateRatio();
+  
+  // 3. Provide clear error with guidance
+  if (ratio > threshold) {
+    const message = [
+      `⚠️  WARNING: Operation would create problematic state`,
+      `   Options:`,
+      `   • Review your configuration`,
+      `   • Use --force to bypass this check`,
+      `   To proceed anyway, add the --force flag.`
+    ].join('\n');
+    
+    throw new Error('Validation failed');
+  }
+  ```
+- **Benefits**: Prevents user errors, provides educational feedback, maintains escape hatch
+
+### CLI Options Pattern ✅ NEW (2025-06-29)
+- **Purpose**: Consistent flag behavior across all commands
+- **Standard flags**:
+  - `--verbose`: Detailed operation information
+  - `--force`: Skip validation checks
+  - `--config <path>`: Custom configuration file
+  - `--help`: Command usage information
+- **Implementation**: Commander.js with consistent option descriptions
+- **Validation**: Boolean flags converted with `!!` for type safety
+- **Benefits**: Predictable CLI experience, reduced cognitive load
 
 ## Error Handling Approach
 ### Graceful Degradation
@@ -202,6 +243,123 @@ import { ProjectAnalysis } from '@/analyzers/types';
 - **File System Operations**: Use modern `fs.rm()` instead of deprecated `fs.rmdir()` for recursive directory removal
 - **Compatibility**: Always use the latest stable Node.js filesystem APIs to avoid deprecation warnings
 - **Example**: `await fs.rm(tempDir, { recursive: true })` for cleaning up test directories
+
+## CLI Consistency Patterns (Updated 2025-06-29)
+
+### Verbose Flag Implementation
+All major CLI commands should support consistent verbose output:
+
+#### Standard Pattern
+```typescript
+interface CommandOptions {
+  verbose?: boolean;
+  // ... other options
+}
+
+// CLI definition pattern
+.option('-v, --verbose', 'Show detailed [command] information')
+```
+
+#### Verbose Output Guidelines
+- **Use gray colored output** for verbose details: `chalk.gray()`
+- **Provide structured information**: Step-by-step process details
+- **Include configuration data**: Show what options are being used
+- **File-level feedback**: List each file being processed
+- **Consistent emojis**: 🔍 for verbose mode, ⚙️ for configuration, 📊 for analysis, etc.
+- **Final confirmation**: Indicate verbose mode was active in completion message
+
+#### Implementation Example
+```typescript
+if (options.verbose) {
+  console.log(chalk.gray(`🔍 Verbose mode enabled`));
+  console.log(chalk.gray(`📁 Project path: ${projectPath}`));
+  console.log(chalk.gray(`⚙️  Options: ${JSON.stringify(options, null, 2)}`));
+}
+```
+
+#### Current Implementation Status
+- ✅ **analyze command**: Full verbose support with detailed analysis output
+- ✅ **test command**: Complete verbose logging throughout generation process
+- ✅ **run command**: Verbose flag added for test execution details
+- 🔄 **watch command**: Already has verbose support
+- ⚠️ **analyze-gaps, generate-logical**: Should be updated for consistency
+
+## Error Handling Patterns (Updated 2025-06-29)
+
+### Standardized Error Classes
+All error handling should use the centralized error handling system from `src/utils/error-handling.ts`:
+
+```typescript
+import { 
+  handleFileOperation, 
+  handleAnalysisOperation, 
+  handleValidation,
+  formatErrorMessage 
+} from '../utils/error-handling';
+```
+
+#### Error Class Hierarchy
+- **ClaudeTestingError**: Base error class with context and timestamp
+- **AnalysisError**: For project analysis, gap analysis operations
+- **FileOperationError**: For file system operations (read, write, stat)
+- **ValidationError**: For input validation, path validation, config validation
+- **GenerationError**: For test generation operations
+- **TestExecutionError**: For test running operations
+
+#### Standard Error Handling Patterns
+
+**File Operations**:
+```typescript
+const content = await handleFileOperation(
+  () => fs.readFile(filePath, 'utf-8'),
+  'reading configuration file',
+  filePath
+);
+```
+
+**Analysis Operations**:
+```typescript
+const analysis = await handleAnalysisOperation(
+  async () => {
+    const analyzer = new ProjectAnalyzer(projectPath);
+    return await analyzer.analyzeProject();
+  },
+  'project analysis',
+  projectPath
+);
+```
+
+**Validation Operations**:
+```typescript
+await handleValidation(
+  async () => {
+    const stats = await fs.stat(projectPath);
+    if (!stats.isDirectory()) {
+      throw new Error(`Path is not a directory: ${projectPath}`);
+    }
+  },
+  'validating project path',
+  projectPath
+);
+```
+
+#### Error Display Pattern
+Always use `formatErrorMessage()` for consistent error display:
+
+```typescript
+} catch (error) {
+  spinner.fail('Operation failed');
+  console.error(chalk.red(`\n✗ ${formatErrorMessage(error)}`));
+  process.exit(1);
+}
+```
+
+#### Benefits
+- **Consistent error messages** across all modules
+- **Rich context information** for debugging
+- **Standardized logging** with proper error levels
+- **Type-safe error handling** with specific error classes
+- **Reduced code duplication** (eliminated 25+ duplicate error blocks)
 
 ## AI Integration Patterns
 ### Cost-Aware Design

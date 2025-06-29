@@ -133,6 +133,9 @@ export abstract class TestGenerator {
       const filesToTest = await this.getFilesToTest();
       logger.info(`Found ${filesToTest.length} files to test`);
 
+      // Validate test-to-source ratio before generation
+      await this.validateTestGenerationRatio(filesToTest);
+
       // Generate tests for each file
       const results: GeneratedTest[] = [];
       const errors: string[] = [];
@@ -205,6 +208,95 @@ export abstract class TestGenerator {
     }
     if (!this.config.testFramework) {
       throw new Error('Test framework is required');
+    }
+  }
+
+  /**
+   * Validate test-to-source file ratio before generation
+   */
+  protected async validateTestGenerationRatio(filesToTest: string[]): Promise<void> {
+    const config = this.config as any;
+    const skipValidation = config.skipValidation || (this as any).options?.skipValidation;
+    
+    if (skipValidation) {
+      logger.debug('Skipping test generation validation due to --force flag');
+      return;
+    }
+
+    // Count total source files in the project for ratio calculation
+    const sourceFileCount = await this.countSourceFiles();
+    const testFileCount = filesToTest.length;
+    
+    if (sourceFileCount === 0) {
+      logger.warn('No source files found in project for ratio validation');
+      return;
+    }
+
+    const ratio = testFileCount / sourceFileCount;
+    const maxRatio = 10; // Allow up to 10x more tests than source files
+    
+    logger.debug(`Test generation ratio check: ${testFileCount} tests for ${sourceFileCount} source files (ratio: ${ratio.toFixed(2)}x)`);
+    
+    if (ratio > maxRatio) {
+      const message = [
+        `⚠️  WARNING: Test generation would create ${testFileCount} test files for ${sourceFileCount} source files`,
+        `   This is a ${ratio.toFixed(1)}x ratio, which exceeds the recommended ${maxRatio}x maximum.`,
+        `   This may create an unmaintainable test suite.`,
+        ``,
+        `   Options:`,
+        `   • Review your include/exclude patterns`,
+        `   • Use --force to bypass this check`,
+        `   • Consider using --only-logical for targeted test generation`,
+        ``,
+        `   To proceed anyway, add the --force flag to your command.`
+      ].join('\n');
+      
+      console.log(`\n${message}\n`);
+      throw new Error('Test generation ratio exceeds maximum recommended threshold');
+    }
+    
+    if (ratio > 5) {
+      const warning = `Generating ${testFileCount} tests for ${sourceFileCount} source files (${ratio.toFixed(1)}x ratio). Consider reviewing patterns.`;
+      logger.warn(warning);
+    }
+  }
+
+  /**
+   * Count source files in the project for ratio validation
+   */
+  private async countSourceFiles(): Promise<number> {
+    const { fg, path } = await import('../utils/common-imports');
+    
+    const patterns = ['**/*.{js,ts,jsx,tsx,py,java,cs,go,rb,php}'].map(pattern => 
+      path.join(this.config.projectPath, pattern)
+    );
+
+    const excludePatterns = [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/__pycache__/**',
+      '**/coverage/**',
+      '**/tests/**',
+      '**/__tests__/**',
+      '**/*.test.*',
+      '**/*.spec.*',
+      '**/vendor/**',
+      '**/target/**',
+      '**/.git/**'
+    ];
+
+    try {
+      const sourceFiles = await fg(patterns, {
+        ignore: excludePatterns,
+        absolute: true,
+        onlyFiles: true
+      });
+      
+      return sourceFiles.length;
+    } catch (error) {
+      logger.warn('Failed to count source files for validation', { error });
+      return 0;
     }
   }
 

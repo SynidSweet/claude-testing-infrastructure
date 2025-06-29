@@ -1,0 +1,457 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Testing Configuration",
+  "description": "Configuration schema for .claude-testing.config.json files",
+  "type": "object",
+  "properties": {
+    "include": {
+      "type": "array",
+      "description": "File patterns to include for test generation",
+      "items": {
+        "type": "string"
+      },
+      "default": ["src/**/*.{js,ts,jsx,tsx,py}", "lib/**/*.{js,ts,jsx,tsx,py}"],
+      "examples": [
+        ["src/**/*.js", "components/**/*.jsx"],
+        ["lib/**/*.ts", "pages/**/*.tsx"]
+      ]
+    },
+    "exclude": {
+      "type": "array",
+      "description": "File patterns to exclude from test generation",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/__pycache__/**",
+        "**/coverage/**",
+        "**/.claude-testing/**"
+      ]
+    },
+    "testFramework": {
+      "type": "string",
+      "description": "Test framework to use for test generation",
+      "enum": ["jest", "vitest", "pytest", "mocha", "chai", "jasmine", "auto"],
+      "default": "auto"
+    },
+    "aiModel": {
+      "type": "string",
+      "description": "AI model to use for logical test generation",
+      "enum": [
+        "claude-3-5-sonnet-20241022",
+        "claude-3-opus-20240229",
+        "claude-3-haiku-20240307"
+      ],
+      "default": "claude-3-5-sonnet-20241022"
+    },
+    "features": {
+      "type": "object",
+      "description": "Feature flags to enable/disable specific functionality",
+      "properties": {
+        "coverage": {
+          "type": "boolean",
+          "description": "Enable coverage analysis and reporting",
+          "default": true
+        },
+        "edgeCases": {
+          "type": "boolean",
+          "description": "Generate edge case tests using AI",
+          "default": true
+        },
+        "integrationTests": {
+          "type": "boolean",
+          "description": "Generate integration tests",
+          "default": true
+        },
+        "unitTests": {
+          "type": "boolean",
+          "description": "Generate unit tests",
+          "default": true
+        },
+        "mocks": {
+          "type": "boolean",
+          "description": "Generate mock files for dependencies",
+          "default": false
+        },
+        "testData": {
+          "type": "boolean",
+          "description": "Generate test data factories",
+          "default": false
+        },
+        "aiGeneration": {
+          "type": "boolean",
+          "description": "Enable AI-powered logical test generation",
+          "default": true
+        },
+        "incremental": {
+          "type": "boolean",
+          "description": "Enable incremental test updates",
+          "default": true
+        },
+        "watch": {
+          "type": "boolean",
+          "description": "Enable watch mode for real-time updates",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "generation": {
+      "type": "object",
+      "description": "Test generation configuration options",
+      "properties": {
+        "maxTestsPerFile": {
+          "type": "integer",
+          "description": "Maximum number of tests to generate per file",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50
+        },
+        "maxTestToSourceRatio": {
+          "type": "integer",
+          "description": "Maximum ratio of test files to source files",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10
+        },
+        "naming": {
+          "type": "object",
+          "description": "Test file naming conventions",
+          "properties": {
+            "testFileSuffix": {
+              "type": "string",
+              "description": "Test file suffix",
+              "default": ".test",
+              "examples": [".test", ".spec", "_test"]
+            },
+            "testDirectory": {
+              "type": "string",
+              "description": "Test directory name",
+              "default": "__tests__",
+              "examples": ["__tests__", "tests", "test"]
+            },
+            "mockFileSuffix": {
+              "type": "string",
+              "description": "Mock file suffix",
+              "default": ".mock",
+              "examples": [".mock", "__mocks__"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "templates": {
+          "type": "object",
+          "description": "Template overrides for specific file types",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "testTypes": {
+          "type": "array",
+          "description": "Custom test types to generate",
+          "items": {
+            "type": "string",
+            "enum": ["unit", "integration", "component", "api", "e2e", "performance"]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "description": "Coverage analysis and reporting options",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable coverage collection during test runs",
+          "default": true
+        },
+        "thresholds": {
+          "type": "object",
+          "description": "Coverage threshold percentages",
+          "properties": {
+            "global": {
+              "type": "object",
+              "description": "Global coverage thresholds",
+              "properties": {
+                "lines": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Line coverage percentage"
+                },
+                "functions": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Function coverage percentage"
+                },
+                "branches": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Branch coverage percentage"
+                },
+                "statements": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Statement coverage percentage"
+                }
+              },
+              "additionalProperties": false
+            },
+            "perFile": {
+              "type": "object",
+              "description": "Per-file coverage thresholds",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "lines": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "functions": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "branches": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "statements": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "formats": {
+          "type": "array",
+          "description": "Coverage report formats to generate",
+          "items": {
+            "type": "string",
+            "enum": ["html", "json", "lcov", "text", "markdown", "xml"]
+          },
+          "default": ["html", "json"]
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "Output directory for coverage reports",
+          "default": "coverage-reports"
+        },
+        "includeUntested": {
+          "type": "boolean",
+          "description": "Include files in coverage even if not tested",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "incremental": {
+      "type": "object",
+      "description": "Incremental testing configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable incremental test updates",
+          "default": true
+        },
+        "costLimit": {
+          "type": "number",
+          "description": "Cost limit for AI generation per update",
+          "minimum": 0.01,
+          "maximum": 100.00,
+          "default": 5.00
+        },
+        "maxFilesPerUpdate": {
+          "type": "integer",
+          "description": "Maximum number of files to update per run",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50
+        },
+        "git": {
+          "type": "object",
+          "description": "Git integration options",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Use Git for change detection",
+              "default": true
+            },
+            "baseBranch": {
+              "type": "string",
+              "description": "Base branch for comparison",
+              "default": "main"
+            },
+            "includeUncommitted": {
+              "type": "boolean",
+              "description": "Include uncommitted changes",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "baseline": {
+          "type": "object",
+          "description": "Baseline management options",
+          "properties": {
+            "autoCreate": {
+              "type": "boolean",
+              "description": "Automatic baseline creation",
+              "default": true
+            },
+            "retentionDays": {
+              "type": "integer",
+              "description": "Baseline retention period in days",
+              "minimum": 1,
+              "maximum": 365,
+              "default": 30
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "watch": {
+      "type": "object",
+      "description": "Watch mode configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable watch mode",
+          "default": false
+        },
+        "debounceMs": {
+          "type": "integer",
+          "description": "Debounce delay in milliseconds",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 1000
+        },
+        "patterns": {
+          "type": "array",
+          "description": "Patterns to watch for changes",
+          "items": {
+            "type": "string"
+          }
+        },
+        "autoRun": {
+          "type": "boolean",
+          "description": "Automatically run tests after generation",
+          "default": false
+        },
+        "autoGenerate": {
+          "type": "boolean",
+          "description": "Generate tests immediately on file changes",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ai": {
+      "type": "object",
+      "description": "AI-specific configuration options",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable AI-powered test generation",
+          "default": true
+        },
+        "model": {
+          "type": "string",
+          "description": "AI model to use",
+          "enum": [
+            "claude-3-5-sonnet-20241022",
+            "claude-3-opus-20240229",
+            "claude-3-haiku-20240307"
+          ],
+          "default": "claude-3-5-sonnet-20241022"
+        },
+        "maxCost": {
+          "type": "number",
+          "description": "Maximum cost per AI generation session",
+          "minimum": 0.01,
+          "maximum": 100.00,
+          "default": 10.00
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Timeout for AI operations in milliseconds",
+          "minimum": 30000,
+          "maximum": 1800000,
+          "default": 900000
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Temperature for AI generation (creativity level)",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.3
+        },
+        "customPrompts": {
+          "type": "object",
+          "description": "Custom prompts for specific scenarios",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "description": "Output and reporting configuration",
+      "properties": {
+        "logLevel": {
+          "type": "string",
+          "description": "Verbosity level for console output",
+          "enum": ["error", "warn", "info", "debug", "verbose"],
+          "default": "info"
+        },
+        "formats": {
+          "type": "array",
+          "description": "Output formats for reports",
+          "items": {
+            "type": "string",
+            "enum": ["console", "json", "markdown", "xml", "html", "junit"]
+          },
+          "default": ["console"]
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "Output directory for generated files",
+          "default": ".claude-testing"
+        },
+        "preserveFiles": {
+          "type": "boolean",
+          "description": "Preserve generated files after completion",
+          "default": true
+        },
+        "includeTimestamps": {
+          "type": "boolean",
+          "description": "Include timestamps in output files",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

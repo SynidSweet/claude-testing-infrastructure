@@ -80,6 +80,24 @@ chmod -R 755 your-project/
 sudo node dist/cli/index.js analyze your-project
 ```
 
+#### "Git dubious ownership" warnings
+**Symptoms**: Git warnings about repository ownership
+```bash
+fatal: detected dubious ownership in repository at '/path/to/repo'
+```
+
+**Solutions**:
+```bash
+# Add infrastructure directory to git safe.directory
+git config --global --add safe.directory "$(pwd)"
+
+# For target project directories
+git config --global --add safe.directory "/path/to/your/project"
+
+# Or for AI agents, add multiple directories
+git config --global --add safe.directory "*"
+```
+
 ### Test Generation Issues
 
 #### "No tests generated" or "0 files analyzed"

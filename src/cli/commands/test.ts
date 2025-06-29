@@ -1,5 +1,6 @@
 import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
 import { ProjectAnalyzer, StructuralTestGenerator, TestGeneratorConfig } from '../../utils/analyzer-imports';
+import { handleAnalysisOperation, handleValidation, formatErrorMessage } from '../../utils/error-handling';
 
 interface TestOptions {
   config?: string;
@@ -7,6 +8,8 @@ interface TestOptions {
   onlyLogical?: boolean;
   coverage?: boolean;
   update?: boolean;
+  force?: boolean;
+  verbose?: boolean;
 }
 
 export async function testCommand(projectPath: string, options: TestOptions = {}): Promise<void> {
@@ -15,35 +18,77 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
   try {
     logger.info(`Starting test generation for project: ${projectPath}`);
     
-    // Step 1: Validate project path
-    try {
-      const stats = await fs.stat(projectPath);
-      if (!stats.isDirectory()) {
-        throw new Error(`Path ${projectPath} is not a directory`);
-      }
-    } catch (error) {
-      throw new Error(`Invalid project path: ${projectPath}`);
+    if (options.verbose) {
+      console.log(chalk.gray(`\n🔍 Verbose mode enabled`));
+      console.log(chalk.gray(`📁 Project path: ${projectPath}`));
+      console.log(chalk.gray(`⚙️  Options: ${JSON.stringify(options, null, 2)}`));
     }
     
+    // Step 1: Validate project path
+    await handleValidation(
+      async () => {
+        const stats = await fs.stat(projectPath);
+        if (!stats.isDirectory()) {
+          throw new Error(`Path is not a directory: ${projectPath}`);
+        }
+      },
+      `validating project path`,
+      projectPath
+    );
+    
     // Step 2: Analyze project
-    const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyzeProject();
+    if (options.verbose) {
+      console.log(chalk.gray(`\n📊 Starting project analysis...`));
+    }
+    
+    const analysis = await handleAnalysisOperation(
+      async () => {
+        const analyzer = new ProjectAnalyzer(projectPath);
+        return await analyzer.analyzeProject();
+      },
+      'project analysis for test generation',
+      projectPath
+    );
     
     spinner.succeed('Project analysis complete');
+    
+    if (options.verbose) {
+      console.log(chalk.gray(`\n📋 Analysis Results:`));
+      console.log(chalk.gray(`  • Languages detected: ${analysis.languages.map((l: any) => l.name).join(', ')}`));
+      console.log(chalk.gray(`  • Frameworks detected: ${analysis.frameworks.map((f: any) => f.name).join(', ')}`));
+      console.log(chalk.gray(`  • Total files: ${analysis.complexity.totalFiles}`));
+      console.log(chalk.gray(`  • Total lines: ${analysis.complexity.totalLines.toLocaleString()}`));
+    }
     
     // Step 3: Load configuration (with defaults)
     spinner = ora('Loading configuration...').start();
     const config = await loadConfiguration(projectPath, analysis, options);
     spinner.succeed('Configuration loaded');
     
+    if (options.verbose) {
+      console.log(chalk.gray(`\n⚙️  Configuration:`));
+      console.log(chalk.gray(`  • Output path: ${config.outputPath}`));
+      console.log(chalk.gray(`  • Test framework: ${config.testFramework}`));
+      console.log(chalk.gray(`  • Generate mocks: ${config.options.generateMocks}`));
+      console.log(chalk.gray(`  • Include setup/teardown: ${config.options.includeSetupTeardown}`));
+    }
+    
     // Step 4: Generate tests
     if (!options.onlyLogical) {
       spinner = ora('Generating structural tests...').start();
       
+      if (options.verbose) {
+        console.log(chalk.gray(`\n🏗️  Test Generation Settings:`));
+        console.log(chalk.gray(`  • Generate mocks: true`));
+        console.log(chalk.gray(`  • Generate setup: true`));
+        console.log(chalk.gray(`  • Skip existing tests: ${!options.update}`));
+      }
+      
       const generator = new StructuralTestGenerator(config, analysis, {
         generateMocks: true,
         generateSetup: true,
-        skipExistingTests: !options.update
+        skipExistingTests: !options.update,
+        skipValidation: !!options.force
       });
       
       const result = await generator.generateAllTests();
@@ -64,7 +109,11 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
       }
       
       // Step 5: Write generated tests to filesystem
-      await writeGeneratedTests(result.tests);
+      if (options.verbose) {
+        console.log(chalk.gray(`\n💾 Writing ${result.tests.length} test files to filesystem...`));
+      }
+      
+      await writeGeneratedTests(result.tests, options.verbose);
       
       spinner.succeed('Structural tests generated');
       
@@ -93,6 +142,10 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
       if (options.onlyStructural) {
         console.log(chalk.gray('  • Consider adding --only-logical for AI-powered logical tests'));
       }
+      
+      if (options.verbose) {
+        console.log(chalk.green('\n✓ Test generation completed successfully with detailed logging enabled.'));
+      }
     }
     
     if (options.onlyLogical) {
@@ -102,14 +155,7 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
     
   } catch (error) {
     spinner.fail('Test generation failed');
-    logger.error('Test generation error:', error);
-    
-    if (error instanceof Error) {
-      console.log(chalk.red(`\n❌ ${error.message}\n`));
-    } else {
-      console.log(chalk.red('\n❌ An unexpected error occurred\n'));
-    }
-    
+    console.error(chalk.red(`\n✗ ${formatErrorMessage(error)}`));
     process.exit(1);
   }
 }
@@ -168,7 +214,7 @@ async function loadConfiguration(
   return config;
 }
 
-async function writeGeneratedTests(tests: any[]): Promise<void> {
+async function writeGeneratedTests(tests: any[], verbose = false): Promise<void> {
   for (const test of tests) {
     try {
       // Create directory if it doesn't exist
@@ -178,12 +224,20 @@ async function writeGeneratedTests(tests: any[]): Promise<void> {
       await fs.writeFile(test.testPath, test.content);
       logger.debug(`Generated test file: ${test.testPath}`);
       
+      if (verbose) {
+        console.log(chalk.gray(`  ✓ ${test.testPath}`));
+      }
+      
       // Write additional files (mocks, fixtures, etc.)
       if (test.additionalFiles) {
         for (const additionalFile of test.additionalFiles) {
           await fs.mkdir(path.dirname(additionalFile.path), { recursive: true });
           await fs.writeFile(additionalFile.path, additionalFile.content);
           logger.debug(`Generated ${additionalFile.type} file: ${additionalFile.path}`);
+          
+          if (verbose) {
+            console.log(chalk.gray(`  ✓ ${additionalFile.path} (${additionalFile.type})`));
+          }
         }
       }
     } catch (error) {

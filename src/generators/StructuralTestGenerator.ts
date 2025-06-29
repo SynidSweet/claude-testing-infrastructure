@@ -23,6 +23,8 @@ export interface StructuralTestGeneratorOptions {
   includeTestData?: boolean;
   /** Skip files that already have tests */
   skipExistingTests?: boolean;
+  /** Skip validation checks (e.g., test-to-source ratio) */
+  skipValidation?: boolean;
 }
 
 /**
@@ -58,6 +60,7 @@ export class StructuralTestGenerator extends TestGenerator {
       generateSetup: true,
       includeTestData: false,
       skipExistingTests: true,
+      skipValidation: false,
       ...options
     };
   }

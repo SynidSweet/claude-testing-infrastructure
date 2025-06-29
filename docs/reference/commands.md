@@ -1,6 +1,6 @@
 # Commands Reference
 
-*Last updated: 2025-06-28 | Watch Mode Complete*
+*Last updated: 2025-06-29 | Updated by: /document command | Configuration validation flag added*
 
 ## 🆕 Core CLI Commands (TypeScript Infrastructure)
 ```bash
@@ -9,17 +9,21 @@ node dist/cli/index.js analyze <path>                 # Analyze project structur
 node dist/cli/index.js analyze <path> --verbose       # Detailed analysis output
 node dist/cli/index.js analyze <path> --format json   # JSON output for integration
 node dist/cli/index.js analyze <path> --format markdown --output report.md # Generate markdown report
+node dist/cli/index.js analyze <path> --validate-config # Validate .claude-testing.config.json
 
 # Test Generation ✅ IMPLEMENTED
 node dist/cli/index.js test <path>                    # Generate comprehensive tests (structural)
+node dist/cli/index.js test <path> --verbose          # Show detailed test generation information
 node dist/cli/index.js test <path> --only-structural  # Generate only structural tests (default)
 node dist/cli/index.js test <path> --only-logical     # Generate only AI-powered tests (coming soon)
 node dist/cli/index.js test <path> --coverage         # Include coverage analysis
 node dist/cli/index.js test <path> --config config.json # Use custom configuration
 node dist/cli/index.js test <path> --update           # Update existing tests (don't skip)
+node dist/cli/index.js test <path> --force            # Skip validation checks (e.g., test-to-source ratio)
 
 # Test Execution ✅ IMPLEMENTED
 node dist/cli/index.js run <path>                     # Run generated tests
+node dist/cli/index.js run <path> --verbose           # Show detailed test execution information
 node dist/cli/index.js run <path> --framework jest    # Specify test framework (jest, pytest)
 node dist/cli/index.js run <path> --coverage          # Generate coverage reports
 node dist/cli/index.js run <path> --watch             # Run in watch mode
@@ -92,6 +96,64 @@ npm run test:coverage     # Run with coverage report
 npm run test:e2e         # Run E2E tests (if configured)
 ```
 
+## Test Generation Validation ✅ NEW
+
+The test generation system includes built-in validation to prevent creating unmaintainable test suites:
+
+```bash
+# Validation will automatically check test-to-source ratio (max 10x)
+node dist/cli/index.js test <path>
+
+# If ratio exceeds threshold, generation is blocked with clear warning:
+# ⚠️  WARNING: Test generation would create 150 test files for 10 source files
+#    This is a 15.0x ratio, which exceeds the recommended 10x maximum.
+#    Options:
+#    • Review your include/exclude patterns
+#    • Use --force to bypass this check
+#    • Consider using --only-logical for targeted test generation
+
+# Override validation when you're confident about the ratio
+node dist/cli/index.js test <path> --force
+```
+
+**Validation Thresholds**:
+- **5x ratio**: Warning logged but generation continues
+- **10x ratio**: Generation blocked unless `--force` flag used
+- **Source file counting**: Automatically excludes test files, node_modules, build directories
+
+## Configuration Validation ✅ NEW
+
+The system includes comprehensive validation for `.claude-testing.config.json` files:
+
+```bash
+# Validate configuration file structure and values
+node dist/cli/index.js analyze <path> --validate-config
+
+# Example output for valid configuration:
+# 📋 Configuration Validation Results
+# =====================================
+# ✓ Configuration is valid
+# 
+# ⚠️  Warnings:
+#   • High incremental cost limit may result in unexpected AI charges
+# 
+# 📊 Resolved Configuration:
+# {
+#   "include": ["src/**/*.{js,ts,jsx,tsx}"],
+#   "exclude": ["**/*.test.*", "**/node_modules/**"],
+#   "testFramework": "jest",
+#   "aiModel": "claude-3-5-sonnet-20241022",
+#   "features": { "coverage": true, ... }
+# }
+```
+
+**Validation Features**:
+- **Schema validation**: All properties checked against TypeScript interfaces
+- **Value validation**: Ranges, enums, and format validation
+- **Cross-validation**: Checks for conflicting configuration options
+- **Helpful warnings**: Performance and cost optimization suggestions
+- **Default merging**: Shows final configuration with defaults applied
+
 ## Verification Commands
 ```bash
 # JavaScript/TypeScript
@@ -105,5 +167,6 @@ ls -la src/**/__tests__/ 2>/dev/null || ls -la tests/ 2>/dev/null
 ```
 
 ## See Also
+- 📖 **Configuration Guide**: [`/docs/configuration.md`](../configuration.md) - Complete .claude-testing.config.json reference
 - 📖 **Development Workflow**: [`/docs/development/workflow.md`](../development/workflow.md)
 - 📖 **Core Features**: [`/docs/features/core-features.md`](../features/core-features.md)
