@@ -44,6 +44,11 @@ describe('Python export extraction', () => {
         totalLines: 0,
         averageFileSize: 0,
         largestFiles: []
+      },
+      moduleSystem: {
+        type: 'commonjs',
+        hasPackageJsonType: false,
+        confidence: 0.8
       }
     };
 

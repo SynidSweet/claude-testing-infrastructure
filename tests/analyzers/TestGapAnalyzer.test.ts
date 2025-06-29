@@ -63,6 +63,11 @@ describe('TestGapAnalyzer', () => {
         totalLines: 500,
         averageFileSize: 50,
         largestFiles: []
+      },
+      moduleSystem: {
+        type: 'commonjs',
+        hasPackageJsonType: false,
+        confidence: 0.8
       }
     };
 

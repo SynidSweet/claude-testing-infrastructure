@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-06-29 | Updated by: /document command | Stable AI agent entry point architecture implemented*
+*Last updated: 2025-06-29 | Updated by: /document command | ES Module Support architecture added*
 
 ## Architecture Summary
 
@@ -77,6 +77,59 @@ Each adapter implements the same interfaces but with language-specific logic:
 - **Configuration**: How to set up Jest vs pytest
 - **Dependencies**: npm packages vs pip packages
 - **File patterns**: .js/.jsx vs .py files
+
+## Module System Detection Architecture
+
+### ES Module vs CommonJS Support
+
+The infrastructure automatically detects and supports both ES modules and CommonJS for JavaScript/TypeScript projects, generating appropriate import syntax in test files.
+
+#### Detection Strategy
+
+```
+Project Analysis
+├── package.json type field check
+│   ├── "type": "module" → ESM (confidence: 1.0)
+│   ├── "type": "commonjs" → CJS (confidence: 1.0)
+│   └── No type field → File content analysis
+└── File content analysis (fallback)
+    ├── Sample up to 20 source files
+    ├── Check for import/export vs require/module.exports
+    └── Calculate ratio for mixed projects
+```
+
+#### Module System Information
+
+```typescript
+interface ModuleSystemInfo {
+  type: 'commonjs' | 'esm' | 'mixed';
+  hasPackageJsonType: boolean;
+  packageJsonType?: 'module' | 'commonjs';
+  confidence: number;
+}
+```
+
+#### Template Generation Logic
+
+The test templates automatically generate appropriate syntax:
+
+**ES Modules** (`"type": "module"`):
+```javascript
+import defaultExport, { namedExport1, namedExport2 } from './module.js';
+```
+
+**CommonJS** (default):
+```javascript
+const { namedExport1, namedExport2 } = require('./module');
+```
+
+#### Mixed Export Handling
+
+The system intelligently handles files with both default and named exports:
+- **ESM**: `import DefaultClass, { namedFunction, namedVariable } from './file.js'`
+- **CJS**: `const { namedFunction, namedVariable } = require('./file'); const DefaultClass = require('./file');`
+
+This ensures generated tests execute successfully regardless of the target project's module system, resolving the critical 0-test-execution issue reported for ES module projects.
 
 ## Design Principles
 

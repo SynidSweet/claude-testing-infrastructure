@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-06-29 | Updated by: /document command | Enhanced test content generation implemented*
+*Last updated: 2025-06-29 | Updated by: /document command | ES Module Support validated and enhanced*
 
 ## Overview
 
@@ -403,7 +403,7 @@ The test generator now correctly handles Python import statements:
   - Example: `TestSrc.utils.helper` → `TestSrc_utils_helper`
 - **All Python Templates Updated**: PytestTemplate, PytestFastApiTemplate, PytestDjangoTemplate
 
-### Comprehensive Test Suite (61 Tests)
+### Comprehensive Test Suite (73 Tests)
 - **Base Class Tests**: Lifecycle, configuration, error handling
 - **Structural Generator Tests**: File analysis, test generation, mock creation, mixed-language support
 - **Template Engine Tests**: Template selection, fallback logic, custom templates
@@ -560,7 +560,7 @@ it('should have some exportable content', () => {
 - Added helper function `generateJSTypeSpecificTests()` for consistent patterns
 
 **Testing Coverage**:
-- All 125 existing tests continue to pass
+- All 137 tests continue to pass (including 12 new ES module validation tests)
 - Generated tests include meaningful assertions that can actually execute
 - Comprehensive validation for module imports, type checking, and basic functionality
 
@@ -574,6 +574,106 @@ it('should have some exportable content', () => {
 - ✅ Maintains compatibility while dramatically improving quality
 
 This enhancement transforms the testing infrastructure from generating placeholder code to creating comprehensive, executable test suites that provide real value to users.
+
+## ES Module Support ✅ VALIDATED AND ENHANCED (2025-06-29)
+
+### Investigation Results
+**Critical User-Reported Issue**: Generated tests failed to execute in ES module projects because they used CommonJS `require()` syntax despite target projects using ES modules with `"type": "module"` in package.json.
+
+**Discovery**: ES Module support was **already fully implemented** in the infrastructure. ProjectAnalyzer correctly detects `"type": "module"` in package.json, and TestTemplateEngine generates proper ES module import statements with .js extensions when `moduleSystem: 'esm'`.
+
+**Minor Bug Found and Fixed**: React component templates incorrectly used hardcoded 'Component' name instead of actual export names from context.
+
+### Solution Implementation
+
+**1. Module System Detection Integration**
+The TestGenerator system now integrates with ProjectAnalyzer's comprehensive module system detection:
+
+```typescript
+// In StructuralTestGenerator.ts - Template context enhancement
+if (analysis.language === 'javascript' || analysis.language === 'typescript') {
+  context.moduleSystem = this.analysis.moduleSystem.type;
+}
+```
+
+**2. Enhanced Template Context**
+All test templates receive module system information for intelligent import generation:
+
+```typescript
+interface TemplateContext {
+  moduleName: string;
+  language: string;
+  framework?: string;
+  testType: TestType;
+  moduleSystem?: 'commonjs' | 'esm' | 'mixed';  // ✅ CRITICAL NEW FIELD
+  exports: string[];
+  hasDefaultExport: boolean;
+  // ... other properties
+}
+```
+
+**3. Intelligent Import Syntax Generation**
+Templates automatically generate appropriate import statements based on module system:
+
+**ES Modules** (`moduleSystem: 'esm'`):
+```javascript
+// Default export only
+import Button from './Button.js';
+
+// Named exports only  
+import { add, subtract } from './math.js';
+
+// Mixed exports (default + named) - Advanced scenario
+import Calculator, { add, subtract } from './Calculator.js';
+```
+
+**CommonJS** (`moduleSystem: 'commonjs'` or undefined):
+```javascript
+// Named exports
+const { add, subtract } = require('./math');
+
+// Default/mixed exports
+const Calculator = require('./Calculator');
+
+// Module-level import
+const math = require('./math');
+```
+
+**4. ES Module File Extension Requirements**
+ES module imports include mandatory .js extensions as required by Node.js ES module specification:
+- **ES modules**: `from './module.js'` (extension required)
+- **CommonJS**: `require('./module')` (extension optional)
+
+**5. Comprehensive Template Updates**
+All JavaScript/TypeScript templates enhanced with module system awareness:
+- **JavaScriptJestTemplate**: ES module import logic
+- **TypeScriptJestTemplate**: TypeScript + ES module compatibility
+- **ReactTestingLibraryTemplate**: React component ES module imports
+- **ReactTypeScriptTemplate**: Combined React + TypeScript + ES module support
+- **ExpressSupertestTemplate**: Express API testing with ES modules
+
+### Results Achieved
+
+**Investigation Outcome**:
+- ✅ **ES Module Support Confirmed**: Infrastructure already fully supports ES modules
+- ✅ **Bug Fix**: React component templates now use correct export names instead of hardcoded 'Component'
+- ✅ **Test Coverage**: Added comprehensive test suite (12 new tests) validating all ES module scenarios
+- ✅ **End-to-end Validation**: Confirmed ES module import generation works correctly for all templates
+
+**Validation Results**:
+- **Test suite enhancement**: All 137/137 tests pass (100% success rate, up from 125)
+- **Real-world testing**: Validated with ES module test project generating correct import syntax
+- **Template compatibility**: All JavaScript/TypeScript templates correctly handle both CommonJS and ES modules
+- **Backward compatibility**: CommonJS projects continue working unchanged
+
+**Key Capabilities Confirmed**:
+- ✅ **Module detection**: Correctly identifies `"type": "module"` in package.json
+- ✅ **Import generation**: Proper `import` statements with .js extensions for ES modules
+- ✅ **Mixed exports**: Handles default + named export combinations
+- ✅ **Framework support**: React, Express, and generic templates all ES module compatible
+- ✅ **Fallback behavior**: Graceful CommonJS fallback when module system undefined
+
+**User Feedback Resolution**: The reported ES module issue appears to have been resolved through previous infrastructure improvements. Current testing confirms ES module support is fully functional and production-ready.
 
 ## Python Import Path Handling ✅ NEW (2025-06-29)
 

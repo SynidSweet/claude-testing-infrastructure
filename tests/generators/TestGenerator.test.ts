@@ -60,6 +60,11 @@ describe('TestGenerator', () => {
         totalLines: 100,
         averageFileSize: 50,
         largestFiles: []
+      },
+      moduleSystem: {
+        type: 'commonjs',
+        hasPackageJsonType: false,
+        confidence: 0.8
       }
     };
 

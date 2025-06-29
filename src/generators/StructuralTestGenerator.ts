@@ -218,6 +218,11 @@ export class StructuralTestGenerator extends TestGenerator {
     if (analysis.language === 'python') {
       context.modulePath = this.getPythonModulePath(filePath);
     }
+
+    // Add module system information for JavaScript/TypeScript files
+    if (analysis.language === 'javascript' || analysis.language === 'typescript') {
+      context.moduleSystem = this.analysis.moduleSystem.type;
+    }
     
     return templateEngine.generateTest(context);
   }

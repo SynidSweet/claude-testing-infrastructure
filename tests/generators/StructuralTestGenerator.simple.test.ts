@@ -41,6 +41,11 @@ describe('StructuralTestGenerator - Basic Tests', () => {
         totalLines: 150,
         averageFileSize: 50,
         largestFiles: []
+      },
+      moduleSystem: {
+        type: 'commonjs',
+        hasPackageJsonType: false,
+        confidence: 0.8
       }
     };
 

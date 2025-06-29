@@ -12,6 +12,7 @@ export interface TemplateContext {
   isAsync: boolean;
   isComponent: boolean;
   dependencies: string[];
+  moduleSystem?: 'commonjs' | 'esm' | 'mixed'; // For JavaScript/TypeScript: module system to use
 }
 
 export interface Template {
@@ -161,17 +162,37 @@ class JestJavaScriptTemplate implements Template {
   framework = 'jest';
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports, hasDefaultExport, isAsync, testType } = context;
+    const { moduleName, exports, hasDefaultExport, isAsync, testType, moduleSystem } = context;
     
-    // Always create an import statement even if no exports detected
+    // Generate import statement based on module system
     let importStatement = '';
-    if (hasDefaultExport) {
-      importStatement = `const ${moduleName} = require('./${moduleName}');`;
-    } else if (exports.length > 0) {
-      importStatement = `const { ${exports.join(', ')} } = require('./${moduleName}');`;
+    const useESM = moduleSystem === 'esm';
+    
+    if (useESM) {
+      // ES Modules syntax
+      if (hasDefaultExport && exports.length > 0) {
+        // Both default and named exports
+        importStatement = `import ${moduleName}, { ${exports.join(', ')} } from './${moduleName}.js';`;
+      } else if (hasDefaultExport) {
+        // Only default export
+        importStatement = `import ${moduleName} from './${moduleName}.js';`;
+      } else if (exports.length > 0) {
+        // Only named exports
+        importStatement = `import { ${exports.join(', ')} } from './${moduleName}.js';`;
+      } else {
+        // Fallback: try importing the whole module
+        importStatement = `import * as ${moduleName} from './${moduleName}.js';`;
+      }
     } else {
-      // Fallback: try importing the whole module
-      importStatement = `const ${moduleName} = require('./${moduleName}');`;
+      // CommonJS syntax (default)
+      if (hasDefaultExport) {
+        importStatement = `const ${moduleName} = require('./${moduleName}');`;
+      } else if (exports.length > 0) {
+        importStatement = `const { ${exports.join(', ')} } = require('./${moduleName}');`;
+      } else {
+        // Fallback: try importing the whole module
+        importStatement = `const ${moduleName} = require('./${moduleName}');`;
+      }
     }
 
     let testContent = `${importStatement}
@@ -245,11 +266,44 @@ class JestReactComponentTemplate implements Template {
   testType = TestType.COMPONENT;
 
   generate(context: TemplateContext): string {
-    const { moduleName, hasDefaultExport } = context;
+    const { moduleName, hasDefaultExport, exports, moduleSystem } = context;
     
-    const componentName = hasDefaultExport ? moduleName : 'Component';
+    // If no default export, use first export name or fallback to moduleName
+    const componentName: string = hasDefaultExport 
+      ? moduleName 
+      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+    const useESM = moduleSystem === 'esm';
     
-    return `const React = require('react');
+    if (useESM) {
+      return `import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+${hasDefaultExport ? `import ${componentName} from './${moduleName}.js';` : `import { ${componentName} } from './${moduleName}.js';`}
+
+describe('${componentName}', () => {
+  it('should render without crashing', () => {
+    render(<${componentName} />);
+  });
+
+  it('should match snapshot', () => {
+    const { container } = render(<${componentName} />);
+    expect(container.firstChild).toMatchSnapshot();
+  });
+
+  it('should display expected content', () => {
+    render(<${componentName} />);
+    // TODO: Add specific content assertions
+    expect(screen.getByRole('${this.guessComponentRole(componentName)}')).toBeInTheDocument();
+  });
+
+  it('should handle user interactions', () => {
+    render(<${componentName} />);
+    // TODO: Add interaction tests
+  });
+});
+`;
+    } else {
+      return `const React = require('react');
 const { render, screen } = require('@testing-library/react');
 require('@testing-library/jest-dom');
 ${hasDefaultExport ? `const ${componentName} = require('./${moduleName}');` : `const { ${componentName} } = require('./${moduleName}');`}
@@ -276,6 +330,7 @@ describe('${componentName}', () => {
   });
 });
 `;
+    }
   }
 
   private guessComponentRole(componentName: string): string {
@@ -297,11 +352,10 @@ class JestExpressApiTemplate implements Template {
   testType = TestType.API;
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports } = context;
+    const { moduleName, exports, moduleSystem } = context;
+    const useESM = moduleSystem === 'esm';
     
-    return `const request = require('supertest');
-const express = require('express');
-const { ${exports.join(', ')} } = require('./${moduleName}');
+    const templateContent = `${useESM ? 'import request from \'supertest\';\nimport express from \'express\';\nimport { ' + exports.join(', ') + ' } from \'./' + moduleName + '.js\';' : 'const request = require(\'supertest\');\nconst express = require(\'express\');\nconst { ' + exports.join(', ') + ' } = require(\'./' + moduleName + '\');'}
 
 const app = express();
 app.use(express.json());
@@ -341,6 +395,8 @@ ${exports.map(exportName => `
 `).join('')}
 });
 `;
+
+    return templateContent;
   }
 }
 
@@ -351,13 +407,32 @@ class JestTypeScriptTemplate implements Template {
   framework = 'jest';
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports, hasDefaultExport } = context;
+    const { moduleName, exports, hasDefaultExport, moduleSystem } = context;
+    const useESM = moduleSystem === 'esm';
     
     let importStatement = '';
-    if (hasDefaultExport) {
-      importStatement = `const ${moduleName} = require('./${moduleName}');`;
-    } else if (exports.length > 0) {
-      importStatement = `const { ${exports.join(', ')} } = require('./${moduleName}');`;
+    if (useESM) {
+      // ES Modules syntax for TypeScript
+      if (hasDefaultExport && exports.length > 0) {
+        // Both default and named exports
+        importStatement = `import ${moduleName}, { ${exports.join(', ')} } from './${moduleName}.js';`;
+      } else if (hasDefaultExport) {
+        // Only default export
+        importStatement = `import ${moduleName} from './${moduleName}.js';`;
+      } else if (exports.length > 0) {
+        // Only named exports
+        importStatement = `import { ${exports.join(', ')} } from './${moduleName}.js';`;
+      } else {
+        // Fallback: try importing the whole module
+        importStatement = `import * as ${moduleName} from './${moduleName}.js';`;
+      }
+    } else {
+      // CommonJS syntax
+      if (hasDefaultExport) {
+        importStatement = `const ${moduleName} = require('./${moduleName}');`;
+      } else if (exports.length > 0) {
+        importStatement = `const { ${exports.join(', ')} } = require('./${moduleName}');`;
+      }
     }
 
     let testContent = `${importStatement}
@@ -406,11 +481,46 @@ class JestReactTypeScriptTemplate implements Template {
   testType = TestType.COMPONENT;
 
   generate(context: TemplateContext): string {
-    const { moduleName, hasDefaultExport } = context;
+    const { moduleName, hasDefaultExport, exports, moduleSystem } = context;
     
-    const componentName = hasDefaultExport ? moduleName : 'Component';
+    // If no default export, use first export name or fallback to moduleName
+    const componentName: string = hasDefaultExport 
+      ? moduleName 
+      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+    const useESM = moduleSystem === 'esm';
     
-    return `const React = require('react');
+    if (useESM) {
+      return `import React from 'react';
+import { render, screen, RenderResult } from '@testing-library/react';
+import '@testing-library/jest-dom';
+${hasDefaultExport ? `import ${componentName} from './${moduleName}.js';` : `import { ${componentName} } from './${moduleName}.js';`}
+
+describe('${componentName}', () => {
+  let renderResult: RenderResult;
+
+  beforeEach(() => {
+    renderResult = render(<${componentName} />);
+  });
+
+  it('should render without crashing', () => {
+    expect(renderResult.container).toBeInTheDocument();
+  });
+
+  it('should match snapshot', () => {
+    expect(renderResult.container.firstChild).toMatchSnapshot();
+  });
+
+  it('should have correct TypeScript props', () => {
+    // TODO: Add prop type tests
+  });
+
+  it('should handle user interactions with type safety', () => {
+    // TODO: Add typed interaction tests
+  });
+});
+`;
+    } else {
+      return `const React = require('react');
 const { render, screen } = require('@testing-library/react');
 require('@testing-library/jest-dom');
 ${hasDefaultExport ? `const ${componentName} = require('./${moduleName}');` : `const { ${componentName} } = require('./${moduleName}');`}
@@ -439,6 +549,7 @@ describe('${componentName}', () => {
   });
 });
 `;
+    }
   }
 }
 

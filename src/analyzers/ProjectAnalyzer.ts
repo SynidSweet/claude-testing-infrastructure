@@ -9,6 +9,14 @@ export interface ProjectAnalysis {
   dependencies: Dependencies;
   testingSetup: TestingSetup;
   complexity: ComplexityMetrics;
+  moduleSystem: ModuleSystemInfo;
+}
+
+export interface ModuleSystemInfo {
+  type: 'commonjs' | 'esm' | 'mixed';
+  hasPackageJsonType: boolean;
+  packageJsonType?: 'module' | 'commonjs';
+  confidence: number;
 }
 
 export interface DetectedLanguage {
@@ -85,7 +93,8 @@ export class ProjectAnalyzer {
         projectStructure,
         dependencies,
         testingSetup,
-        complexity
+        complexity,
+        moduleSystem
       ] = await Promise.all([
         this.detectLanguages(),
         this.detectFrameworks(),
@@ -93,7 +102,8 @@ export class ProjectAnalyzer {
         this.analyzeProjectStructure(),
         this.analyzeDependencies(),
         this.analyzeTestingSetup(),
-        this.calculateComplexity()
+        this.calculateComplexity(),
+        this.analyzeModuleSystem()
       ]);
 
       const analysis: ProjectAnalysis = {
@@ -104,7 +114,8 @@ export class ProjectAnalyzer {
         projectStructure,
         dependencies,
         testingSetup,
-        complexity
+        complexity,
+        moduleSystem
       };
 
       logger.info('Project analysis completed successfully');
@@ -572,5 +583,134 @@ export class ProjectAnalyzer {
     }
 
     return null;
+  }
+
+  private async analyzeModuleSystem(): Promise<ModuleSystemInfo> {
+    try {
+      const packageJsonContent = await this.readPackageJson();
+      
+      if (!packageJsonContent) {
+        // No package.json found, assume CommonJS for JavaScript projects
+        return {
+          type: 'commonjs',
+          hasPackageJsonType: false,
+          confidence: 0.7
+        };
+      }
+
+      const packageJsonType = packageJsonContent.type;
+      
+      if (packageJsonType === 'module') {
+        return {
+          type: 'esm',
+          hasPackageJsonType: true,
+          packageJsonType: 'module',
+          confidence: 1.0
+        };
+      } else if (packageJsonType === 'commonjs') {
+        return {
+          type: 'commonjs',
+          hasPackageJsonType: true,
+          packageJsonType: 'commonjs',
+          confidence: 1.0
+        };
+      } else {
+        // No explicit type field - analyze imports/exports in source files
+        const moduleTypeFromFiles = await this.detectModuleTypeFromFiles();
+        
+        return {
+          type: moduleTypeFromFiles.type,
+          hasPackageJsonType: false,
+          confidence: moduleTypeFromFiles.confidence
+        };
+      }
+    } catch (error) {
+      logger.debug('Error analyzing module system:', error);
+      return {
+        type: 'commonjs',
+        hasPackageJsonType: false,
+        confidence: 0.5
+      };
+    }
+  }
+
+  private async detectModuleTypeFromFiles(): Promise<{ type: 'commonjs' | 'esm' | 'mixed', confidence: number }> {
+    try {
+      // Find JavaScript/TypeScript files to analyze
+      const sourceFiles = await this.findFiles([
+        '**/*.{js,ts,jsx,tsx}'
+      ], [
+        'node_modules/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/*.test.*',
+        '**/*.spec.*'
+      ]);
+
+      if (sourceFiles.length === 0) {
+        return { type: 'commonjs', confidence: 0.5 };
+      }
+
+      let esmCount = 0;
+      let cjsCount = 0;
+      let totalFiles = 0;
+
+      // Sample up to 20 files for performance
+      const filesToCheck = sourceFiles.slice(0, 20);
+
+      for (const filePath of filesToCheck) {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          const hasEsmSyntax = this.hasEsmSyntax(content);
+          const hasCjsSyntax = this.hasCjsSyntax(content);
+
+          totalFiles++;
+
+          if (hasEsmSyntax && !hasCjsSyntax) {
+            esmCount++;
+          } else if (hasCjsSyntax && !hasEsmSyntax) {
+            cjsCount++;
+          }
+          // Files with both or neither don't contribute to the count
+        } catch (error) {
+          logger.debug(`Error reading file ${filePath}:`, error);
+        }
+      }
+
+      if (totalFiles === 0) {
+        return { type: 'commonjs', confidence: 0.5 };
+      }
+
+      const esmRatio = esmCount / totalFiles;
+      const cjsRatio = cjsCount / totalFiles;
+
+      if (esmRatio > 0.7) {
+        return { type: 'esm', confidence: Math.min(0.9, esmRatio) };
+      } else if (cjsRatio > 0.7) {
+        return { type: 'commonjs', confidence: Math.min(0.9, cjsRatio) };
+      } else if (esmCount > 0 && cjsCount > 0) {
+        return { type: 'mixed', confidence: 0.6 };
+      } else {
+        // Default to CommonJS if no clear pattern
+        return { type: 'commonjs', confidence: 0.6 };
+      }
+    } catch (error) {
+      logger.debug('Error detecting module type from files:', error);
+      return { type: 'commonjs', confidence: 0.5 };
+    }
+  }
+
+  private hasEsmSyntax(content: string): boolean {
+    // Check for ES module syntax
+    return /\bimport\s+.*\s+from\s+['"`]/.test(content) ||
+           /\bexport\s+(?:default\s+|(?:const|let|var|function|class)\s+)/.test(content) ||
+           /\bexport\s*\{/.test(content);
+  }
+
+  private hasCjsSyntax(content: string): boolean {
+    // Check for CommonJS syntax
+    return /\brequire\s*\(/.test(content) ||
+           /\bmodule\.exports\s*=/.test(content) ||
+           /\bexports\.\w+\s*=/.test(content);
   }
 }

@@ -38,6 +38,11 @@ export function createMockProjectAnalysis(overrides: Partial<ProjectAnalysis> = 
       totalLines: 1000,
       averageFileSize: 100,
       largestFiles: []
+    },
+    moduleSystem: {
+      type: 'commonjs',
+      hasPackageJsonType: false,
+      confidence: 0.8
     }
   };
 
