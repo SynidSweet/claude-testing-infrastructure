@@ -285,8 +285,8 @@ export abstract class TestGenerator {
   /**
    * Generate a test file path for a source file
    */
-  protected getTestFilePath(sourcePath: string, testType?: TestType): string {
-    const ext = this.getTestFileExtension();
+  protected getTestFilePath(sourcePath: string, testType?: TestType, language?: string): string {
+    const ext = this.getTestFileExtension(language);
     
     // Get relative path from project root
     const relativePath = sourcePath.replace(this.config.projectPath, '').replace(/^\//, '');
@@ -301,5 +301,5 @@ export abstract class TestGenerator {
   /**
    * Get the appropriate file extension for test files
    */
-  protected abstract getTestFileExtension(): string;
+  protected abstract getTestFileExtension(language?: string): string;
 }

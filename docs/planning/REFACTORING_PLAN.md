@@ -353,20 +353,47 @@ export class HtmlTemplateEngine extends BaseTemplateEngine<HtmlTemplateData> {
 
 ## 🏆 Implementation Timeline & Prioritization
 
-### **Immediate Priority (Next 2 Weeks)**
-1. **✅ COMPLETED**: ~~**Split TestGapAnalyzer God Class**~~ - Successfully decomposed 902-line class into 4 focused classes (ComplexityCalculator, CoverageAnalyzer, GapIdentifier, ContextExtractor) with orchestrator pattern
-2. **✅ COMPLETED**: ~~**Improve Function Naming**~~ - Successfully renamed 47+ unclear functions for AI clarity
-3. **✅ COMPLETED**: ~~**Create Stable AI Agent Entry Point System**~~ - Implemented protected AI_AGENT_GUIDE.md with command consistency fixes
-4. **✅ COMPLETED**: ~~**Fix Documentation Consistency for AI Agent Success**~~ - Fixed 17+ files with command inconsistencies, updated navigation guide, added missing information
+### **Critical Bug Fixes (Immediate - This Week)**
+1. **Fix Python Test File Extension Bug** - 🟢 Simple (30 min) - Tests unusable without this
+2. **Fix Git Ownership Documentation** - 🟢 Simple (15 min) - Blocks AI agent setup
+3. **Add --verbose Flag Support** - 🟢 Simple (1 hour) - Documentation mismatch
+4. **Add Test Generation Validation** - 🟢 Simple (2 hours) - Prevents massive over-generation
 
-### **Short-term Priority (Next Month)**
-5. **✅ COMPLETED**: ~~**Split GapReportGenerator God Class**~~ - Successfully decomposed 847-line class into 3 focused classes (MarkdownReportGenerator, TerminalReportGenerator, ReportVisualizationService) with orchestrator pattern, achieving 58% line reduction (847→354 lines) while maintaining 100% API compatibility and test success rate (116/116 tests)
-6. **Standardize Error Handling** - Consistency and maintainability
-7. **Add Discriminated Union Types** - Type safety and AI understanding
+### **Quick Wins (Next Week)**
+5. **✅ COMPLETED**: ~~**Split TestGapAnalyzer God Class**~~ - Successfully decomposed 902-line class into 4 focused classes
+6. **✅ COMPLETED**: ~~**Improve Function Naming**~~ - Successfully renamed 47+ unclear functions for AI clarity
+7. **✅ COMPLETED**: ~~**Create Stable AI Agent Entry Point System**~~ - Implemented protected AI_AGENT_GUIDE.md
+8. **✅ COMPLETED**: ~~**Fix Documentation Consistency**~~ - Fixed 17+ files with command inconsistencies
+9. **✅ COMPLETED**: ~~**Split GapReportGenerator God Class**~~ - Successfully decomposed 847-line class into 3 focused classes
 
-### **Medium-term Priority (Next 2 Months)**
-8. **Create Missing CLAUDE.md Files** - Documentation completeness  
-9. **Consolidate Template Engines** - Code duplication elimination
+### **Core Functionality Fixes (Next 2-3 Weeks)**
+10. **Create Configuration Schema Documentation** - 🟡 Moderate (4 hours / 2 sessions)
+11. **Fix Analysis Output Flag** - 🟡 Moderate (3-4 hours / 2 sessions)
+12. **Implement Basic Exclude Pattern Fix** - 🟡 Moderate (4-5 hours / 2 sessions)
+13. **Create Mixed Project Test Cases** - 🟡 Moderate (3-4 hours / 2 sessions)
+
+### **User Experience Improvements (Next Month)**
+14. **Implement Dry-Run Mode** - 🟡 Moderate (4-5 hours / 2 sessions)
+15. **Improve Progress Reporting** - 🟡 Moderate (4-5 hours / 2 sessions)
+16. **Add File Count Validation** - 🟡 Moderate (3-4 hours / 2 sessions)
+17. **Create Basic Test Assertion Templates** - 🟡 Moderate (5-6 hours / 3 sessions)
+
+### **Investigation & Planning Phase (Next 4-6 Weeks)**
+18. **Configuration Auto-Discovery Investigation** - 🟠 Complex (6 hours / 3 sessions)
+19. **File Discovery Service Investigation** - 🟠 Complex (8 hours / 4 sessions)
+20. **Language-Specific Generators Investigation** - 🟠 Complex (8 hours / 4 sessions)
+
+### **Long-term Architectural Improvements (2-3 Months)**
+21. **Configuration Management System Epic** - 🔴 Epic (20+ hours investigation)
+22. **File Discovery Architecture Overhaul Epic** - 🔴 Epic (25+ hours investigation)
+23. **Multi-Language Architecture Epic** - 🔴 Epic (30+ hours investigation)
+24. **Intelligent Test Generation System Epic** - 🔴 Epic (40+ hours investigation)
+
+### **Previously Completed (Reference)**
+- **Standardize Error Handling** - Consistency and maintainability
+- **Add Discriminated Union Types** - Type safety and AI understanding
+- **Create Missing CLAUDE.md Files** - Documentation completeness  
+- **Consolidate Template Engines** - Code duplication elimination
 
 ### **Success Metrics**
 - **✅ Lines of Code**: Reduce largest files from 900+ lines to <300 lines (ACHIEVED - TestGapAnalyzer: 902→438 lines + 4 focused classes, GapReportGenerator: 847→354 lines + 3 focused classes)
@@ -379,22 +406,39 @@ export class HtmlTemplateEngine extends BaseTemplateEngine<HtmlTemplateData> {
 
 ## 📋 Task Sizing Summary
 
-### **Single Session Tasks (3-4 hours)**
-- ~~Improve Function Naming for AI Clarity~~ ✅ **COMPLETED**
-- Add Discriminated Union Types
-- Create Missing CLAUDE.md Files
-- Consolidate Template Engines
-- Standardize Error Handling Patterns
+### **🟢 Simple Tasks (15 min - 2 hours)**
+- Fix Git Ownership Documentation (15 min)
+- Fix Python Test File Extension Bug (30 min)
+- Add --verbose Flag Support (1 hour)
+- Add Test Generation Validation (2 hours)
 
-### **Multi-Session Tasks (6-12 hours)**
-- Split TestGapAnalyzer God Class (2-3 sessions)
-- Split GapReportGenerator God Class (2-3 sessions)
+### **🟡 Moderate Tasks (3-6 hours / 2-3 sessions)**
+- Create Configuration Schema Documentation (4 hours)
+- Implement Dry-Run Mode (4-5 hours)
+- Fix Analysis Output Flag (3-4 hours)
+- Improve Progress Reporting (4-5 hours)
+- Create Basic Test Assertion Templates (5-6 hours)
+- Add File Count Validation (3-4 hours)
+- Implement Basic Exclude Pattern Fix (4-5 hours)
+- Create Mixed Project Test Cases (3-4 hours)
+
+### **🟠 Complex Tasks (6-8 hours / 3-4 sessions) - Investigation Phase**
+- Configuration Auto-Discovery Investigation (6 hours)
+- File Discovery Service Investigation (8 hours)
+- Language-Specific Generators Investigation (8 hours)
+
+### **🔴 Epic Tasks (20-40+ hours) - Require Breakdown**
+- Configuration Management System Epic (20+ hours)
+- File Discovery Architecture Overhaul Epic (25+ hours)
+- Multi-Language Architecture Epic (30+ hours)
+- Intelligent Test Generation System Epic (40+ hours)
 
 ### **Recommended Execution Order**
-1. Start with single-session tasks to build momentum
-2. Tackle God class decomposition when ready for larger efforts
-3. Validate improvements with comprehensive testing
-4. Update documentation after each major change
+1. **Immediate**: Fix critical bugs (Python extensions, git docs, verbose flag)
+2. **Next**: Add validation to prevent bad generation
+3. **Then**: Improve documentation and configuration understanding
+4. **Later**: Begin investigation phases for complex architectural changes
+5. **Future**: Execute epic tasks based on investigation findings
 
 ## 🚀 Getting Started
 
@@ -566,6 +610,714 @@ CLI guidance - Error output explained and normalized
 **Total time**: 55 minutes (single session recommended: Yes)
 **Complexity**: Medium
 **AI Agent suitability**: This task is critical for AI agent execution success
+
+---
+
+## 📋 Refactoring Task: Fix Git Ownership Documentation
+
+### Problem Summary
+AI agents encounter git dubious ownership warnings that aren't documented, causing confusion during setup.
+
+### Success Criteria
+- [ ] Add git safe.directory configuration to setup documentation
+- [ ] Update all relevant getting started guides
+- [ ] Ensure AI agents can handle this scenario
+
+### Detailed Implementation Steps
+
+**Phase 1: Update Documentation** (15 minutes)
+- [ ] Update `README.md` with git ownership note
+- [ ] Update `docs/user/getting-started.md` 
+- [ ] Update `AI_AGENT_GUIDE.md` setup section
+- [ ] Add to troubleshooting section
+
+### Estimated Effort
+**Total time**: 15 minutes
+**Complexity**: 🟢 Simple
+**AI Agent suitability**: Perfect for AI agent execution
+
+---
+
+## 📋 Refactoring Task: Add --verbose Flag Support
+
+### Problem Summary
+The `--verbose` flag is shown in examples but doesn't work with the `test` command, causing errors for users following documentation.
+
+### Success Criteria
+- [ ] Add --verbose flag to test command
+- [ ] Implement verbose logging throughout test generation
+- [ ] Update help text and documentation
+- [ ] Ensure consistent flag behavior across all commands
+
+### Detailed Implementation Steps
+
+**Phase 1: Implementation** (30 minutes)
+- [ ] Add verbose option to `src/cli/commands/test.ts`
+- [ ] Pass verbose flag through to TestGenerator
+- [ ] Add verbose logging in key generation points
+- [ ] Update command help text
+- [ ] Test verbose output
+
+### Estimated Effort
+**Total time**: 1 hour
+**Complexity**: 🟢 Simple
+**AI Agent suitability**: Well-suited for AI agent
+
+---
+
+## 📋 Refactoring Task: Fix Python Test File Extension Bug
+
+### Problem Summary
+In mixed-language projects, Python test files are being saved with `.js` extensions because `getTestFileExtension()` uses the project's primary language instead of the individual file's language. This makes generated tests unusable.
+
+### Success Criteria
+- [ ] Python files always get `_test.py` extension
+- [ ] JavaScript files always get `.test.js` extension  
+- [ ] TypeScript files always get `.test.ts` extension
+- [ ] Mixed projects handle each file correctly
+- [ ] No breaking changes to test generation
+
+### Detailed Implementation Steps
+
+**Phase 1: Preparation** (5 minutes)
+- [ ] Create feature branch: `git checkout -b fix/python-test-extensions`
+- [ ] Run existing tests to establish baseline
+- [ ] Verify current behavior with mixed project
+
+**Phase 2: Safe Refactoring** (15 minutes)
+- [ ] **Step 1**: Update `generateStructuralTestForFile` to pass language to path generation
+  - [ ] Extract file language from `fileAnalysis.language`
+  - [ ] Pass language to test path generation
+- [ ] **Step 2**: Update `getTestFilePath` to accept optional language parameter
+  - [ ] Add `language?: string` parameter
+  - [ ] Use provided language or fall back to primary language
+- [ ] **Step 3**: Create `getTestFileExtensionForLanguage` method
+  - [ ] Accept language parameter
+  - [ ] Return appropriate extension for language
+- [ ] **Step 4**: Update path generation logic
+  - [ ] Use file-specific language for extension
+  - [ ] Maintain backward compatibility
+
+**Phase 3: Testing & Validation** (10 minutes)
+- [ ] Test with Python-only project
+- [ ] Test with JavaScript-only project
+- [ ] Test with mixed Python/JavaScript project
+- [ ] Verify existing tests still pass
+- [ ] Commit changes with descriptive message
+
+### Before/After Code Structure
+```typescript
+// BEFORE - uses project primary language
+protected getTestFileExtension(): string {
+  const language = this.getPrimaryLanguage(); // Returns project's primary language
+  switch (language) {
+    case 'python':
+      return '_test.py';
+    // ...
+  }
+}
+
+// AFTER - uses file-specific language
+protected getTestFileExtension(language?: string): string {
+  const lang = language || this.getPrimaryLanguage();
+  switch (lang) {
+    case 'python':
+      return '_test.py';
+    // ...
+  }
+}
+
+// Updated path generation
+const testPath = this.getTestFilePath(filePath, fileAnalysis.testType, fileAnalysis.language);
+```
+
+### Risk Assessment
+- **Breaking changes**: None - adding optional parameter maintains compatibility
+- **Testing strategy**: Test all language combinations
+- **Rollback plan**: `git checkout main && git branch -D fix/python-test-extensions`
+
+### Estimated Effort
+**Total time**: 30 minutes (single session recommended: Yes)
+**Complexity**: Low
+**AI Agent suitability**: This task is well-suited for AI agent execution
+
+---
+
+## 📋 Refactoring Task: Add Test Generation Validation
+
+### Problem Summary
+The system generates 100x more tests than source files without warning, creating unmaintainable test suites.
+
+### Success Criteria
+- [ ] Add validation when test count exceeds source file count by >10x
+- [ ] Display clear warning with file counts
+- [ ] Allow override with --force flag
+- [ ] Prevent accidental massive test generation
+
+### Detailed Implementation Steps
+
+**Phase 1: Implementation** (2 hours)
+- [ ] Calculate source file count in StructuralTestGenerator
+- [ ] Add validation before generating tests
+- [ ] Create clear warning message with counts
+- [ ] Add --force flag to override validation
+- [ ] Test with various project sizes
+
+### Estimated Effort
+**Total time**: 2 hours
+**Complexity**: 🟢 Simple
+**AI Agent suitability**: Well-suited for AI agent
+
+---
+
+## 📋 Refactoring Task: Create Configuration Schema Documentation
+
+### Problem Summary
+The .claude-testing.config.json file structure is undocumented, leading to confusion about what options are available.
+
+### Success Criteria
+- [ ] Define TypeScript interface for configuration
+- [ ] Create JSON schema file
+- [ ] Write comprehensive documentation with examples
+- [ ] Add configuration validation
+
+### Detailed Implementation Steps
+
+**Phase 1: Schema Definition** (1 hour)
+- [ ] Create `src/types/config.ts` with ConfigSchema interface
+- [ ] Define all configuration options with JSDoc
+- [ ] Create JSON schema from TypeScript interface
+
+**Phase 2: Documentation** (2 hours)
+- [ ] Create `docs/configuration.md` 
+- [ ] Add complete option reference
+- [ ] Include multiple example configurations
+- [ ] Add troubleshooting section
+
+**Phase 3: Validation** (1 hour)
+- [ ] Add config validation helper
+- [ ] Implement in CLI commands
+- [ ] Add helpful error messages
+
+### Estimated Effort
+**Total time**: 4 hours / 2 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good for documentation tasks
+
+---
+
+## 📋 Refactoring Task: Implement Dry-Run Mode
+
+### Problem Summary
+Users can't preview what tests would be generated without actually creating files, making it hard to validate configuration.
+
+### Success Criteria
+- [ ] Add --dry-run flag to test command
+- [ ] Show preview of files to be generated
+- [ ] Display file counts and statistics
+- [ ] No files actually created in dry-run mode
+
+### Detailed Implementation Steps
+
+**Phase 1: CLI Flag** (30 minutes)
+- [ ] Add --dry-run option to test command
+- [ ] Pass flag through to generators
+
+**Phase 2: Preview Logic** (2 hours)
+- [ ] Modify generators to support preview mode
+- [ ] Collect file information without writing
+- [ ] Format preview output nicely
+
+**Phase 3: Statistics** (1.5 hours)
+- [ ] Calculate and display file counts
+- [ ] Show language breakdown
+- [ ] Estimate total lines of code
+- [ ] Display directory structure preview
+
+### Estimated Effort
+**Total time**: 4-5 hours / 2 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good structured task
+
+---
+
+## 📋 Refactoring Task: Fix Analysis Output Flag
+
+### Problem Summary
+The --output flag for the analyze command doesn't actually save results to a file, only showing output in terminal.
+
+### Success Criteria
+- [ ] Make --output flag save analysis to specified file
+- [ ] Support JSON format output
+- [ ] Handle file write errors gracefully
+- [ ] Update documentation
+
+### Detailed Implementation Steps
+
+**Phase 1: Fix Output Writing** (1.5 hours)
+- [ ] Update analyze command to handle output flag
+- [ ] Implement file writing logic
+- [ ] Format JSON output properly
+
+**Phase 2: Error Handling** (1 hour)
+- [ ] Add file write error handling
+- [ ] Provide helpful error messages
+- [ ] Test with various file paths
+
+**Phase 3: Documentation** (30 minutes)
+- [ ] Update command help text
+- [ ] Update user documentation
+- [ ] Add examples
+
+### Estimated Effort
+**Total time**: 3-4 hours / 2 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good for implementation
+
+---
+
+## 📋 Refactoring Task: Improve Progress Reporting
+
+### Problem Summary
+Test generation provides minimal feedback, making it hard to track progress on large projects.
+
+### Success Criteria
+- [ ] Show real-time progress during generation
+- [ ] Display current file being processed
+- [ ] Add progress bar with ETA
+- [ ] Show statistics during generation
+
+### Detailed Implementation Steps
+
+**Phase 1: Event System** (1.5 hours)
+- [ ] Add progress event emitters to generators
+- [ ] Create progress event types
+- [ ] Emit events during generation
+
+**Phase 2: Progress UI** (2 hours)
+- [ ] Create progress display component
+- [ ] Integrate with CLI using ora/chalk
+- [ ] Show file names and counts
+
+**Phase 3: Statistics** (1.5 hours)
+- [ ] Calculate completion percentage
+- [ ] Estimate time remaining
+- [ ] Show generation speed
+
+### Estimated Effort
+**Total time**: 4-5 hours / 2 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good structured task
+
+---
+
+## 📋 Refactoring Task: Create Basic Test Assertion Templates
+
+### Problem Summary
+Generated tests only contain TODOs without any meaningful assertions, requiring complete manual rewrite.
+
+### Success Criteria
+- [ ] Generate basic meaningful assertions
+- [ ] Framework-specific test patterns
+- [ ] At least check exports and basic functionality
+- [ ] Improve from 0% to 30% useful tests
+
+### Detailed Implementation Steps
+
+**Phase 1: Pattern Research** (2 hours)
+- [ ] Analyze common test patterns for each framework
+- [ ] Identify basic assertion types
+- [ ] Document patterns per language/framework
+
+**Phase 2: Template Creation** (2 hours)
+- [ ] Create assertion templates for Jest
+- [ ] Create assertion templates for pytest
+- [ ] Add framework detection logic
+
+**Phase 3: Implementation** (2 hours)
+- [ ] Update test generation to use templates
+- [ ] Add basic assertions for exports
+- [ ] Add basic assertions for functions
+- [ ] Test with various file types
+
+### Estimated Effort
+**Total time**: 5-6 hours / 3 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good with clear patterns
+
+---
+
+## 📋 Refactoring Task: Add File Count Validation
+
+### Problem Summary
+System lacks validation of reasonable test-to-source file ratios, allowing generation of thousands of unnecessary tests.
+
+### Success Criteria
+- [ ] Calculate accurate source file count
+- [ ] Validate test-to-source ratio
+- [ ] Warn when ratio exceeds threshold
+- [ ] Allow configuration of thresholds
+
+### Detailed Implementation Steps
+
+**Phase 1: Source File Counting** (1.5 hours)
+- [ ] Implement accurate source file detection
+- [ ] Exclude vendor/build directories properly
+- [ ] Count by language
+
+**Phase 2: Ratio Validation** (1.5 hours)
+- [ ] Calculate test-to-source ratio
+- [ ] Implement configurable thresholds
+- [ ] Add clear warning messages
+
+**Phase 3: Override Options** (1 hour)
+- [ ] Add --max-ratio flag
+- [ ] Add --skip-validation flag
+- [ ] Update documentation
+
+### Estimated Effort
+**Total time**: 3-4 hours / 2 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good structured task
+
+---
+
+## 📋 Refactoring Task: Implement Basic Exclude Pattern Fix
+
+### Problem Summary
+Exclude patterns exist but don't work properly, causing node_modules and other vendor directories to be included.
+
+### Success Criteria
+- [ ] Make exclude patterns actually work
+- [ ] Properly exclude node_modules
+- [ ] Fix fast-glob pattern application
+- [ ] Validate with real projects
+
+### Detailed Implementation Steps
+
+**Phase 1: Debug Pattern Issues** (2 hours)
+- [ ] Investigate why patterns aren't applied
+- [ ] Test fast-glob behavior
+- [ ] Identify pattern format issues
+
+**Phase 2: Fix Implementation** (2 hours)
+- [ ] Fix pattern application in file discovery
+- [ ] Ensure consistent pattern usage
+- [ ] Add pattern validation
+
+**Phase 3: Testing** (1 hour)
+- [ ] Test with various exclude patterns
+- [ ] Verify node_modules excluded
+- [ ] Test with complex projects
+
+### Estimated Effort
+**Total time**: 4-5 hours / 2 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good debugging task
+
+---
+
+## 📋 Refactoring Task: Create Mixed Project Test Cases
+
+### Problem Summary
+Need test projects that combine Python and JavaScript to validate mixed-language handling.
+
+### Success Criteria
+- [ ] Create minimal mixed project fixture
+- [ ] Create complex mixed project fixture
+- [ ] Add automated test harness
+- [ ] Document test scenarios
+
+### Detailed Implementation Steps
+
+**Phase 1: Minimal Project** (1 hour)
+- [ ] Create simple Python + JS project
+- [ ] Add basic source files
+- [ ] Add package.json and requirements.txt
+
+**Phase 2: Complex Project** (1.5 hours)
+- [ ] Create realistic mixed project
+- [ ] Add multiple frameworks
+- [ ] Include various file types
+
+**Phase 3: Test Harness** (1.5 hours)
+- [ ] Create automated test runner
+- [ ] Add validation checks
+- [ ] Document expected behavior
+
+### Estimated Effort
+**Total time**: 3-4 hours / 2 sessions
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: Good structured task
+
+---
+
+## 📋 Refactoring Task: Configuration Auto-Discovery System - Investigation Phase
+
+### Problem Summary
+The .claude-testing.config.json file is never loaded from target projects. This is a complex task requiring investigation first.
+
+### Success Criteria
+- [ ] Complete investigation of configuration requirements
+- [ ] Design configuration loading system
+- [ ] Create implementation plan
+- [ ] Identify all integration points
+
+### Detailed Implementation Steps
+
+**Phase 1: Investigation** (3 hours)
+- [ ] Map all current config usage points
+- [ ] Document config flow through system
+- [ ] Identify missing config loading
+- [ ] Research config precedence patterns
+
+**Phase 2: Design** (2 hours)
+- [ ] Design ConfigurationService interface
+- [ ] Plan config discovery algorithm
+- [ ] Design config merging strategy
+- [ ] Document API design
+
+**Phase 3: Planning** (1 hour)
+- [ ] Break down implementation tasks
+- [ ] Identify dependencies
+- [ ] Create test strategy
+- [ ] Estimate implementation effort
+
+### Estimated Effort
+**Total time**: 6 hours / 3 sessions
+**Complexity**: 🟠 Complex (Investigation Phase)
+**AI Agent suitability**: Good for investigation
+
+### Next Steps After Investigation
+This investigation will produce a detailed implementation plan that can be executed in subsequent sessions.
+
+---
+
+## 📋 Refactoring Task: Centralized File Discovery Service - Investigation Phase
+
+### Problem Summary
+File discovery is scattered across components with inconsistent filtering. This is a complex architectural change requiring investigation.
+
+### Success Criteria
+- [ ] Map all file discovery code locations
+- [ ] Document current patterns and issues
+- [ ] Design unified service architecture
+- [ ] Create implementation roadmap
+
+### Detailed Implementation Steps
+
+**Phase 1: Current State Analysis** (3 hours)
+- [ ] Find all file discovery code
+- [ ] Document different exclude patterns
+- [ ] Map file discovery flows
+- [ ] Identify inconsistencies
+
+**Phase 2: Architecture Design** (3 hours)
+- [ ] Design FileDiscoveryService interface
+- [ ] Plan migration strategy
+- [ ] Design caching approach
+- [ ] Consider performance implications
+
+**Phase 3: Implementation Planning** (2 hours)
+- [ ] Break down into subtasks
+- [ ] Identify affected components
+- [ ] Plan testing approach
+- [ ] Create migration checklist
+
+### Estimated Effort
+**Total time**: 8 hours / 4 sessions
+**Complexity**: 🟠 Complex (Investigation Phase)
+**AI Agent suitability**: Good for systematic analysis
+
+---
+
+## 📋 Refactoring Task: Language-Specific Test Generators - Investigation Phase
+
+### Problem Summary
+Current generator uses same logic for all languages. Need language-specific generators for proper test generation.
+
+### Success Criteria
+- [ ] Analyze language-specific requirements
+- [ ] Design generator architecture
+- [ ] Plan migration strategy
+- [ ] Create task breakdown
+
+### Detailed Implementation Steps
+
+**Phase 1: Requirements Analysis** (3 hours)
+- [ ] Document Python test patterns
+- [ ] Document JavaScript test patterns
+- [ ] Identify common vs specific logic
+- [ ] Research best practices
+
+**Phase 2: Architecture Design** (3 hours)
+- [ ] Design base generator interface
+- [ ] Design language-specific classes
+- [ ] Plan factory pattern implementation
+- [ ] Consider extensibility
+
+**Phase 3: Migration Planning** (2 hours)
+- [ ] Plan incremental migration
+- [ ] Identify test scenarios
+- [ ] Create compatibility strategy
+- [ ] Break down implementation
+
+### Estimated Effort
+**Total time**: 8 hours / 4 sessions
+**Complexity**: 🟠 Complex (Investigation Phase)
+**AI Agent suitability**: Good for design work
+
+---
+
+## 📋 Epic Task: Complete Configuration Management System
+
+### Problem Summary
+Configuration system needs complete overhaul with auto-discovery, validation, and consistent usage.
+
+### Success Criteria
+- [ ] Investigation phase completed
+- [ ] Detailed implementation plan created
+- [ ] Subtasks defined and estimated
+- [ ] Ready for phased execution
+
+### Investigation Subtasks
+
+**Phase 1: Investigation & Planning** (10 hours)
+- [ ] Complete configuration system investigation (see above)
+- [ ] Create detailed technical design document
+- [ ] Define all configuration options
+- [ ] Plan backward compatibility
+
+**Phase 2: Break Down Implementation** (5 hours)
+- [ ] Create ConfigurationService implementation tasks
+- [ ] Define validation system tasks
+- [ ] Plan CLI integration tasks
+- [ ] Create testing strategy tasks
+
+**Phase 3: Risk Assessment** (3 hours)
+- [ ] Identify breaking change risks
+- [ ] Plan migration strategy
+- [ ] Create rollback procedures
+- [ ] Document compatibility matrix
+
+### Estimated Effort
+**Total time**: 20+ hours (Investigation only)
+**Complexity**: 🔴 Epic
+**AI Agent suitability**: Investigation phase suitable for AI
+
+---
+
+## 📋 Epic Task: File Discovery Architecture Overhaul
+
+### Problem Summary
+File discovery needs complete redesign to handle proper filtering and consistent behavior.
+
+### Success Criteria
+- [ ] Investigation phase completed
+- [ ] Architecture documented
+- [ ] Migration plan created
+- [ ] Subtasks defined
+
+### Investigation Subtasks
+
+**Phase 1: Deep Analysis** (12 hours)
+- [ ] Complete file discovery investigation (see above)
+- [ ] Performance profiling current system
+- [ ] Document all edge cases
+- [ ] Research optimization strategies
+
+**Phase 2: Design & Planning** (8 hours)
+- [ ] Create detailed architecture design
+- [ ] Plan caching strategy
+- [ ] Design plugin system for filters
+- [ ] Create performance benchmarks
+
+**Phase 3: Implementation Planning** (5 hours)
+- [ ] Break down into 20+ subtasks
+- [ ] Define migration phases
+- [ ] Create test strategy
+- [ ] Plan incremental delivery
+
+### Estimated Effort
+**Total time**: 25+ hours (Investigation only)
+**Complexity**: 🔴 Epic
+**AI Agent suitability**: Investigation suitable for AI
+
+---
+
+## 📋 Epic Task: Multi-Language Architecture Implementation
+
+### Problem Summary
+Need complete language-specific generation system for proper multi-language support.
+
+### Success Criteria
+- [ ] Investigation completed
+- [ ] Architecture designed
+- [ ] Language requirements documented
+- [ ] Implementation planned
+
+### Investigation Subtasks
+
+**Phase 1: Language Analysis** (15 hours)
+- [ ] Complete language requirements investigation
+- [ ] Research test patterns per language
+- [ ] Document framework variations
+- [ ] Analyze AST requirements
+
+**Phase 2: Architecture Design** (10 hours)
+- [ ] Design plugin architecture
+- [ ] Plan language detection improvements
+- [ ] Create extension points
+- [ ] Design test pattern library
+
+**Phase 3: Phased Implementation Plan** (5 hours)
+- [ ] Python generator tasks
+- [ ] JavaScript generator tasks
+- [ ] TypeScript enhancements
+- [ ] Future language support
+
+### Estimated Effort
+**Total time**: 30+ hours (Investigation only)
+**Complexity**: 🔴 Epic
+**AI Agent suitability**: Research phase suitable for AI
+
+---
+
+## 📋 Epic Task: Intelligent Test Generation System
+
+### Problem Summary
+Current tests are stubs. Need AST-based analysis for meaningful test generation.
+
+### Success Criteria
+- [ ] Research phase completed
+- [ ] Prototype validated
+- [ ] Architecture designed
+- [ ] Roadmap created
+
+### Investigation Subtasks
+
+**Phase 1: Research** (20 hours)
+- [ ] Research AST parsing strategies
+- [ ] Study test generation patterns
+- [ ] Analyze existing solutions
+- [ ] Create proof of concept
+
+**Phase 2: Prototype** (15 hours)
+- [ ] Build minimal AST analyzer
+- [ ] Test pattern matching
+- [ ] Validate approach
+- [ ] Measure quality improvement
+
+**Phase 3: Production Planning** (5 hours)
+- [ ] Design full system
+- [ ] Plan quality metrics
+- [ ] Create test scenarios
+- [ ] Define success criteria
+
+### Estimated Effort
+**Total time**: 40+ hours (Investigation only)
+**Complexity**: 🔴 Epic
+**AI Agent suitability**: Research suitable for AI
 
 ---
 

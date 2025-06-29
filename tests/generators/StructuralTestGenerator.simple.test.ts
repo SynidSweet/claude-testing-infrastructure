@@ -95,6 +95,26 @@ describe('StructuralTestGenerator - Basic Tests', () => {
       const ext = generator['getTestFileExtension']();
       expect(ext).toBe('_test.py');
     });
+
+    it('should return correct extension when language is passed as parameter', () => {
+      // Test mixed-language project scenario
+      const mixedAnalysis = {
+        ...mockAnalysis,
+        languages: [
+          { name: 'javascript' as const, confidence: 90, files: ['src/utils.js'] },
+          { name: 'python' as const, confidence: 80, files: ['src/service.py'] }
+        ]
+      };
+      const generator = new StructuralTestGenerator(config, mixedAnalysis);
+      
+      // Without language parameter, should use primary language (JavaScript)
+      expect(generator['getTestFileExtension']()).toBe('.test.js');
+      
+      // With specific language parameter
+      expect(generator['getTestFileExtension']('python')).toBe('_test.py');
+      expect(generator['getTestFileExtension']('javascript')).toBe('.test.js');
+      expect(generator['getTestFileExtension']('typescript')).toBe('.test.ts');
+    });
   });
 
   describe('private helper methods', () => {

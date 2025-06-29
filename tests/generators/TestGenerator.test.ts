@@ -21,7 +21,7 @@ class MockTestGenerator extends TestGenerator {
     };
   }
 
-  protected getTestFileExtension(): string {
+  protected getTestFileExtension(_language?: string): string {
     return '.test.js';
   }
 }

@@ -115,7 +115,7 @@ export class StructuralTestGenerator extends TestGenerator {
 
       // Generate test content based on file type and framework
       const testContent = await this.generateTestFileContent(filePath, fileAnalysis);
-      const testPath = this.getTestFilePath(filePath, fileAnalysis.testType);
+      const testPath = this.getTestFilePath(filePath, fileAnalysis.testType, fileAnalysis.language);
 
       // Generate additional files if needed
       const additionalFiles: GeneratedFile[] = [];
@@ -142,9 +142,9 @@ export class StructuralTestGenerator extends TestGenerator {
     }
   }
 
-  protected getTestFileExtension(): string {
-    const language = this.getPrimaryLanguage();
-    switch (language) {
+  protected getTestFileExtension(language?: string): string {
+    const lang = language || this.getPrimaryLanguage();
+    switch (lang) {
       case 'typescript':
         return '.test.ts';
       case 'javascript':
