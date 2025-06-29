@@ -364,20 +364,20 @@ export class StructuralTestGenerator extends TestGenerator {
     
     if (language === 'python') {
       // Python exports (functions and classes at module level)
-      // Use regex exec to properly capture groups
-      const functionRegex = /^def\s+(\w+)/gm;
-      const classRegex = /^class\s+(\w+)/gm;
+      // Use more precise regex that doesn't match across lines
+      const functionRegex = /^(?:async\s+)?def\s+(\w+)\s*\(/gm;
+      const classRegex = /^class\s+(\w+)\s*[:\(]/gm;
       
       let match;
       while ((match = functionRegex.exec(content)) !== null) {
-        if (match[1]) {
-          exports.push(match[1]); // Use captured group
+        if (match[1] && match[1].trim()) {
+          exports.push(match[1].trim());
         }
       }
       
       while ((match = classRegex.exec(content)) !== null) {
-        if (match[1]) {
-          exports.push(match[1]); // Use captured group
+        if (match[1] && match[1].trim()) {
+          exports.push(match[1].trim());
         }
       }
     } else {
