@@ -1,8 +1,9 @@
 # Project Context & AI Agent Guide
 
-*Last updated: 2025-06-29 | Updated by: /document command | GapReportGenerator god class decomposition completed*
+*Last updated: 2025-06-29 | Updated by: /document command | Python test file extension bug fix completed*
 
 ## Recent Updates
+- **2025-06-29**: ✅ **PYTHON TEST FILE EXTENSION BUG FIX COMPLETED** - Fixed critical bug where Python test files in mixed-language projects were saved with `.js` extensions. Updated `getTestFileExtension()` to accept file-specific language parameter instead of using project's primary language. Now Python files correctly get `_test.py`, JavaScript files get `.test.js`, and TypeScript files get `.test.ts` extensions. Maintained backward compatibility and achieved 117/117 tests passing (added 1 test)
 - **2025-06-29**: ✅ **GAPREPORTGENERATOR REFACTORING COMPLETED** - Successfully decomposed 847-line GapReportGenerator god class into 3 focused, single-responsibility classes using orchestrator pattern. Created MarkdownReportGenerator (220 lines), TerminalReportGenerator (290 lines), and ReportVisualizationService (267 lines). Reduced main class from 847→354 lines (58% reduction) while maintaining 100% API compatibility and test success rate (116/116 tests)
 - **2025-06-29**: ✅ **DOCUMENTATION CONSISTENCY REFACTORING COMPLETED** - Fixed critical documentation inconsistencies affecting AI agent success rates. Updated 17+ files with incorrect `npx claude-testing` commands to correct `node dist/cli/index.js` format. Completely rewrote `/docs/ai-agents/navigation.md` to match current single decoupled architecture. Enhanced `AI_AGENT_GUIDE.md` with Git requirements, system requirements, cost guidelines, framework support matrix, and comprehensive troubleshooting. Improved AI agent success rate from 60-70% to target 90%+
 - **2025-06-29**: ✅ **STABLE AI AGENT ENTRY POINT SYSTEM IMPLEMENTED** - Created `AI_AGENT_GUIDE.md` as protected, stable primary entry point immune to AI tool modifications. Fixed critical command inconsistencies (npx→node dist/cli/index.js) across all documentation. Implemented multi-layer protection with backup template and clear navigation hierarchy. Resolves architectural vulnerability where CLAUDE.md could be corrupted during AI sessions, ensuring 100% reliable guidance for all AI agents
@@ -33,7 +34,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 
 **Target Users**: AI agents, developers, teams needing rapid test implementation
 **Business Value**: Reduces testing setup from days to minutes while maintaining quality
-**Current Status**: Production-ready v2.0 with complete CLI and optimized Claude Code CLI integration, 100% test success rate (116/116 tests passing), session-isolated timeout configuration for complex AI operations
+**Current Status**: Production-ready v2.0 with complete CLI and optimized Claude Code CLI integration, 100% test success rate (117/117 tests passing), session-isolated timeout configuration for complex AI operations
 
 ### Key Success Metrics
 - Zero modification of target projects (100% decoupled approach)

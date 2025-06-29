@@ -1,10 +1,31 @@
 # Changelog
 
-*Last updated: 2025-06-29 | Updated by: /document command | Documentation consistency refactoring completed*
+*Last updated: 2025-06-29 | Updated by: /document command | Python test file extension bug fix completed*
 
 ## Recent Updates
 
-- **2025-06-29 (Latest Session)**: ✅ **DOCUMENTATION CONSISTENCY REFACTORING COMPLETED!**
+- **2025-06-29 (Latest Session)**: ✅ **PYTHON TEST FILE EXTENSION BUG FIX COMPLETED!**
+  - **Critical Bug Resolution**:
+    - ✅ **Fixed Extension Bug**: Python test files in mixed-language projects were incorrectly saved with `.js` extensions
+    - ✅ **Root Cause**: `getTestFileExtension()` was using project's primary language instead of individual file's language
+    - ✅ **Solution**: Updated method to accept optional language parameter for file-specific extensions
+    - ✅ **Backward Compatible**: Optional parameter maintains API compatibility with existing code
+  - **Code Changes**:
+    - ✅ **TestGenerator Base Class**: Updated `getTestFileExtension()` to accept `language?: string` parameter
+    - ✅ **StructuralTestGenerator**: Modified to pass file-specific language from `fileAnalysis.language`
+    - ✅ **Test Path Generation**: Updated `getTestFilePath()` to accept and use language parameter
+    - ✅ **Test Coverage**: Added comprehensive test for mixed-language project scenarios
+  - **Impact**:
+    - ✅ **Python Files**: Now correctly get `_test.py` extension
+    - ✅ **JavaScript Files**: Continue to get `.test.js` extension
+    - ✅ **TypeScript Files**: Continue to get `.test.ts` extension
+    - ✅ **Test Suite**: 117/117 tests passing (added 1 new test)
+  - **Documentation Updates**:
+    - ✅ Updated `PROJECT_CONTEXT.md` with bug fix in recent updates
+    - ✅ Updated `/docs/features/test-generator.md` with mixed-language support details
+    - ✅ Deleted completed task from refactoring plan as per carry-on cleanup guidelines
+
+- **2025-06-29 (Previous Session)**: ✅ **DOCUMENTATION CONSISTENCY REFACTORING COMPLETED!**
   - **AI Agent Success Rate Improvement**:
     - ✅ **Fixed Command Inconsistencies**: Updated 17+ documentation files with incorrect `npx claude-testing` commands to correct `node dist/cli/index.js` format
     - ✅ **Architecture Alignment**: Completely rewrote `/docs/ai-agents/navigation.md` to match current single decoupled approach (removed outdated dual-approach references)

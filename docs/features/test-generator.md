@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-06-29 | Function naming refactoring applied - core API methods renamed for clarity*
+*Last updated: 2025-06-29 | Mixed-language project support added - file-specific test extensions*
 
 ## Overview
 
@@ -17,7 +17,7 @@ abstract class TestGenerator {
   async generateAllTests(): Promise<TestGenerationResult>
   protected abstract getFilesToTest(): Promise<string[]>
   protected abstract generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null>
-  protected abstract getTestFileExtension(): string
+  protected abstract getTestFileExtension(language?: string): string
 }
 ```
 
@@ -27,6 +27,7 @@ abstract class TestGenerator {
 - Naming conventions system with customizable patterns
 - Progress tracking and comprehensive statistics
 - Extensible hook system for custom behavior
+- Mixed-language project support with file-specific extensions (2025-06-29)
 
 ### 2. StructuralTestGenerator (`src/generators/StructuralTestGenerator.ts`)
 
@@ -255,9 +256,18 @@ The TestGenerator system integrates seamlessly with the ProjectAnalyzer:
 
 ## Quality Assurance
 
-### Comprehensive Test Suite (60 Tests)
+### Mixed-Language Project Support (2025-06-29)
+The test generator now correctly handles mixed-language projects:
+- **File-Specific Extensions**: Each file gets the correct test extension based on its language
+  - Python files → `_test.py`
+  - JavaScript files → `.test.js`
+  - TypeScript files → `.test.ts`
+- **Language Detection**: Analyzes each file individually rather than using project-wide language
+- **Backward Compatible**: Optional language parameter maintains API compatibility
+
+### Comprehensive Test Suite (61 Tests)
 - **Base Class Tests**: Lifecycle, configuration, error handling
-- **Structural Generator Tests**: File analysis, test generation, mock creation
+- **Structural Generator Tests**: File analysis, test generation, mock creation, mixed-language support
 - **Template Engine Tests**: Template selection, fallback logic, custom templates
 - **Integration Tests**: End-to-end generation workflows
 
