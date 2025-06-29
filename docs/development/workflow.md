@@ -32,16 +32,16 @@ npm install
 npm run build
 
 # 3. Verify installation
-npx claude-testing --version
-npx claude-testing --help
+node dist/cli/index.js --version
+node dist/cli/index.js --help
 ```
 
 ### Quick Verification
 ```bash
 # Test with a sample project
-npx claude-testing analyze /path/to/any/project
-npx claude-testing test /path/to/any/project --only-structural
-npx claude-testing run /path/to/any/project
+node dist/cli/index.js analyze /path/to/any/project
+node dist/cli/index.js test /path/to/any/project --only-structural
+node dist/cli/index.js run /path/to/any/project
 ```
 
 ## Production CLI Commands
@@ -49,28 +49,28 @@ npx claude-testing run /path/to/any/project
 ### Core Workflow
 ```bash
 # 1. Analyze project structure
-npx claude-testing analyze /path/to/project [--output analysis.json] [--format json|markdown|console]
+node dist/cli/index.js analyze /path/to/project [--output analysis.json] [--format json|markdown|console]
 
 # 2. Generate comprehensive tests
-npx claude-testing test /path/to/project [--config config.json] [--only-structural|--only-logical]
+node dist/cli/index.js test /path/to/project [--config config.json] [--only-structural|--only-logical]
 
 # 3. Run tests with coverage
-npx claude-testing run /path/to/project [--coverage] [--framework jest|pytest] [--watch]
+node dist/cli/index.js run /path/to/project [--coverage] [--framework jest|pytest] [--watch]
 
 # 4. Analyze gaps for AI generation
-npx claude-testing analyze-gaps /path/to/project [--format json|markdown|text] [--threshold 3]
+node dist/cli/index.js analyze-gaps /path/to/project [--format json|markdown|text] [--threshold 3]
 ```
 
 ### Advanced Options
 ```bash
 # Watch mode for development
-npx claude-testing watch /path/to/project
+node dist/cli/index.js watch /path/to/project
 
 # Coverage with thresholds
-npx claude-testing run /path/to/project --coverage --threshold "statements:80,branches:70"
+node dist/cli/index.js run /path/to/project --coverage --threshold "statements:80,branches:70"
 
 # Generate JUnit reports for CI/CD
-npx claude-testing run /path/to/project --junit --coverage
+node dist/cli/index.js run /path/to/project --junit --coverage
 ```
 
 ## Development Environment Setup
@@ -144,13 +144,13 @@ npm test -- tests/analyzers/TestGapAnalyzer.test.ts
 ### Generated Test Validation
 ```bash
 # Test structural generation only
-npx claude-testing test ./examples/test-examples --only-structural
+node dist/cli/index.js test ./examples/test-examples --only-structural
 
 # Validate generated tests run successfully
-npx claude-testing run ./examples/test-examples
+node dist/cli/index.js run ./examples/test-examples
 
 # Check coverage reports
-npx claude-testing run ./examples/test-examples --coverage
+node dist/cli/index.js run ./examples/test-examples --coverage
 ```
 
 ## Development Practices
@@ -193,33 +193,33 @@ npm run build
 ### Verbose Logging
 ```bash
 # Enable debug logging
-DEBUG=claude-testing:* npx claude-testing analyze /path/to/project
+DEBUG=claude-testing:* node dist/cli/index.js analyze /path/to/project
 
 # Specific component debugging
-DEBUG=claude-testing:analyzer npx claude-testing analyze /path/to/project
-DEBUG=claude-testing:generator npx claude-testing test /path/to/project
-DEBUG=claude-testing:runner npx claude-testing run /path/to/project
+DEBUG=claude-testing:analyzer node dist/cli/index.js analyze /path/to/project
+DEBUG=claude-testing:generator node dist/cli/index.js test /path/to/project
+DEBUG=claude-testing:runner node dist/cli/index.js run /path/to/project
 ```
 
 ### Common Debugging Scenarios
 ```bash
 # Project not detected properly
-npx claude-testing analyze /path/to/project --verbose
+node dist/cli/index.js analyze /path/to/project --verbose
 
 # Tests not generating
-npx claude-testing test /path/to/project --debug
+node dist/cli/index.js test /path/to/project --debug
 
 # Test execution failing
-npx claude-testing run /path/to/project --debug --verbose
+node dist/cli/index.js run /path/to/project --debug --verbose
 
 # Coverage issues
-npx claude-testing run /path/to/project --coverage --debug
+node dist/cli/index.js run /path/to/project --coverage --debug
 ```
 
 ### Step-by-Step Verification
 ```bash
 # 1. Verify project detection
-npx claude-testing analyze /path/to/project --format json
+node dist/cli/index.js analyze /path/to/project --format json
 
 # 2. Check generated test structure
 ls -la /path/to/project/.claude-testing/
@@ -276,7 +276,7 @@ npm test -- tests/generators/
 3. **"Tests not generating"**
    ```bash
    # Verify project analysis
-   npx claude-testing analyze /path/to/project --verbose
+   node dist/cli/index.js analyze /path/to/project --verbose
    
    # Check file permissions
    ls -la /path/to/project/.claude-testing/
@@ -285,7 +285,7 @@ npm test -- tests/generators/
 4. **"Coverage not working"**
    ```bash
    # Verify test runner
-   npx claude-testing run /path/to/project --debug
+   node dist/cli/index.js run /path/to/project --debug
    
    # Check coverage configuration
    cat /path/to/project/.claude-testing/jest.config.js

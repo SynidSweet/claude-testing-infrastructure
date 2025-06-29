@@ -71,3 +71,7 @@ temp/
 
 # OS files
 Thumbs.db
+
+# AI Agent Entry Point Protection
+# AI_AGENT_GUIDE.md - Protected stable entry point (uncomment to protect from commits)
+# AI_AGENT_GUIDE.template.md - Backup template for restoration

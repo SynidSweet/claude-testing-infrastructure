@@ -84,33 +84,33 @@ interface CoverageConfig {
 
 ```bash
 # Run all generated tests
-npx claude-testing run /path/to/project
+node dist/cli/index.js run /path/to/project
 
 # Run with specific framework
-npx claude-testing run /path/to/project --framework jest
+node dist/cli/index.js run /path/to/project --framework jest
 ```
 
 ### Coverage Reporting
 
 ```bash
 # Generate coverage report
-npx claude-testing run /path/to/project --coverage
+node dist/cli/index.js run /path/to/project --coverage
 
 # Set coverage thresholds
-npx claude-testing run /path/to/project --coverage --threshold "80"
+node dist/cli/index.js run /path/to/project --coverage --threshold "80"
 
 # Detailed thresholds
-npx claude-testing run /path/to/project --coverage --threshold "statements:85,branches:80"
+node dist/cli/index.js run /path/to/project --coverage --threshold "statements:85,branches:80"
 ```
 
 ### Development Workflow
 
 ```bash
 # Watch mode for continuous testing
-npx claude-testing run /path/to/project --watch
+node dist/cli/index.js run /path/to/project --watch
 
 # CI/CD integration with JUnit reports
-npx claude-testing run /path/to/project --coverage --junit
+node dist/cli/index.js run /path/to/project --coverage --junit
 ```
 
 ## Test Result Processing
@@ -166,7 +166,7 @@ The system automatically recommends appropriate frameworks:
 
 ```bash
 # Available commands
-npx claude-testing run <path> [options]
+node dist/cli/index.js run <path> [options]
 
 # Options
 --framework <framework>     # Specify test framework
@@ -179,8 +179,8 @@ npx claude-testing run <path> [options]
 
 ### Project Workflow
 
-1. **Generate Tests**: `npx claude-testing test /path/to/project`
-2. **Run Tests**: `npx claude-testing run /path/to/project`
+1. **Generate Tests**: `node dist/cli/index.js test /path/to/project`
+2. **Run Tests**: `node dist/cli/index.js run /path/to/project`
 3. **Review Results**: Check `.claude-testing/` directory for reports
 
 ## File Structure

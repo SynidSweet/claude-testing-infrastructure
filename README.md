@@ -21,13 +21,13 @@ npm install
 npm run build
 
 # Analyze any project
-npx claude-testing analyze /path/to/your/project
+node dist/cli/index.js analyze /path/to/your/project
 
 # Generate comprehensive tests
-npx claude-testing test /path/to/your/project
+node dist/cli/index.js test /path/to/your/project
 
 # Run tests with coverage
-npx claude-testing run /path/to/your/project --coverage
+node dist/cli/index.js run /path/to/your/project --coverage
 ```
 This maintains tests externally while providing complete testing infrastructure that updates via `git pull`.
 
@@ -42,7 +42,7 @@ This infrastructure helps you:
 
 ## 📖 For AI Agents: Navigation Guide
 
-1. **First Time?** Read `CLAUDE.md` for comprehensive project navigation
+1. **First Time?** Read `AI_AGENT_GUIDE.md` for stable, comprehensive project navigation
 2. **Architecture Questions?** See `/docs/architecture/overview.md` for design philosophy
 3. **Full Documentation Hub?** See `PROJECT_CONTEXT.md` for modular documentation structure
 4. **User Guide?** See `/docs/user/getting-started.md` for complete usage examples
@@ -66,22 +66,22 @@ This infrastructure helps you:
 
 2. **Analyze Your Project**
    ```bash
-   npx claude-testing analyze /path/to/your/project
+   node dist/cli/index.js analyze /path/to/your/project
    ```
 
 3. **Generate Tests**
    ```bash
-   npx claude-testing test /path/to/your/project
+   node dist/cli/index.js test /path/to/your/project
    ```
 
 4. **Run Tests with Coverage**
    ```bash
-   npx claude-testing run /path/to/your/project --coverage
+   node dist/cli/index.js run /path/to/your/project --coverage
    ```
 
 5. **Watch Mode for Development**
    ```bash
-   npx claude-testing watch /path/to/your/project
+   node dist/cli/index.js watch /path/to/your/project
    ```
 
 ## 🎓 Examples
@@ -177,13 +177,13 @@ When implementing testing for a project:
 
 2. **Analyze Project Structure**
    ```bash
-   npx claude-testing analyze /path/to/your/project
+   node dist/cli/index.js analyze /path/to/your/project
    ```
 
 3. **Generate and Run Tests**
    ```bash
-   npx claude-testing test /path/to/your/project
-   npx claude-testing run /path/to/your/project --coverage
+   node dist/cli/index.js test /path/to/your/project
+   node dist/cli/index.js run /path/to/your/project --coverage
    ```
 
 4. **Customize as Needed**
@@ -196,15 +196,15 @@ When implementing testing for a project:
 
 ### Production CLI Commands
 ```bash
-npx claude-testing analyze <path>     # Analyze project structure
-npx claude-testing test <path>        # Generate comprehensive tests
-npx claude-testing run <path>         # Run generated tests
-npx claude-testing watch <path>       # Watch mode for development
+node dist/cli/index.js analyze <path>     # Analyze project structure
+node dist/cli/index.js test <path>        # Generate comprehensive tests
+node dist/cli/index.js run <path>         # Run generated tests
+node dist/cli/index.js watch <path>       # Watch mode for development
 
 # Additional options
-npx claude-testing test <path> --only-structural  # Skip AI generation
-npx claude-testing run <path> --coverage          # With coverage report
-npx claude-testing test <path> --config <file>    # Custom configuration
+node dist/cli/index.js test <path> --only-structural  # Skip AI generation
+node dist/cli/index.js run <path> --coverage          # With coverage report
+node dist/cli/index.js test <path> --config <file>    # Custom configuration
 ```
 
 ## 📋 Configuration
@@ -278,7 +278,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - [Documentation Hub](PROJECT_CONTEXT.md)
 - [Architecture Overview](/docs/architecture/overview.md)
-- [AI Agent Navigation Guide](CLAUDE.md)
+- [AI Agent Primary Guide](AI_AGENT_GUIDE.md) - **Protected & Stable**
+- [AI Agent Legacy Guide](CLAUDE.md) - Working Document
 - [User Guide](/docs/user/getting-started.md)
 - [API Reference](/docs/api/interfaces.md)
 

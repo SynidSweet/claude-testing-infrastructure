@@ -54,50 +54,6 @@ The refactoring focuses on three critical improvements:
 
 ---
 
-### 📚 Medium Priority: Code Quality Improvements
-
----
-
-## Refactoring Task: Simplify Complex Methods
-
-**Status**: In Progress  
-**Started**: 2025-06-28
-**Current Session**: Session 2 - Applying Template Method pattern to remaining report generators
-
-### Overview
-Break down methods exceeding 50 lines, but maintain the multi-language support architecture.
-
-### Scope & Boundaries
-- **Files to modify**: As identified in original analysis
-- **Dependencies**: Various
-- **Session estimate**: 2-3 sessions total
-
-### Key Consideration
-When splitting methods, ensure language-specific logic remains cohesive within adapters rather than scattered across utilities.
-
-### Progress Update (2025-06-28)
-**Session 1 Completed** - Refactored CoverageVisualizer.generateHtmlReport:
-- ✅ Created external HTML template (`/src/runners/templates/coverage-report.html`)
-- ✅ Implemented `HtmlTemplateEngine` class for template rendering
-- ✅ Reduced method complexity from 137 lines to 16 lines
-- ✅ Maintained all tests passing (116/116)
-- ✅ Updated documentation with Template Method pattern
-
-**Session 2 Completed** - Refactored remaining report generators:
-- ✅ Created `MarkdownTemplateEngine` for Markdown report generation
-- ✅ Created `XmlTemplateEngine` for XML report generation
-- ✅ Reduced `generateMarkdownReport` from 48 lines to 14 lines
-- ✅ Reduced `generateXmlReport` from 30 lines to 9 lines
-- ✅ All tests still passing (116/116)
-- ✅ Successfully built project with new template engines
-
-**Next Steps**:
-1. Refactor `handleIncrementalCommand` (96 lines) in incremental.ts
-2. Simplify `displayConsoleResults` (71 lines) in analyze.ts
-3. Extract `generateSetupContent` (67 lines) templates
-
----
-
 ## Implementation Order
 
 ### Phase 1: Complete Adapter Integration (1-2 sessions)
@@ -170,7 +126,7 @@ Three critical issues identified during deployment readiness testing:
 **Phase 1: Preparation** (5 minutes)
 - [ ] Create feature branch: `git checkout -b refactor/test-execution-fixes`
 - [ ] Run baseline: `npm test` to confirm current 113/116 passing
-- [ ] Generate test sample: `npx claude-testing test . --only-structural`
+- [ ] Generate test sample: `node dist/cli/index.js test . --only-structural`
 - [ ] Document current Jest config behavior
 
 **Phase 2: Jest Configuration Fix** (15 minutes)
@@ -196,7 +152,7 @@ Three critical issues identified during deployment readiness testing:
 
 **Phase 5: Cleanup & Documentation** (5 minutes)
 - [ ] Run full test suite: `npm test`
-- [ ] Test complete workflow: `npx claude-testing analyze . && npx claude-testing test . --only-structural && npx claude-testing run .`
+- [ ] Test complete workflow: `node dist/cli/index.js analyze . && node dist/cli/index.js test . --only-structural && node dist/cli/index.js run .`
 - [ ] Update CLAUDE.md if Jest config changes affect usage
 - [ ] Commit with message: "fix: resolve test execution core issues"
 

@@ -1,62 +1,75 @@
 # Commands Reference
 
-*Last updated: 2025-06-28 | Phase 5.3 Complete*
+*Last updated: 2025-06-28 | Watch Mode Complete*
 
 ## 🆕 Core CLI Commands (TypeScript Infrastructure)
 ```bash
 # Project Analysis (Primary Interface)
-npx claude-testing analyze <path>                 # Analyze project structure and frameworks
-npx claude-testing analyze <path> --verbose       # Detailed analysis output
-npx claude-testing analyze <path> --format json   # JSON output for integration
-npx claude-testing analyze <path> --format markdown --output report.md # Generate markdown report
+node dist/cli/index.js analyze <path>                 # Analyze project structure and frameworks
+node dist/cli/index.js analyze <path> --verbose       # Detailed analysis output
+node dist/cli/index.js analyze <path> --format json   # JSON output for integration
+node dist/cli/index.js analyze <path> --format markdown --output report.md # Generate markdown report
 
 # Test Generation ✅ IMPLEMENTED
-npx claude-testing test <path>                    # Generate comprehensive tests (structural)
-npx claude-testing test <path> --only-structural  # Generate only structural tests (default)
-npx claude-testing test <path> --only-logical     # Generate only AI-powered tests (coming soon)
-npx claude-testing test <path> --coverage         # Include coverage analysis
-npx claude-testing test <path> --config config.json # Use custom configuration
-npx claude-testing test <path> --update           # Update existing tests (don't skip)
+node dist/cli/index.js test <path>                    # Generate comprehensive tests (structural)
+node dist/cli/index.js test <path> --only-structural  # Generate only structural tests (default)
+node dist/cli/index.js test <path> --only-logical     # Generate only AI-powered tests (coming soon)
+node dist/cli/index.js test <path> --coverage         # Include coverage analysis
+node dist/cli/index.js test <path> --config config.json # Use custom configuration
+node dist/cli/index.js test <path> --update           # Update existing tests (don't skip)
 
 # Test Execution ✅ IMPLEMENTED
-npx claude-testing run <path>                     # Run generated tests
-npx claude-testing run <path> --framework jest    # Specify test framework (jest, pytest)
-npx claude-testing run <path> --coverage          # Generate coverage reports
-npx claude-testing run <path> --watch             # Run in watch mode
-npx claude-testing run <path> --junit             # Generate JUnit XML reports
-npx claude-testing run <path> --threshold "80"    # Set coverage threshold
-npx claude-testing run <path> --threshold "statements:85,branches:80" # Detailed thresholds
-npx claude-testing run <path> --config config.json # Use custom configuration
+node dist/cli/index.js run <path>                     # Run generated tests
+node dist/cli/index.js run <path> --framework jest    # Specify test framework (jest, pytest)
+node dist/cli/index.js run <path> --coverage          # Generate coverage reports
+node dist/cli/index.js run <path> --watch             # Run in watch mode
+node dist/cli/index.js run <path> --junit             # Generate JUnit XML reports
+node dist/cli/index.js run <path> --threshold "80"    # Set coverage threshold
+node dist/cli/index.js run <path> --threshold "statements:85,branches:80" # Detailed thresholds
+node dist/cli/index.js run <path> --config config.json # Use custom configuration
 
 # Test Gap Analysis ✅ IMPLEMENTED (Phase 5.2)
-npx claude-testing analyze-gaps <path>            # Analyze test gaps with enhanced reporting
-npx claude-testing gaps <path>                    # Alias for analyze-gaps
-npx claude-testing analyze-gaps <path> --format markdown --output report.md # Markdown report
-npx claude-testing analyze-gaps <path> --format json --output gaps.json     # JSON schema output
-npx claude-testing analyze-gaps <path> --include-details                    # Detailed gap breakdown
-npx claude-testing analyze-gaps <path> --include-code-snippets              # Include code context
-npx claude-testing analyze-gaps <path> --no-colors                          # Disable terminal colors
-npx claude-testing analyze-gaps <path> --threshold 5                        # Set complexity threshold
+node dist/cli/index.js analyze-gaps <path>            # Analyze test gaps with enhanced reporting
+node dist/cli/index.js gaps <path>                    # Alias for analyze-gaps
+node dist/cli/index.js analyze-gaps <path> --format markdown --output report.md # Markdown report
+node dist/cli/index.js analyze-gaps <path> --format json --output gaps.json     # JSON schema output
+node dist/cli/index.js analyze-gaps <path> --include-details                    # Detailed gap breakdown
+node dist/cli/index.js analyze-gaps <path> --include-code-snippets              # Include code context
+node dist/cli/index.js analyze-gaps <path> --no-colors                          # Disable terminal colors
+node dist/cli/index.js analyze-gaps <path> --threshold 5                        # Set complexity threshold
 
 # AI-Powered Test Generation ✅ IMPLEMENTED (Phase 5.3)
-npx claude-testing generate-logical <path>        # Generate AI tests from gap analysis
-npx claude-testing generate-logical <path> --gap-report gaps.json # Use existing gap report
-npx claude-testing generate-logical <path> --model sonnet         # Choose Claude model
-npx claude-testing generate-logical <path> --budget 5.00          # Set cost limit
-npx claude-testing generate-logical <path> --dry-run              # Preview without generating
-npx claude-testing generate-logical <path> --concurrent 5         # Set concurrent processes
-npx claude-testing generate-logical <path> --output ./reports     # Save reports to directory
+node dist/cli/index.js generate-logical <path>        # Generate AI tests from gap analysis
+node dist/cli/index.js generate-logical <path> --gap-report gaps.json # Use existing gap report
+node dist/cli/index.js generate-logical <path> --model sonnet         # Choose Claude model
+node dist/cli/index.js generate-logical <path> --budget 5.00          # Set cost limit
+node dist/cli/index.js generate-logical <path> --dry-run              # Preview without generating
+node dist/cli/index.js generate-logical <path> --concurrent 5         # Set concurrent processes
+node dist/cli/index.js generate-logical <path> --output ./reports     # Save reports to directory
 
 # Complete AI Workflow ✅ IMPLEMENTED (Phase 5.3)
-npx claude-testing test-ai <path>                 # Complete workflow with AI enhancement
-npx claude-testing test-ai <path> --budget 10.00  # Set AI generation budget
-npx claude-testing test-ai <path> --no-ai         # Structural tests only
-npx claude-testing test-ai <path> --no-run        # Generate but don't execute
-npx claude-testing test-ai <path> --no-coverage   # Skip coverage reporting
-npx claude-testing test-ai <path> --model opus    # Use Claude Opus for complex tests
+node dist/cli/index.js test-ai <path>                 # Complete workflow with AI enhancement
+node dist/cli/index.js test-ai <path> --budget 10.00  # Set AI generation budget
+node dist/cli/index.js test-ai <path> --no-ai         # Structural tests only
+node dist/cli/index.js test-ai <path> --no-run        # Generate but don't execute
+node dist/cli/index.js test-ai <path> --no-coverage   # Skip coverage reporting
+node dist/cli/index.js test-ai <path> --model opus    # Use Claude Opus for complex tests
 
-# Watch Mode (Planned - Phase 6)
-npx claude-testing watch <path>                   # Watch for changes and update tests
+# Incremental Testing ✅ IMPLEMENTED (Phase 6)
+node dist/cli/index.js incremental <path>             # Smart test updates based on Git changes
+node dist/cli/index.js incremental <path> --dry-run   # Preview changes without executing
+node dist/cli/index.js incremental <path> --baseline  # Create baseline for future comparisons
+node dist/cli/index.js incremental <path> --stats     # View statistics and history
+node dist/cli/index.js incremental <path> --cost-limit 5.00 # Set maximum cost for updates
+
+# Watch Mode ✅ IMPLEMENTED (Phase 8.1)
+node dist/cli/index.js watch <path>                   # Watch for changes and update tests automatically
+node dist/cli/index.js watch <path> --debounce 1000   # Custom debounce delay (ms)
+node dist/cli/index.js watch <path> --no-generate     # Monitor only, no test generation
+node dist/cli/index.js watch <path> --auto-run        # Automatically run tests after generation
+node dist/cli/index.js watch <path> --verbose         # Enable detailed logging
+node dist/cli/index.js watch <path> --include "**/*.js" --exclude "**/node_modules/**" # Custom patterns
+node dist/cli/index.js watch <path> --stats-interval 60 # Show statistics every 60 seconds
 ```
 
 ## Legacy Decoupled Approach (JavaScript)

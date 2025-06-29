@@ -60,7 +60,7 @@ export const generateLogicalCommand = new Command()
         // Generate new gap analysis
         spinner.text = 'Analyzing project structure...';
         const projectAnalyzer = new ProjectAnalyzer(absoluteProjectPath);
-        const projectAnalysis = await projectAnalyzer.analyze();
+        const projectAnalysis = await projectAnalyzer.analyzeProject();
         
         spinner.text = 'Generating structural tests...';
         const testConfig: TestGeneratorConfig = {
@@ -71,11 +71,11 @@ export const generateLogicalCommand = new Command()
         };
         
         const structuralGenerator = new StructuralTestGenerator(testConfig, projectAnalysis);
-        const generationResult = await structuralGenerator.generate();
+        const generationResult = await structuralGenerator.generateAllTests();
         
         spinner.text = 'Analyzing test gaps...';
         const analyzer = new TestGapAnalyzer(projectAnalysis);
-        gapReport = await analyzer.analyzeGaps(generationResult);
+        gapReport = await analyzer.analyzeTestGaps(generationResult);
       }
 
       // Check if we have any gaps

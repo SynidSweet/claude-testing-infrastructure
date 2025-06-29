@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-06-28 | Completed Phase 2 implementation | CommonJS template compatibility added*
+*Last updated: 2025-06-29 | Function naming refactoring applied - core API methods renamed for clarity*
 
 ## Overview
 
@@ -14,9 +14,9 @@ Abstract foundation that defines the test generation lifecycle:
 
 ```typescript
 abstract class TestGenerator {
-  async generate(): Promise<TestGenerationResult>
+  async generateAllTests(): Promise<TestGenerationResult>
   protected abstract getFilesToTest(): Promise<string[]>
-  protected abstract generateTestForFile(filePath: string): Promise<GeneratedTest | null>
+  protected abstract generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null>
   protected abstract getTestFileExtension(): string
 }
 ```
@@ -137,7 +137,7 @@ const config = {
 };
 
 const generator = new StructuralTestGenerator(config, analysis);
-const result = await generator.generate();
+const result = await generator.generateAllTests();
 ```
 
 ### Custom Template Registration
@@ -227,10 +227,10 @@ class TestUser_apiApi:
 ### CLI Integration
 ```bash
 # Generate tests using CLI
-npx claude-testing test /path/to/project --only-structural
+node dist/cli/index.js test /path/to/project --only-structural
 
 # Generate with specific options
-npx claude-testing test /path/to/project --framework jest --generate-mocks
+node dist/cli/index.js test /path/to/project --framework jest --generate-mocks
 ```
 
 ### ProjectAnalyzer Integration

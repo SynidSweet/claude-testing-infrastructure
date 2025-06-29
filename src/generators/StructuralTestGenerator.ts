@@ -1,6 +1,4 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import fg from 'fast-glob';
+import { fs, path, fg } from '../utils/common-imports';
 import {
   TestGenerator,
   TestGeneratorConfig,
@@ -9,7 +7,7 @@ import {
   GeneratedFile
 } from './TestGenerator';
 import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/common-imports';
 import { TestTemplateEngine, TemplateContext } from './templates/TestTemplateEngine';
 
 export interface StructuralTestGeneratorOptions {
@@ -104,26 +102,26 @@ export class StructuralTestGenerator extends TestGenerator {
     return filteredFiles;
   }
 
-  protected async generateTestForFile(filePath: string): Promise<GeneratedTest | null> {
+  protected async generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null> {
     logger.debug(`Generating test for: ${filePath}`);
 
     try {
       // Analyze the file to determine test type and content
-      const fileAnalysis = await this.analyzeFile(filePath);
+      const fileAnalysis = await this.analyzeSourceFileForTesting(filePath);
       if (!fileAnalysis) {
         logger.warn(`Could not analyze file: ${filePath}`);
         return null;
       }
 
       // Generate test content based on file type and framework
-      const testContent = await this.generateTestContent(filePath, fileAnalysis);
+      const testContent = await this.generateTestFileContent(filePath, fileAnalysis);
       const testPath = this.getTestFilePath(filePath, fileAnalysis.testType);
 
       // Generate additional files if needed
       const additionalFiles: GeneratedFile[] = [];
       
       if (this.options.generateMocks && fileAnalysis.dependencies.length > 0) {
-        const mockFile = await this.generateMockFile(filePath, fileAnalysis.dependencies);
+        const mockFile = await this.generateMockFileForDependencies(filePath, fileAnalysis.dependencies);
         if (mockFile) {
           additionalFiles.push(mockFile);
         }
@@ -161,11 +159,11 @@ export class StructuralTestGenerator extends TestGenerator {
   protected async postGenerate(results: GeneratedTest[]): Promise<void> {
     // Generate setup files if configured
     if (this.options.generateSetup && results.length > 0) {
-      await this.generateSetupFiles(results);
+      await this.generateTestSetupFiles(results);
     }
   }
 
-  private async analyzeFile(filePath: string): Promise<FileAnalysis | null> {
+  private async analyzeSourceFileForTesting(filePath: string): Promise<FileAnalysis | null> {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const ext = path.extname(filePath);
@@ -196,7 +194,7 @@ export class StructuralTestGenerator extends TestGenerator {
     }
   }
 
-  private async generateTestContent(filePath: string, analysis: FileAnalysis): Promise<string> {
+  private async generateTestFileContent(filePath: string, analysis: FileAnalysis): Promise<string> {
     const templateEngine = new TestTemplateEngine();
     const fileName = path.basename(filePath, path.extname(filePath));
     
@@ -216,13 +214,13 @@ export class StructuralTestGenerator extends TestGenerator {
     return templateEngine.generateTest(context);
   }
 
-  private async generateMockFile(filePath: string, dependencies: string[]): Promise<GeneratedFile | null> {
+  private async generateMockFileForDependencies(filePath: string, dependencies: string[]): Promise<GeneratedFile | null> {
     if (dependencies.length === 0) {
       return null;
     }
 
     const mockPath = this.getMockFilePath(filePath);
-    const mockContent = this.generateMockContent(dependencies);
+    const mockContent = this.generateMockFileContent(dependencies);
 
     return {
       path: mockPath,
@@ -231,8 +229,8 @@ export class StructuralTestGenerator extends TestGenerator {
     };
   }
 
-  private async generateSetupFiles(results: GeneratedTest[]): Promise<void> {
-    const setupContent = this.generateSetupContent(results);
+  private async generateTestSetupFiles(results: GeneratedTest[]): Promise<void> {
+    const setupContent = this.generateTestSetupContent(results);
     const setupPath = path.join(this.config.outputPath, this.getSetupFileName());
     
     try {
@@ -456,7 +454,7 @@ export class StructuralTestGenerator extends TestGenerator {
     return `${this.config.outputPath}/__mocks__/${pathWithoutExt}${ext}`;
   }
 
-  private generateMockContent(dependencies: string[]): string {
+  private generateMockFileContent(dependencies: string[]): string {
     const language = this.getPrimaryLanguage();
     
     if (language === 'python') {
@@ -470,12 +468,18 @@ export class StructuralTestGenerator extends TestGenerator {
     }
   }
 
-  private generateSetupContent(_results: GeneratedTest[]): string {
+  private generateTestSetupContent(_results: GeneratedTest[]): string {
     const language = this.getPrimaryLanguage();
-    const framework = this.getFramework();
     
     if (language === 'python') {
-      return `"""Test setup and configuration"""
+      return this.generatePythonTestSetup();
+    } else {
+      return this.generateJavaScriptTestSetup();
+    }
+  }
+
+  private generatePythonTestSetup(): string {
+    return `"""Test setup and configuration"""
 import pytest
 import sys
 import os
@@ -493,17 +497,50 @@ def setup_test_environment():
 # Global test configuration
 pytest_plugins = []
 `;
-    } else {
-      return `/**
+  }
+
+  private generateJavaScriptTestSetup(): string {
+    const framework = this.getFramework();
+    const hasReact = this.analysis.frameworks.some(f => f.name === 'react');
+    
+    const imports = this.generateJavaScriptSetupImports(framework, hasReact);
+    const globalSetup = this.generateJavaScriptGlobalSetup(framework);
+    const mockConsole = this.generateJavaScriptConsoleMocks();
+    const reactConfig = this.generateReactConfig(hasReact);
+    
+    return `/**
  * Test setup and configuration
  * Generated by Claude Testing Infrastructure
  */
 
-${framework === 'jest' ? "import '@testing-library/jest-dom';" : ''}
-${this.analysis.frameworks.some(f => f.name === 'react') ? "import { configure } from '@testing-library/react';" : ''}
+${imports}
 
 // Global test setup
-${framework === 'jest' ? `
+${globalSetup}
+
+${mockConsole}
+
+${reactConfig}`;
+  }
+
+  private generateJavaScriptSetupImports(framework: string, hasReact: boolean): string {
+    const imports: string[] = [];
+    
+    if (framework === 'jest') {
+      imports.push("import '@testing-library/jest-dom';");
+    }
+    
+    if (hasReact) {
+      imports.push("import { configure } from '@testing-library/react';");
+    }
+    
+    return imports.join('\n');
+  }
+
+  private generateJavaScriptGlobalSetup(framework: string): string {
+    if (framework !== 'jest') return '';
+    
+    return `
 beforeAll(() => {
   // Global setup before all tests
 });
@@ -519,23 +556,26 @@ beforeEach(() => {
 afterEach(() => {
   // Cleanup after each test
 });
-` : ''}
+`;
+  }
 
-// Mock console methods to reduce noise in tests
+  private generateJavaScriptConsoleMocks(): string {
+    return `// Mock console methods to reduce noise in tests
 global.console = {
   ...console,
   warn: jest.fn(),
   error: jest.fn(),
-};
+};`;
+  }
 
-// Configure testing library
-${this.analysis.frameworks.some(f => f.name === 'react') ? `
+  private generateReactConfig(hasReact: boolean): string {
+    if (!hasReact) return '';
+    
+    return `// Configure testing library
 configure({
   testIdAttribute: 'data-testid',
 });
-` : ''}
 `;
-    }
   }
 
   private getSetupFileName(): string {

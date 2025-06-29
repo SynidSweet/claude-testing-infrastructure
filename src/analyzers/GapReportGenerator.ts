@@ -1,6 +1,8 @@
-import path from 'path';
+import { logger } from '../utils/common-imports';
 import { TestGapAnalysisResult, TestGap, GapPriority } from './TestGapAnalyzer';
-import { logger } from '../utils/logger';
+import { MarkdownReportGenerator } from './reporting/MarkdownReportGenerator';
+import { TerminalReportGenerator } from './reporting/TerminalReportGenerator';
+import { ReportVisualizationService } from './reporting/ReportVisualizationService';
 
 export interface ReportOptions {
   /** Include detailed gap breakdown */
@@ -99,13 +101,21 @@ export interface ActionableInsight {
 }
 
 /**
- * Gap Report Generator - Creates enhanced visualizations and detailed reports
+ * Gap Report Generator - Orchestrates focused report generators
  * 
- * This generator transforms the TestGapAnalysisResult into various formatted
- * reports with enhanced visualization and actionable insights.
+ * This orchestrator coordinates specialized report generators to transform
+ * TestGapAnalysisResult into various formatted reports with enhanced visualization.
+ * 
+ * Refactored to use composition pattern with focused classes:
+ * - MarkdownReportGenerator: Handles markdown output
+ * - TerminalReportGenerator: Handles colorized terminal output
+ * - ReportVisualizationService: Handles ASCII art and text formatting
  */
 export class GapReportGenerator {
   private readonly VERSION = '1.0.0';
+  private readonly markdownGenerator: MarkdownReportGenerator;
+  private readonly terminalGenerator: TerminalReportGenerator;
+  private readonly visualizationService: ReportVisualizationService;
   
   constructor(
     private options: ReportOptions = {},
@@ -126,6 +136,11 @@ export class GapReportGenerator {
       colorScheme: 'default',
       ...visualConfig
     };
+
+    // Initialize focused report generators
+    this.markdownGenerator = new MarkdownReportGenerator(this.options);
+    this.terminalGenerator = new TerminalReportGenerator(this.options, this.visualConfig);
+    this.visualizationService = new ReportVisualizationService(this.visualConfig);
   }
 
   /**
@@ -176,35 +191,7 @@ export class GapReportGenerator {
    */
   generateTerminalReport(analysis: TestGapAnalysisResult): string {
     const schema = this.generateReportSchema(analysis);
-    let output = '';
-
-    // Header with title and metadata
-    output += this.renderHeader(schema.metadata);
-    
-    // Executive summary with visual indicators
-    output += this.renderSummarySection(schema.summary);
-    
-    // Cost visualization with breakdown
-    output += this.renderCostSection(schema.cost);
-    
-    // Priority matrix visualization
-    output += this.renderPriorityMatrix(schema.summary.priorityDistribution);
-    
-    // Recommendations categorized by urgency
-    output += this.renderRecommendationsSection(schema.recommendations);
-    
-    // Actionable insights
-    output += this.renderInsightsSection(schema.insights);
-    
-    // Detailed gaps (if enabled and not too many)
-    if (this.options.includeDetails && schema.gaps.length <= (this.options.maxGapsToShow || 20)) {
-      output += this.renderDetailedGaps(schema.gaps);
-    }
-    
-    // Footer with next steps
-    output += this.renderFooter(schema);
-
-    return output;
+    return this.terminalGenerator.generateTerminalReport(schema);
   }
 
   /**
@@ -212,169 +199,7 @@ export class GapReportGenerator {
    */
   generateMarkdownReport(analysis: TestGapAnalysisResult): string {
     const schema = this.generateReportSchema(analysis);
-    
-    let markdown = `# 🔍 Test Gap Analysis Report
-
-**Generated**: ${schema.metadata.generatedAt}  
-**Project**: \`${schema.metadata.projectPath}\`  
-**Version**: ${schema.metadata.version}`;
-
-    if (schema.metadata.duration) {
-      markdown += `  
-**Duration**: ${schema.metadata.duration}ms`;
-    }
-
-    markdown += `
-
-## 📊 Executive Summary
-
-| Metric | Value | Status |
-|--------|-------|---------|
-| Total Files Analyzed | ${schema.summary.totalFiles} | ℹ️ |
-| Files with Structural Tests | ${schema.summary.filesWithTests} | ✅ |
-| Files Needing Logical Tests | ${schema.summary.filesNeedingLogicalTests} | ${schema.summary.filesNeedingLogicalTests > 0 ? '⚠️' : '✅'} |
-| Total Gaps Identified | ${schema.summary.totalGaps} | ${this.getGapStatusIcon(schema.summary.totalGaps)} |
-| **Overall Assessment** | **${schema.summary.overallAssessment.toUpperCase()}** | ${this.getAssessmentIcon(schema.summary.overallAssessment)} |
-
-## 💰 Cost Analysis
-
-### AI Generation Requirements
-- **🎯 AI Tasks**: ${schema.cost.numberOfTasks}
-- **🪙 Estimated Tokens**: ${schema.cost.estimatedTokens.toLocaleString()}
-- **💵 Estimated Cost**: $${schema.cost.estimatedCostUSD}
-
-### Complexity Distribution
-`;
-
-    Object.entries(schema.cost.complexityDistribution).forEach(([complexity, count]) => {
-      markdown += `- **${complexity.charAt(0).toUpperCase() + complexity.slice(1)} Complexity**: ${count} tasks\n`;
-    });
-
-    // Priority breakdown with visual indicators
-    markdown += `\n## 🎯 Priority Matrix
-
-`;
-    Object.entries(schema.summary.priorityDistribution).forEach(([priority, count]) => {
-      const icon = this.getPriorityIcon(priority as GapPriority);
-      markdown += `- ${icon} **${priority.toUpperCase()}**: ${count} files\n`;
-    });
-
-    // Categorized recommendations
-    markdown += `\n## 💡 Recommendations
-
-### 🚨 Immediate Actions (Critical Priority)
-`;
-    schema.recommendations.immediate.forEach((rec, i) => {
-      markdown += `${i + 1}. ${rec}\n`;
-    });
-
-    if (schema.recommendations.shortTerm.length > 0) {
-      markdown += `\n### ⏱️ Short-term Improvements
-`;
-      schema.recommendations.shortTerm.forEach((rec, i) => {
-        markdown += `${i + 1}. ${rec}\n`;
-      });
-    }
-
-    if (schema.recommendations.longTerm.length > 0) {
-      markdown += `\n### 📅 Long-term Enhancements
-`;
-      schema.recommendations.longTerm.forEach((rec, i) => {
-        markdown += `${i + 1}. ${rec}\n`;
-      });
-    }
-
-    // Actionable insights
-    if (schema.insights.length > 0) {
-      markdown += `\n## 🧠 Actionable Insights
-
-`;
-      schema.insights.forEach((insight, i) => {
-        const impactIcon = insight.impact === 'high' ? '🔥' : insight.impact === 'medium' ? '⚡' : '💡';
-        const effortIcon = insight.effort === 'low' ? '🟢' : insight.effort === 'medium' ? '🟡' : '🔴';
-        
-        markdown += `### ${i + 1}. ${insight.title} ${impactIcon}
-
-**Impact**: ${insight.impact.toUpperCase()} | **Effort**: ${insight.effort.toUpperCase()} ${effortIcon}
-
-${insight.description}
-
-**Actions**:
-`;
-        insight.actions.forEach(action => {
-          markdown += `- ${action}\n`;
-        });
-        markdown += '\n';
-      });
-    }
-
-    // Detailed gaps (if requested and reasonable size)
-    if (this.options.includeDetails && schema.gaps.length <= (this.options.maxGapsToShow || 20)) {
-      markdown += `\n## 📋 Detailed Gap Analysis
-
-`;
-      schema.gaps.forEach((gap, i) => {
-        const priorityIcon = this.getPriorityIcon(gap.priority);
-        markdown += `### ${i + 1}. ${path.basename(gap.sourceFile)} ${priorityIcon}
-
-| Property | Value |
-|----------|-------|
-| **Priority** | ${gap.priority.toUpperCase()} |
-| **Complexity** | ${gap.complexity}/10 |
-| **Gap Count** | ${gap.gapCount} |
-| **Framework** | ${gap.framework} |
-| **Language** | ${gap.language} |
-| **Test File** | \`${path.basename(gap.testFile)}\` |
-
-`;
-        if (gap.gaps.length > 0) {
-          markdown += `**Identified Issues**:
-`;
-          gap.gaps.forEach(g => {
-            const typeIcon = this.getGapTypeIcon(g.type);
-            markdown += `- ${typeIcon} ${g.description} _(${g.type}, ${g.estimatedEffort} effort)_\n`;
-          });
-          markdown += '\n';
-        }
-
-        if (this.options.includeCodeSnippets && gap.context?.codeSnippets) {
-          markdown += `**Code Complexity Indicators**:
-`;
-          gap.context.codeSnippets.forEach(snippet => {
-            markdown += `- **${snippet.name}**: `;
-            const indicators = [];
-            if (snippet.complexity.hasAsync) indicators.push('async');
-            if (snippet.complexity.hasConditionals) indicators.push('conditionals');
-            if (snippet.complexity.hasLoops) indicators.push('loops');
-            if (snippet.complexity.hasErrorHandling) indicators.push('error-handling');
-            markdown += indicators.join(', ') || 'simple logic';
-            markdown += '\n';
-          });
-          markdown += '\n';
-        }
-      });
-    } else if (schema.gaps.length > (this.options.maxGapsToShow || 20)) {
-      markdown += `\n## 📋 Gap Summary
-
-Found ${schema.gaps.length} files with test gaps. Use \`--output detailed-report.md\` to see full analysis.
-
-**Top Priority Files**:
-`;
-      const topPriorityGaps = schema.gaps
-        .filter(gap => gap.priority === GapPriority.CRITICAL || gap.priority === GapPriority.HIGH)
-        .slice(0, 10);
-        
-      topPriorityGaps.forEach((gap, i) => {
-        const priorityIcon = this.getPriorityIcon(gap.priority);
-        markdown += `${i + 1}. ${priorityIcon} \`${path.basename(gap.sourceFile)}\` (${gap.gapCount} gaps, complexity ${gap.complexity}/10)\n`;
-      });
-    }
-
-    markdown += `\n---
-
-*Report generated by Claude Testing Infrastructure v${schema.metadata.version}*`;
-
-    return markdown;
+    return this.markdownGenerator.generateMarkdownReport(schema);
   }
 
   /**
@@ -397,261 +222,9 @@ Found ${schema.gaps.length} files with test gaps. Use \`--output detailed-report
    */
   generateTextReport(analysis: TestGapAnalysisResult): string {
     const schema = this.generateReportSchema(analysis);
-    
-    let report = `
-████████╗███████╗███████╗████████╗     ██████╗  █████╗ ██████╗ 
-╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝    ██╔════╝ ██╔══██╗██╔══██╗
-   ██║   █████╗  ███████╗   ██║       ██║  ███╗███████║██████╔╝
-   ██║   ██╔══╝  ╚════██║   ██║       ██║   ██║██╔══██║██╔═══╝ 
-   ██║   ███████╗███████║   ██║       ╚██████╔╝██║  ██║██║     
-   ╚═╝   ╚══════╝╚══════╝   ╚═╝        ╚═════╝ ╚═╝  ╚═╝╚═╝     
-                                                               
-                 A N A L Y S I S   R E P O R T                
-${'═'.repeat(this.visualConfig.terminalWidth || 80)}
-
-Generated: ${schema.metadata.generatedAt}
-Project: ${schema.metadata.projectPath}
-Version: ${schema.metadata.version}`;
-
-    if (schema.metadata.duration) {
-      report += `
-Duration: ${schema.metadata.duration}ms`;
-    }
-
-    report += `
-
-EXECUTIVE SUMMARY
-${'─'.repeat(50)}
-Total Files Analyzed           : ${schema.summary.totalFiles}
-Files with Structural Tests    : ${schema.summary.filesWithTests}
-Files Needing Logical Tests    : ${schema.summary.filesNeedingLogicalTests}
-Total Gaps Identified         : ${schema.summary.totalGaps}
-Overall Assessment            : ${schema.summary.overallAssessment.toUpperCase()}
-
-COST ANALYSIS
-${'─'.repeat(50)}
-AI Tasks Required             : ${schema.cost.numberOfTasks}
-Estimated Tokens              : ${schema.cost.estimatedTokens.toLocaleString()}
-Estimated Cost (USD)          : $${schema.cost.estimatedCostUSD}
-
-PRIORITY BREAKDOWN
-${'─'.repeat(50)}`;
-
-    Object.entries(schema.summary.priorityDistribution).forEach(([priority, count]) => {
-      const paddedPriority = (priority.charAt(0).toUpperCase() + priority.slice(1)).padEnd(20);
-      report += `
-${paddedPriority} : ${count} files`;
-    });
-
-    report += `
-
-IMMEDIATE ACTIONS
-${'─'.repeat(50)}`;
-    schema.recommendations.immediate.forEach((rec, i) => {
-      report += `
-${(i + 1).toString().padStart(2)}. ${rec}`;
-    });
-
-    if (schema.recommendations.shortTerm.length > 0) {
-      report += `
-
-SHORT-TERM IMPROVEMENTS
-${'─'.repeat(50)}`;
-      schema.recommendations.shortTerm.forEach((rec, i) => {
-        report += `
-${(i + 1).toString().padStart(2)}. ${rec}`;
-      });
-    }
-
-    // Include top insights
-    if (schema.insights.length > 0) {
-      report += `
-
-KEY INSIGHTS
-${'─'.repeat(50)}`;
-      schema.insights.slice(0, 3).forEach((insight, i) => {
-        report += `
-${(i + 1).toString().padStart(2)}. ${insight.title}
-    Impact: ${insight.impact.toUpperCase()} | Effort: ${insight.effort.toUpperCase()}
-    ${insight.description}`;
-      });
-    }
-
-    report += `
-
-${'═'.repeat(this.visualConfig.terminalWidth || 80)}
-Report generated by Claude Testing Infrastructure v${schema.metadata.version}
-`;
-
-    return report;
+    return this.visualizationService.generateTextReport(schema);
   }
 
-  // Private helper methods for visualization and formatting
-
-  private renderHeader(metadata: GapReportSchema['metadata']): string {
-    const title = '🔍 Test Gap Analysis Report';
-    const separator = '━'.repeat(this.visualConfig.terminalWidth || 80);
-    
-    return `
-${this.colorize(title, 'bold')}
-${separator}
-📅 Generated: ${metadata.generatedAt}
-📁 Project: ${metadata.projectPath}
-🏷️  Version: ${metadata.version}${metadata.duration ? `
-⏱️  Duration: ${metadata.duration}ms` : ''}
-
-`;
-  }
-
-  private renderSummarySection(summary: GapReportSchema['summary']): string {
-    let output = `${this.colorize('📊 Executive Summary', 'bold')}
-${'─'.repeat(30)}
-`;
-
-    const metrics = [
-      { label: 'Total Files', value: summary.totalFiles, icon: '📁' },
-      { label: 'Files with Tests', value: summary.filesWithTests, icon: '✅' },
-      { label: 'Need Logical Tests', value: summary.filesNeedingLogicalTests, icon: summary.filesNeedingLogicalTests > 0 ? '⚠️' : '✅' },
-      { label: 'Total Gaps', value: summary.totalGaps, icon: this.getGapStatusIcon(summary.totalGaps) }
-    ];
-
-    metrics.forEach(metric => {
-      output += `${metric.icon} ${metric.label.padEnd(18)}: ${metric.value}\n`;
-    });
-
-    const assessmentColor = summary.overallAssessment === 'excellent' ? 'green' : 
-                          summary.overallAssessment === 'good' ? 'yellow' :
-                          summary.overallAssessment === 'needs-improvement' ? 'orange' : 'red';
-    
-    output += `📈 ${this.colorize(`Overall Assessment: ${summary.overallAssessment.toUpperCase()}`, assessmentColor)}\n\n`;
-
-    return output;
-  }
-
-  private renderCostSection(cost: GapReportSchema['cost']): string {
-    return `${this.colorize('💰 Cost Analysis', 'bold')}
-${'─'.repeat(20)}
-🎯 AI Tasks: ${cost.numberOfTasks}
-🪙 Est. Tokens: ${cost.estimatedTokens.toLocaleString()}
-💵 Est. Cost: ${this.colorize(`$${cost.estimatedCostUSD}`, 'green')}
-
-`;
-  }
-
-  private renderPriorityMatrix(priorities: Record<GapPriority, number>): string {
-    let output = `${this.colorize('🎯 Priority Matrix', 'bold')}
-${'─'.repeat(20)}
-`;
-
-    Object.entries(priorities).forEach(([priority, count]) => {
-      const icon = this.getPriorityIcon(priority as GapPriority);
-      const color = this.getPriorityColor(priority as GapPriority);
-      output += `${icon} ${this.colorize(priority.toUpperCase().padEnd(10), color)}: ${count} files\n`;
-    });
-
-    return output + '\n';
-  }
-
-  private renderRecommendationsSection(recommendations: GapReportSchema['recommendations']): string {
-    let output = `${this.colorize('💡 Recommendations', 'bold')}
-${'─'.repeat(22)}
-`;
-
-    if (recommendations.immediate.length > 0) {
-      output += `${this.colorize('🚨 IMMEDIATE:', 'red')}\n`;
-      recommendations.immediate.forEach((rec, i) => {
-        output += `  ${i + 1}. ${rec}\n`;
-      });
-      output += '\n';
-    }
-
-    if (recommendations.shortTerm.length > 0) {
-      output += `${this.colorize('⏱️  SHORT-TERM:', 'yellow')}\n`;
-      recommendations.shortTerm.forEach((rec, i) => {
-        output += `  ${i + 1}. ${rec}\n`;
-      });
-      output += '\n';
-    }
-
-    return output;
-  }
-
-  private renderInsightsSection(insights: ActionableInsight[]): string {
-    if (insights.length === 0) return '';
-
-    let output = `${this.colorize('🧠 Key Insights', 'bold')}
-${'─'.repeat(16)}
-`;
-
-    insights.slice(0, 3).forEach((insight, i) => {
-      const impactIcon = insight.impact === 'high' ? '🔥' : insight.impact === 'medium' ? '⚡' : '💡';
-      const effortColor = insight.effort === 'low' ? 'green' : insight.effort === 'medium' ? 'yellow' : 'red';
-      
-      output += `${i + 1}. ${impactIcon} ${this.colorize(insight.title, 'bold')}\n`;
-      output += `   Impact: ${insight.impact.toUpperCase()} | Effort: ${this.colorize(insight.effort.toUpperCase(), effortColor)}\n`;
-      output += `   ${insight.description}\n\n`;
-    });
-
-    return output;
-  }
-
-  private renderDetailedGaps(gaps: DetailedGap[]): string {
-    let output = `${this.colorize('📋 Detailed Gap Analysis', 'bold')}
-${'─'.repeat(30)}
-`;
-
-    gaps.slice(0, this.options.maxGapsToShow || 20).forEach((gap, i) => {
-      const priorityIcon = this.getPriorityIcon(gap.priority);
-      const priorityColor = this.getPriorityColor(gap.priority);
-      
-      output += `${i + 1}. ${priorityIcon} ${this.colorize(path.basename(gap.sourceFile), 'bold')}\n`;
-      output += `   Priority: ${this.colorize(gap.priority.toUpperCase(), priorityColor)} | `;
-      output += `Complexity: ${gap.complexity}/10 | Gaps: ${gap.gapCount}\n`;
-      output += `   Framework: ${gap.framework} | Language: ${gap.language}\n`;
-      
-      if (gap.gaps.length > 0) {
-        gap.gaps.slice(0, 3).forEach(g => {
-          const typeIcon = this.getGapTypeIcon(g.type);
-          output += `   ${typeIcon} ${g.description}\n`;
-        });
-        if (gap.gaps.length > 3) {
-          output += `   ... and ${gap.gaps.length - 3} more gaps\n`;
-        }
-      }
-      output += '\n';
-    });
-
-    return output;
-  }
-
-  private renderFooter(schema: GapReportSchema): string {
-    let nextSteps = '';
-    
-    if (schema.summary.totalGaps > 0) {
-      nextSteps = `
-${this.colorize('🚀 Next Steps', 'bold')}
-${'─'.repeat(15)}
-1. Run: ${this.colorize('npx claude-testing test --only-logical', 'cyan')}
-2. Review generated logical tests
-3. Integrate with your CI/CD pipeline
-4. Monitor coverage improvements
-
-`;
-    } else {
-      nextSteps = `
-${this.colorize('🎉 Excellent Test Coverage!', 'green')}
-${'─'.repeat(35)}
-Your structural tests appear comprehensive.
-Consider running periodic gap analysis as your code evolves.
-
-`;
-    }
-
-    return nextSteps + `${'━'.repeat(this.visualConfig.terminalWidth || 80)}
-Report generated by Claude Testing Infrastructure v${schema.metadata.version}
-
-`;
-  }
 
   private categorizeRecommendations(recommendations: string[]): GapReportSchema['recommendations'] {
     const immediate: string[] = [];
@@ -779,70 +352,4 @@ Report generated by Claude Testing Infrastructure v${schema.metadata.version}
     return insights.slice(0, 5); // Limit to top 5 insights
   }
 
-  // Utility methods for styling and icons
-
-  private colorize(text: string, color: string): string {
-    if (!this.options.useColors) return text;
-    
-    const colors: Record<string, string> = {
-      red: '\x1b[31m',
-      green: '\x1b[32m',
-      yellow: '\x1b[33m',
-      blue: '\x1b[34m',
-      magenta: '\x1b[35m',
-      cyan: '\x1b[36m',
-      bold: '\x1b[1m',
-      reset: '\x1b[0m'
-    };
-    
-    return `${colors[color] || ''}${text}${colors.reset}`;
-  }
-
-  private getPriorityIcon(priority: GapPriority): string {
-    const icons = {
-      [GapPriority.CRITICAL]: '🔴',
-      [GapPriority.HIGH]: '🟠', 
-      [GapPriority.MEDIUM]: '🟡',
-      [GapPriority.LOW]: '🟢'
-    };
-    return icons[priority] || '⚪';
-  }
-
-  private getPriorityColor(priority: GapPriority): string {
-    const colors = {
-      [GapPriority.CRITICAL]: 'red',
-      [GapPriority.HIGH]: 'magenta',
-      [GapPriority.MEDIUM]: 'yellow', 
-      [GapPriority.LOW]: 'green'
-    };
-    return colors[priority] || 'reset';
-  }
-
-  private getGapStatusIcon(gapCount: number): string {
-    if (gapCount === 0) return '✅';
-    if (gapCount <= 5) return '⚠️';
-    if (gapCount <= 20) return '❌';
-    return '🚨';
-  }
-
-  private getAssessmentIcon(assessment: string): string {
-    const icons: Record<string, string> = {
-      'excellent': '🏆',
-      'good': '👍',
-      'needs-improvement': '⚠️',
-      'poor': '❌'
-    };
-    return icons[assessment] || '❓';
-  }
-
-  private getGapTypeIcon(type: string): string {
-    const icons: Record<string, string> = {
-      'business-logic': '🧠',
-      'edge-case': '⚡',
-      'integration': '🔗',
-      'error-handling': '🛡️',
-      'performance': '🚀'
-    };
-    return icons[type] || '📝';
-  }
 }

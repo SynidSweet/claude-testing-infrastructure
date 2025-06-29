@@ -1,29 +1,43 @@
 # Core Features & User Journeys
 
+*Last updated: 2025-06-28 | Watch Mode Added*
+
 ## Primary User Flows
-1. **Template Installation Flow**: Clone template → Run `npm run init` → Answer prompts → Get configured testing setup
-2. **Decoupled Testing Flow**: Clone testing suite → Run discovery → Generate configuration → Execute tests independently
-3. **Agent-Guided Setup**: Follow AGENT_README.md → Execute verification commands → Begin test-driven development
+1. **Project Analysis**: `analyze` → Detect languages, frameworks, and generate recommendations
+2. **Test Generation**: `test` → Create comprehensive structural tests with optional AI-powered logical tests  
+3. **Test Execution**: `run` → Execute tests with coverage reporting and gap analysis
+4. **Incremental Updates**: `incremental` → Smart test updates based on Git changes with cost optimization
+5. **Watch Mode**: `watch` → Real-time file monitoring with automatic incremental test generation
+6. **AI Enhancement**: `analyze-gaps` → `generate-logical` → Complete AI-powered logical test generation
 
 ## Feature Modules
-- **Project Detection** (ai-testing-template/scripts/utils/fileSystem.js): Automatically detects JavaScript/TypeScript/Python projects and their frameworks
-- **Template Management** (ai-testing-template/scripts/utils/templateManager.js): Copies and customizes test templates based on project type
-- **Configuration Generation**: Creates Jest, pytest, Playwright configs with appropriate settings for detected project type
-- **TestGenerator System** (src/generators/): Core test generation engine with framework-specific templates
-  - **TestGenerator** (src/generators/TestGenerator.ts): Abstract base class with lifecycle management
-  - **StructuralTestGenerator** (src/generators/StructuralTestGenerator.ts): Intelligent test scaffolding and file analysis
-  - **TestTemplateEngine** (src/generators/templates/TestTemplateEngine.ts): Framework-specific template system
-- **Decoupled Discovery** (decoupled-testing-suite/core/discovery/): Analyzes project components and generates test plans without modifying source
-- **Framework Adapters** (decoupled-testing-suite/config/adapters/): Project-specific testing strategies for React, Vue, Node.js, Python frameworks
-- **Decoupled Scripts** (decoupled-testing-suite/scripts/): Complete suite of automation scripts:
-  - `discover-project.js`: Analyzes project structure with framework detection
-  - `init-project.js`: Creates testing configuration without modifying target
-  - `run-tests.js`: Executes tests with multiple framework support
-  - `analyze-project.js`: Deep analysis with coverage gaps and recommendations
-  - `validate-setup.js`: Validates configuration and dependencies
-  - `check-compatibility.js`: Ensures version and dependency compatibility
-  - `safe-update.js`: Updates suite while preserving user configurations
-  - `migrate-config.js`: Handles configuration migrations between versions
+
+### Core Analysis & Generation
+- **ProjectAnalyzer** (`src/analyzers/ProjectAnalyzer.ts`): Language/framework detection with 8+ framework support
+- **TestGenerator** (`src/generators/TestGenerator.ts`): Abstract base class for test generation with lifecycle management  
+- **StructuralTestGenerator** (`src/generators/StructuralTestGenerator.ts`): Intelligent structural test scaffolding and analysis
+- **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Framework-specific template system
+
+### Test Execution & Coverage
+- **TestRunner** (`src/runners/TestRunner.ts`): Production-ready Jest/pytest execution with timeout handling
+- **CoverageReporter** (`src/runners/CoverageReporter.ts`): Advanced multi-format coverage analysis and gap visualization
+- **CoverageVisualizer** (`src/runners/CoverageVisualizer.ts`): HTML, JSON, and Markdown report generation
+
+### AI Integration
+- **TestGapAnalyzer** (`src/analyzers/TestGapAnalyzer.ts`): AI-powered gap analysis with cost estimation
+- **GapReportGenerator** (`src/analyzers/GapReportGenerator.ts`): Enhanced gap visualization and actionable insights
+- **ClaudeOrchestrator** (`src/ai/ClaudeOrchestrator.ts`): Parallel Claude process management for AI test generation
+- **AITaskPreparation** (`src/ai/AITaskPreparation.ts`): Task preparation and batch optimization for AI generation
+
+### State Management & Incremental Updates  
+- **IncrementalGenerator** (`src/state/IncrementalGenerator.ts`): Git-based change detection with smart test updates
+- **ManifestManager** (`src/state/ManifestManager.ts`): Test manifest and baseline management
+- **ChangeDetector** (`src/state/ChangeDetector.ts`): File change analysis and impact scoring
+
+### Watch Mode & Real-time Features
+- **Watch Command** (`src/cli/commands/watch.ts`): Real-time file monitoring with debounced incremental test generation
+- **FileWatcher** (`src/utils/FileWatcher.ts`): Cross-platform file system monitoring with intelligent filtering  
+- **Debouncer** (`src/utils/Debouncer.ts`): Smart event batching utility for reducing excessive processing
 
 ## Data Models & Entities
 - **ProjectAnalysis**: Framework detection results, project type classification, existing test structure analysis

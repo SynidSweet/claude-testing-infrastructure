@@ -1,6 +1,6 @@
 # TestGapAnalyzer System
 
-*Last updated: 2025-06-28 | Phase 5.1 Complete*
+*Last updated: 2025-06-29 | Orchestrator pattern refactoring completed - decomposed into 4 focused service classes*
 
 ## Overview
 
@@ -17,27 +17,73 @@ The TestGapAnalyzer bridges the gap between structural test generation (Phase 3)
 
 ## Architecture
 
-### Core Components
+### Orchestrator Pattern Implementation
+
+The TestGapAnalyzer has been refactored from a monolithic 902-line class into a focused orchestrator pattern with 4 specialized service classes:
 
 ```
-TestGapAnalyzer
-├── Complexity Calculation      → File-level complexity scoring (1-10 scale)
-├── Coverage Analysis          → Structural vs logical test coverage comparison
-├── Gap Identification        → Business logic, edge case, and integration gaps
-├── Priority Calculation      → Weighted scoring for AI generation priority
-├── Context Extraction        → Code snippets and metadata for AI prompts
-└── Cost Estimation          → Token prediction and USD cost calculation
+TestGapAnalyzer (Orchestrator - 438 lines)
+├── ComplexityCalculator (61 lines)    → Code complexity metrics calculation
+├── CoverageAnalyzer (235 lines)       → Structural test coverage analysis
+├── GapIdentifier (56 lines)          → Business logic gap identification
+└── ContextExtractor (168 lines)      → AI context and snippet preparation
 ```
+
+### Core Responsibilities
+
+**TestGapAnalyzer (Orchestrator)**:
+- Coordinates analysis workflow
+- Manages configuration and priority calculation
+- Maintains public API compatibility
+- Generates summary statistics and cost estimation
+
+**ComplexityCalculator**:
+- File-level complexity scoring (1-10 scale)
+- Cyclomatic complexity indicators
+- Nesting depth analysis
+- Dependencies and exports counting
+
+**CoverageAnalyzer**:
+- Structural vs logical test coverage comparison
+- Function, class, and export coverage detection
+- Business logic, edge case, and integration gap identification
+- Coverage percentage estimation
+
+**GapIdentifier**:
+- Business logic gap detection
+- Edge case gap identification
+- Integration gap discovery
+- Priority classification per gap type
+
+**ContextExtractor**:
+- Code snippets and metadata extraction for AI prompts
+- Framework and language detection
+- Related files discovery
+- Dependency extraction
 
 ### Analysis Flow
 
 ```
-Generated Tests → File Analysis → Complexity Scoring → Coverage Analysis
-                                        ↓
-Gap Identification → Priority Calculation → Context Extraction → Cost Estimation
-                                        ↓
-                            Gap Analysis Report
+Generated Tests → TestGapAnalyzer (Orchestrator)
+                        ↓
+        ┌─ ComplexityCalculator → Complexity Metrics
+        ├─ CoverageAnalyzer    → Coverage Analysis + Gap Types
+        ├─ GapIdentifier      → Classified Gaps
+        └─ ContextExtractor   → AI Context
+                        ↓
+            Priority Calculation + Cost Estimation
+                        ↓
+                Gap Analysis Report
 ```
+
+### Refactoring Benefits
+
+- **51% Line Reduction**: Main class reduced from 902 → 438 lines
+- **AI Comprehension**: All classes fit within single context window (<240 lines)
+- **Single Responsibility**: Each class handles one specific concern
+- **Maintainability**: Clear separation enables independent modification
+- **Testability**: Focused classes easier to test and mock
+- **API Compatibility**: 100% backward compatibility maintained
 
 ## Key Features
 
@@ -116,16 +162,16 @@ Gap Identification → Priority Calculation → Context Extraction → Cost Esti
 ### Command Usage
 ```bash
 # Basic gap analysis
-npx claude-testing analyze-gaps /path/to/project
+node dist/cli/index.js analyze-gaps /path/to/project
 
 # Custom threshold and output
-npx claude-testing analyze-gaps /path/to/project \
+node dist/cli/index.js analyze-gaps /path/to/project \
   --threshold 5 \
   --output gap-report.json \
   --format json
 
 # Markdown report generation
-npx claude-testing analyze-gaps /path/to/project \
+node dist/cli/index.js analyze-gaps /path/to/project \
   --format markdown \
   --output gap-analysis.md \
   --verbose

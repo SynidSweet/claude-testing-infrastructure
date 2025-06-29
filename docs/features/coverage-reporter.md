@@ -102,10 +102,10 @@ Orchestration → CoverageReporter → Final Results
 Available through enhanced test execution commands:
 ```bash
 # Run tests with coverage reporting
-npx claude-testing run /path/to/project --coverage
+node dist/cli/index.js run /path/to/project --coverage
 
 # Generate coverage reports only
-npx claude-testing analyze-coverage /path/to/project
+node dist/cli/index.js analyze-coverage /path/to/project
 ```
 
 ## Data Models

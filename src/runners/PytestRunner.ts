@@ -159,7 +159,7 @@ export class PytestRunner extends TestRunner {
     // Try enhanced coverage processing first
     if (this.coverageReporter && this.config.coverage?.enabled) {
       try {
-        const coverageReport = await this.coverageReporter.processSingle(stdout);
+        const coverageReport = await this.coverageReporter.processSingleCoverageSource(stdout);
         const result = this.parseTextOutput(stdout, stderr, exitCode);
         
         // Enhance result with advanced coverage data

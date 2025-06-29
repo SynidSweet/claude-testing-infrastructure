@@ -1,6 +1,8 @@
 # Claude Testing Infrastructure v2.0 - AI Agent Guide
 
-**🤖 AI AGENTS: This is your ONLY entry point. Read this file completely before starting any work.**
+⚠️ **NOTICE**: This file has been superseded by `AI_AGENT_GUIDE.md` as the primary, stable entry point. This file is preserved for compatibility but may be modified during AI sessions.
+
+**🤖 AI AGENTS: Use `AI_AGENT_GUIDE.md` as your primary entry point for stable guidance.**
 
 ## 🚨 Major Update: Single Decoupled Approach
 
@@ -54,10 +56,10 @@ node dist/cli/index.js --help
 ### Step 3: Analyze your target project
 ```bash
 # Basic analysis
-npx claude-testing analyze /path/to/your/project
+node dist/cli/index.js analyze /path/to/your/project
 
 # With output file
-npx claude-testing analyze /path/to/your/project --output analysis.json
+node dist/cli/index.js analyze /path/to/your/project --output analysis.json
 ```
 
 ### Step 4: Generate tests

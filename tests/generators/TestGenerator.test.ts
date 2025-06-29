@@ -11,7 +11,7 @@ class MockTestGenerator extends TestGenerator {
     return ['/mock/file1.js', '/mock/file2.ts'];
   }
 
-  protected async generateTestForFile(filePath: string): Promise<GeneratedTest | null> {
+  protected async generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null> {
     return {
       sourcePath: filePath,
       testPath: this.getTestFilePath(filePath),
@@ -98,7 +98,7 @@ describe('TestGenerator', () => {
   describe('generate', () => {
     it('should generate tests successfully', async () => {
       const generator = new MockTestGenerator(config, mockAnalysis);
-      const result = await generator.generate();
+      const result = await generator.generateAllTests();
 
       expect(result.success).toBe(true);
       expect(result.tests).toHaveLength(2);
@@ -110,13 +110,13 @@ describe('TestGenerator', () => {
 
     it('should handle errors gracefully', async () => {
       class ErrorTestGenerator extends MockTestGenerator {
-        protected async generateTestForFile(_filePath: string): Promise<GeneratedTest | null> {
+        protected async generateStructuralTestForFile(_filePath: string): Promise<GeneratedTest | null> {
           throw new Error('Mock generation error');
         }
       }
 
       const generator = new ErrorTestGenerator(config, mockAnalysis);
-      const result = await generator.generate();
+      const result = await generator.generateAllTests();
 
       expect(result.success).toBe(false);
       expect(result.tests).toHaveLength(0);

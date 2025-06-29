@@ -93,16 +93,16 @@ export interface ProjectAnalysis {
 ### Available Commands
 ```bash
 # Basic project analysis
-npx claude-testing analyze /path/to/project
+node dist/cli/index.js analyze /path/to/project
 
 # Detailed analysis with verbose output
-npx claude-testing analyze /path/to/project --verbose
+node dist/cli/index.js analyze /path/to/project --verbose
 
 # JSON output for integration
-npx claude-testing analyze /path/to/project --format json --output analysis.json
+node dist/cli/index.js analyze /path/to/project --format json --output analysis.json
 
 # Markdown report generation  
-npx claude-testing analyze /path/to/project --format markdown --output report.md
+node dist/cli/index.js analyze /path/to/project --format markdown --output report.md
 ```
 
 ### Output Formats

@@ -1,10 +1,136 @@
 # Development Patterns
 
-*Last updated: 2025-06-28 | Created by: /document command*
+*Last updated: 2025-06-29 | Updated by: /document command | Orchestrator pattern documentation added*
 
 ## Overview
 
 This document describes key development patterns used throughout the Claude Testing Infrastructure codebase. These patterns help maintain consistency, reduce complexity, and improve maintainability.
+
+## Orchestrator Pattern
+
+### Overview
+The Orchestrator pattern decomposes monolithic classes into focused, single-responsibility services coordinated by a lightweight orchestrator. This pattern is essential for maintaining AI comprehension when classes grow beyond 300-500 lines.
+
+### Implementation in TestGapAnalyzer
+
+#### Problem Solved
+The original TestGapAnalyzer was a 902-line "god class" with multiple responsibilities:
+- Code complexity calculation
+- Structural coverage analysis
+- Gap identification logic
+- AI context extraction
+- Priority calculation
+- Cost estimation
+
+This violated single responsibility principle and exceeded AI context window limits.
+
+#### Solution Architecture
+```typescript
+// Before: Monolithic class (902 lines)
+export class TestGapAnalyzer {
+  // All responsibilities mixed together
+  calculateComplexity() { /* 45 lines */ }
+  analyzeCoverage() { /* 85 lines */ }
+  identifyGaps() { /* 67 lines */ }
+  extractContext() { /* 153 lines */ }
+  // ... many more mixed responsibilities
+}
+
+// After: Orchestrator pattern (438 + 4 focused classes)
+export class TestGapAnalyzer {
+  constructor(
+    private complexityCalculator: ComplexityCalculator,    // 61 lines
+    private coverageAnalyzer: CoverageAnalyzer,           // 235 lines  
+    private gapIdentifier: GapIdentifier,                 // 56 lines
+    private contextExtractor: ContextExtractor            // 168 lines
+  ) {}
+  
+  async analyzeTestFileForGaps(test: GeneratedTest): Promise<TestGap | null> {
+    // Orchestrate focused services
+    const complexity = await this.complexityCalculator.calculateCodeComplexityMetrics(...);
+    const coverage = await this.coverageAnalyzer.analyzeStructuralTestCoverage(...);
+    const gaps = await this.gapIdentifier.identifyLogicalTestingGaps(...);
+    const context = await this.contextExtractor.extractAITestContext(...);
+    
+    // Orchestrator-specific logic (priority calculation, etc.)
+    return { complexity, coverage, gaps, context, priority };
+  }
+}
+```
+
+#### Benefits Achieved
+- **51% Line Reduction**: Main class reduced from 902 → 438 lines
+- **AI Comprehension**: All classes fit within single context window (<240 lines)
+- **Single Responsibility**: Each service handles one specific concern
+- **Maintainability**: Clear separation enables independent modification
+- **Testability**: Focused classes easier to test and mock
+- **API Compatibility**: 100% backward compatibility maintained
+
+### When to Apply Orchestrator Pattern
+
+#### Size Triggers
+- **Class exceeds 500 lines** - Critical refactoring needed
+- **Class exceeds 300 lines** - Consider decomposition
+- **Method exceeds 50 lines** - Extract to focused service
+
+#### Responsibility Triggers
+- **Multiple distinct domains** (e.g., calculation + analysis + reporting)
+- **Mixed abstraction levels** (low-level parsing + high-level orchestration)
+- **Independent concerns** that could be tested separately
+
+#### AI Comprehension Triggers
+- **Exceeds context window** for AI analysis
+- **Multiple scrolls required** to understand class
+- **Frequent "god object" patterns** emerging
+
+### Implementation Guidelines
+
+#### 1. Identify Service Boundaries
+Look for natural separation points:
+```typescript
+// Natural boundaries in TestGapAnalyzer:
+- calculateComplexity() + related methods → ComplexityCalculator
+- analyzeCoverage() + gap detection → CoverageAnalyzer  
+- identifyGaps() + classification → GapIdentifier
+- extractContext() + AI preparation → ContextExtractor
+```
+
+#### 2. Extract Services with Clear Interfaces
+```typescript
+// Each service should have a focused interface
+interface ComplexityCalculator {
+  calculateCodeComplexityMetrics(content: string, filePath: string): Promise<ComplexityScore>;
+}
+
+interface CoverageAnalyzer {
+  analyzeStructuralTestCoverage(sourceContent: string, testContent: string): Promise<CoverageAnalysis>;
+}
+```
+
+#### 3. Maintain Composition Over Inheritance
+```typescript
+// Initialize services in constructor, not inheritance
+constructor(projectAnalysis: ProjectAnalysis, config: Config = {}) {
+  this.complexityCalculator = new ComplexityCalculator();
+  this.coverageAnalyzer = new CoverageAnalyzer();
+  this.gapIdentifier = new GapIdentifier();
+  this.contextExtractor = new ContextExtractor();
+}
+```
+
+#### 4. Preserve Public API
+The orchestrator should maintain the exact same public interface:
+```typescript
+// Public API remains identical
+async analyzeTestGaps(generationResult: TestGenerationResult): Promise<TestGapAnalysisResult>
+```
+
+### Future Refactoring Candidates
+
+Classes that would benefit from orchestrator pattern:
+- **GapReportGenerator** (847 lines) - Report generation with mixed concerns
+- **ProjectAnalyzer** (if it grows beyond 400 lines) - Analysis + detection logic
+- Any class approaching 500+ lines with multiple responsibilities
 
 ## Template Method Pattern
 
@@ -104,11 +230,75 @@ Each adapter knows:
 - **Consistency**: Same interface for all languages
 - **Type Safety**: Each adapter can have language-specific types
 
+## Extract Method Pattern
+
+### Overview
+The Extract Method pattern breaks down large methods into smaller, focused methods with clear single responsibilities. Applied during code quality refactoring to improve readability and maintainability.
+
+### Implementation in CLI Commands
+
+#### Problem Solved
+Command handler methods were becoming too large (70-100 lines), mixing:
+- Parameter validation
+- Special operation handling
+- Main business logic
+- Result display and recording
+
+#### Solution Applied
+Extract logical sections into focused methods:
+
+**Example: `handleIncrementalCommand` Refactoring**
+```typescript
+// Before: 96-line method with mixed concerns
+async function handleIncrementalCommand(projectPath: string, options: any) {
+  // 96 lines of mixed logic...
+}
+
+// After: 31-line orchestrator with extracted methods
+async function handleIncrementalCommand(projectPath: string, options: any) {
+  // Handle special operations first
+  if (await handleSpecialOperations(options, incrementalGenerator, historyManager)) {
+    return;
+  }
+
+  // Validate incremental generation
+  if (!await validateIncrementalGeneration(incrementalGenerator, changeDetector, options)) {
+    return;
+  }
+
+  // Perform main operation and record results
+  const result = await incrementalGenerator.generateIncremental(config);
+  displayIncrementalResults(result);
+  await recordResults(historyManager, result, options);
+}
+```
+
+#### Benefits Achieved
+- **Readability**: Main method shows high-level flow
+- **Testability**: Each extracted method can be tested independently
+- **Reusability**: Extracted methods can be reused
+- **Complexity Reduction**:
+  - `handleIncrementalCommand`: 96 → 31 lines (68% reduction)
+  - `displayConsoleResults`: 71 → 16 lines (77% reduction)
+  - `generateSetupContent`: 67 → 9 lines (87% reduction)
+
+#### Implementation Guidelines
+1. **Identify logical sections** that can stand alone
+2. **Extract by responsibility** - each method should have one clear purpose
+3. **Use descriptive names** that clearly indicate what the method does
+4. **Pass necessary parameters** rather than relying on shared state
+5. **Return values appropriately** to support the main flow
+
+### Files Using This Pattern
+- `/src/cli/commands/incremental.ts` - CLI command handler refactoring
+- `/src/cli/commands/analyze.ts` - Console display method refactoring
+- `/src/generators/StructuralTestGenerator.ts` - Setup content generation refactoring
+
 ## Future Patterns to Document
 
 ### Command Pattern
 - For CLI command handling
-- Planned for refactoring `handleIncrementalCommand`
+- ✅ Applied via Extract Method pattern in command handlers
 
 ### Builder Pattern
 - For configuration generation

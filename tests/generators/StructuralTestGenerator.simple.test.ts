@@ -252,7 +252,7 @@ import './styles.css';
     });
 
     it('should generate mock content correctly', () => {
-      const jsMockContent = generator['generateMockContent'](['axios', 'lodash']);
+      const jsMockContent = generator['generateMockFileContent'](['axios', 'lodash']);
       expect(jsMockContent).toContain('jest.fn');
       expect(jsMockContent).toContain('axios');
       expect(jsMockContent).toContain('lodash');

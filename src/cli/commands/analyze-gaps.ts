@@ -1,12 +1,7 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { fs, path, logger } from '../../utils/common-imports';
 import { Command } from 'commander';
-import { logger } from '../../utils/logger';
-import { ProjectAnalyzer } from '../../analyzers/ProjectAnalyzer';
-import { TestGapAnalyzer } from '../../analyzers/TestGapAnalyzer';
-import { GapReportGenerator, ReportOptions } from '../../analyzers/GapReportGenerator';
-import { StructuralTestGenerator } from '../../generators/StructuralTestGenerator';
-import { TestGeneratorConfig } from '../../generators/TestGenerator';
+import { ProjectAnalyzer, TestGapAnalyzer, GapReportGenerator, StructuralTestGenerator, TestGeneratorConfig } from '../../utils/analyzer-imports';
+import type { ReportOptions } from '../../analyzers/GapReportGenerator';
 
 interface AnalyzeGapsOptions {
   config?: string;
@@ -57,7 +52,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
       // Step 1: Analyze the project
       logger.info('Analyzing project structure and generating structural tests');
       const projectAnalyzer = new ProjectAnalyzer(resolvedProjectPath);
-      const projectAnalysis = await projectAnalyzer.analyze();
+      const projectAnalysis = await projectAnalyzer.analyzeProject();
 
       // Step 2: Generate structural tests (to analyze gaps against)
       const config: TestGeneratorConfig = {
@@ -68,7 +63,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
       };
 
       const testGenerator = new StructuralTestGenerator(config, projectAnalysis);
-      const generationResult = await testGenerator.generate();
+      const generationResult = await testGenerator.generateAllTests();
 
       if (!generationResult.success) {
         logger.error('Failed to generate structural tests for gap analysis', {
@@ -86,7 +81,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         complexityThreshold: parseInt(String(options.threshold || '3'), 10)
       });
 
-      const gapAnalysis = await gapAnalyzer.analyzeGaps(generationResult);
+      const gapAnalysis = await gapAnalyzer.analyzeTestGaps(generationResult);
 
       // Step 4: Generate enhanced reports using GapReportGenerator
       const endTime = Date.now();

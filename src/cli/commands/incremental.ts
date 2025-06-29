@@ -4,7 +4,7 @@
 
 import { Command } from 'commander';
 import { IncrementalGenerator, ChangeDetector, HistoryManager } from '../../state';
-import { logger } from '../../utils/logger';
+import { logger } from '../../utils/common-imports';
 
 export function createIncrementalCommand(): Command {
   const command = new Command('incremental');
@@ -40,39 +40,14 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
   const changeDetector = new ChangeDetector(projectPath);
   const historyManager = new HistoryManager(projectPath);
 
-  // Handle stats request
-  if (options.stats) {
-    await showIncrementalStats(incrementalGenerator, historyManager);
+  // Handle special operations first
+  if (await handleSpecialOperations(options, incrementalGenerator, historyManager)) {
     return;
   }
 
-  // Handle cleanup request
-  if (options.cleanup) {
-    const days = parseInt(options.cleanup, 10);
-    await historyManager.cleanup(days);
-    console.log(`✅ Cleaned up history older than ${days} days`);
+  // Validate incremental generation
+  if (!await validateIncrementalGeneration(incrementalGenerator, changeDetector, options)) {
     return;
-  }
-
-  // Handle baseline comparison
-  if (options.compareBaseline) {
-    await compareWithBaseline(historyManager, options.compareBaseline);
-    return;
-  }
-
-  // Check if incremental is beneficial
-  const shouldUseIncremental = await incrementalGenerator.shouldUseIncremental();
-  if (!shouldUseIncremental && !options.force) {
-    console.log('💡 Incremental generation not recommended - too many changes detected');
-    console.log('   Consider using full generation or use --force to proceed');
-    return;
-  }
-
-  // Check if project is in git repository
-  const isGitRepo = await changeDetector.isGitRepository();
-  if (!isGitRepo) {
-    console.log('⚠️  Project is not in a Git repository');
-    console.log('   Incremental features work best with Git-based change detection');
   }
 
   // Perform incremental generation
@@ -86,7 +61,60 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
     costLimit: parseFloat(options.costLimit)
   });
 
-  // Display results
+  // Display and record results
+  displayIncrementalResults(result);
+  await recordResults(historyManager, result, options);
+
+  console.log('\n✅ Incremental generation completed');
+}
+
+async function handleSpecialOperations(
+  options: any,
+  incrementalGenerator: IncrementalGenerator,
+  historyManager: HistoryManager
+): Promise<boolean> {
+  if (options.stats) {
+    await showIncrementalStats(incrementalGenerator, historyManager);
+    return true;
+  }
+
+  if (options.cleanup) {
+    const days = parseInt(options.cleanup, 10);
+    await historyManager.cleanup(days);
+    console.log(`✅ Cleaned up history older than ${days} days`);
+    return true;
+  }
+
+  if (options.compareBaseline) {
+    await compareWithBaseline(historyManager, options.compareBaseline);
+    return true;
+  }
+
+  return false;
+}
+
+async function validateIncrementalGeneration(
+  incrementalGenerator: IncrementalGenerator,
+  changeDetector: ChangeDetector,
+  options: any
+): Promise<boolean> {
+  const shouldUseIncremental = await incrementalGenerator.shouldUseIncremental();
+  if (!shouldUseIncremental && !options.force) {
+    console.log('💡 Incremental generation not recommended - too many changes detected');
+    console.log('   Consider using full generation or use --force to proceed');
+    return false;
+  }
+
+  const isGitRepo = await changeDetector.isGitRepository();
+  if (!isGitRepo) {
+    console.log('⚠️  Project is not in a Git repository');
+    console.log('   Incremental features work best with Git-based change detection');
+  }
+
+  return true;
+}
+
+function displayIncrementalResults(result: any): void {
   console.log('\n📊 Incremental Generation Results:');
   console.log(`   Changed files: ${result.changedFiles.length}`);
   console.log(`   New tests: ${result.newTests.length}`);
@@ -98,10 +126,15 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
 
   if (result.skippedFiles.length > 0) {
     console.log('\n⚠️  Skipped files:');
-    result.skippedFiles.forEach(file => console.log(`   - ${file}`));
+    result.skippedFiles.forEach((file: string) => console.log(`   - ${file}`));
   }
+}
 
-  // Record in history
+async function recordResults(
+  historyManager: HistoryManager,
+  result: any,
+  options: any
+): Promise<void> {
   if (!options.dryRun) {
     await historyManager.recordEntry({
       operation: 'update',
@@ -122,14 +155,11 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
     });
   }
 
-  // Create baseline if requested
   if (options.baseline && !options.dryRun) {
     const description = `Post-incremental generation - ${new Date().toISOString()}`;
     const baselineId = await historyManager.createBaseline(description);
     console.log(`\n📌 Created baseline: ${baselineId}`);
   }
-
-  console.log('\n✅ Incremental generation completed');
 }
 
 async function showIncrementalStats(

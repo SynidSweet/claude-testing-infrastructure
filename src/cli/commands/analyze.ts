@@ -1,7 +1,5 @@
-import chalk from 'chalk';
-import ora from 'ora';
-import { logger } from '../../utils/logger';
-import { ProjectAnalyzer } from '../../analyzers/ProjectAnalyzer';
+import { chalk, ora, logger } from '../../utils/common-imports';
+import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 
 interface AnalyzeOptions {
   output?: string;
@@ -16,7 +14,7 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
     logger.info(`Starting analysis of project: ${projectPath}`);
     
     const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyze();
+    const analysis = await analyzer.analyzeProject();
     
     spinner.succeed('Analysis complete');
     
@@ -53,74 +51,88 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
 
 function displayConsoleResults(analysis: any, verbose = false): void {
   console.log(chalk.green('\n✓ Project Analysis Complete\n'));
-  
-  // Project path
   console.log(chalk.cyan('📁 Project:'), analysis.projectPath);
   
-  // Languages
-  if (analysis.languages.length > 0) {
+  displayLanguages(analysis.languages);
+  displayFrameworks(analysis.frameworks);
+  displayPackageManagers(analysis.packageManagers);
+  displayTestingSetup(analysis.testingSetup);
+  displayComplexityMetrics(analysis.complexity);
+  
+  if (verbose) {
+    displayProjectStructure(analysis.projectStructure);
+    displayLargestFiles(analysis.complexity.largestFiles);
+  }
+  
+  console.log(chalk.green('\n✨ Analysis complete! Use --format json or --verbose for more details.\n'));
+}
+
+function displayLanguages(languages: any[]): void {
+  if (languages.length > 0) {
     console.log(chalk.cyan('\n🔤 Languages:'));
-    analysis.languages.forEach((lang: any) => {
+    languages.forEach((lang: any) => {
       console.log(`  • ${lang.name} (${Math.round(lang.confidence * 100)}% confidence)`);
     });
   }
-  
-  // Frameworks
-  if (analysis.frameworks.length > 0) {
+}
+
+function displayFrameworks(frameworks: any[]): void {
+  if (frameworks.length > 0) {
     console.log(chalk.cyan('\n🚀 Frameworks:'));
-    analysis.frameworks.forEach((framework: any) => {
+    frameworks.forEach((framework: any) => {
       const version = framework.version ? ` v${framework.version}` : '';
       console.log(`  • ${framework.name}${version} (${Math.round(framework.confidence * 100)}% confidence)`);
     });
   }
-  
-  // Package managers
-  if (analysis.packageManagers.length > 0) {
+}
+
+function displayPackageManagers(packageManagers: any[]): void {
+  if (packageManagers.length > 0) {
     console.log(chalk.cyan('\n📦 Package Managers:'));
-    analysis.packageManagers.forEach((pm: any) => {
+    packageManagers.forEach((pm: any) => {
       console.log(`  • ${pm.name} (${Math.round(pm.confidence * 100)}% confidence)`);
     });
   }
-  
-  // Testing setup
+}
+
+function displayTestingSetup(testingSetup: any): void {
   console.log(chalk.cyan('\n🧪 Testing Setup:'));
-  console.log(`  • Has tests: ${analysis.testingSetup.hasTests ? '✅' : '❌'}`);
-  if (analysis.testingSetup.testFrameworks.length > 0) {
-    console.log(`  • Test frameworks: ${analysis.testingSetup.testFrameworks.join(', ')}`);
+  console.log(`  • Has tests: ${testingSetup.hasTests ? '✅' : '❌'}`);
+  if (testingSetup.testFrameworks.length > 0) {
+    console.log(`  • Test frameworks: ${testingSetup.testFrameworks.join(', ')}`);
   }
-  if (analysis.testingSetup.testFiles.length > 0) {
-    console.log(`  • Test files found: ${analysis.testingSetup.testFiles.length}`);
+  if (testingSetup.testFiles.length > 0) {
+    console.log(`  • Test files found: ${testingSetup.testFiles.length}`);
   }
-  
-  // Complexity metrics
+}
+
+function displayComplexityMetrics(complexity: any): void {
   console.log(chalk.cyan('\n📊 Project Complexity:'));
-  console.log(`  • Total files: ${analysis.complexity.totalFiles}`);
-  console.log(`  • Total lines: ${analysis.complexity.totalLines.toLocaleString()}`);
-  console.log(`  • Average file size: ${Math.round(analysis.complexity.averageFileSize)} lines`);
-  
-  if (verbose) {
-    // Project structure
-    console.log(chalk.cyan('\n📂 Project Structure:'));
-    if (analysis.projectStructure.srcDirectory) {
-      console.log(`  • Source directory: ${analysis.projectStructure.srcDirectory}`);
-    }
-    if (analysis.projectStructure.entryPoints.length > 0) {
-      console.log(`  • Entry points: ${analysis.projectStructure.entryPoints.slice(0, 3).join(', ')}`);
-    }
-    if (analysis.projectStructure.testDirectories.length > 0) {
-      console.log(`  • Test directories: ${analysis.projectStructure.testDirectories.slice(0, 3).join(', ')}`);
-    }
-    
-    // Largest files
-    if (analysis.complexity.largestFiles.length > 0) {
-      console.log(chalk.cyan('\n📈 Largest Files:'));
-      analysis.complexity.largestFiles.slice(0, 5).forEach((file: any) => {
-        console.log(`  • ${file.path} (${file.lines} lines)`);
-      });
-    }
+  console.log(`  • Total files: ${complexity.totalFiles}`);
+  console.log(`  • Total lines: ${complexity.totalLines.toLocaleString()}`);
+  console.log(`  • Average file size: ${Math.round(complexity.averageFileSize)} lines`);
+}
+
+function displayProjectStructure(projectStructure: any): void {
+  console.log(chalk.cyan('\n📂 Project Structure:'));
+  if (projectStructure.srcDirectory) {
+    console.log(`  • Source directory: ${projectStructure.srcDirectory}`);
   }
-  
-  console.log(chalk.green('\n✨ Analysis complete! Use --format json or --verbose for more details.\n'));
+  if (projectStructure.entryPoints.length > 0) {
+    console.log(`  • Entry points: ${projectStructure.entryPoints.slice(0, 3).join(', ')}`);
+  }
+  if (projectStructure.testDirectories.length > 0) {
+    console.log(`  • Test directories: ${projectStructure.testDirectories.slice(0, 3).join(', ')}`);
+  }
+}
+
+function displayLargestFiles(largestFiles: any[]): void {
+  if (largestFiles.length > 0) {
+    console.log(chalk.cyan('\n📈 Largest Files:'));
+    largestFiles.slice(0, 5).forEach((file: any) => {
+      console.log(`  • ${file.path} (${file.lines} lines)`);
+    });
+  }
 }
 
 function formatAsMarkdown(analysis: any): string {

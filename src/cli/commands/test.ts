@@ -1,11 +1,5 @@
-import chalk from 'chalk';
-import ora from 'ora';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { logger } from '../../utils/logger';
-import { ProjectAnalyzer } from '../../analyzers/ProjectAnalyzer';
-import { StructuralTestGenerator } from '../../generators/StructuralTestGenerator';
-import { TestGeneratorConfig } from '../../generators/TestGenerator';
+import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
+import { ProjectAnalyzer, StructuralTestGenerator, TestGeneratorConfig } from '../../utils/analyzer-imports';
 
 interface TestOptions {
   config?: string;
@@ -33,7 +27,7 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
     
     // Step 2: Analyze project
     const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyze();
+    const analysis = await analyzer.analyzeProject();
     
     spinner.succeed('Project analysis complete');
     
@@ -52,7 +46,7 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
         skipExistingTests: !options.update
       });
       
-      const result = await generator.generate();
+      const result = await generator.generateAllTests();
       
       if (!result.success) {
         spinner.fail('Test generation failed');

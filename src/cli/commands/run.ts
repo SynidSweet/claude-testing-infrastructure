@@ -1,9 +1,5 @@
-import chalk from 'chalk';
-import ora from 'ora';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { logger } from '../../utils/logger';
-import { ProjectAnalyzer } from '../../analyzers/ProjectAnalyzer';
+import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
+import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 import { TestRunnerFactory, TestRunnerConfig } from '../../runners';
 
 interface RunOptions {
@@ -34,7 +30,7 @@ export async function runCommand(projectPath: string, options: RunOptions = {}):
     
     // Step 2: Analyze project
     const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyze();
+    const analysis = await analyzer.analyzeProject();
     
     spinner.succeed('Project analysis complete');
     

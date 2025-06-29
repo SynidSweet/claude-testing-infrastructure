@@ -235,7 +235,7 @@ export class JestRunner extends TestRunner {
     let coverage: CoverageResult | undefined;
     if (jestResult.coverageMap && this.coverageReporter) {
       try {
-        const coverageReport = await this.coverageReporter.processSingle(jestResult);
+        const coverageReport = await this.coverageReporter.processSingleCoverageSource(jestResult);
         
         // Convert to legacy format for compatibility
         coverage = {

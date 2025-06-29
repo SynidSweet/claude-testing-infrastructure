@@ -66,13 +66,8 @@ program
   .option('--threshold <threshold>', 'Coverage threshold (e.g., "80" or "statements:80,branches:70")')
   .action(runCommand);
 
-// Watch command
-program
-  .command('watch')
-  .description('Watch a project for changes and update tests automatically')
-  .argument('<path>', 'Path to the project to watch')
-  .option('-c, --config <path>', 'Path to configuration file')
-  .action(watchCommand);
+// Add the watch command
+program.addCommand(watchCommand);
 
 // Add the analyze-gaps command
 program.addCommand(analyzeGapsCommand);

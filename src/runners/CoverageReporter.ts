@@ -1,7 +1,7 @@
 import { CoverageParser, CoverageParserFactory, CoverageData, CoverageThresholds } from './CoverageParser';
 import { CoverageAggregator, AggregatedCoverageData, AggregationConfig } from './CoverageAggregator';
 import { CoverageVisualizer, CoverageReportConfig, CoverageGapAnalysis } from './CoverageVisualizer';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/common-imports';
 
 /**
  * Main configuration for the coverage reporting system
@@ -88,7 +88,7 @@ export class CoverageReporter {
   /**
    * Process a single coverage source and generate reports
    */
-  async processSingle(coverageData: string | object): Promise<CoverageReport> {
+  async processSingleCoverageSource(coverageData: string | object): Promise<CoverageReport> {
     const startTime = Date.now();
     
     try {

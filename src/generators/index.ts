@@ -50,7 +50,7 @@ export interface GeneratorResult {
 }
 
 // Placeholder function (deprecated - use TestGenerator instead)
-export async function generateTests(_config: GeneratorConfig): Promise<GeneratorResult> {
+export async function generateTestsDeprecated(_config: GeneratorConfig): Promise<GeneratorResult> {
   // TODO: Implement test generation logic
   return {
     success: true,

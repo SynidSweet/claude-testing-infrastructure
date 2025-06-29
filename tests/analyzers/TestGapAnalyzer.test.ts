@@ -126,7 +126,7 @@ describe('TestGapAnalyzer', () => {
         }
       `);
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       expect(result.gaps).toHaveLength(0);
       expect(result.summary.filesNeedingLogicalTests).toBe(0);
@@ -198,7 +198,7 @@ describe('TestGapAnalyzer', () => {
       // Mock readdir for related files
       mockFs.readdir.mockResolvedValue(['complex.js', 'user.types.js', 'validation.js'] as any);
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       expect(result.gaps).toHaveLength(1);
       expect([GapPriority.HIGH, GapPriority.MEDIUM]).toContain(result.gaps[0]?.priority);
@@ -222,7 +222,7 @@ describe('TestGapAnalyzer', () => {
       // Mock file read error
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       expect(result.gaps).toHaveLength(0);
       // Errors would be logged but analysis continues
@@ -275,7 +275,7 @@ describe('TestGapAnalyzer', () => {
 
       mockFs.readdir.mockResolvedValue(['service.js'] as any);
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       expect(result.estimatedCost.numberOfTasks).toBeGreaterThan(0);
       expect(result.estimatedCost.estimatedTokens).toBeGreaterThan(0);
@@ -323,7 +323,7 @@ describe('TestGapAnalyzer', () => {
 
       mockFs.readdir.mockResolvedValue(['complex.js'] as any);
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       expect(result.recommendations).toHaveLength(result.recommendations.length);
       expect(result.recommendations.some(rec => 
@@ -378,7 +378,7 @@ describe('TestGapAnalyzer', () => {
         mockFs.readFile.mockResolvedValue(testCase.content);
         mockFs.readdir.mockResolvedValue(['test.js'] as any);
 
-        const result = await analyzer.analyzeGaps(mockGenerationResult);
+        const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
         if (testCase.expectedComplexity >= 3) {
           expect(result.gaps.length).toBeGreaterThan(0);
@@ -441,7 +441,7 @@ describe('TestGapAnalyzer', () => {
 
       mockFs.readdir.mockResolvedValue(['Component.jsx'] as any);
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       if (result.gaps.length > 0) {
         expect(result.gaps[0]?.context.framework).toBe('react');
@@ -489,7 +489,7 @@ describe('TestGapAnalyzer', () => {
 
       mockFs.readdir.mockResolvedValue(['api.py'] as any);
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       if (result.gaps.length > 0) {
         expect(result.gaps[0]?.context.framework).toBe('fastapi');
@@ -503,7 +503,7 @@ describe('TestGapAnalyzer', () => {
     test('should handle empty generation results', async () => {
       mockGenerationResult.tests = [];
 
-      const result = await analyzer.analyzeGaps(mockGenerationResult);
+      const result = await analyzer.analyzeTestGaps(mockGenerationResult);
 
       expect(result.gaps).toHaveLength(0);
       expect(result.summary.totalFiles).toBe(0);
@@ -546,7 +546,7 @@ describe('TestGapAnalyzer', () => {
 
       mockFs.readdir.mockResolvedValue(['medium.js'] as any);
 
-      const result = await highThresholdAnalyzer.analyzeGaps(mockGenerationResult);
+      const result = await highThresholdAnalyzer.analyzeTestGaps(mockGenerationResult);
 
       expect(result.gaps).toHaveLength(0); // Should skip due to high threshold
     });
@@ -589,7 +589,7 @@ describe('TestGapAnalyzer', () => {
 
       mockFs.readdir.mockResolvedValue(['priority.js'] as any);
 
-      const result = await customWeightAnalyzer.analyzeGaps(mockGenerationResult);
+      const result = await customWeightAnalyzer.analyzeTestGaps(mockGenerationResult);
 
       if (result.gaps.length > 0) {
         // Priority should be based purely on complexity

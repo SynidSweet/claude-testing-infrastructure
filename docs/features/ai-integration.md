@@ -47,7 +47,7 @@ Manages cost estimation and optimization:
 Generate AI-powered logical tests based on gap analysis:
 
 ```bash
-npx claude-testing generate-logical <projectPath> [options]
+node dist/cli/index.js generate-logical <projectPath> [options]
 
 Options:
   -g, --gap-report <path>     Path to existing gap analysis report
@@ -63,13 +63,13 @@ Options:
 Example:
 ```bash
 # Generate logical tests with budget limit
-npx claude-testing generate-logical ./my-project --budget 5.00 --model sonnet
+node dist/cli/index.js generate-logical ./my-project --budget 5.00 --model sonnet
 
 # Use existing gap report
-npx claude-testing generate-logical ./my-project -g ./gap-report.json
+node dist/cli/index.js generate-logical ./my-project -g ./gap-report.json
 
 # Dry run to see cost estimates
-npx claude-testing generate-logical ./my-project --dry-run
+node dist/cli/index.js generate-logical ./my-project --dry-run
 ```
 
 ### test-ai
@@ -77,7 +77,7 @@ npx claude-testing generate-logical ./my-project --dry-run
 Complete AI-enhanced testing workflow (analyze → generate → test → AI enhance):
 
 ```bash
-npx claude-testing test-ai <projectPath> [options]
+node dist/cli/index.js test-ai <projectPath> [options]
 
 Options:
   -m, --model <model>         Claude model (opus, sonnet, haiku) [default: sonnet]
@@ -94,13 +94,13 @@ Options:
 Example:
 ```bash
 # Complete workflow with AI enhancement
-npx claude-testing test-ai ./my-project --budget 10.00
+node dist/cli/index.js test-ai ./my-project --budget 10.00
 
 # Structural tests only (no AI)
-npx claude-testing test-ai ./my-project --no-ai
+node dist/cli/index.js test-ai ./my-project --no-ai
 
 # Generate but don't run tests
-npx claude-testing test-ai ./my-project --no-run
+node dist/cli/index.js test-ai ./my-project --no-run
 ```
 
 ## AI Task Preparation
@@ -223,7 +223,7 @@ const claudeEnv = {
 #### Model Configuration with Fallback
 ```bash
 # Use latest model with automatic fallback for Max subscription limits
-npx claude-testing generate-logical /path/to/project --model opus --timeout 1800
+node dist/cli/index.js generate-logical /path/to/project --model opus --timeout 1800
 
 # The system automatically falls back to sonnet when opus usage limits are reached
 ```
@@ -291,13 +291,13 @@ Recommendations:
 ### 1. Start with Gap Analysis
 Always run gap analysis first to understand what needs AI generation:
 ```bash
-npx claude-testing analyze-gaps ./project
+node dist/cli/index.js analyze-gaps ./project
 ```
 
 ### 2. Use Budget Controls
 Set reasonable budgets to control costs:
 ```bash
-npx claude-testing generate-logical ./project --budget 5.00
+node dist/cli/index.js generate-logical ./project --budget 5.00
 ```
 
 ### 3. Review Generated Tests

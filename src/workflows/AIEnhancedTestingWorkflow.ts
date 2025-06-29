@@ -124,7 +124,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
 
       // Phase 4: Gap Analysis
       this.emit('phase:start', { phase: 'gap-analysis' });
-      const gapReport = await this.analyzeGaps(projectPath);
+      const gapReport = await this.analyzeTestGaps(projectPath);
       result.gaps = gapReport;
       this.emit('phase:complete', { phase: 'gap-analysis', gaps: gapReport.gaps.length });
 
@@ -171,7 +171,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
    */
   private async analyzeProject(projectPath: string): Promise<any> {
     const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyze();
+    const analysis = await analyzer.analyzeProject();
     
     logger.info(`Analyzed project with ${analysis.languages?.length || 0} languages`);
     return analysis;
@@ -199,7 +199,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       generateMocks: this.config.generateMocks || false
     });
 
-    const generatedTests = await generator.generate();
+    const generatedTests = await generator.generateAllTests();
     
     // Save generated tests
     const testDir = path.join(projectPath, '.claude-testing', 'tests');
@@ -225,7 +225,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   private async runTests(projectPath: string): Promise<any> {
     // Create a temporary ProjectAnalysis for the runner
     const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyze();
+    const analysis = await analyzer.analyzeProject();
     
     const config: any = {
       projectPath,
@@ -250,9 +250,9 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   /**
    * Phase 4: Analyze gaps
    */
-  private async analyzeGaps(projectPath: string): Promise<any> {
+  private async analyzeTestGaps(projectPath: string): Promise<any> {
     const projectAnalyzer = new ProjectAnalyzer(projectPath);
-    const projectAnalysis = await projectAnalyzer.analyze();
+    const projectAnalysis = await projectAnalyzer.analyzeProject();
     
     const analyzer = new TestGapAnalyzer(projectAnalysis);
     
@@ -270,7 +270,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       }
     };
     
-    const gapReport = await analyzer.analyzeGaps(testGenerationResult);
+    const gapReport = await analyzer.analyzeTestGaps(testGenerationResult);
     
     logger.info(`Found ${gapReport.gaps?.length || 0} files needing logical tests`);
     return gapReport;

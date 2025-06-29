@@ -1,0 +1,20 @@
+# Coverage Report - Test Project
+
+Generated on: 29/06/2025, 00:48:46
+
+## Summary
+
+| Metric | Coverage |
+|--------|----------|
+| Statements | 80.0% |
+| Branches | 75.0% |
+| Functions | 85.0% |
+| Lines | 82.0% |
+
+**Meets Thresholds:** ✅ Yes
+
+## File Coverage
+
+| File | Lines | Statements | Branches | Functions |
+|------|-------|------------|----------|-----------|
+| file1.js | 82.0% | 80.0% | 75.0% | 85.0% |

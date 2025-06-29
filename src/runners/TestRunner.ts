@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger';
+import { logger } from '../utils/common-imports';
 import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 
 export interface TestRunnerConfig {

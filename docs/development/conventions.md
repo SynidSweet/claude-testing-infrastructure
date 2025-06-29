@@ -1,13 +1,52 @@
 # Development Patterns & Conventions
 
-*Last updated: 2025-06-28 | Updated by: /document command | TypeScript-first infrastructure with strict patterns for reliability*
+*Last updated: 2025-06-29 | Updated by: /document command | Function naming clarity patterns and guidelines added*
 
 ## Naming Conventions
+
+### Basic Naming Rules
 - **Functions/Variables**: camelCase (`analyzeProject`, `testConfig`)
 - **Classes**: PascalCase (`ProjectAnalyzer`, `TestGenerator`)
 - **Files**: kebab-case (`project-analyzer.ts`, `test-runner.ts`)
 - **Directories**: kebab-case (`cli/commands`, `analyzers`)
 - **Constants**: SCREAMING_SNAKE_CASE (`DEFAULT_TIMEOUT`, `MAX_RETRIES`)
+
+### AI-Friendly Function Naming (Updated 2025-06-29)
+Functions should be **self-documenting** and clearly indicate their purpose and context:
+
+#### Domain-Specific Naming
+- **Include domain context**: `analyzeCoverage()` → `analyzeStructuralTestCoverage()`
+- **Specify operation scope**: `identifyGaps()` → `identifyLogicalTestingGaps()`
+- **Clarify data type**: `calculateComplexity()` → `calculateCodeComplexityMetrics()`
+- **Indicate target context**: `extractTestContext()` → `extractAITestContext()`
+
+#### Framework and Language Specificity
+- **Expand abbreviations**: `generateJSSetup()` → `generateJavaScriptTestSetup()`
+- **Include framework context**: `parse()` → `parseJestCoverageData()` or `parsePytestCoverageData()`
+- **Specify file operations**: `generateMockFile()` → `generateMockFileForDependencies()`
+
+#### Examples of Improved Function Names
+```typescript
+// BEFORE - Generic/unclear names
+analyze() → analyzeProject()
+generate() → generateAllTests()
+processSingle() → processSingleCoverageSource()
+analyzeGaps() → analyzeTestGaps()
+generateTestForFile() → generateStructuralTestForFile()
+
+// AFTER - Self-documenting names that include context
+private analyzeStructuralTestCoverage(sourceContent: string, testContent: string): CoverageAnalysis
+private identifyLogicalTestingGaps(sourceContent: string, coverage: CoverageAnalysis): IdentifiedGap[]
+private calculateCodeComplexityMetrics(sourceContent: string, filePath: string): ComplexityScore
+private extractAITestContext(sourceContent: string): TestContext
+```
+
+#### Naming Pattern Guidelines
+1. **Start with action verb** that clearly describes what the function does
+2. **Include object/subject** the function operates on
+3. **Add domain context** (test, coverage, analysis, generation)
+4. **Specify scope** (single vs multiple, structural vs logical)
+5. **Avoid generic terms** like "process", "handle", "check" without context
 
 ## Code Organization Patterns
 ### Directory Structure
@@ -126,6 +165,21 @@ export class ProjectAnalyzer {
 ```
 
 ### Import Organization
+
+#### Consolidated Import Pattern (Preferred)
+Use shared import utilities to reduce duplication and improve maintainability:
+
+```typescript
+// Consolidated imports (preferred)
+import { fs, path, fg, chalk, ora, logger } from '../utils/common-imports';
+import { ProjectAnalyzer, TestGapAnalyzer, TestGeneratorConfig } from '../utils/analyzer-imports';
+
+// Additional specific imports only when needed
+import { Command } from 'commander';
+import { FileWatcher } from '../utils/FileWatcher';
+```
+
+#### Legacy Import Pattern (Before Consolidation)
 ```typescript
 // Node.js built-ins
 import { promises as fs } from 'fs';
@@ -139,6 +193,10 @@ import chalk from 'chalk';
 import { logger } from '@/utils/logger';
 import { ProjectAnalysis } from '@/analyzers/types';
 ```
+
+#### Import Utility Files
+- **`src/utils/common-imports.ts`**: Node.js core modules, logging, and external utilities (fs, path, logger, chalk, ora, fg)
+- **`src/utils/analyzer-imports.ts`**: Core analyzers, generators, runners, and their types
 
 ### Modern Node.js API Usage
 - **File System Operations**: Use modern `fs.rm()` instead of deprecated `fs.rmdir()` for recursive directory removal

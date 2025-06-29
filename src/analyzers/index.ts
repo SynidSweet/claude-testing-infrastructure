@@ -55,12 +55,12 @@ export interface AnalysisResult {
 }
 
 // Updated function using ProjectAnalyzer
-export async function analyzeCode(projectPath: string, _analyzerType?: string): Promise<AnalysisResult> {
+export async function analyzeProjectStructure(projectPath: string, _analyzerType?: string): Promise<AnalysisResult> {
   const { ProjectAnalyzer } = await import('./ProjectAnalyzer');
   
   try {
     const analyzer = new ProjectAnalyzer(projectPath);
-    const analysis = await analyzer.analyze();
+    const analysis = await analyzer.analyzeProject();
     
     return {
       success: true,

@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger';
+import { logger } from '../utils/common-imports';
 import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 
 export interface TestGeneratorConfig {
@@ -118,7 +118,7 @@ export abstract class TestGenerator {
   /**
    * Generate tests for the configured project
    */
-  async generate(): Promise<TestGenerationResult> {
+  async generateAllTests(): Promise<TestGenerationResult> {
     const startTime = Date.now();
     logger.info(`Starting test generation for ${this.config.projectPath}`, {
       framework: this.config.testFramework,
@@ -140,7 +140,7 @@ export abstract class TestGenerator {
 
       for (const filePath of filesToTest) {
         try {
-          const testResult = await this.generateTestForFile(filePath);
+          const testResult = await this.generateStructuralTestForFile(filePath);
           if (testResult) {
             results.push(testResult);
           }
@@ -216,7 +216,7 @@ export abstract class TestGenerator {
   /**
    * Generate a test for a specific file
    */
-  protected abstract generateTestForFile(filePath: string): Promise<GeneratedTest | null>;
+  protected abstract generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null>;
 
   /**
    * Pre-generation hook for setup tasks

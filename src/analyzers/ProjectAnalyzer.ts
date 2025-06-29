@@ -1,7 +1,4 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import fg from 'fast-glob';
-import { logger } from '../utils/logger';
+import { fs, path, fg, logger } from '../utils/common-imports';
 
 export interface ProjectAnalysis {
   projectPath: string;
@@ -70,7 +67,7 @@ export class ProjectAnalyzer {
     this.projectPath = path.resolve(projectPath);
   }
 
-  async analyze(): Promise<ProjectAnalysis> {
+  async analyzeProject(): Promise<ProjectAnalysis> {
     logger.info(`Starting analysis of project: ${this.projectPath}`);
 
     // Validate project path exists

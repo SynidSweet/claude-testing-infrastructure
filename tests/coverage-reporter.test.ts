@@ -98,7 +98,7 @@ describe('CoverageReporter', () => {
         }
       };
 
-      const result = await reporter.processSingle(mockJestCoverage);
+      const result = await reporter.processSingleCoverageSource(mockJestCoverage);
       
       expect(result.data.summary.statements).toBeGreaterThan(0);
       expect(result.data.summary.lines).toBeGreaterThan(0);
@@ -135,7 +135,7 @@ TOTAL                  35      8    77%
 ========================= 5 passed in 0.12s =========================
 `;
 
-      const result = await pytestReporter.processSingle(mockPytestOutput);
+      const result = await pytestReporter.processSingleCoverageSource(mockPytestOutput);
       
       expect(result.data.summary.lines).toBe(77); // Should match TOTAL coverage
       expect(result.consoleSummary).toContain('Coverage Summary');

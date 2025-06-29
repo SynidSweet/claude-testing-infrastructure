@@ -1,0 +1,58 @@
+{
+  "timestamp": "2025-06-28T23:38:24.286Z",
+  "projectName": "Test Project",
+  "summary": {
+    "statements": 80,
+    "branches": 75,
+    "functions": 85,
+    "lines": 82
+  },
+  "files": {
+    "file1.js": {
+      "path": "file1.js",
+      "summary": {
+        "statements": 80,
+        "branches": 75,
+        "functions": 85,
+        "lines": 82
+      },
+      "uncoveredLines": [
+        5,
+        10
+      ]
+    }
+  },
+  "uncoveredAreas": [],
+  "meetsThreshold": true,
+  "gapAnalysis": {
+    "totalGaps": 0,
+    "gapsByType": {
+      "statement": [],
+      "branch": [],
+      "function": [],
+      "line": []
+    },
+    "gapsByFile": {},
+    "highPriorityGaps": [],
+    "suggestions": [],
+    "improvementPotential": {
+      "statements": 20,
+      "branches": 25,
+      "functions": 15,
+      "lines": 18
+    }
+  },
+  "metadata": {
+    "sourceCount": 2,
+    "timestamps": [
+      "2025-06-28T23:38:24.277Z",
+      "2025-06-28T23:38:24.277Z"
+    ],
+    "frameworks": [
+      "jest",
+      "pytest"
+    ],
+    "totalFiles": 1,
+    "strategy": "union"
+  }
+}
