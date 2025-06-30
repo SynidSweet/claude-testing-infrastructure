@@ -2,7 +2,7 @@
 
 *Common issues and solutions when using Claude Testing Infrastructure*
 
-*Last updated: 2025-06-29 | Added Python import syntax fix information*
+*Last updated: 2025-06-30 | Added CLI error message fix information*
 
 ## 🔍 Quick Diagnosis
 
@@ -11,12 +11,14 @@
 # Verify Node.js version (needs 18+)
 node --version
 
-# Verify the CLI is working
+# Verify the CLI is working (should show clean output)
 node dist/cli/index.js --version
 
 # Check if your project is detectable
 node dist/cli/index.js analyze . --verbose
 ```
+
+**Note**: As of version 2.0.0, the CLI provides clean output for `--version` and `--help` commands without spurious error messages.
 
 ## 🚨 Common Issues
 
@@ -303,6 +305,20 @@ npm update
 # Check for type definition issues
 npx tsc --noEmit
 ```
+
+#### "Error messages with --version or --help"
+**Symptoms**: CLI shows error logs even for working commands (**FIXED in v2.0.0**)
+```bash
+# Before fix - showed error messages despite working
+node dist/cli/index.js --version
+# ERROR Unexpected error: 2.0.0 ...CommanderError...
+
+# After fix - clean output
+node dist/cli/index.js --version
+# 2.0.0
+```
+
+**Solution**: Update to version 2.0.0 or later. The CLI now properly handles Commander.js error codes for normal operations like `--version` and `--help`, providing clean output while maintaining proper error handling for actual errors.
 
 #### "JEST configuration conflicts"
 **Symptoms**: Jest fails to run with configuration errors

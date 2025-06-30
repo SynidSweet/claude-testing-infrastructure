@@ -53,6 +53,8 @@ program
   .option('--coverage', 'Generate coverage report')
   .option('--update', 'Update existing tests based on changes')
   .option('--force', 'Skip validation checks (e.g., test-to-source ratio)')
+  .option('--enable-chunking', 'Enable file chunking for large files (default: true)')
+  .option('--chunk-size <size>', 'Maximum tokens per chunk (default: 3500)', parseInt)
   .option('-v, --verbose', 'Show detailed test generation information')
   .action(testCommand);
 
@@ -103,8 +105,11 @@ try {
     console.log('  generate-logical - Generate logical tests using AI');
     console.log('  incremental     - Perform incremental test generation');
     console.log('\nRun claude-testing --help for more information');
-  } else if (error.code === 'commander.help') {
+  } else if (error.code === 'commander.help' || error.code === 'commander.helpDisplayed') {
     // Help was displayed, exit normally
+    process.exit(0);
+  } else if (error.code === 'commander.version') {
+    // Version was displayed, exit normally
     process.exit(0);
   } else {
     logger.error('Unexpected error:', error);

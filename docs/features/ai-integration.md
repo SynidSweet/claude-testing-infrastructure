@@ -1,6 +1,6 @@
 # AI Integration Features
 
-*Last updated: 2025-06-28 | Phase 5.3 Complete + Claude Code CLI Timeout Optimization*
+*Last updated: 2025-06-30 | Phase 5.3 Complete + File Chunking Integration*
 
 ## Overview
 
@@ -17,12 +17,21 @@ Manages the preparation of AI tasks from gap analysis results:
 - **Batch Optimization**: Groups tasks for efficient processing
 - **Cost Estimation**: Predicts token usage and associated costs
 
+#### 1a. ChunkedAITaskPreparation (`src/ai/ChunkedAITaskPreparation.ts`)
+Enhanced AI task preparation with file chunking support for large files:
+- **Intelligent Chunking**: Automatically segments files exceeding token limits (4k+)
+- **Context Preservation**: Maintains continuity between chunks with overlap
+- **Multi-chunk Orchestration**: Creates linked tasks for file segments
+- **Result Aggregation**: Merges chunked outputs into coherent test files
+- **Progress Tracking**: Per-file chunk processing statistics
+
 #### 2. ClaudeOrchestrator (`src/ai/ClaudeOrchestrator.ts`)
 Orchestrates parallel Claude processes for test generation:
 - **Concurrency Control**: Manages multiple Claude processes with configurable limits
 - **Progress Tracking**: Real-time status updates via event emitters
 - **Error Handling**: Retry logic with exponential backoff
 - **Result Aggregation**: Collects and processes generated tests
+- **Chunked Task Support**: Handles merging results from chunked file processing
 - **Advanced Timeout Management**: Session-isolated timeout configuration for headless processes (15-30 min) without affecting interactive Claude Code sessions
 - **Environment Isolation**: Process-specific environment variables to preserve standard 2-minute timeouts for other operations
 

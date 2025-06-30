@@ -1,6 +1,6 @@
 # Technical Stack
 
-*Last updated: 2025-06-29 | Updated by: /document command | Added configuration schema system*
+*Last updated: 2025-06-30 | Updated by: /document-all command | Added discriminated union types system*
 
 ## Technology Foundation
 - **Primary language(s)**: TypeScript (compiled to Node.js 18+), JavaScript ES6+, Python 3.9+
@@ -15,6 +15,7 @@
   - **Configuration**: cosmiconfig (flexible configuration loading), winston (logging)
   - **Error Handling**: Custom standardized error system with context-aware error classes
   - **Configuration Schema**: Complete TypeScript interfaces and JSON schema validation for .claude-testing.config.json
+  - **Type System**: Comprehensive discriminated union types for analysis, coverage, generation, and reporting operations
   - **Coverage System**: istanbul/nyc (JS coverage), coverage.py (Python coverage), custom template engines
 - **Infrastructure**: Standalone TypeScript repositories with Git-based distribution, CI/CD templates for GitHub Actions
 

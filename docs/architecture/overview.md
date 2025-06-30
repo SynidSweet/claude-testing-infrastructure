@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-06-29 | Updated by: /document command | ES Module Support architecture added*
+*Last updated: 2025-06-30 | Updated by: /document command | File Chunking Architecture & ES Module Support*
 
 ## Architecture Summary
 
@@ -130,6 +130,42 @@ The system intelligently handles files with both default and named exports:
 - **CJS**: `const { namedFunction, namedVariable } = require('./file'); const DefaultClass = require('./file');`
 
 This ensures generated tests execute successfully regardless of the target project's module system, resolving the critical 0-test-execution issue reported for ES module projects.
+
+## File Chunking Architecture
+
+### Token Limit Challenge Resolution
+
+Large files (4k+ tokens) exceeded AI context limits, preventing logical test generation for real-world projects. The file chunking system solves this through intelligent file segmentation.
+
+### Core Components
+
+#### FileChunker Utility (`src/utils/file-chunking.ts`)
+- **Accurate token counting**: Uses Claude-specific tokenization estimation
+- **Code-aware chunking**: Respects function/class boundaries
+- **Context preservation**: Maintains overlap between chunks for continuity
+- **Language support**: JavaScript/TypeScript and Python specific patterns
+
+#### ChunkedAITaskPreparation (`src/ai/ChunkedAITaskPreparation.ts`)
+- **Enhanced task creation**: Extends standard AITaskPreparation with chunking
+- **Multi-chunk orchestration**: Manages tasks for file chunks with proper ordering
+- **Result aggregation**: Intelligent merging of test outputs from multiple chunks
+- **Progress tracking**: Per-file chunk processing statistics
+
+### Chunking Strategy
+
+1. **Token Analysis**: Count estimated tokens using Claude-specific patterns
+2. **Smart Segmentation**: Split at logical boundaries (functions, classes)
+3. **Context Bridging**: Include overlap from previous chunk for continuity
+4. **Metadata Preservation**: Maintain file context (imports, exports, summary)
+
+### Integration Points
+
+- **CLI Integration**: `--enable-chunking` and `--chunk-size` flags
+- **AI Workflow**: Automatic chunking when files exceed token limits
+- **Result Processing**: Transparent merging maintains single-file test output
+- **Progress Reporting**: Detailed statistics for chunked file processing
+
+This architecture enables AI test generation for complex services up to 9,507+ tokens while maintaining quality and context consistency.
 
 ## Design Principles
 

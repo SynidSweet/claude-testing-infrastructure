@@ -1,8 +1,16 @@
 # Project Context & AI Agent Guide
 
-*Last updated: 2025-06-29 | Updated by: /document command | Third autonomous session validation completed*
+*Last updated: 2025-06-30 | Updated by: /document-all command | Discriminated Union Types Enhancement*
 
 ## Recent Updates
+- **2025-06-30**: ✅ **DISCRIMINATED UNION TYPES ENHANCEMENT COMPLETED** - Successfully implemented comprehensive discriminated union types system to improve type safety and AI comprehension. Created 4 new type definition files (`analysis-types.ts`, `coverage-types.ts`, `generation-types.ts`, `reporting-types.ts`) with 20+ type guards and strongly-typed discriminated unions replacing unclear `string | object` patterns. Enhanced type system provides better IntelliSense support and makes API behavior more predictable for AI agents. Maintained backward compatibility while establishing foundation for future type-safe API improvements. All 156/156 tests passing (100% success rate). **STRATEGIC VALUE**: Created self-documenting type infrastructure that enables AI agents to better understand system behavior through type analysis.
+- **2025-06-30**: ✅ **FOURTH AUTONOMOUS DEVELOPMENT SESSION VALIDATION COMPLETED** - Executed fourth carry-on command session to revalidate production-ready status after recent critical fixes. Comprehensive analysis of REFACTORING_PLAN.md and implementation plans confirmed no pending development tasks suitable for standard development sessions (60-80 minutes). All remaining tasks are investigation-phase items (6-8+ hours) or architectural epics (20-40+ hours). Test suite maintains 156/156 tests passing (100% success rate). Project confirmed to be in excellent production maintenance mode with all critical user feedback addressed and infrastructure ready for broader deployment. **STATUS**: Production-ready v2.0 with comprehensive feature completion and polished user experience.
+- **2025-06-30**: ✅ **COMMANDER.JS CLI ERROR MESSAGES FIXED** - Resolved user experience issue where CLI displayed error messages for normal operations (`--version` and `--help`). Fixed error handling in `src/cli/index.ts` to properly handle `commander.version` and `commander.helpDisplayed` error codes, allowing these operations to exit cleanly without logging spurious errors. Maintains proper error handling for actual errors (unknown commands). Clean CLI output improves user experience while preserving all functionality. All 156/156 tests passing (100% success rate).
+- **2025-06-30**: ✅ **FILE CHUNKING FOR LARGE FILES IMPLEMENTED** - Completed critical file chunking system to handle large files exceeding AI token limits (4k+ tokens). Created intelligent FileChunker utility with accurate token counting, context-aware chunking, and smart overlap preservation. Implemented ChunkedAITaskPreparation extending AI workflow with multi-chunk processing and result aggregation. Added CLI flags --enable-chunking and --chunk-size. All 156/156 tests passing. **CRITICAL USER FEEDBACK RESOLVED**: Large files (9,507+ tokens) now processable by AI generation, enabling real-world project compatibility.
+- **2025-06-30**: ✅ **TEST EXECUTION DOCUMENTATION COMPLETED** - Added comprehensive test execution documentation section (220+ lines) to AI_AGENT_GUIDE.md addressing critical user feedback about running generated tests independently. Documented 3 execution methods, CI/CD integration examples (GitHub Actions, GitLab CI), Jest/pytest configuration for external tests, and troubleshooting for 4 common issues. Clarified 5 key benefits of test separation. All 156/156 tests passing (100% success rate).
+- **2025-06-30**: ✅ **LOGICAL TEST GENERATION VERIFIED AS COMPLETE** - Discovered that the `--only-logical` flag implementation marked as "coming soon" in documentation is actually fully functional in `src/cli/commands/test.ts`. Complete AI-powered workflow with AITaskPreparation, ClaudeOrchestrator, cost estimation, and progress tracking already implemented. Updated REFACTORING_PLAN.md to reflect completed status. Documentation inconsistency identified in `docs/reference/commands.md`.
+- **2025-06-30**: ✅ **LOGICAL TEST GENERATION IMPLEMENTATION COMPLETED** - Successfully integrated the existing `generate-logical` command functionality into the main `test` command's `--only-logical` flag. Replaced placeholder "coming soon" message with full AI-powered workflow including structural test generation, gap analysis, AI task preparation, cost estimation, and Claude orchestration. Shows progress tracking and generates comprehensive reports. Additionally removed token limit from AI task preparation - system now relies solely on concurrency limits (default 3) for batching, allowing any size task within model context windows. All tests pass (156/156) confirming successful implementation.
+- **2025-06-30**: ✅ **AI MODEL CONFIGURATION CRITICAL FIX COMPLETED** - Resolved critical user feedback issue preventing AI features from recognizing standard Claude model names ("sonnet", "haiku", "opus"). Implemented comprehensive model mapping system (`src/utils/model-mapping.ts`) providing consistent model name resolution, pricing information, and validation across infrastructure. Updated CostEstimator and ClaudeOrchestrator to use centralized mapping. Enhanced error messages with specific suggestions. Test suite expanded to 156/156 tests passing (100% success rate). **USER FEEDBACK BLOCKER RESOLVED**: AI features now fully functional with standard model names, enabling proper cost estimation and logical test generation.
 - **2025-06-29**: ✅ **THIRD AUTONOMOUS DEVELOPMENT SESSION VALIDATION COMPLETED** - Executed third carry-on command session to re-validate stable production status. Confirmed no pending development tasks in REFACTORING_PLAN.md or implementation plans, verified test suite maintains 137/137 tests passing (100% success rate), and validated build process functionality. Production-ready status reconfirmed with all systems operational. User feedback issues remain resolved (ES Module support, test content generation enhancement, Python export extraction fixes). Infrastructure verified as stable and ready for broader deployment with ongoing maintenance monitoring.
 - **2025-06-29**: ✅ **ES MODULE SUPPORT ENHANCED AND VALIDATED** - Autonomous session investigated critical user-reported issue where generated tests used CommonJS require() syntax despite projects being ES modules. **DISCOVERY**: ES Module support was already fully implemented in the infrastructure (ProjectAnalyzer detects "type": "module", TestTemplateEngine generates proper import statements with .js extensions). Found and fixed minor bug in React component templates that used hardcoded 'Component' name instead of actual export names. Created comprehensive test suite (12 new tests) validating all ES Module scenarios. End-to-end validation confirms infrastructure correctly generates ES module imports for JavaScript, TypeScript, React, and Express templates. Maintains 137/137 test success rate (100%). **USER FEEDBACK ISSUE RESOLVED**: ES Module support fully functional and extensively tested.
 - **2025-06-29**: ✅ **SECOND AUTONOMOUS DEVELOPMENT SESSION VALIDATION COMPLETED** - Executed follow-up carry-on command session to re-validate production-ready status. Confirmed no pending development tasks in planning documents, verified test suite maintains 125/125 tests passing (100% success rate), and validated that user feedback issues remain resolved. Project status confirmed as stable production-ready maintenance mode with no immediate development needs. All core functionality implemented, tested, and addressing real-world usage requirements
@@ -45,7 +53,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 
 **Target Users**: AI agents, developers, teams needing rapid test implementation
 **Business Value**: Reduces testing setup from days to minutes while maintaining quality
-**Current Status**: Production-ready v2.0 with all planned development completed and critical user feedback addressed. Successfully validated through autonomous development sessions (2025-06-29) confirming 137/137 tests passing (100% success rate). ES Module support fully validated and functional. Major enhancement to test content generation transforms empty test shells into comprehensive, executable validation suites (50-175 lines vs 10-20 placeholder lines). Critical Python export extraction bug fixed. Features complete CLI with enhanced TestTemplateEngine, robust export detection, and optimized Claude Code CLI integration. All refactoring and implementation tasks completed. Project in maintenance mode with significantly improved test quality addressing real-world usage issues
+**Current Status**: Production-ready v2.0 with comprehensive file chunking support and polished CLI experience (2025-06-30). Critical file chunking system implemented resolving large file token limit issues (4k+ tokens). ChunkedAITaskPreparation enables AI processing of complex services up to 9,507+ tokens through intelligent chunking with context preservation. All AI features fully operational including logical test generation with `--only-logical` flag. Test suite maintains 156/156 tests passing (100% success rate). AI model configuration system fixed - standard Claude model names properly recognized. ES Module support fully functional. Enhanced test content generation produces 50-175 lines of executable tests. **CLI USER EXPERIENCE POLISHED**: Commander.js error messages fixed for clean `--version` and `--help` output. Project in excellent maintenance mode with all major user feedback addressed.
 
 ### Key Success Metrics
 - Zero modification of target projects (100% decoupled approach)
@@ -92,6 +100,8 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 - **Watch Mode** (`src/cli/commands/watch.ts`): Real-time file monitoring with debounced incremental test generation
 - **FileWatcher** (`src/utils/FileWatcher.ts`): Cross-platform file system monitoring with intelligent filtering
 - **Debouncer** (`src/utils/Debouncer.ts`): Smart event batching utility for reducing excessive processing
+- **FileChunker** (`src/utils/file-chunking.ts`): Intelligent file chunking for large files exceeding AI token limits with context preservation
+- **ChunkedAITaskPreparation** (`src/ai/ChunkedAITaskPreparation.ts`): Enhanced AI task preparation supporting multi-chunk processing with result aggregation
 
 ### Data Models & Entities
 - **ProjectAnalysis**: Comprehensive project structure analysis with complexity metrics
@@ -125,7 +135,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 
 ### Development Practices
 - **Branch strategy**: Main branch with feature branches and automated testing
-- **Code review process**: TypeScript strict mode, comprehensive test suite (116/116 tests passing - 100% success rate)
+- **Code review process**: TypeScript strict mode, comprehensive test suite (156/156 tests passing - 100% success rate)
 - **Deployment process**: NPM package distribution with semantic versioning
 
 ## ⚠️ Important Constraints & Gotchas
@@ -145,7 +155,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 ### Key Files & Locations
 - **AI agent entry point**: `AI_AGENT_GUIDE.md` - Protected, stable primary entry point
 - **AI agent backup**: `AI_AGENT_GUIDE.template.md` - Backup template for restoration
-- **CLI entry point**: `src/cli/index.ts` - Main command interface
+- **CLI entry point**: `src/cli/index.ts` - Main command interface with polished error handling
 - **Core analysis logic**: `src/analyzers/ProjectAnalyzer.ts` - Project detection engine
 - **Test gap analysis**: `src/analyzers/TestGapAnalyzer.ts` - Orchestrator for gap analysis (438 lines)
 - **Gap analysis components**: `src/analyzers/gap-analysis/` - Focused analyzer classes:
@@ -168,10 +178,17 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 - **Incremental system**: `src/state/` - State management and change detection
 - **Watch mode**: `src/cli/commands/watch.ts` - Real-time file monitoring and test generation
 - **File watching utilities**: `src/utils/FileWatcher.ts`, `src/utils/Debouncer.ts` - File system monitoring
+- **File chunking system**: `src/utils/file-chunking.ts` - Intelligent chunking for large files with token counting and context preservation
+- **Chunked AI processing**: `src/ai/ChunkedAITaskPreparation.ts` - Enhanced AI task preparation with multi-chunk support and result aggregation
 - **Error handling**: `src/utils/error-handling.ts` - Standardized error handling system with custom error classes and wrapper functions
 - **Configuration system**: `src/types/config.ts` - Complete TypeScript interfaces for .claude-testing.config.json
 - **Configuration validation**: `src/utils/config-validation.ts` - Robust validation with detailed error messages and warnings
 - **Configuration schema**: `schemas/claude-testing.config.schema.json` - JSON schema for IDE support and validation
+- **Type system**: `src/types/` - Comprehensive discriminated union types for all operations:
+  - `analysis-types.ts` - Analysis operations with AnalysisInput/AnalysisResult discriminated unions
+  - `coverage-types.ts` - Coverage operations with CoverageInput/CoverageParseResult discriminated unions
+  - `generation-types.ts` - Test generation with GenerationInput/GenerationResult discriminated unions
+  - `reporting-types.ts` - Report generation with ReportInput/ReportResult discriminated unions
 - **Import utilities**: `src/utils/common-imports.ts`, `src/utils/analyzer-imports.ts` - Consolidated import management
 - **Configuration**: `tsconfig.json`, `jest.config.js`, `package.json`
 
@@ -184,7 +201,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 ## 🎯 Current Priorities & Roadmap
 
 ### Active Development Status
-**CONFIRMED PRODUCTION-READY MAINTENANCE MODE** (2025-06-29): Status re-validated through third autonomous development session. No pending development tasks found in planning documents. Test suite verified at 137/137 tests passing (100% success rate), build process functional, CLI operational. All user feedback issues remain resolved (ES Module support, test content generation enhancement, Python export extraction fixes). Infrastructure confirmed stable and production-ready with no immediate development needs. All core functionality implemented, tested, and addressing real-world usage requirements. Only long-term investigation-phase items (6+ hours) and epic architectural enhancements (20-40+ hours) remain for future development cycles. Current status: Ready for broader deployment and ongoing maintenance monitoring.
+**PRODUCTION MAINTENANCE MODE** (2025-06-30): Production-ready infrastructure validated through multiple autonomous development sessions with recent discriminated union types enhancement. Comprehensive analysis confirmed no pending development tasks suitable for standard sessions (60-80 minutes). All remaining work consists of investigation-phase items (6-8+ hours) or architectural epics (20-40+ hours). Critical features completed: file chunking for large files (9,507+ tokens), CLI error message fixes, test execution documentation, logical test generation, AI model configuration, and discriminated union types system. Test suite maintains 156/156 tests passing (100% success rate). **STATUS CONFIRMED**: Excellent production maintenance mode with all critical user feedback addressed, enhanced type safety established, and infrastructure ready for broader deployment with ongoing maintenance monitoring.
 
 📖 **See roadmap**: [`/docs/planning/roadmap.md`](./docs/planning/roadmap.md)
 📖 **See AI integration plan**: [`AI_POWERED_TEST_GENERATION_PLAN.md`](./AI_POWERED_TEST_GENERATION_PLAN.md)
@@ -228,7 +245,7 @@ Should additional development be needed, potential areas include:
 3. Check relevant `/docs/` modules for detailed information
 4. Follow established patterns and conventions
 5. Update documentation after changes
-6. **Current phase**: Confirmed production-ready maintenance mode - status triple-validated through autonomous sessions with no pending development tasks, 137/137 tests passing, build process functional, and all user feedback issues resolved
+6. **Current phase**: Confirmed production-ready maintenance mode - status quadruple-validated through autonomous sessions with no pending development tasks suitable for standard sessions, 156/156 tests passing, build process functional, and all critical user feedback issues resolved
 
 ### Quick Reference
 - **Primary entry point**: [`AI_AGENT_GUIDE.md`](./AI_AGENT_GUIDE.md) - Protected, stable AI agent guide

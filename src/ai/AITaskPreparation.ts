@@ -72,13 +72,11 @@ export class AITaskPreparation {
 
   constructor(private config: {
     model?: string;
-    maxTokensPerTask?: number;
     maxConcurrentTasks?: number;
     minComplexityForAI?: number;
   } = {}) {
     this.config = {
       model: this.DEFAULT_MODEL,
-      maxTokensPerTask: 4000,
       maxConcurrentTasks: 3,
       minComplexityForAI: 5,
       ...config
@@ -133,12 +131,6 @@ export class AITaskPreparation {
       // Estimate tokens and cost
       const estimatedTokens = this.estimateTokens(prompt, context);
       const estimatedCost = this.estimateCost(estimatedTokens);
-
-      // Skip if exceeds token limit
-      if (estimatedTokens > (this.config.maxTokensPerTask || 4000)) {
-        console.warn(`Skipping ${gap.sourceFile}: exceeds token limit (${estimatedTokens} tokens)`);
-        return null;
-      }
 
       const task: AITask = {
         id: `task-${++this.taskIdCounter}`,

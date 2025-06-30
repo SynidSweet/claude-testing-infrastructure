@@ -9,6 +9,13 @@
  */
 
 import { TestGapAnalysisResult, TestGap } from '../analyzers/TestGapAnalyzer';
+import { 
+  getModelInfo, 
+  resolveModelName, 
+  selectOptimalModel, 
+  validateModelConfiguration,
+  getModelPricing 
+} from '../utils/model-mapping';
 
 export interface ModelPricing {
   name: string;
@@ -62,29 +69,6 @@ export interface UsageReport {
 }
 
 export class CostEstimator {
-  private static readonly MODELS: Record<string, ModelPricing> = {
-    'claude-3-opus': {
-      name: 'Claude 3 Opus',
-      inputCostPer1K: 0.015,
-      outputCostPer1K: 0.075,
-      contextWindow: 200000,
-      bestForComplexity: [8, 10]
-    },
-    'claude-3-sonnet': {
-      name: 'Claude 3 Sonnet',
-      inputCostPer1K: 0.003,
-      outputCostPer1K: 0.015,
-      contextWindow: 200000,
-      bestForComplexity: [5, 8]
-    },
-    'claude-3-haiku': {
-      name: 'Claude 3 Haiku',
-      inputCostPer1K: 0.00025,
-      outputCostPer1K: 0.00125,
-      contextWindow: 200000,
-      bestForComplexity: [1, 5]
-    }
-  };
 
   private static readonly TEST_OUTPUT_MULTIPLIER = {
     simple: 1.5,    // Output is 1.5x input for simple tests
@@ -100,7 +84,7 @@ export class CostEstimator {
     cost: number;
   }> = [];
 
-  constructor(private defaultModel = 'claude-3-sonnet') {}
+  constructor(private defaultModel = 'claude-3-5-sonnet-20241022') {}
 
   /**
    * Estimate cost for a gap analysis report
@@ -187,7 +171,8 @@ export class CostEstimator {
     const totalTokens = inputTokens + outputTokens;
     
     // Check against model limits
-    const modelLimit = CostEstimator.MODELS[this.defaultModel]?.contextWindow || 200000;
+    const modelInfo = getModelInfo(this.defaultModel);
+    const modelLimit = modelInfo?.contextWindow || 200000;
     const withinLimit = totalTokens < modelLimit * 0.8; // Keep 20% buffer
     
     return {
@@ -202,9 +187,17 @@ export class CostEstimator {
    * Calculate cost for token usage
    */
   private calculateCost(tokens: TokenEstimate, model: string): number {
-    const pricing = CostEstimator.MODELS[model];
+    // First resolve the model name
+    const resolvedModel = resolveModelName(model);
+    if (!resolvedModel) {
+      const validation = validateModelConfiguration(model);
+      console.warn(`${validation.error}. ${validation.suggestion}`);
+      return tokens.totalTokens * 0.01 / 1000; // Fallback
+    }
+
+    const pricing = getModelPricing(resolvedModel);
     if (!pricing) {
-      console.warn(`Unknown model: ${model}, using default pricing`);
+      console.warn(`No pricing information for model: ${resolvedModel}, using default pricing`);
       return tokens.totalTokens * 0.01 / 1000; // Fallback
     }
     
@@ -218,15 +211,7 @@ export class CostEstimator {
    * Select optimal model based on complexity
    */
   private selectOptimalModel(complexity: number): string {
-    // Find the best model for this complexity level
-    for (const [modelId, pricing] of Object.entries(CostEstimator.MODELS)) {
-      const [min, max] = pricing.bestForComplexity;
-      if (complexity >= min && complexity <= max) {
-        return modelId;
-      }
-    }
-    
-    return this.defaultModel;
+    return selectOptimalModel(complexity, this.defaultModel);
   }
 
   /**
@@ -450,7 +435,10 @@ export class CostEstimator {
       );
     }
 
-    const opusCount = allocations.filter(a => a.model === 'claude-3-opus' && a.includeInBatch).length;
+    const opusCount = allocations.filter(a => {
+      const resolvedModel = resolveModelName(a.model);
+      return resolvedModel === 'claude-3-opus-20240229' && a.includeInBatch;
+    }).length;
     
     if (opusCount > included * 0.3) {
       recommendations.push(

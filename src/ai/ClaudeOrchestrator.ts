@@ -11,8 +11,10 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { AITask, AITaskBatch, AITaskResult } from './AITaskPreparation';
+import { ChunkedAITask } from './ChunkedAITaskPreparation';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { validateModelConfiguration } from '../utils/model-mapping';
 
 export interface ClaudeOrchestratorConfig {
   maxConcurrent?: number;
@@ -64,6 +66,27 @@ export class ClaudeOrchestrator extends EventEmitter {
       ...config
     };
     
+    // Validate model configuration on construction
+    if (this.config.model) {
+      const validation = validateModelConfiguration(this.config.model);
+      if (!validation.valid) {
+        console.warn(`ClaudeOrchestrator: ${validation.error}. ${validation.suggestion}`);
+        this.config.model = 'claude-3-5-sonnet-20241022'; // Fallback to default
+      } else {
+        this.config.model = validation.resolvedName!;
+      }
+    }
+    
+    if (this.config.fallbackModel) {
+      const validation = validateModelConfiguration(this.config.fallbackModel);
+      if (!validation.valid) {
+        console.warn(`ClaudeOrchestrator fallback model: ${validation.error}. ${validation.suggestion}`);
+        this.config.fallbackModel = 'claude-3-haiku-20240307'; // Fallback to cheapest
+      } else {
+        this.config.fallbackModel = validation.resolvedName!;
+      }
+    }
+    
     this.stats = this.resetStats();
   }
 
@@ -100,6 +123,11 @@ export class ClaudeOrchestrator extends EventEmitter {
 
       // Wait for all tasks to complete
       await Promise.all(promises);
+      
+      // Handle chunked results merging
+      if (this.hasChunkedTasks(batch)) {
+        await this.mergeChunkedResults(batch.tasks as ChunkedAITask[]);
+      }
       
       this.stats.endTime = new Date();
       this.emit('batch:complete', { results: this.results, stats: this.stats });
@@ -271,6 +299,54 @@ export class ClaudeOrchestrator extends EventEmitter {
         }
       });
     });
+  }
+
+  /**
+   * Check if batch contains chunked tasks
+   */
+  private hasChunkedTasks(batch: AITaskBatch): boolean {
+    return batch.tasks.some(task => 
+      (task as ChunkedAITask).isChunked !== undefined
+    );
+  }
+
+  /**
+   * Merge results from chunked tasks
+   */
+  private async mergeChunkedResults(tasks: ChunkedAITask[]): Promise<void> {
+    console.log('Merging chunked results...');
+    
+    // Get successful results
+    const successfulResults = new Map<string, string>();
+    this.results.forEach(result => {
+      if (result.success && result.result?.generatedTests) {
+        successfulResults.set(result.taskId, result.result.generatedTests);
+      }
+    });
+
+    // Merge chunked results
+    const mergedResults = ClaudeOrchestrator.mergeChunkedResults(tasks, successfulResults);
+    
+    // Write merged results to files
+    for (const [sourceFile, mergedContent] of mergedResults) {
+      const task = tasks.find(t => t.sourceFile === sourceFile);
+      if (task) {
+        console.log(`Writing merged results for ${sourceFile}`);
+        await this.saveGeneratedTests(task, mergedContent);
+      }
+    }
+  }
+
+  /**
+   * Static method to merge chunked results
+   */
+  private static mergeChunkedResults(
+    tasks: ChunkedAITask[],
+    results: Map<string, string>
+  ): Map<string, string> {
+    // Dynamic import to avoid circular dependency
+    const { ChunkedAITaskPreparation } = require('./ChunkedAITaskPreparation');
+    return ChunkedAITaskPreparation.mergeChunkedResults(tasks, results);
   }
 
   /**

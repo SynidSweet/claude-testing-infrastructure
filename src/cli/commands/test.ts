@@ -1,6 +1,11 @@
 import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
-import { ProjectAnalyzer, StructuralTestGenerator, TestGeneratorConfig } from '../../utils/analyzer-imports';
+import { ProjectAnalyzer, StructuralTestGenerator, TestGeneratorConfig, TestGapAnalyzer } from '../../utils/analyzer-imports';
 import { handleAnalysisOperation, handleValidation, formatErrorMessage } from '../../utils/error-handling';
+import { 
+  ChunkedAITaskPreparation,
+  ClaudeOrchestrator,
+  CostEstimator
+} from '../../ai';
 
 interface TestOptions {
   config?: string;
@@ -10,6 +15,8 @@ interface TestOptions {
   update?: boolean;
   force?: boolean;
   verbose?: boolean;
+  enableChunking?: boolean;
+  chunkSize?: number;
 }
 
 export async function testCommand(projectPath: string, options: TestOptions = {}): Promise<void> {
@@ -149,8 +156,7 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
     }
     
     if (options.onlyLogical) {
-      console.log(chalk.yellow('\n🤖 AI-powered logical test generation coming soon!'));
-      console.log(chalk.gray('This feature will analyze your code logic and generate intelligent test cases.'));
+      await generateLogicalTests(projectPath, analysis, config, options);
     }
     
   } catch (error) {
@@ -244,5 +250,160 @@ async function writeGeneratedTests(tests: any[], verbose = false): Promise<void>
       logger.error(`Failed to write test file: ${test.testPath}`, { error });
       throw error;
     }
+  }
+}
+
+async function generateLogicalTests(
+  projectPath: string, 
+  analysis: any, 
+  config: TestGeneratorConfig, 
+  options: TestOptions
+): Promise<void> {
+  const spinner = ora('🤖 Starting AI-powered logical test generation...').start();
+  
+  try {
+    // Step 1: Generate structural tests first (if they don't exist)
+    spinner.text = 'Ensuring structural tests exist...';
+    const structuralGenerator = new StructuralTestGenerator(config, analysis, {
+      generateMocks: true,
+      generateSetup: true,
+      skipExistingTests: true, // Don't overwrite existing tests
+      skipValidation: true
+    });
+    
+    const generationResult = await structuralGenerator.generateAllTests();
+    
+    if (!generationResult.success) {
+      throw new Error(`Failed to generate base structural tests: ${generationResult.errors.join(', ')}`);
+    }
+    
+    // Step 2: Analyze test gaps
+    spinner.text = 'Analyzing test gaps...';
+    const gapAnalyzer = new TestGapAnalyzer(analysis, {
+      complexityThreshold: 3
+    });
+    
+    const gapReport = await gapAnalyzer.analyzeTestGaps(generationResult);
+    
+    // Check if we have any gaps that need AI generation
+    if (gapReport.gaps.length === 0) {
+      spinner.succeed('No test gaps found that require AI generation!');
+      console.log(chalk.green('\n✓ Your structural tests appear comprehensive.'));
+      console.log(chalk.gray('Consider running periodic gap analysis as your code evolves.'));
+      return;
+    }
+
+    spinner.succeed(`Found ${gapReport.gaps.length} files requiring logical tests`);
+    
+    // Step 3: Check Claude CLI availability
+    try {
+      const { execSync } = require('child_process');
+      execSync('claude --version', { stdio: 'ignore' });
+    } catch {
+      throw new Error('Claude Code CLI not found. Please install it first or run with --only-structural flag.');
+    }
+
+    // Step 4: Prepare AI tasks (with chunking support)
+    spinner.start('Preparing AI tasks...');
+    const taskPrep = new ChunkedAITaskPreparation({
+      model: 'sonnet', // Default to balanced model
+      maxConcurrentTasks: 3,
+      minComplexityForAI: 3,
+      enableChunking: options.enableChunking ?? true, // Enable by default
+      chunkTokenLimit: options.chunkSize || 3500
+    });
+
+    const batch = await taskPrep.prepareTasks(gapReport);
+
+    // Step 5: Cost estimation
+    spinner.text = 'Estimating costs...';
+    const estimator = new CostEstimator('sonnet');
+    const costReport = estimator.estimateReportCost(gapReport);
+
+    console.log('\n' + chalk.blue('💰 Cost Estimation:'));
+    console.log(`Total estimated cost: ${chalk.green(`$${costReport.totalCost.toFixed(2)}`)}`);
+    console.log('By complexity:');
+    Object.entries(costReport.byComplexity).forEach(([level, data]) => {
+      if (data.count > 0) {
+        console.log(`  ${level}: ${data.count} files, $${data.cost.toFixed(2)}`);
+      }
+    });
+
+    // Show recommendations
+    if (costReport.recommendations.length > 0) {
+      console.log('\n' + chalk.blue('💡 Recommendations:'));
+      costReport.recommendations.forEach(rec => {
+        console.log(`  • ${rec}`);
+      });
+    }
+
+    // Step 6: Execute AI generation
+    console.log('\n' + chalk.blue('🤖 Starting AI test generation...'));
+    
+    const orchestrator = new ClaudeOrchestrator({
+      maxConcurrent: 3,
+      model: 'sonnet',
+      fallbackModel: 'haiku',
+      timeout: 900000, // 15 minutes
+      verbose: options.verbose || false
+    });
+
+    // Set up progress tracking
+    let completed = 0;
+    const total = batch.tasks.length;
+    
+    orchestrator.on('task:complete', ({ task }) => {
+      completed++;
+      spinner.text = `Generating tests... (${completed}/${total}) - ${path.basename(task.sourceFile)}`;
+    });
+
+    orchestrator.on('task:failed', ({ task, error }) => {
+      logger.error(`Failed to generate tests for ${task.sourceFile}: ${error}`);
+    });
+
+    // Process the batch
+    spinner.text = `Generating logical tests... (0/${total})`;
+    const results = await orchestrator.processBatch(batch);
+
+    // Step 7: Show results
+    const successfulResults = results.filter(r => r.success);
+    const failedResults = results.filter(r => !r.success);
+    
+    spinner.succeed(`Generated ${successfulResults.length} logical test files`);
+    
+    if (failedResults.length > 0) {
+      console.log(chalk.yellow(`\n⚠️  ${failedResults.length} files failed to generate:`));
+      failedResults.forEach(result => {
+        console.log(chalk.yellow(`  • ${result.taskId}: ${result.error}`));
+      });
+    }
+
+    // Generate execution report
+    const report = orchestrator.generateReport();
+    console.log('\n' + chalk.blue('📊 AI Generation Report:'));
+    console.log(report);
+
+    // Track usage for future reporting
+    const orchStats = (orchestrator as any).stats;
+    estimator.trackUsage(
+      projectPath,
+      'sonnet',
+      orchStats.totalTokensUsed,
+      orchStats.totalCost
+    );
+
+    // Success summary
+    console.log('\n' + chalk.green('✓ Logical test generation complete!'));
+    console.log(`  Tests enhanced: ${successfulResults.length}${failedResults.length > 0 ? ` (${failedResults.length} failed)` : ''}`);
+    console.log(`  Total cost: $${orchStats.totalCost.toFixed(2)}`);
+    console.log(`  Tokens used: ${orchStats.totalTokensUsed.toLocaleString()}`);
+    console.log(`  Duration: ${((orchStats.endTime!.getTime() - orchStats.startTime.getTime()) / 1000).toFixed(1)}s`);
+    
+    console.log(chalk.cyan(`\n📁 Enhanced tests saved to: ${config.outputPath}`));
+    console.log(chalk.green('\n✨ Logical tests ready for execution!\n'));
+
+  } catch (error) {
+    spinner.fail('Logical test generation failed');
+    throw error;
   }
 }

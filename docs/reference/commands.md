@@ -1,6 +1,6 @@
 # Commands Reference
 
-*Last updated: 2025-06-29 | Updated by: /document command | Configuration validation flag added*
+*Last updated: 2025-06-30 | Updated by: /document command | File Chunking CLI Flags Added*
 
 ## 🆕 Core CLI Commands (TypeScript Infrastructure)
 ```bash
@@ -15,11 +15,13 @@ node dist/cli/index.js analyze <path> --validate-config # Validate .claude-testi
 node dist/cli/index.js test <path>                    # Generate comprehensive tests (structural)
 node dist/cli/index.js test <path> --verbose          # Show detailed test generation information
 node dist/cli/index.js test <path> --only-structural  # Generate only structural tests (default)
-node dist/cli/index.js test <path> --only-logical     # Generate only AI-powered tests (coming soon)
+node dist/cli/index.js test <path> --only-logical     # Generate only AI-powered tests ✅ IMPLEMENTED
 node dist/cli/index.js test <path> --coverage         # Include coverage analysis
 node dist/cli/index.js test <path> --config config.json # Use custom configuration
 node dist/cli/index.js test <path> --update           # Update existing tests (don't skip)
 node dist/cli/index.js test <path> --force            # Skip validation checks (e.g., test-to-source ratio)
+node dist/cli/index.js test <path> --enable-chunking  # Enable file chunking for large files (default: true)
+node dist/cli/index.js test <path> --chunk-size 4000  # Set custom chunk size in tokens (default: 3500)
 
 # Test Execution ✅ IMPLEMENTED
 node dist/cli/index.js run <path>                     # Run generated tests

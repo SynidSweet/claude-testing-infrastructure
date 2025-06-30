@@ -2,7 +2,7 @@
 
 *Complete setup and development practices for the Claude Testing Infrastructure*
 
-*Last updated: 2025-06-29 | Production-ready maintenance mode triple-validated - 137/137 tests passing*
+*Last updated: 2025-06-30 | CLI user experience enhanced - 156/156 tests passing*
 
 ## 🔒 CRITICAL: Infrastructure Usage
 
@@ -31,7 +31,7 @@ cd claude-testing-infrastructure
 npm install
 npm run build
 
-# 3. Verify installation
+# 3. Verify installation (clean output expected)
 node dist/cli/index.js --version
 node dist/cli/index.js --help
 ```

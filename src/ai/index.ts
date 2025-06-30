@@ -5,6 +5,7 @@
  */
 
 export * from './AITaskPreparation';
+export * from './ChunkedAITaskPreparation';
 export * from './ClaudeOrchestrator';
 export * from './PromptTemplates';
 export * from './CostEstimator';
@@ -17,6 +18,11 @@ export type {
   TaskContext,
   FrameworkInfo
 } from './AITaskPreparation';
+
+export type {
+  ChunkedAITask,
+  ChunkProcessingProgress
+} from './ChunkedAITaskPreparation';
 
 export type {
   ProcessResult,

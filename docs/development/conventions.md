@@ -1,6 +1,6 @@
 # Development Patterns & Conventions
 
-*Last updated: 2025-06-29 | Updated by: /document command | Error handling patterns and validation patterns added*
+*Last updated: 2025-06-30 | Updated by: /document-all command | Discriminated union types patterns added*
 
 ## Naming Conventions
 
@@ -128,6 +128,54 @@ src/
 - **Implementation**: Commander.js with consistent option descriptions
 - **Validation**: Boolean flags converted with `!!` for type safety
 - **Benefits**: Predictable CLI experience, reduced cognitive load
+
+## Type System Patterns ✅ NEW (2025-06-30)
+
+### Discriminated Union Types
+The infrastructure uses discriminated union types for enhanced type safety and AI comprehension:
+
+#### Pattern Implementation
+```typescript
+// Define discriminated union with 'type' field
+type OperationInput =
+  | { type: 'file'; path: string; encoding?: 'utf8' | 'binary' }
+  | { type: 'data'; content: string; format: 'json' | 'text' }
+  | { type: 'stream'; stream: ReadableStream; metadata?: object };
+
+// Create type guards with descriptive names
+export function isFileInput(input: OperationInput): input is Extract<OperationInput, { type: 'file' }> {
+  return input.type === 'file';
+}
+
+export function isDataInput(input: OperationInput): input is Extract<OperationInput, { type: 'data' }> {
+  return input.type === 'data';
+}
+
+// Use type guards for safe runtime checking
+function processInput(input: OperationInput) {
+  if (isFileInput(input)) {
+    // TypeScript knows input has 'path' and optional 'encoding'
+    return processFile(input.path, input.encoding);
+  } else if (isDataInput(input)) {
+    // TypeScript knows input has 'content' and 'format'
+    return processData(input.content, input.format);
+  }
+  // Handle remaining cases...
+}
+```
+
+#### Type Guard Naming Convention
+- **Prefix with domain**: `isAnalysisInput()`, `isCoverageInput()`, `isGenerationInput()`
+- **Include operation context**: `isAnalysisSuccessResult()`, `isCoverageErrorResult()`
+- **Avoid generic names**: Use `isCoverageSuccessResult()` not `isSuccessResult()`
+
+#### Benefits
+- **AI Comprehension**: Self-documenting type definitions that AI agents can analyze
+- **Type Safety**: Compile-time guarantees about data structure
+- **IntelliSense**: Better autocomplete and error detection
+- **Runtime Safety**: Type guards enable safe runtime type checking
+
+📖 **See detailed type documentation**: [`/docs/features/discriminated-union-types.md`](../features/discriminated-union-types.md)
 
 ## Error Handling Approach
 ### Graceful Degradation

@@ -203,6 +203,228 @@ node dist/cli/index.js incremental /path/to/project --stats
     node dist/cli/index.js run . --coverage
 ```
 
+## 🧪 Test Execution
+
+### Understanding Test Separation
+
+The Claude Testing Infrastructure generates tests in a completely separate `.claude-testing/` directory within your target project. This design provides several key benefits:
+
+- **Independence**: Tests run independently of your project's configuration
+- **No conflicts**: Avoids conflicts with existing test setups
+- **Clean separation**: Easy to manage, update, or remove generated tests
+- **Version control**: Simple to include/exclude from git (.gitignore)
+
+### Running Generated Tests
+
+#### Method 1: Using the Infrastructure Runner (Recommended)
+```bash
+# Run all generated tests with coverage
+node dist/cli/index.js run /path/to/your/project --coverage
+
+# Run tests without coverage
+node dist/cli/index.js run /path/to/your/project
+
+# Run with specific reporter
+node dist/cli/index.js run /path/to/your/project --reporter junit
+
+# Generate coverage in multiple formats
+node dist/cli/index.js run /path/to/your/project --coverage --format html,json
+```
+
+#### Method 2: Direct Execution from .claude-testing Directory
+```bash
+# Navigate to the generated tests
+cd /path/to/your/project/.claude-testing
+
+# For JavaScript/TypeScript projects with Jest
+npx jest
+
+# With coverage
+npx jest --coverage
+
+# For Python projects with pytest
+pytest
+
+# With coverage
+pytest --cov=../src --cov-report=html
+```
+
+#### Method 3: NPM Scripts Integration
+Add to your project's `package.json`:
+```json
+{
+  "scripts": {
+    "test:ai": "cd .claude-testing && jest",
+    "test:ai:coverage": "cd .claude-testing && jest --coverage",
+    "test:all": "npm test && npm run test:ai"
+  }
+}
+```
+
+### CI/CD Pipeline Integration
+
+#### GitHub Actions Example
+```yaml
+name: AI-Generated Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Run your existing tests
+      - name: Run Project Tests
+        run: npm test
+      
+      # Run AI-generated tests separately
+      - name: Run AI-Generated Tests
+        run: |
+          cd .claude-testing
+          npm install
+          npm test -- --coverage
+      
+      # Or use the infrastructure runner
+      - name: Run Tests via Infrastructure
+        run: |
+          git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
+          cd claude-testing-infrastructure
+          npm install && npm run build
+          node dist/cli/index.js run ../${{ github.workspace }} --coverage
+```
+
+#### GitLab CI Example
+```yaml
+stages:
+  - test
+  - ai-test
+
+test:project:
+  stage: test
+  script:
+    - npm install
+    - npm test
+
+test:ai-generated:
+  stage: ai-test
+  script:
+    - cd .claude-testing
+    - npm install
+    - npm test -- --coverage
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: .claude-testing/coverage/cobertura-coverage.xml
+```
+
+### Jest Configuration for External Tests
+
+If you need to customize Jest behavior for the generated tests, create `.claude-testing/jest.config.js`:
+
+```javascript
+module.exports = {
+  // Point to the parent project's source files
+  rootDir: '..',
+  
+  // Look for tests only in .claude-testing
+  testMatch: ['<rootDir>/.claude-testing/**/*.test.{js,ts}'],
+  
+  // Coverage from parent src directory
+  collectCoverageFrom: [
+    '<rootDir>/src/**/*.{js,ts,jsx,tsx}',
+    '!<rootDir>/src/**/*.d.ts',
+  ],
+  
+  // Use parent's node_modules
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  
+  // Coverage output in .claude-testing
+  coverageDirectory: '<rootDir>/.claude-testing/coverage',
+};
+```
+
+### Python pytest Configuration
+
+For Python projects, create `.claude-testing/pytest.ini`:
+
+```ini
+[tool:pytest]
+# Test discovery
+testpaths = .
+python_files = test_*.py *_test.py
+
+# Coverage settings
+addopts = 
+    --cov=../src
+    --cov-report=html:.claude-testing/htmlcov
+    --cov-report=term-missing
+    --cov-report=xml:.claude-testing/coverage.xml
+
+# Import parent project
+pythonpath = ..
+```
+
+### Troubleshooting Test Execution
+
+#### Common Issues and Solutions
+
+**Issue: "Module not found" errors**
+```bash
+# Solution 1: Install dependencies in .claude-testing
+cd .claude-testing
+npm install
+
+# Solution 2: Use parent's node_modules
+export NODE_PATH=../node_modules
+jest
+```
+
+**Issue: Python import errors**
+```bash
+# Solution 1: Add parent to Python path
+export PYTHONPATH="${PYTHONPATH}:$(dirname $(pwd))"
+pytest
+
+# Solution 2: Use pytest's pythonpath
+pytest --pythonpath=..
+```
+
+**Issue: Coverage not finding source files**
+```bash
+# For Jest: Ensure correct rootDir in jest.config.js
+# For pytest: Use absolute paths
+pytest --cov=$(realpath ../src)
+```
+
+**Issue: Tests timing out**
+```bash
+# Increase Jest timeout
+jest --testTimeout=10000
+
+# For pytest
+pytest --timeout=30
+```
+
+### Benefits of Separated Test Execution
+
+1. **No Configuration Conflicts**: Your project's test configuration remains untouched
+2. **Independent Updates**: Regenerate tests without affecting existing test suite
+3. **Gradual Adoption**: Run AI tests alongside existing tests during migration
+4. **Clear Metrics**: Separate coverage reports for AI-generated vs manual tests
+5. **Easy Cleanup**: Simply delete `.claude-testing/` to remove all generated tests
+
+### Best Practices
+
+- **Regular Regeneration**: Use incremental updates to keep tests current
+- **Coverage Monitoring**: Track coverage trends separately for AI tests
+- **CI Integration**: Run AI tests in parallel with existing tests
+- **Local Development**: Use watch mode for automatic test updates
+- **Version Control**: Decide whether to commit `.claude-testing/` based on team preferences
+
 ## 🔧 Configuration
 
 Create `.claude-testing.config.json` in your **target project root** (not in the infrastructure directory):

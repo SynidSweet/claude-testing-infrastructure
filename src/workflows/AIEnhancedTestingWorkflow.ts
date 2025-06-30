@@ -18,7 +18,7 @@ import { TestRunnerFactory } from '../runners/TestRunnerFactory';
 import { TestGapAnalyzer } from '../analyzers/TestGapAnalyzer';
 // import { CoverageReporter } from '../runners/CoverageReporter'; // Not currently used
 import {
-  AITaskPreparation,
+  ChunkedAITaskPreparation,
   ClaudeOrchestrator,
   CostEstimator
 } from '../ai';
@@ -289,11 +289,12 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       return { successful: 0, failed: 0, totalCost: 0 };
     }
 
-    // Prepare AI tasks
-    const taskPrep = new AITaskPreparation({
+    // Prepare AI tasks with chunking support
+    const taskPrep = new ChunkedAITaskPreparation({
       model: `claude-3-${this.config.aiModel}`,
       maxConcurrentTasks: this.config.aiConcurrency || 3,
-      minComplexityForAI: this.config.minComplexityForAI || 5
+      minComplexityForAI: this.config.minComplexityForAI || 5,
+      enableChunking: true
     });
 
     let batch = await taskPrep.prepareTasks(gapReport);

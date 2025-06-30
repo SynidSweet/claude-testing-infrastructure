@@ -2,6 +2,8 @@
 
 *TypeScript interfaces and classes for Claude Testing Infrastructure*
 
+*Last updated: 2025-06-30 | Added discriminated union types system*
+
 ## 🏗️ Core Architecture
 
 The infrastructure is built around four main systems:
@@ -9,6 +11,37 @@ The infrastructure is built around four main systems:
 2. **TestGenerator** - Generates test files from analysis
 3. **TestRunner** - Executes generated tests
 4. **CLI** - Command-line interface
+
+## 🔧 Type System
+
+### Discriminated Union Types
+
+The infrastructure uses comprehensive discriminated union types for enhanced type safety and AI comprehension:
+
+#### Analysis Types (`src/types/analysis-types.ts`)
+- **AnalysisInput**: Discriminated union for analysis operations (path vs analysis object)
+- **AnalysisResult**: Typed results with success/partial/error variants
+- **Type Guards**: `isPathInput()`, `isAnalysisInput()`, `isAnalysisSuccessResult()`, etc.
+
+#### Coverage Types (`src/types/coverage-types.ts`)
+- **CoverageInput**: Discriminated union for coverage data (json/text/file formats)
+- **CoverageParseResult**: Typed parsing results with metadata
+- **CoverageReportFormat**: Report format specifications (html/json/xml/markdown/terminal)
+- **Type Guards**: `isJsonInput()`, `isTextInput()`, `isCoverageSuccessResult()`, etc.
+
+#### Generation Types (`src/types/generation-types.ts`)
+- **GenerationInput**: Discriminated union for test generation (structural/logical/incremental)
+- **GenerationResult**: Typed generation results with test metadata
+- **GenerationStrategy**: Strategy specifications (full/incremental/selective)
+- **Type Guards**: `isStructuralInput()`, `isLogicalInput()`, `isGenerationSuccessResult()`, etc.
+
+#### Reporting Types (`src/types/reporting-types.ts`)
+- **ReportInput**: Discriminated union for report generation (gap-analysis/coverage/test-results/project-analysis)
+- **ReportResult**: Typed report results
+- **ReportOutput**: Output destination specifications (file/console/buffer)
+- **Type Guards**: `isGapAnalysisInput()`, `isCoverageInput()`, `isReportSuccessResult()`, etc.
+
+📖 **See detailed type documentation**: [`/docs/features/discriminated-union-types.md`](../features/discriminated-union-types.md)
 
 ## 📊 ProjectAnalyzer Interfaces
 
