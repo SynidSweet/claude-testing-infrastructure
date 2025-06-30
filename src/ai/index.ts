@@ -1,6 +1,6 @@
 /**
  * AI Components Export
- * 
+ *
  * Central export point for all AI-related functionality
  */
 
@@ -9,6 +9,7 @@ export * from './ChunkedAITaskPreparation';
 export * from './ClaudeOrchestrator';
 export * from './PromptTemplates';
 export * from './CostEstimator';
+export * from './BatchedLogicalTestGenerator';
 
 // Re-export commonly used types
 export type {
@@ -16,27 +17,24 @@ export type {
   AITaskBatch,
   AITaskResult,
   TaskContext,
-  FrameworkInfo
+  FrameworkInfo,
 } from './AITaskPreparation';
 
-export type {
-  ChunkedAITask,
-  ChunkProcessingProgress
-} from './ChunkedAITaskPreparation';
+export type { ChunkedAITask, ChunkProcessingProgress } from './ChunkedAITaskPreparation';
 
 export type {
   ProcessResult,
   OrchestratorStats,
-  ClaudeOrchestratorConfig
+  ClaudeOrchestratorConfig,
 } from './ClaudeOrchestrator';
 
-export type {
-  PromptContext
-} from './PromptTemplates';
+export type { PromptContext } from './PromptTemplates';
+
+export type { CostEstimate, BudgetOptimization, UsageReport, ModelPricing } from './CostEstimator';
 
 export type {
-  CostEstimate,
-  BudgetOptimization,
-  UsageReport,
-  ModelPricing
-} from './CostEstimator';
+  BatchProgress,
+  BatchConfig,
+  BatchResult,
+  BatchInfo
+} from './BatchedLogicalTestGenerator';

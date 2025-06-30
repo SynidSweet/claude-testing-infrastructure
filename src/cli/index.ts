@@ -10,6 +10,7 @@ import { runCommand } from './commands/run';
 import { watchCommand } from './commands/watch';
 import { analyzeGapsCommand } from './commands/analyze-gaps';
 import { generateLogicalCommand } from './commands/generate-logical';
+import { generateLogicalBatchCommand } from './commands/generate-logical-batch';
 import { testAICommand } from './commands/test-ai';
 import { createIncrementalCommand } from './commands/incremental';
 
@@ -55,6 +56,7 @@ program
   .option('--force', 'Skip validation checks (e.g., test-to-source ratio)')
   .option('--enable-chunking', 'Enable file chunking for large files (default: true)')
   .option('--chunk-size <size>', 'Maximum tokens per chunk (default: 3500)', parseInt)
+  .option('--dry-run', 'Preview test generation without creating files')
   .option('-v, --verbose', 'Show detailed test generation information')
   .action(testCommand);
 
@@ -68,7 +70,10 @@ program
   .option('--coverage', 'Generate coverage report')
   .option('--watch', 'Run tests in watch mode')
   .option('--junit', 'Generate JUnit XML reports')
-  .option('--threshold <threshold>', 'Coverage threshold (e.g., "80" or "statements:80,branches:70")')
+  .option(
+    '--threshold <threshold>',
+    'Coverage threshold (e.g., "80" or "statements:80,branches:70")'
+  )
   .option('-v, --verbose', 'Show detailed test execution information')
   .action(runCommand);
 
@@ -80,6 +85,9 @@ program.addCommand(analyzeGapsCommand);
 
 // Add the generate-logical command
 program.addCommand(generateLogicalCommand);
+
+// Add the generate-logical-batch command
+program.addCommand(generateLogicalBatchCommand);
 
 // Add the test-ai command
 program.addCommand(testAICommand);
@@ -103,6 +111,7 @@ try {
     console.log('  watch           - Watch for changes');
     console.log('  analyze-gaps    - Analyze test gaps for AI generation');
     console.log('  generate-logical - Generate logical tests using AI');
+    console.log('  generate-logical-batch - Generate logical tests in configurable batches');
     console.log('  incremental     - Perform incremental test generation');
     console.log('\nRun claude-testing --help for more information');
   } else if (error.code === 'commander.help' || error.code === 'commander.helpDisplayed') {

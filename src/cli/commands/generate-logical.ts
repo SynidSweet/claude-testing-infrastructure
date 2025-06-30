@@ -18,7 +18,8 @@ import { TestGeneratorConfig } from '../../generators/TestGenerator';
 import { 
   AITaskPreparation, 
   ClaudeOrchestrator,
-  CostEstimator
+  CostEstimator,
+  BatchedLogicalTestGenerator
 } from '../../ai';
 import { logger } from '../../utils/logger';
 
@@ -32,6 +33,8 @@ export const generateLogicalCommand = new Command()
   .option('-b, --budget <amount>', 'Maximum budget in USD')
   .option('--min-complexity <number>', 'Minimum complexity for AI generation', '5')
   .option('--timeout <seconds>', 'Timeout per AI task in seconds (default: 900)', '900')
+  .option('--batch-mode', 'Enable batched processing for large projects')
+  .option('--batch-size <number>', 'Batch size when using batch mode (default: 10)', '10')
   .option('--dry-run', 'Show what would be generated without executing')
   .option('-o, --output <path>', 'Output directory for reports')
   .option('-v, --verbose', 'Enable verbose logging')
@@ -126,6 +129,22 @@ export const generateLogicalCommand = new Command()
         });
         
         batch.totalEstimatedCost = optimization.totalEstimatedCost;
+      }
+
+      // Handle batch mode
+      if (options.batchMode) {
+        const batchSize = parseInt(options.batchSize) || 10;
+        const batchGenerator = new BatchedLogicalTestGenerator(batchSize, taskPrep);
+        
+        // Validate batching benefit
+        const validation = batchGenerator.validateBatchingBenefit(gapReport);
+        if (!validation.beneficial) {
+          console.log(chalk.yellow(`\nBatch mode note: ${validation.reason}`));
+          console.log(chalk.yellow('Proceeding with regular processing...'));
+        } else {
+          console.log(chalk.blue(`\nBatch mode: Will process ${Math.ceil(gapReport.gaps.length / batchSize)} batches of ${batchSize} tasks each`));
+          console.log(chalk.yellow('Use generate-logical-batch command for better iterative control'));
+        }
       }
 
       // Show recommendations

@@ -91,6 +91,12 @@ node dist/cli/index.js test /path/to/your/project --only-structural
 # Only logical tests (requires Claude CLI with Max subscription)
 node dist/cli/index.js test /path/to/your/project --only-logical
 
+# Generate logical tests in configurable batches (recommended for large projects)
+node dist/cli/index.js generate-logical-batch /path/to/your/project --batch-size 10
+
+# Resume interrupted batch processing
+node dist/cli/index.js generate-logical-batch /path/to/your/project --resume
+
 # With custom config
 node dist/cli/index.js test /path/to/your/project --config my-config.json
 ```
@@ -123,6 +129,13 @@ node dist/cli/index.js watch /path/to/your/project
 - Generates meaningful test cases
 - Handles edge cases automatically
 - Creates both unit and integration tests
+
+### Batched AI Processing ✅ NEW
+- ✅ Configurable batch sizes (default: 10 tests per batch)
+- ✅ State persistence for resumable processing
+- ✅ Progress tracking and cost estimation per batch
+- ✅ Iterative processing ideal for large projects
+- ✅ Prevents timeout issues and provides better control
 
 ### Incremental Updates ✅ COMPLETED
 - ✅ Detects code changes via Git with smart diff analysis
@@ -185,6 +198,33 @@ node dist/cli/index.js incremental /path/to/project
 
 # View update statistics and history
 node dist/cli/index.js incremental /path/to/project --stats
+```
+
+### Large Project AI Test Generation (Batched Processing)
+```bash
+# Start batched AI test generation (ideal for 50+ files)
+node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 10
+
+# Continue processing next batch (after previous batch completes)
+node dist/cli/index.js generate-logical-batch /path/to/large/project
+
+# Resume if interrupted (preserves state across sessions)
+node dist/cli/index.js generate-logical-batch /path/to/large/project --resume
+
+# Check current progress and cost statistics
+node dist/cli/index.js generate-logical-batch /path/to/large/project --stats
+
+# Preview batches without executing (cost estimation)
+node dist/cli/index.js generate-logical-batch /path/to/large/project --dry-run
+
+# Clean up state and start fresh
+node dist/cli/index.js generate-logical-batch /path/to/large/project --clean
+
+# Process with cost limits per batch
+node dist/cli/index.js generate-logical-batch /path/to/large/project --cost-limit 2.00
+
+# Use smaller batches for complex files or budget constraints
+node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 5
 ```
 
 ### CI/CD Integration
@@ -511,20 +551,50 @@ cat /path/to/project/.claude-testing.config.json
 ```
 
 ### "AI tests not generating" or Claude CLI errors
+
+**Common Issue**: AI logical test generation hangs or times out
+
+**Root Cause**: Most often due to Claude CLI authentication issues
+
+**Diagnostic Steps**:
 ```bash
-# Check Claude CLI installation and authentication
+# 1. Check Claude CLI installation and version
 claude --version
-claude config get
+# Should show: 1.0.35 (Claude Code) or similar
 
-# Verify Max subscription is active
-claude usage
+# 2. Test basic Claude CLI functionality
+claude --help
+# Should show help without errors or prompts for authentication
 
-# Try structural tests only (no AI required)
+# 3. Test Claude CLI with a simple query (this verifies full authentication)
+echo "What is 2+2?" | claude
+# Should respond with "4" or similar without hanging
+
+# 4. If the above hangs or asks for authentication:
+# - Run Claude Code interactively first to ensure authentication
+# - Open Claude Code application and sign in
+# - Try the test query again
+```
+
+**Workarounds**:
+```bash
+# Option 1: Use structural tests only (no AI required)
 node dist/cli/index.js test /path/to/project --only-structural
 
-# Test AI functionality separately
+# Option 2: Test gap analysis without AI generation
 node dist/cli/index.js analyze-gaps /path/to/project
+
+# Option 3: Use dry-run mode to preview generation
+node dist/cli/index.js test /path/to/project --only-logical --dry-run
 ```
+
+**Model Recognition Issues**:
+If you see warnings like "Unknown model: sonnet", this is usually harmless - the infrastructure includes comprehensive model mapping for "sonnet", "haiku", and "opus" aliases.
+
+**Timeout Issues**:
+- Individual AI tasks timeout after 15 minutes
+- Overall generation process times out after 30 minutes
+- These timeouts prevent infinite hangs and provide clear error messages
 
 ### "Build failed" or TypeScript errors
 ```bash
