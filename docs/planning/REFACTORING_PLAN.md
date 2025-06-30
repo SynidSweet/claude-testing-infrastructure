@@ -1319,6 +1319,147 @@ Fixed the CLI error handling in `src/cli/index.ts` by adding proper handling for
 
 ---
 
+## 📋 Refactoring Task: Fix Claude CLI Integration and AI Logical Test Generation
+
+### Problem Summary
+**CORRECTED ANALYSIS**: Based on actual user testing feedback from Frog Paper project testing, the real critical issue is that AI logical test generation is completely non-functional due to Claude CLI integration failures. The infrastructure hangs indefinitely during AI generation and has authentication/integration problems. Structural testing works perfectly.
+
+### Success Criteria
+- [ ] Fix Claude CLI authentication and integration issues
+- [ ] Add proper timeout handling for AI operations (prevent infinite hangs)
+- [ ] Resolve model naming mismatch ("Unknown model: sonnet" warnings)
+- [ ] Add comprehensive Claude CLI setup documentation
+- [ ] Implement graceful error handling for AI generation failures
+- [ ] Add progress indicators for long-running AI operations
+- [ ] Validate end-to-end AI generation with working authentication
+
+### Detailed Implementation Steps
+
+**Phase 1: Claude CLI Integration Analysis** (10-15 minutes)
+- [ ] Create feature branch: `git checkout -b fix/claude-cli-ai-integration`
+- [ ] Run existing test suite to establish baseline: `npm test`
+- [ ] Analyze current Claude CLI integration in `src/ai/ClaudeOrchestrator.ts`
+- [ ] Test Claude CLI authentication: `claude auth whoami`
+- [ ] Document current AI generation pipeline flow and failure points
+
+**Phase 2: Fix Core AI Integration** (20-25 minutes)
+- [ ] **Step 1**: Fix Claude CLI authentication handling
+  - [ ] Add proper Claude CLI authentication validation before AI operations
+  - [ ] Implement graceful failure when Claude CLI is not authenticated
+  - [ ] Add clear error messages for authentication failures
+  - [ ] Test authentication validation with both authenticated and non-authenticated states
+- [ ] **Step 2**: Add timeout handling for AI operations
+  - [ ] Implement configurable timeouts for AI generation (default: 5 minutes)
+  - [ ] Add graceful timeout handling that doesn't hang indefinitely
+  - [ ] Provide clear timeout error messages with troubleshooting steps
+  - [ ] Test timeout behavior with mock long-running operations
+- [ ] **Step 3**: Fix model naming compatibility
+  - [ ] Update `src/utils/model-mapping.ts` to handle "sonnet"/"haiku" model names
+  - [ ] Add backwards compatibility for different Claude CLI versions
+  - [ ] Remove "Unknown model" warnings for valid Claude models
+  - [ ] Test model mapping with various Claude CLI configurations
+
+**Phase 3: Error Handling and UX Improvements** (15-20 minutes)
+- [ ] **Step 4**: Implement comprehensive AI error handling
+  - [ ] Add specific error types for Claude CLI failures (AuthError, TimeoutError, ModelError)
+  - [ ] Provide actionable error messages with troubleshooting guidance
+  - [ ] Add error recovery suggestions (re-authenticate, check setup, etc.)
+  - [ ] Include error context (operation, model, file count, etc.)
+- [ ] **Step 5**: Add progress indicators for AI operations
+  - [ ] Implement progress reporting during AI batch processing
+  - [ ] Show current task progress and estimated time remaining
+  - [ ] Add cancellation support for long-running operations
+  - [ ] Provide clear status updates during AI generation phases
+- [ ] **Step 6**: Add Jest ES module configuration guidance
+  - [ ] Create documentation for configuring Jest with generated ES module tests
+  - [ ] Add example Jest configurations for common project setups
+  - [ ] Include troubleshooting for ES module import issues
+
+**Phase 4: Documentation and Setup Guidance** (10-15 minutes)
+- [ ] **Step 7**: Create comprehensive Claude CLI setup documentation
+  - [ ] Add Claude CLI installation and authentication guide to AI_AGENT_GUIDE.md
+  - [ ] Document required Claude CLI version and configuration
+  - [ ] Add troubleshooting section for common Claude CLI issues
+  - [ ] Include authentication validation steps
+- [ ] **Step 8**: Validate end-to-end AI generation
+  - [ ] Test complete AI generation pipeline with proper Claude CLI setup
+  - [ ] Verify timeout handling works correctly
+  - [ ] Test error handling for various failure scenarios
+  - [ ] Confirm model naming works with current Claude CLI versions
+
+**Phase 5: Integration Testing and Cleanup** (5-10 minutes)
+- [ ] **Step 9**: Test with real Claude CLI authentication
+  - [ ] Validate AI generation works with properly authenticated Claude CLI
+  - [ ] Test budget controls and cost estimation accuracy
+  - [ ] Verify generated tests quality and ES module compatibility
+- [ ] **Step 10**: Final documentation and commit
+  - [ ] Update AI_AGENT_GUIDE.md with complete Claude CLI integration guide
+  - [ ] Add troubleshooting section for AI generation issues
+  - [ ] Run full test suite to ensure no regressions
+  - [ ] Commit changes with comprehensive message
+
+### Before/After AI Integration Structure
+```typescript
+// BEFORE - Silent failure and infinite hangs
+async function generateLogicalTests(projectPath: string) {
+  // No authentication check
+  // No timeout handling
+  // Hangs indefinitely on Claude CLI issues
+  await claudeOrchestrator.processBatch(batch);
+}
+
+// AFTER - Robust error handling and timeouts
+async function generateLogicalTests(projectPath: string) {
+  // Validate Claude CLI authentication first
+  if (!await this.validateClaudeAuth()) {
+    throw new AuthError('Claude CLI not authenticated. Run: claude auth login');
+  }
+  
+  // Add configurable timeout with progress updates
+  try {
+    const result = await withTimeout(
+      this.claudeOrchestrator.processBatch(batch),
+      { timeout: 5 * 60 * 1000, onProgress: this.updateProgress }
+    );
+    return result;
+  } catch (TimeoutError) {
+    throw new Error('AI generation timed out. Try reducing batch size or checking Claude CLI connection.');
+  }
+}
+```
+
+### Risk Assessment
+- **Breaking changes**: None expected - maintaining backwards compatibility for working features
+- **Testing strategy**: 
+  - Verify all existing functionality (structural tests, analysis) continues to work
+  - Test AI integration with and without proper Claude CLI setup
+  - Validate timeout and error handling behavior
+- **Rollback plan**: `git checkout main && git branch -D fix/claude-cli-ai-integration`
+
+### Estimated Effort
+**Total time**: 60-85 minutes (single session recommended: Yes)
+**Complexity**: High (affects AI integration layer)
+**AI Agent suitability**: Well-suited for systematic integration debugging and documentation
+**Priority**: 🔴 **CRITICAL** - AI features completely non-functional without this fix
+
+### Integration Points
+- **AI Orchestration**: `src/ai/ClaudeOrchestrator.ts`
+- **Model Mapping**: `src/utils/model-mapping.ts` 
+- **CLI Commands**: `src/cli/commands/test.ts` (logical test generation)
+- **Documentation**: `AI_AGENT_GUIDE.md`, `docs/user/troubleshooting.md`
+- **Error Types**: `src/types/` (new AI-specific error types)
+
+### Success Metrics
+- **AI Generation Success Rate**: Working AI generation with proper Claude CLI setup (target: 95%+)
+- **Error Handling Quality**: Clear, actionable error messages for all failure scenarios
+- **Documentation Completeness**: Step-by-step Claude CLI setup guide with troubleshooting
+- **Timeout Reliability**: No infinite hangs, graceful timeout handling (100% improvement)
+- **User Experience**: Progress indicators and cancellation support for long operations
+
+---
+
 *This refactoring plan represents a comprehensive analysis of the codebase with specific, actionable recommendations for improving maintainability, reducing complexity, and optimizing for AI agent development. Each task is designed to be completable by an AI agent while providing significant value to the overall codebase quality.*
 
 **UPDATED (2025-06-30)**: Added critical user feedback driven tasks from real-world testing. These tasks now take priority over investigation-phase items to address immediate user experience blockers.
+
+**EMERGENCY UPDATE (2025-06-30)**: Added critical test generation pipeline failure task based on systematic error analysis. This task now takes highest priority as it addresses core infrastructure failure making the system unusable.
