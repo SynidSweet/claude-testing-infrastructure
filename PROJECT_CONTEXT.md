@@ -206,8 +206,9 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 ### Active Development Status
 **PRODUCTION MAINTENANCE MODE** (2025-06-30): Production-ready infrastructure confirmed through fifth autonomous development session validation. Project has reached stable maintenance mode with all development objectives achieved. Multiple session validations consistently confirm no pending development tasks suitable for standard sessions (60-80 minutes). All remaining work consists of investigation-phase items (6-8+ hours) or architectural epics (20-40+ hours). Critical features completed: file chunking for large files (9,507+ tokens), CLI error message fixes, test execution documentation, logical test generation, AI model configuration, discriminated union types system, and comprehensive test content generation. Test suite maintains perfect 156/156 tests passing (100% success rate). **MAINTENANCE STATUS**: Stable v2.0 infrastructure with all critical user feedback addressed, comprehensive feature completion, enhanced type safety, and infrastructure ready for ongoing deployment and usage.
 
+📖 **See active tasks**: [`/docs/planning/ACTIVE_TASKS.md`](./docs/planning/ACTIVE_TASKS.md)
+📖 **See future work**: [`/docs/planning/FUTURE_WORK.md`](./docs/planning/FUTURE_WORK.md)
 📖 **See roadmap**: [`/docs/planning/roadmap.md`](./docs/planning/roadmap.md)
-📖 **See AI integration plan**: [`AI_POWERED_TEST_GENERATION_PLAN.md`](./AI_POWERED_TEST_GENERATION_PLAN.md)
 
 ### Completed Phases (2025-06-28)
 - ✅ **Phase 1**: Foundation Setup - Project structure, CLI framework, logging system
