@@ -1,6 +1,6 @@
 # Commands Reference
 
-*Last updated: 2025-06-30 | Updated by: /document command | File Chunking CLI Flags Added*
+*Last updated: 2025-06-30 | Updated by: /document command | Batched AI Processing Implementation*
 
 ## 🆕 Core CLI Commands (TypeScript Infrastructure)
 ```bash
@@ -13,9 +13,12 @@ node dist/cli/index.js analyze <path> --validate-config # Validate .claude-testi
 
 # Test Generation ✅ IMPLEMENTED
 node dist/cli/index.js test <path>                    # Generate comprehensive tests (structural)
+node dist/cli/index.js test <path> --dry-run          # Preview test generation without creating files ✅ NEW
+node dist/cli/index.js test <path> --dry-run --verbose # Detailed preview with file content samples ✅ NEW
 node dist/cli/index.js test <path> --verbose          # Show detailed test generation information
 node dist/cli/index.js test <path> --only-structural  # Generate only structural tests (default)
 node dist/cli/index.js test <path> --only-logical     # Generate only AI-powered tests ✅ IMPLEMENTED
+node dist/cli/index.js test <path> --only-logical --dry-run # Preview AI test generation ✅ NEW
 node dist/cli/index.js test <path> --coverage         # Include coverage analysis
 node dist/cli/index.js test <path> --config config.json # Use custom configuration
 node dist/cli/index.js test <path> --update           # Update existing tests (don't skip)
@@ -51,7 +54,21 @@ node dist/cli/index.js generate-logical <path> --model sonnet         # Choose C
 node dist/cli/index.js generate-logical <path> --budget 5.00          # Set cost limit
 node dist/cli/index.js generate-logical <path> --dry-run              # Preview without generating
 node dist/cli/index.js generate-logical <path> --concurrent 5         # Set concurrent processes
+node dist/cli/index.js generate-logical <path> --batch-mode           # Enable batched processing
+node dist/cli/index.js generate-logical <path> --batch-size 5         # Set batch size (when using batch mode)
 node dist/cli/index.js generate-logical <path> --output ./reports     # Save reports to directory
+
+# Batched AI Generation ✅ NEW (v2.0)
+node dist/cli/index.js generate-logical-batch <path>                    # Start batched AI test generation
+node dist/cli/index.js generate-logical-batch <path> --batch-size 10   # Set batch size (default: 10)
+node dist/cli/index.js generate-logical-batch <path> --resume          # Resume interrupted batch processing
+node dist/cli/index.js generate-logical-batch <path> --stats           # Show current progress statistics
+node dist/cli/index.js generate-logical-batch <path> --dry-run         # Preview batches without executing
+node dist/cli/index.js generate-logical-batch <path> --clean           # Clean up batch state and start fresh
+node dist/cli/index.js generate-logical-batch <path> --cost-limit 2.00 # Set maximum cost per batch
+node dist/cli/index.js generate-logical-batch <path> --model sonnet    # Choose Claude model for batches
+node dist/cli/index.js generate-logical-batch <path> --concurrent 3    # Set concurrent processes per batch
+node dist/cli/index.js generate-logical-batch <path> --timeout 1200    # Set timeout per AI task (seconds)
 
 # Complete AI Workflow ✅ IMPLEMENTED (Phase 5.3)
 node dist/cli/index.js test-ai <path>                 # Complete workflow with AI enhancement

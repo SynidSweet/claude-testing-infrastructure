@@ -1,6 +1,6 @@
 # AI Integration Features
 
-*Last updated: 2025-06-30 | Phase 5.3 Complete + File Chunking Integration + Model Configuration Fixes*
+*Last updated: 2025-06-30 | Phase 5.3 Complete + Batched AI Processing System Implementation*
 
 ## Overview
 
@@ -25,15 +25,27 @@ Enhanced AI task preparation with file chunking support for large files:
 - **Result Aggregation**: Merges chunked outputs into coherent test files
 - **Progress Tracking**: Per-file chunk processing statistics
 
+#### 1b. BatchedLogicalTestGenerator (`src/ai/BatchedLogicalTestGenerator.ts`) ✅ NEW
+Advanced batched processing system for large-scale AI test generation:
+- **Configurable Batching**: Process tests in batches of 1-50 (default: 10)
+- **State Persistence**: Maintains processing state in `.claude-testing/batch-state.json`
+- **Resume Functionality**: Continue interrupted processing across CLI sessions
+- **Progress Tracking**: Real-time progress with cost estimation per batch
+- **Validation System**: Automatically determines if batching provides benefit
+- **Cost Control**: Per-batch cost limits and budget management
+- **Iterative Processing**: Ideal for large projects requiring controlled AI generation
+
 #### 2. ClaudeOrchestrator (`src/ai/ClaudeOrchestrator.ts`)
-Orchestrates parallel Claude processes for test generation:
+Orchestrates parallel Claude processes for test generation with enhanced reliability:
 - **Concurrency Control**: Manages multiple Claude processes with configurable limits
-- **Progress Tracking**: Real-time status updates via event emitters
-- **Error Handling**: Retry logic with exponential backoff
-- **Result Aggregation**: Collects and processes generated tests
+- **Authentication Validation**: Comprehensive Claude CLI authentication checking with detailed error messages
+- **Progress Tracking**: Real-time status updates via event emitters with ETA calculations and verbose logging
+- **Enhanced Error Handling**: Context-aware error messages for authentication, network, rate limit, and connection issues
+- **Robust Timeout Management**: 15-minute individual task timeouts with 30-minute overall process timeout to prevent infinite hangs
+- **Result Aggregation**: Collects and processes generated tests with graceful fallback handling
 - **Chunked Task Support**: Handles merging results from chunked file processing
-- **Advanced Timeout Management**: Session-isolated timeout configuration for headless processes (15-30 min) without affecting interactive Claude Code sessions
-- **Environment Isolation**: Process-specific environment variables to preserve standard 2-minute timeouts for other operations
+- **Command Optimization**: Corrected Claude CLI command invocation removing problematic flags
+- **Process Lifecycle Management**: Proper cleanup of active processes on timeout or error
 
 #### 3. PromptTemplates (`src/ai/PromptTemplates.ts`)
 Provides framework-specific prompt templates:
@@ -73,6 +85,8 @@ Options:
   -c, --concurrent <number>   Max concurrent Claude processes [default: 3]
   -b, --budget <amount>       Maximum budget in USD
   --min-complexity <number>   Minimum complexity for AI generation [default: 5]
+  --batch-mode                Enable batched processing for large projects
+  --batch-size <number>       Batch size when using batch mode [default: 10]
   --dry-run                   Show what would be generated without executing
   -o, --output <path>         Output directory for reports
   -v, --verbose               Enable verbose logging
@@ -88,6 +102,56 @@ node dist/cli/index.js generate-logical ./my-project -g ./gap-report.json
 
 # Dry run to see cost estimates
 node dist/cli/index.js generate-logical ./my-project --dry-run
+
+# Enable batch mode for large projects
+node dist/cli/index.js generate-logical ./my-project --batch-mode --batch-size 10
+```
+
+### generate-logical-batch ✅ NEW
+
+Dedicated batched AI test generation with state persistence and resume functionality:
+
+```bash
+node dist/cli/index.js generate-logical-batch <projectPath> [options]
+
+Options:
+  -g, --gap-report <path>     Path to existing gap analysis report
+  -b, --batch-size <number>   Number of tests to generate per batch [default: 10]
+  -m, --model <model>         Claude model to use (opus, sonnet, haiku) [default: sonnet]
+  -c, --concurrent <number>   Max concurrent Claude processes [default: 3]
+  --cost-limit <amount>       Maximum cost per batch in USD
+  --min-complexity <number>   Minimum complexity for AI generation [default: 5]
+  --timeout <seconds>         Timeout per AI task in seconds [default: 900]
+  --resume                    Resume from previous batch state
+  --dry-run                   Show what batches would be created without executing
+  --stats                     Show current progress statistics and exit
+  --clean                     Clean up batch state and start fresh
+  -o, --output <path>         Output directory for reports
+  -v, --verbose               Enable verbose logging
+```
+
+Examples:
+```bash
+# Start batched processing for large project
+node dist/cli/index.js generate-logical-batch ./large-project --batch-size 10
+
+# Continue processing next batch
+node dist/cli/index.js generate-logical-batch ./large-project
+
+# Resume interrupted processing
+node dist/cli/index.js generate-logical-batch ./large-project --resume
+
+# Check current progress
+node dist/cli/index.js generate-logical-batch ./large-project --stats
+
+# Preview batches without executing
+node dist/cli/index.js generate-logical-batch ./large-project --dry-run
+
+# Start fresh (clean previous state)
+node dist/cli/index.js generate-logical-batch ./large-project --clean
+
+# Control costs per batch
+node dist/cli/index.js generate-logical-batch ./large-project --cost-limit 2.00
 ```
 
 ### test-ai
@@ -338,6 +402,27 @@ AI tests complement structural tests:
 
 ## Troubleshooting
 
+### AI Generation Hanging or Timeout Issues
+**Fixed in v2.0**: Common issue where AI logical test generation would hang indefinitely.
+
+**Root Cause**: Claude CLI authentication issues or network problems.
+
+**Solutions** (implemented in current version):
+- **Automatic Authentication Validation**: System now validates Claude CLI authentication before starting AI generation
+- **Robust Timeout Handling**: 15-minute individual task timeouts and 30-minute overall process timeout prevent infinite hangs
+- **Clear Error Messages**: Context-aware error messages identify specific issues (authentication, network, rate limits)
+- **Progress Reporting**: Real-time progress with ETA calculations helps identify stuck processes
+
+**Manual Verification**:
+```bash
+# Test Claude CLI authentication
+echo "What is 2+2?" | claude
+# Should respond with "4" without hanging
+
+# If hanging, run Claude Code interactively first
+# Open Claude Code application to ensure authentication
+```
+
 ### "Claude CLI not found"
 Install Claude CLI first:
 ```bash
@@ -350,6 +435,16 @@ For large files:
 - Increase `maxTokensPerTask` in configuration
 - Break file into smaller modules
 - Use `--min-complexity` to filter files
+
+### "Unknown model" warnings
+**Fixed in v2.0**: Model recognition warnings for "sonnet", "haiku", "opus" aliases.
+
+**Solution**: Comprehensive model mapping system now properly recognizes all standard Claude model aliases.
+
+**Current Support**:
+- `sonnet` → `claude-3-5-sonnet-20241022`
+- `haiku` → `claude-3-haiku-20240307`  
+- `opus` → `claude-3-opus-20240229`
 
 ### "Budget exceeded"
 - Use `--dry-run` to preview costs
