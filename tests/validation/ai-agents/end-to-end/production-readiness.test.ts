@@ -13,6 +13,7 @@ import path from 'path';
 import fs from 'fs/promises';
 
 const execAsync = promisify(exec);
+const CLI_COMMAND = 'node dist/cli/index.js';
 
 interface ProductionReadinessResults {
   aiGenerationWorking: boolean;
@@ -26,7 +27,6 @@ interface ProductionReadinessResults {
 
 describe('Production Readiness Validation - End-to-End', () => {
   const testProjectPath = path.join(__dirname, '../../../fixtures/validation-projects/react-es-modules');
-  const cliCommand = 'node dist/cli/index.js';
   
   beforeAll(async () => {
     // Ensure test project exists
@@ -59,7 +59,7 @@ describe('Production Readiness Validation - End-to-End', () => {
       
       // Generate tests
       const generationResult = await execAsync(
-        `${cliCommand} test ${testProjectPath} --only-structural`,
+        `${CLI_COMMAND} test ${testProjectPath} --only-structural`,
         { cwd: path.resolve('.') }
       );
       
@@ -75,14 +75,14 @@ describe('Production Readiness Validation - End-to-End', () => {
       // Attempt to run generated tests
       try {
         const runResult = await execAsync(
-          `${cliCommand} run ${testProjectPath}`,
+          `${CLI_COMMAND} run ${testProjectPath}`,
           { cwd: path.resolve('.'), timeout: 120000 }
         );
         
         expect(runResult.stdout).toContain('test');
         console.log('✅ Generated tests are executable without manual fixes');
       } catch (error) {
-        console.error('❌ Generated tests require manual fixes:', error.message);
+        console.error('❌ Generated tests require manual fixes:', error instanceof Error ? error.message : String(error));
         throw new Error('Generated tests are not immediately executable');
       }
     }, 10 * 60 * 1000);
@@ -96,7 +96,7 @@ describe('Production Readiness Validation - End-to-End', () => {
       try {
         // Test AI generation with timeout
         await Promise.race([
-          execAsync(`${cliCommand} test ${testProjectPath} --only-logical --budget 1.00`, {
+          execAsync(`${CLI_COMMAND} test ${testProjectPath} --only-logical --budget 1.00`, {
             cwd: path.resolve('.'),
             timeout: timeout - 1000 // Slightly less than our timeout
           }),
@@ -110,11 +110,11 @@ describe('Production Readiness Validation - End-to-End', () => {
         
         expect(duration).toBeLessThan(timeout);
       } catch (error) {
-        if (error.message.includes('timeout') || error.message.includes('AI generation timeout')) {
+        if (error instanceof Error ? error.message : String(error).includes('timeout') || error instanceof Error ? error.message : String(error).includes('AI generation timeout')) {
           fail('🚨 CRITICAL: AI generation is still hanging - production blocker not resolved');
         }
         // Other errors might be expected (API limits, etc.) but not hanging
-        console.log(`⚠️ AI generation failed but didn't hang: ${error.message}`);
+        console.log(`⚠️ AI generation failed but didn't hang: ${error instanceof Error ? error.message : String(error)}`);
       }
     }, 12 * 60 * 1000);
 
@@ -125,7 +125,7 @@ describe('Production Readiness Validation - End-to-End', () => {
       for (const model of models) {
         try {
           const result = await execAsync(
-            `${cliCommand} analyze-gaps ${testProjectPath} --model ${model} --dry-run`,
+            `${CLI_COMMAND} analyze-gaps ${testProjectPath} --model ${model} --dry-run`,
             { cwd: path.resolve('.'), timeout: 30000 }
           );
           
@@ -135,7 +135,7 @@ describe('Production Readiness Validation - End-to-End', () => {
           
           results.push({ model, success: true, output: result.stdout });
         } catch (error) {
-          results.push({ model, success: false, error: error.message });
+          results.push({ model, success: false, error: error instanceof Error ? error.message : String(error) });
         }
       }
       
@@ -156,7 +156,7 @@ describe('Production Readiness Validation - End-to-End', () => {
 
     test('should verify import path issues are resolved', async () => {
       // Generate tests for ES module project
-      await execAsync(`${cliCommand} test ${testProjectPath} --only-structural`, {
+      await execAsync(`${CLI_COMMAND} test ${testProjectPath} --only-structural`, {
         cwd: path.resolve('.')
       });
       
@@ -229,13 +229,13 @@ describe('Production Readiness Validation - End-to-End', () => {
           test: async () => {
             const startTime = Date.now();
             try {
-              await execAsync(`${cliCommand} analyze-gaps ${testProjectPath} --dry-run`, {
+              await execAsync(`${CLI_COMMAND} analyze-gaps ${testProjectPath} --dry-run`, {
                 cwd: path.resolve('.'),
                 timeout: 60000
               });
               return { success: true, duration: Date.now() - startTime };
             } catch (error) {
-              return { success: false, error: error.message, duration: Date.now() - startTime };
+              return { success: false, error: error instanceof Error ? error.message : String(error), duration: Date.now() - startTime };
             }
           }
         },
@@ -243,13 +243,13 @@ describe('Production Readiness Validation - End-to-End', () => {
           name: 'Model Recognition',
           test: async () => {
             try {
-              const result = await execAsync(`${cliCommand} analyze-gaps ${testProjectPath} --model sonnet --dry-run`, {
+              const result = await execAsync(`${CLI_COMMAND} analyze-gaps ${testProjectPath} --model sonnet --dry-run`, {
                 cwd: path.resolve('.'),
                 timeout: 30000
               });
               return { success: !result.stderr.includes('Unknown model'), output: result.stderr };
             } catch (error) {
-              return { success: false, error: error.message };
+              return { success: false, error: error instanceof Error ? error.message : String(error) };
             }
           }
         },
@@ -257,13 +257,13 @@ describe('Production Readiness Validation - End-to-End', () => {
           name: 'CLI Error Messages',
           test: async () => {
             try {
-              const result = await execAsync(`${cliCommand} --version`, {
+              const result = await execAsync(`${CLI_COMMAND} --version`, {
                 cwd: path.resolve('.'),
                 timeout: 10000
               });
               return { success: result.stderr === '', output: result.stdout, stderr: result.stderr };
             } catch (error) {
-              return { success: false, error: error.message };
+              return { success: false, error: error instanceof Error ? error.message : String(error) };
             }
           }
         }
@@ -308,7 +308,7 @@ async function runCompleteWorkflow(projectPath: string) {
   try {
     // Phase 1: Analysis
     const analysisStart = Date.now();
-    await execAsync(`${cliCommand} analyze ${projectPath}`, {
+    await execAsync(`${CLI_COMMAND} analyze ${projectPath}`, {
       cwd: path.resolve('.')
     });
     results.analysisTime = Date.now() - analysisStart;
@@ -316,7 +316,7 @@ async function runCompleteWorkflow(projectPath: string) {
     
     // Phase 2: Test Generation
     const generationStart = Date.now();
-    await execAsync(`${cliCommand} test ${projectPath} --only-structural`, {
+    await execAsync(`${CLI_COMMAND} test ${projectPath} --only-structural`, {
       cwd: path.resolve('.')
     });
     results.generationTime = Date.now() - generationStart;
@@ -324,7 +324,7 @@ async function runCompleteWorkflow(projectPath: string) {
     
     // Phase 3: Test Execution
     const executionStart = Date.now();
-    await execAsync(`${cliCommand} run ${projectPath}`, {
+    await execAsync(`${CLI_COMMAND} run ${projectPath}`, {
       cwd: path.resolve('.'),
       timeout: 120000
     });
@@ -332,7 +332,7 @@ async function runCompleteWorkflow(projectPath: string) {
     results.testExecutionSuccess = true;
     
   } catch (error) {
-    console.error('Workflow step failed:', error.message);
+    console.error('Workflow step failed:', error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error));
   }
   
   results.totalTime = Date.now() - overallStart;
@@ -357,29 +357,29 @@ async function runProductionValidation(projectPath: string): Promise<ProductionR
     // Test AI generation (without hanging)
     const aiStart = Date.now();
     try {
-      await execAsync(`${cliCommand} analyze-gaps ${projectPath} --dry-run`, {
+      await execAsync(`${CLI_COMMAND} analyze-gaps ${projectPath} --dry-run`, {
         cwd: path.resolve('.'),
         timeout: 120000
       });
       results.aiGenerationWorking = true;
     } catch (error) {
-      console.log('AI generation test failed:', error.message);
+      console.log('AI generation test failed:', error instanceof Error ? error.message : String(error));
     }
     
     // Test model recognition
     try {
-      const modelTest = await execAsync(`${cliCommand} analyze-gaps ${projectPath} --model sonnet --dry-run`, {
+      const modelTest = await execAsync(`${CLI_COMMAND} analyze-gaps ${projectPath} --model sonnet --dry-run`, {
         cwd: path.resolve('.'),
         timeout: 30000
       });
       results.modelRecognitionWorking = !modelTest.stderr.includes('Unknown model');
     } catch (error) {
-      console.log('Model recognition test failed:', error.message);
+      console.log('Model recognition test failed:', error instanceof Error ? error.message : String(error));
     }
     
     // Test quality and execution
     await cleanupTestOutput(projectPath);
-    await execAsync(`${cliCommand} test ${projectPath} --only-structural`, {
+    await execAsync(`${CLI_COMMAND} test ${projectPath} --only-structural`, {
       cwd: path.resolve('.')
     });
     
@@ -388,7 +388,7 @@ async function runProductionValidation(projectPath: string): Promise<ProductionR
     
     // Test execution success rate
     try {
-      await execAsync(`${cliCommand} run ${projectPath}`, {
+      await execAsync(`${CLI_COMMAND} run ${projectPath}`, {
         cwd: path.resolve('.'),
         timeout: 120000
       });
@@ -415,7 +415,7 @@ async function runProductionValidation(projectPath: string): Promise<ProductionR
     );
     
   } catch (error) {
-    console.error('Production validation failed:', error.message);
+    console.error('Production validation failed:', error instanceof Error ? error.message : String(error));
   }
   
   return results;
