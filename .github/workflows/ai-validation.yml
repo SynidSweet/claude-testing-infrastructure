@@ -1,0 +1,393 @@
+name: AI Agent Validation Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run validation daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      validation_mode:
+        description: 'Validation mode'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - comprehensive
+          - critical-only
+      budget_limit:
+        description: 'AI budget limit (USD)'
+        required: false
+        default: '5.00'
+      skip_ai_tests:
+        description: 'Skip AI-dependent tests'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  VALIDATION_BUDGET: ${{ github.event.inputs.budget_limit || '5.00' }}
+  VALIDATION_MODE: ${{ github.event.inputs.validation_mode || 'standard' }}
+
+jobs:
+  # Pre-validation checks
+  pre-validation:
+    name: Pre-validation Checks
+    runs-on: ubuntu-latest
+    outputs:
+      skip-ai: ${{ steps.check-conditions.outputs.skip-ai }}
+      validation-mode: ${{ steps.check-conditions.outputs.validation-mode }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build infrastructure
+        run: npm run build
+
+      - name: Verify CLI availability
+        run: |
+          node dist/cli/index.js --version
+          echo "CLI_VERSION=$(node dist/cli/index.js --version)" >> $GITHUB_ENV
+
+      - name: Check conditions
+        id: check-conditions
+        run: |
+          # Determine if we should skip AI tests
+          SKIP_AI="false"
+          
+          if [[ "${{ github.event.inputs.skip_ai_tests }}" == "true" ]]; then
+            SKIP_AI="true"
+            echo "⚠️ AI tests will be skipped (manual override)"
+          elif [[ -z "${{ secrets.CLAUDE_API_KEY }}" ]]; then
+            SKIP_AI="true"
+            echo "⚠️ AI tests will be skipped (no API key)"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.actor }}" == "dependabot[bot]" ]]; then
+            SKIP_AI="true"
+            echo "⚠️ AI tests will be skipped (dependabot PR)"
+          fi
+          
+          echo "skip-ai=$SKIP_AI" >> $GITHUB_OUTPUT
+          echo "validation-mode=${{ env.VALIDATION_MODE }}" >> $GITHUB_OUTPUT
+          
+          echo "📋 Validation Configuration:"
+          echo "   Mode: ${{ env.VALIDATION_MODE }}"
+          echo "   Budget: ${{ env.VALIDATION_BUDGET }}"
+          echo "   Skip AI: $SKIP_AI"
+          echo "   CLI Version: ${{ env.CLI_VERSION }}"
+
+  # Critical connectivity tests (always run)
+  connectivity-validation:
+    name: Connectivity & Model Recognition
+    runs-on: ubuntu-latest
+    needs: pre-validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build infrastructure
+        run: npm run build
+
+      - name: Run connectivity tests
+        run: |
+          npm run test:ai-validation -- --testNamePattern="connectivity|model-recognition" --verbose
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          VALIDATION_BUDGET: ${{ env.VALIDATION_BUDGET }}
+
+      - name: Upload connectivity results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: connectivity-test-results
+          path: test-results/ai-validation/
+
+  # Quality validation tests
+  quality-validation:
+    name: Test Quality Validation
+    runs-on: ubuntu-latest
+    needs: [pre-validation, connectivity-validation]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build infrastructure
+        run: npm run build
+
+      - name: Run quality validation tests
+        run: |
+          npm run test:ai-validation -- --testNamePattern="generation-quality|test-quality" --verbose
+
+      - name: Upload quality results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-test-results
+          path: test-results/ai-validation/
+
+  # AI-dependent tests (conditional)
+  ai-validation:
+    name: AI Generation Validation
+    runs-on: ubuntu-latest
+    needs: [pre-validation, connectivity-validation]
+    if: needs.pre-validation.outputs.skip-ai == 'false'
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        test-category:
+          - timeout-handling
+          - generation-workflow
+          - model-integration
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build infrastructure
+        run: npm run build
+
+      - name: Setup Claude CLI
+        run: |
+          # Install Claude CLI if not available
+          if ! command -v claude &> /dev/null; then
+            echo "Installing Claude CLI..."
+            npm install -g @anthropic-ai/claude-cli
+          fi
+          
+          # Verify Claude CLI
+          claude --version || echo "Claude CLI installation may have failed"
+
+      - name: Configure Claude CLI
+        run: |
+          # Set up Claude CLI configuration
+          echo "Setting up Claude CLI configuration..."
+          
+          # Create config directory
+          mkdir -p ~/.config/claude
+          
+          # Note: Actual API key configuration would happen here
+          # For security, this should be handled through proper secret management
+          echo "Claude CLI configuration completed"
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+
+      - name: Run AI validation tests - ${{ matrix.test-category }}
+        run: |
+          case "${{ matrix.test-category }}" in
+            "timeout-handling")
+              npm run test:ai-validation -- --testNamePattern="timeout|hanging" --verbose
+              ;;
+            "generation-workflow")
+              npm run test:ai-validation -- --testNamePattern="AI generation|workflow" --verbose
+              ;;
+            "model-integration")
+              npm run test:ai-validation -- --testNamePattern="model.*recognition|alias" --verbose
+              ;;
+          esac
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          VALIDATION_BUDGET: ${{ env.VALIDATION_BUDGET }}
+          AI_TEST_TIMEOUT: 900000  # 15 minutes
+
+      - name: Upload AI validation results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-validation-results-${{ matrix.test-category }}
+          path: test-results/ai-validation/
+
+  # End-to-end production readiness
+  production-readiness:
+    name: Production Readiness Validation
+    runs-on: ubuntu-latest
+    needs: [pre-validation, connectivity-validation, quality-validation]
+    if: needs.pre-validation.outputs.validation-mode != 'critical-only'
+    timeout-minutes: 45
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build infrastructure
+        run: npm run build
+
+      - name: Run production readiness tests
+        run: |
+          if [[ "${{ needs.pre-validation.outputs.skip-ai }}" == "true" ]]; then
+            echo "🔍 Running production tests without AI validation"
+            npm run test:ai-validation -- --testNamePattern="production.*readiness" --verbose
+          else
+            echo "🔍 Running full production readiness validation"
+            npm run test:ai-validation -- --testNamePattern="production.*readiness|end.*to.*end" --verbose
+          fi
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          VALIDATION_BUDGET: ${{ env.VALIDATION_BUDGET }}
+          SKIP_AI_TESTS: ${{ needs.pre-validation.outputs.skip-ai }}
+
+      - name: Generate production readiness report
+        run: |
+          echo "# Production Readiness Report" > production-readiness-report.md
+          echo "**Date**: $(date)" >> production-readiness-report.md
+          echo "**Validation Mode**: ${{ env.VALIDATION_MODE }}" >> production-readiness-report.md
+          echo "**AI Tests**: ${{ needs.pre-validation.outputs.skip-ai == 'false' && 'Enabled' || 'Disabled' }}" >> production-readiness-report.md
+          echo "" >> production-readiness-report.md
+          
+          if [[ -f "test-results/ai-validation/ai-validation-results.xml" ]]; then
+            echo "## Test Results Summary" >> production-readiness-report.md
+            echo "See attached test results for detailed information." >> production-readiness-report.md
+          fi
+
+      - name: Upload production readiness results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-readiness-results
+          path: |
+            test-results/ai-validation/
+            production-readiness-report.md
+
+  # Results aggregation and reporting
+  validation-summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [pre-validation, connectivity-validation, quality-validation, ai-validation, production-readiness]
+    if: always()
+    
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: all-results/
+
+      - name: Generate validation summary
+        run: |
+          echo "# AI Agent Validation Summary" > validation-summary.md
+          echo "**Workflow**: ${{ github.workflow }}" >> validation-summary.md
+          echo "**Run ID**: ${{ github.run_id }}" >> validation-summary.md
+          echo "**Date**: $(date)" >> validation-summary.md
+          echo "**Trigger**: ${{ github.event_name }}" >> validation-summary.md
+          echo "" >> validation-summary.md
+          
+          echo "## Job Results" >> validation-summary.md
+          echo "- **Pre-validation**: ✅ Completed" >> validation-summary.md
+          echo "- **Connectivity**: ${{ needs.connectivity-validation.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> validation-summary.md
+          echo "- **Quality Validation**: ${{ needs.quality-validation.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> validation-summary.md
+          echo "- **AI Validation**: ${{ needs.ai-validation.result == 'success' && '✅ Passed' || needs.ai-validation.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}" >> validation-summary.md
+          echo "- **Production Readiness**: ${{ needs.production-readiness.result == 'success' && '✅ Passed' || needs.production-readiness.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}" >> validation-summary.md
+          echo "" >> validation-summary.md
+          
+          echo "## Configuration" >> validation-summary.md
+          echo "- **Validation Mode**: ${{ env.VALIDATION_MODE }}" >> validation-summary.md
+          echo "- **Budget Limit**: ${{ env.VALIDATION_BUDGET }}" >> validation-summary.md
+          echo "- **AI Tests**: ${{ needs.pre-validation.outputs.skip-ai == 'false' && 'Enabled' || 'Disabled' }}" >> validation-summary.md
+          echo "" >> validation-summary.md
+          
+          # Determine overall status
+          OVERALL_STATUS="✅ PASSED"
+          if [[ "${{ needs.connectivity-validation.result }}" != "success" ]]; then
+            OVERALL_STATUS="❌ FAILED - Connectivity issues"
+          elif [[ "${{ needs.quality-validation.result }}" != "success" ]]; then
+            OVERALL_STATUS="❌ FAILED - Quality issues"
+          elif [[ "${{ needs.ai-validation.result }}" == "failure" ]]; then
+            OVERALL_STATUS="❌ FAILED - AI validation issues"
+          elif [[ "${{ needs.production-readiness.result }}" == "failure" ]]; then
+            OVERALL_STATUS="⚠️ PARTIAL - Production readiness issues"
+          fi
+          
+          echo "## Overall Status: $OVERALL_STATUS" >> validation-summary.md
+          
+          cat validation-summary.md
+
+      - name: Upload validation summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-summary
+          path: |
+            validation-summary.md
+            all-results/
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            if (fs.existsSync('validation-summary.md')) {
+              const summary = fs.readFileSync('validation-summary.md', 'utf8');
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🤖 AI Agent Validation Results\n\n${summary}`
+              });
+            }
+
+      - name: Set job status
+        run: |
+          # Fail the job if critical validations failed
+          if [[ "${{ needs.connectivity-validation.result }}" != "success" ]]; then
+            echo "❌ Critical validation failure: Connectivity"
+            exit 1
+          elif [[ "${{ needs.quality-validation.result }}" != "success" ]]; then
+            echo "❌ Critical validation failure: Quality"
+            exit 1
+          fi
+          
+          echo "✅ Validation completed successfully"

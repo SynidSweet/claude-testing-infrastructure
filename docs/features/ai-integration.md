@@ -1,6 +1,6 @@
 # AI Integration Features
 
-*Last updated: 2025-06-30 | Phase 5.3 Complete + File Chunking Integration*
+*Last updated: 2025-06-30 | Phase 5.3 Complete + File Chunking Integration + Model Configuration Fixes*
 
 ## Overview
 
@@ -48,6 +48,15 @@ Manages cost estimation and optimization:
 - **Model Selection**: Chooses optimal Claude model (Opus, Sonnet, Haiku)
 - **Budget Optimization**: Allocates resources within budget constraints
 - **Usage Tracking**: Records actual usage for reporting
+- **Model Name Resolution**: Supports standard aliases (sonnet, opus, haiku) and full model identifiers
+
+#### 5. Model Mapping System (`src/utils/model-mapping.ts`)
+Comprehensive model configuration management:
+- **Alias Resolution**: Maps short names (sonnet, haiku, opus) to full model identifiers
+- **Pricing Information**: Accurate cost per 1K token for all supported models
+- **Validation**: Comprehensive model name validation with helpful error messages
+- **Selection**: Automatic optimal model selection based on task complexity
+- **User Experience**: Clear suggestions when invalid model names are provided
 
 ## CLI Commands
 

@@ -2,7 +2,7 @@
 
 *Complete setup and development practices for the Claude Testing Infrastructure*
 
-*Last updated: 2025-06-30 | CLI user experience enhanced - 156/156 tests passing*
+*Last updated: 2025-06-30 | AI Agent Validation System Added - 156/156 tests passing*
 
 ## 🔒 CRITICAL: Infrastructure Usage
 
@@ -253,7 +253,38 @@ npm test -- --maxWorkers=4
 # Specific test suites
 npm test -- tests/analyzers/
 npm test -- tests/generators/
+
+# AI Agent Validation Tests
+npm run test:ai-validation      # Full validation suite (20 min timeout)
+npm run test:ai-quick          # Critical tests only
+npm run validation:report      # Generate validation report
+npm run validation:production  # Production readiness check
 ```
+
+### AI Agent Validation Workflow
+
+The infrastructure now includes comprehensive validation for AI agent functionality:
+
+```bash
+# 1. Run connectivity tests (verify Claude CLI integration)
+npm run test:ai-validation -- --testNamePattern="connectivity"
+
+# 2. Run quality validation tests
+npm run test:ai-validation -- --testNamePattern="quality"
+
+# 3. Run full end-to-end validation
+npm run test:ai-validation -- --testNamePattern="production"
+
+# 4. Generate comprehensive report
+npm run validation:report > validation-results.md
+```
+
+**Validation Coverage**:
+- AI generation hanging detection (15-minute timeouts)
+- Model recognition (sonnet/haiku/opus aliases)
+- Test quality metrics (assertions vs TODOs)
+- End-to-end workflow validation
+- Production readiness gates (70% quality, 90% success rate)
 
 ## Troubleshooting
 
