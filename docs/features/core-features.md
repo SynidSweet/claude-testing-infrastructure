@@ -1,6 +1,6 @@
 # Core Features & User Journeys
 
-*Last updated: 2025-06-30 | Dry-run mode implementation added*
+*Last updated: 2025-07-01 | All moderate-priority improvements verified as complete*
 
 ## Primary User Flows
 1. **Project Analysis**: `analyze` → Detect languages, frameworks, and generate recommendations
@@ -15,8 +15,8 @@
 
 ### Core Analysis & Generation
 - **ProjectAnalyzer** (`src/analyzers/ProjectAnalyzer.ts`): Language/framework detection with 8+ framework support
-- **TestGenerator** (`src/generators/TestGenerator.ts`): Abstract base class for test generation with lifecycle management  
-- **StructuralTestGenerator** (`src/generators/StructuralTestGenerator.ts`): Intelligent structural test scaffolding and analysis with dry-run support
+- **TestGenerator** (`src/generators/TestGenerator.ts`): Abstract base class for test generation with lifecycle management and configurable file count validation  
+- **StructuralTestGenerator** (`src/generators/StructuralTestGenerator.ts`): Intelligent structural test scaffolding and analysis with dry-run support, ratio validation, and working exclude pattern integration
 - **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Framework-specific template system
 
 ### Test Execution & Coverage
@@ -40,8 +40,19 @@
 - **FileWatcher** (`src/utils/FileWatcher.ts`): Cross-platform file system monitoring with intelligent filtering  
 - **Debouncer** (`src/utils/Debouncer.ts`): Smart event batching utility for reducing excessive processing
 
-### Error Handling & Reliability
+### User Experience & Feedback
+- **ProgressReporter** (`src/utils/ProgressReporter.ts`): Real-time progress tracking with ETA calculations, file-by-file updates, and comprehensive statistics
 - **Error Handling System** (`src/utils/error-handling.ts`): Standardized error handling with custom error classes and wrapper functions
+- **Dry-Run Mode**: Full preview functionality showing exactly what would be generated without creating files
+- **File Count Validation**: Test-to-source ratio validation preventing excessive test generation with configurable thresholds
+
+### Test Quality & Assertions
+- **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Generates meaningful test assertions including:
+  - Module existence and export validation
+  - Type checking and function behavior testing
+  - Async function handling and error scenarios
+  - Object property testing and input validation
+- **Mixed Project Support**: Comprehensive test fixtures for projects using multiple languages and module systems
 
 ## Data Models & Entities
 - **ProjectAnalysis**: Framework detection results, project type classification, existing test structure analysis

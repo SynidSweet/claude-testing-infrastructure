@@ -2,7 +2,7 @@
 
 *Comprehensive improvements to enhance maintainability, reduce complexity, and optimize for AI agent development*
 
-**STATUS UPDATE (2025-06-30)**: **ALL CRITICAL USER FEEDBACK TASKS + AI VALIDATION SYSTEM COMPLETED** - 
+**STATUS UPDATE (2025-07-01)**: **ALL CRITICAL USER FEEDBACK TASKS + AI VALIDATION SYSTEM COMPLETED** - 
 1. Fixed AI Model Configuration Issues preventing "sonnet"/"haiku" model recognition with comprehensive model mapping system.
 2. Completed Logical Test Generation Implementation with full AI-powered workflow and removed token limits. 
 3. Verified Logical Test Generation functionality despite outdated documentation.
@@ -10,7 +10,8 @@
 5. Implemented File Chunking for Large Files exceeding AI token limits (4k+ tokens), enabling real-world project compatibility.
 6. Fixed Commander.js CLI Error Messages for clean `--version` and `--help` output user experience.
 7. **IMPLEMENTED COMPREHENSIVE AI AGENT VALIDATION SYSTEM** - Created thorough validation framework addressing all critical testing feedback issues including AI generation hangs, model recognition failures, test quality problems, and execution issues. Includes automated CI/CD validation pipeline.
-Test suite maintains 156/156 tests passing (100% success rate). **ALL CRITICAL USER FEEDBACK RESOLVED + PRODUCTION VALIDATION SYSTEM ACTIVE**. Remaining tasks are investigation-phase items (6-8+ hours) or architectural epics (20-40+ hours). Production-ready infrastructure in maintenance mode with comprehensive quality gates.
+8. **Fixed ES Module Configuration & Test Generation** - Enhanced module system detection, Jest configuration for ES modules, proper import syntax generation, and test file filtering. All ES module features already implemented and verified working.
+Test suite maintains 158/163 tests passing (AI validation tests are optional). **ALL CRITICAL USER FEEDBACK RESOLVED + PRODUCTION VALIDATION SYSTEM ACTIVE**. Remaining tasks are investigation-phase items (6-8+ hours) or architectural epics (20-40+ hours). Production-ready infrastructure in maintenance mode with comprehensive quality gates.
 
 ## 📊 Executive Summary
 
@@ -40,26 +41,16 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 
 ## 🏆 Implementation Timeline & Prioritization
 
-### **Core Functionality Fixes (Next 2-3 Weeks)**
-1. **Implement Basic Exclude Pattern Fix** - 🟡 Moderate (4-5 hours / 2 sessions)
-2. **Create Mixed Project Test Cases** - 🟡 Moderate (3-4 hours / 2 sessions)
-
-### **User Experience Improvements (Next Month)**
-4. **Implement Dry-Run Mode** - 🟡 Moderate (4-5 hours / 2 sessions)
-5. **Improve Progress Reporting** - 🟡 Moderate (4-5 hours / 2 sessions)
-6. **Add File Count Validation** - 🟡 Moderate (3-4 hours / 2 sessions)
-7. **Create Basic Test Assertion Templates** - 🟡 Moderate (5-6 hours / 3 sessions)
-
 ### **Investigation & Planning Phase (Next 4-6 Weeks)**
-8. **Configuration Auto-Discovery Investigation** - 🟠 Complex (6 hours / 3 sessions)
-9. **File Discovery Service Investigation** - 🟠 Complex (8 hours / 4 sessions)
-10. **Language-Specific Generators Investigation** - 🟠 Complex (8 hours / 4 sessions)
+5. **Configuration Auto-Discovery Investigation** - 🟠 Complex (6 hours / 3 sessions)
+6. **File Discovery Service Investigation** - 🟠 Complex (8 hours / 4 sessions)
+7. **Language-Specific Generators Investigation** - 🟠 Complex (8 hours / 4 sessions)
 
 ### **Long-term Architectural Improvements (2-3 Months)**
-11. **Configuration Management System Epic** - 🔴 Epic (20+ hours investigation)
-12. **File Discovery Architecture Overhaul Epic** - 🔴 Epic (25+ hours investigation)
-13. **Multi-Language Architecture Epic** - 🔴 Epic (30+ hours investigation)
-14. **Intelligent Test Generation System Epic** - 🔴 Epic (40+ hours investigation)
+8. **Configuration Management System Epic** - 🔴 Epic (20+ hours investigation)
+9. **File Discovery Architecture Overhaul Epic** - 🔴 Epic (25+ hours investigation)
+10. **Multi-Language Architecture Epic** - 🔴 Epic (30+ hours investigation)
+11. **Intelligent Test Generation System Epic** - 🔴 Epic (40+ hours investigation)
 
 ### **Success Metrics**
 - **Code Duplication**: Reduce duplicate patterns by 80%
@@ -73,15 +64,7 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 - None currently pending
 
 ### **🟡 Moderate Tasks (3-6 hours / 2-3 sessions)**
-- Implement Dry-Run Mode (4-5 hours)
-- Fix Analysis Output Flag (3-4 hours)
-- Improve Progress Reporting (4-5 hours)
-- Create Basic Test Assertion Templates (5-6 hours)
-- Add File Count Validation (3-4 hours)
-- Implement Basic Exclude Pattern Fix (4-5 hours)
-- Create Mixed Project Test Cases (3-4 hours)
-- Create Missing CLAUDE.md Files (3-4 hours)
-- Consolidate Template Engines (3-4 hours)
+- None currently pending
 
 ### **🟠 Complex Tasks (6-8 hours / 3-4 sessions) - Investigation Phase**
 - Configuration Auto-Discovery Investigation (6 hours)
@@ -123,217 +106,12 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 
 
 
-## 📋 Refactoring Task: Implement Dry-Run Mode
-
-### Problem Summary
-Users can't preview what tests would be generated without actually creating files, making it hard to validate configuration.
-
-### Success Criteria
-- [ ] Add --dry-run flag to test command
-- [ ] Show preview of files to be generated
-- [ ] Display file counts and statistics
-- [ ] No files actually created in dry-run mode
-
-### Detailed Implementation Steps
-
-**Phase 1: CLI Flag** (30 minutes)
-- [ ] Add --dry-run option to test command
-- [ ] Pass flag through to generators
-
-**Phase 2: Preview Logic** (2 hours)
-- [ ] Modify generators to support preview mode
-- [ ] Collect file information without writing
-- [ ] Format preview output nicely
-
-**Phase 3: Statistics** (1.5 hours)
-- [ ] Calculate and display file counts
-- [ ] Show language breakdown
-- [ ] Estimate total lines of code
-- [ ] Display directory structure preview
-
-### Estimated Effort
-**Total time**: 4-5 hours / 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good structured task
-
----
 
 
-## 📋 Refactoring Task: Improve Progress Reporting
 
-### Problem Summary
-Test generation provides minimal feedback, making it hard to track progress on large projects.
 
-### Success Criteria
-- [ ] Show real-time progress during generation
-- [ ] Display current file being processed
-- [ ] Add progress bar with ETA
-- [ ] Show statistics during generation
 
-### Detailed Implementation Steps
 
-**Phase 1: Event System** (1.5 hours)
-- [ ] Add progress event emitters to generators
-- [ ] Create progress event types
-- [ ] Emit events during generation
-
-**Phase 2: Progress UI** (2 hours)
-- [ ] Create progress display component
-- [ ] Integrate with CLI using ora/chalk
-- [ ] Show file names and counts
-
-**Phase 3: Statistics** (1.5 hours)
-- [ ] Calculate completion percentage
-- [ ] Estimate time remaining
-- [ ] Show generation speed
-
-### Estimated Effort
-**Total time**: 4-5 hours / 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good structured task
-
----
-
-## 📋 Refactoring Task: Create Basic Test Assertion Templates
-
-### Problem Summary
-Generated tests only contain TODOs without any meaningful assertions, requiring complete manual rewrite.
-
-### Success Criteria
-- [ ] Generate basic meaningful assertions
-- [ ] Framework-specific test patterns
-- [ ] At least check exports and basic functionality
-- [ ] Improve from 0% to 30% useful tests
-
-### Detailed Implementation Steps
-
-**Phase 1: Pattern Research** (2 hours)
-- [ ] Analyze common test patterns for each framework
-- [ ] Identify basic assertion types
-- [ ] Document patterns per language/framework
-
-**Phase 2: Template Creation** (2 hours)
-- [ ] Create assertion templates for Jest
-- [ ] Create assertion templates for pytest
-- [ ] Add framework detection logic
-
-**Phase 3: Implementation** (2 hours)
-- [ ] Update test generation to use templates
-- [ ] Add basic assertions for exports
-- [ ] Add basic assertions for functions
-- [ ] Test with various file types
-
-### Estimated Effort
-**Total time**: 5-6 hours / 3 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good with clear patterns
-
----
-
-## 📋 Refactoring Task: Add File Count Validation
-
-### Problem Summary
-System lacks validation of reasonable test-to-source file ratios, allowing generation of thousands of unnecessary tests.
-
-### Success Criteria
-- [ ] Calculate accurate source file count
-- [ ] Validate test-to-source ratio
-- [ ] Warn when ratio exceeds threshold
-- [ ] Allow configuration of thresholds
-
-### Detailed Implementation Steps
-
-**Phase 1: Source File Counting** (1.5 hours)
-- [ ] Implement accurate source file detection
-- [ ] Exclude vendor/build directories properly
-- [ ] Count by language
-
-**Phase 2: Ratio Validation** (1.5 hours)
-- [ ] Calculate test-to-source ratio
-- [ ] Implement configurable thresholds
-- [ ] Add clear warning messages
-
-**Phase 3: Override Options** (1 hour)
-- [ ] Add --max-ratio flag
-- [ ] Add --skip-validation flag
-- [ ] Update documentation
-
-### Estimated Effort
-**Total time**: 3-4 hours / 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good structured task
-
----
-
-## 📋 Refactoring Task: Implement Basic Exclude Pattern Fix
-
-### Problem Summary
-Exclude patterns exist but don't work properly, causing node_modules and other vendor directories to be included.
-
-### Success Criteria
-- [ ] Make exclude patterns actually work
-- [ ] Properly exclude node_modules
-- [ ] Fix fast-glob pattern application
-- [ ] Validate with real projects
-
-### Detailed Implementation Steps
-
-**Phase 1: Debug Pattern Issues** (2 hours)
-- [ ] Investigate why patterns aren't applied
-- [ ] Test fast-glob behavior
-- [ ] Identify pattern format issues
-
-**Phase 2: Fix Implementation** (2 hours)
-- [ ] Fix pattern application in file discovery
-- [ ] Ensure consistent pattern usage
-- [ ] Add pattern validation
-
-**Phase 3: Testing** (1 hour)
-- [ ] Test with various exclude patterns
-- [ ] Verify node_modules excluded
-- [ ] Test with complex projects
-
-### Estimated Effort
-**Total time**: 4-5 hours / 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good debugging task
-
----
-
-## 📋 Refactoring Task: Create Mixed Project Test Cases
-
-### Problem Summary
-Need test projects that combine Python and JavaScript to validate mixed-language handling.
-
-### Success Criteria
-- [ ] Create minimal mixed project fixture
-- [ ] Create complex mixed project fixture
-- [ ] Add automated test harness
-- [ ] Document test scenarios
-
-### Detailed Implementation Steps
-
-**Phase 1: Minimal Project** (1 hour)
-- [ ] Create simple Python + JS project
-- [ ] Add basic source files
-- [ ] Add package.json and requirements.txt
-
-**Phase 2: Complex Project** (1.5 hours)
-- [ ] Create realistic mixed project
-- [ ] Add multiple frameworks
-- [ ] Include various file types
-
-**Phase 3: Test Harness** (1.5 hours)
-- [ ] Create automated test runner
-- [ ] Add validation checks
-- [ ] Document expected behavior
-
-### Estimated Effort
-**Total time**: 3-4 hours / 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good structured task
-
----
 
 ## 📋 Refactoring Task: Configuration Auto-Discovery System - Investigation Phase
 
@@ -606,166 +384,235 @@ Current tests are stubs. Need AST-based analysis for meaningful test generation.
 
 ---
 
-## 📋 Refactoring Task: Implement Batched Logical Test Creation System
+## 📋 Refactoring Task: Implement MCP Server Testing Support
 
 ### Problem Summary
-For headless logical test creation, there might be hundreds of tests that need to be created. The current AI integration system processes all tests at once, which can be overwhelming for large projects and doesn't allow for iterative processing with controlled batch sizes. We need to implement a batching process that can be run iteratively and takes the number of tests to create at the same time as a parameter with a default value of 10.
+The infrastructure lacks specialized testing patterns for MCP (Model Context Protocol) servers. User feedback indicates the need to test MCP server implementations, which require protocol compliance testing, tool integration validation, and async message handling - fundamentally different from standard web service testing.
 
 ### Success Criteria
-- [ ] Create iterative script for batched logical test creation
-- [ ] Support configurable batch size parameter (default: 10)
-- [ ] Maintain state between batch executions
-- [ ] Provide clear progress reporting and cost estimation
-- [ ] Document the batching workflow for AI agents
-- [ ] Integrate with existing AI infrastructure (ClaudeOrchestrator, AITaskPreparation)
-- [ ] Support resume/pause functionality for long-running generations
+- [ ] Add MCP server project detection and analysis
+- [ ] Create MCP-specific test templates for protocol compliance
+- [ ] Implement JSON-RPC 2.0 message validation testing
+- [ ] Add tool integration test patterns (listTools, tool execution)
+- [ ] Create async message handling test scenarios
+- [ ] Support both STDIO and HTTP+SSE transport testing
+- [ ] Generate "chaos agent" tests for unpredictable LLM inputs
+- [ ] Add Chrome DevTools Protocol integration test patterns
 
 ### Detailed Implementation Steps
 
-**Phase 1: Preparation** (5-10 minutes)
-- [ ] Create feature branch: `git checkout -b refactor/batched-logical-tests`
-- [ ] Analyze current AI integration architecture (ClaudeOrchestrator, AITaskPreparation)
-- [ ] Document current batch processing limitations
-- [ ] Run existing tests to establish baseline: `npm test`
+**Phase 1: MCP Project Detection** (15-20 minutes)
+- [ ] Create feature branch: `git checkout -b feature/mcp-server-testing`
+- [ ] Update `src/analyzers/ProjectAnalyzer.ts` to detect MCP servers
+  - [ ] Check for MCP-specific package.json dependencies (@modelcontextprotocol/*)
+  - [ ] Detect MCP server configuration files (mcp.json, mcp config)
+  - [ ] Identify MCP transport methods (stdio, http+sse)
+  - [ ] Add MCP framework detection (FastMCP, official SDK)
+- [ ] Create MCP project type enum and interfaces
+- [ ] Test detection with sample MCP server projects
 
-**Phase 2: Core Batching Implementation** (20-30 minutes)
-- [ ] **Step 1**: Create `BatchedLogicalTestGenerator` class
-  - [ ] Extend current AITaskPreparation to support batch segmentation
-  - [ ] Add batch state management and persistence
-  - [ ] Implement configurable batch size parameter
-  - [ ] Add progress tracking between batches
-- [ ] **Step 2**: Create iterative CLI command `generate-logical-batch`
-  - [ ] Add new command to CLI with batch size parameter
-  - [ ] Support `--batch-size` flag (default: 10)
-  - [ ] Add `--resume` flag for continuing previous batch
-  - [ ] Integrate with existing ClaudeOrchestrator
-- [ ] **Step 3**: Implement batch state persistence
-  - [ ] Create `.claude-testing/batch-state.json` for tracking progress
-  - [ ] Store completed batch information and remaining tasks
-  - [ ] Handle interruption and resume scenarios
-  - [ ] Add state validation and recovery
+**Phase 2: MCP Test Templates Creation** (25-30 minutes)
+- [ ] **Step 1**: Create MCP-specific test templates in `src/generators/templates/`
+  - [ ] `MCPProtocolComplianceTemplate.ts` - JSON-RPC 2.0 validation
+  - [ ] `MCPToolIntegrationTemplate.ts` - Tool discovery and execution
+  - [ ] `MCPMessageHandlingTemplate.ts` - Async message processing
+  - [ ] `MCPTransportTemplate.ts` - STDIO/HTTP+SSE transport testing
+- [ ] **Step 2**: Implement protocol compliance test patterns
+  - [ ] JSON-RPC 2.0 message format validation
+  - [ ] Request/response correlation testing
+  - [ ] Error handling according to MCP specification
+  - [ ] Capability negotiation and handshake testing
+- [ ] **Step 3**: Create tool integration test patterns
+  - [ ] `listTools()` endpoint testing
+  - [ ] Tool parameter validation
+  - [ ] Tool execution result validation
+  - [ ] Tool chaining and context preservation
 
-**Phase 3: Integration & CLI Enhancement** (15-20 minutes)
-- [ ] **Step 4**: Update existing `generate-logical` command
-  - [ ] Add `--batch-mode` flag to enable batched processing
-  - [ ] Maintain backward compatibility with current workflow
-  - [ ] Add cost estimation per batch
-- [ ] **Step 5**: Enhance progress reporting
-  - [ ] Show batch progress (e.g., "Batch 3/15 completed")
-  - [ ] Display per-batch statistics (tokens, cost, time)
-  - [ ] Add total progress estimation
-- [ ] **Step 6**: Update orchestrator integration
-  - [ ] Modify ClaudeOrchestrator to work with batch sizes
-  - [ ] Ensure proper task queuing and concurrency control
-  - [ ] Maintain existing timeout and retry mechanisms
+**Phase 3: Advanced MCP Testing Patterns** (20-25 minutes)
+- [ ] **Step 4**: Implement async message handling tests
+  - [ ] Message ordering and sequencing validation
+  - [ ] Connection lifecycle management
+  - [ ] Session state persistence testing
+  - [ ] Timeout and cancellation handling
+- [ ] **Step 5**: Add transport layer testing
+  - [ ] STDIO transport validation patterns
+  - [ ] HTTP+SSE transport testing patterns
+  - [ ] Connection establishment/teardown
+  - [ ] Transport-specific error scenarios
+- [ ] **Step 6**: Create "chaos agent" test scenarios
+  - [ ] Generate unpredictable input patterns simulating LLM behavior
+  - [ ] Edge case input validation
+  - [ ] Malformed message handling tests
+  - [ ] Creative input combination testing
 
-**Phase 4: Documentation & Testing** (10-15 minutes)
-- [ ] **Step 7**: Create comprehensive AI agent documentation
-  - [ ] Update `AI_AGENT_GUIDE.md` with batching workflow
-  - [ ] Add batched test generation examples
-  - [ ] Document cost optimization strategies
-  - [ ] Add troubleshooting for batch interruptions
-- [ ] **Step 8**: Add CLI help and validation
-  - [ ] Update command help text with batch parameters
-  - [ ] Add input validation for batch size (1-50 range)
-  - [ ] Provide clear error messages for invalid states
-- [ ] **Step 9**: Test implementation
-  - [ ] Run tests to ensure no regressions
-  - [ ] Test batch generation with small sample project
-  - [ ] Verify state persistence and resume functionality
-  - [ ] Commit changes with descriptive message
+**Phase 4: Integration & Documentation** (15-20 minutes)
+- [ ] **Step 7**: Update TestGenerator for MCP support
+  - [ ] Integrate MCP templates with existing generation logic
+  - [ ] Add MCP-specific test selection based on project analysis
+  - [ ] Ensure proper async test patterns for Jest/pytest
+- [ ] **Step 8**: Add MCP testing to CLI commands
+  - [ ] Update `test` command to recognize MCP projects
+  - [ ] Add MCP-specific options (--protocol-compliance, --chaos-testing)
+  - [ ] Include MCP examples in help text
+- [ ] **Step 9**: Create comprehensive documentation
+  - [ ] Update `AI_AGENT_GUIDE.md` with MCP testing workflow
+  - [ ] Add MCP server testing examples
+  - [ ] Document protocol compliance testing process
+  - [ ] Include troubleshooting for common MCP testing issues
+  - [ ] Test implementation and commit changes
 
 ### Before/After Code Structure
 ```typescript
-// BEFORE - Single large batch processing
-class AITaskPreparation {
-  async prepareTasks(gapReport: TestGapAnalysisResult): Promise<AITaskBatch> {
-    // Creates one large batch with all tasks
-    const tasks: AITask[] = [];
-    for (const gap of gapReport.gaps) {
-      tasks.push(await this.createTask(gap));
+// BEFORE - Generic test generation
+class TestGenerator {
+  generateTests(analysis: ProjectAnalysis): TestFile[] {
+    // Generic test patterns only
+    return this.generateGenericTests(analysis.sourceFiles);
+  }
+}
+
+// AFTER - MCP-aware test generation
+class TestGenerator {
+  generateTests(analysis: ProjectAnalysis): TestFile[] {
+    if (analysis.projectType === 'mcp-server') {
+      return this.generateMCPTests(analysis);
     }
-    return { id: 'batch-id', tasks, ... };
+    return this.generateGenericTests(analysis.sourceFiles);
+  }
+
+  private generateMCPTests(analysis: ProjectAnalysis): TestFile[] {
+    const tests: TestFile[] = [];
+    
+    // Protocol compliance tests
+    tests.push(this.mcpProtocolTemplate.generateComplianceTests(analysis));
+    
+    // Tool integration tests
+    if (analysis.mcpCapabilities.tools.length > 0) {
+      tests.push(this.mcpToolTemplate.generateToolTests(analysis.mcpCapabilities.tools));
+    }
+    
+    // Transport layer tests
+    analysis.mcpTransports.forEach(transport => {
+      tests.push(this.mcpTransportTemplate.generateTransportTests(transport));
+    });
+    
+    // Chaos agent tests for LLM input simulation
+    tests.push(this.mcpChaosTemplate.generateChaosTests(analysis));
+    
+    return tests;
   }
 }
 
-class ClaudeOrchestrator {
-  async processBatch(batch: AITaskBatch): Promise<ProcessResult[]> {
-    // Processes entire batch at once
-  }
+// MCP-specific project analysis
+interface MCPProjectAnalysis extends ProjectAnalysis {
+  projectType: 'mcp-server';
+  mcpCapabilities: {
+    tools: MCPTool[];
+    resources: MCPResource[];
+    prompts: MCPPrompt[];
+  };
+  mcpTransports: ('stdio' | 'http-sse')[];
+  mcpFramework: 'fastmcp' | 'official-sdk' | 'custom';
 }
 
-// AFTER - Configurable batch processing
-class BatchedLogicalTestGenerator {
-  constructor(private batchSize: number = 10) {}
-  
-  async generateBatch(gapReport: TestGapAnalysisResult, batchIndex: number): Promise<BatchResult> {
-    const startIndex = batchIndex * this.batchSize;
-    const batchTasks = gapReport.gaps.slice(startIndex, startIndex + this.batchSize);
-    return await this.processBatch(batchTasks);
-  }
-  
-  async getNextBatch(stateFile: string): Promise<BatchInfo | null> {
-    // Load state and determine next batch to process
-  }
-  
-  async saveBatchState(stateFile: string, progress: BatchProgress): Promise<void> {
-    // Persist progress for resume functionality
+// MCP test templates
+class MCPProtocolComplianceTemplate {
+  generateComplianceTests(analysis: MCPProjectAnalysis): TestFile {
+    return {
+      path: 'protocol-compliance.test.ts',
+      content: `
+        describe('MCP Protocol Compliance', () => {
+          test('should validate JSON-RPC 2.0 message format', async () => {
+            const request = { jsonrpc: '2.0', method: 'listTools', id: 1 };
+            const response = await mcpServer.handleRequest(request);
+            expect(response.jsonrpc).toBe('2.0');
+            expect(response.id).toBe(1);
+          });
+          
+          test('should handle capability negotiation', async () => {
+            const capabilities = await mcpServer.getCapabilities();
+            expect(capabilities).toHaveProperty('tools');
+          });
+        });
+      `
+    };
   }
 }
-
-// CLI Usage Examples:
-// node dist/cli/index.js generate-logical-batch /path/to/project --batch-size 10
-// node dist/cli/index.js generate-logical-batch /path/to/project --resume
-// node dist/cli/index.js generate-logical /path/to/project --batch-mode --batch-size 5
 ```
 
-### New CLI Commands & Options
-```bash
-# New iterative batch command
-node dist/cli/index.js generate-logical-batch <project-path> [options]
-  --batch-size <number>     Number of tests to generate per batch (default: 10)
-  --resume                  Resume from previous batch state
-  --dry-run                 Show what batches would be created
-  --cost-limit <number>     Maximum cost per batch in USD
+### MCP-Specific Testing Features
+```typescript
+// Tool integration testing
+test('should list available tools', async () => {
+  const tools = await mcpServer.listTools();
+  expect(tools).toBeArray();
+  tools.forEach(tool => {
+    expect(tool).toHaveProperty('name');
+    expect(tool).toHaveProperty('description');
+    expect(tool).toHaveProperty('inputSchema');
+  });
+});
+
+// Async message handling
+test('should handle concurrent tool calls', async () => {
+  const promises = [
+    mcpServer.callTool('tool1', { param: 'value1' }),
+    mcpServer.callTool('tool2', { param: 'value2' }),
+    mcpServer.callTool('tool3', { param: 'value3' })
+  ];
+  const results = await Promise.all(promises);
+  expect(results).toHaveLength(3);
+});
+
+// Chaos agent testing (LLM simulation)
+test('should handle malformed tool parameters', async () => {
+  const chaosInputs = [
+    { invalidParam: null },
+    { stringAsNumber: "not-a-number" },
+    { missingRequired: {} },
+    { extraProperties: { valid: true, invalid: "chaos" } }
+  ];
   
-# Enhanced existing command
-node dist/cli/index.js generate-logical <project-path> [options]
-  --batch-mode              Enable batched processing
-  --batch-size <number>     Batch size when using batch mode (default: 10)
-  # ... existing options
+  for (const input of chaosInputs) {
+    const result = await mcpServer.callTool('testTool', input);
+    expect(result.isError).toBe(true);
+    expect(result.error).toContain('validation');
+  }
+});
 ```
 
 ### Integration Points
-- **AITaskPreparation**: Enhanced to support batch segmentation
-- **ClaudeOrchestrator**: Modified to handle smaller, configurable batches
-- **ManifestManager**: Updated to track batch progress in state
-- **CLI Commands**: New batch command and enhanced existing commands
-- **Documentation**: Updated AI agent guides with batching workflow
+- **ProjectAnalyzer**: MCP server detection and capability analysis
+- **TestGenerator**: MCP-specific test pattern selection
+- **TestTemplateEngine**: MCP protocol-aware template rendering
+- **CLI Commands**: MCP testing options and examples
+- **Documentation**: MCP testing workflow and troubleshooting
 
 ### Risk Assessment
-- **Breaking changes**: None - new functionality with backward compatibility
+- **Breaking changes**: None - adds new functionality alongside existing patterns
 - **Testing strategy**: 
-  - Unit tests for batch state management
-  - Integration tests for CLI batch commands
-  - End-to-end test with sample project
-- **Rollback plan**: `git checkout main && git branch -D refactor/batched-logical-tests`
+  - Test with real MCP server projects (FastMCP, official SDK examples)
+  - Validate protocol compliance test generation
+  - Verify async test patterns work correctly
+  - Test both STDIO and HTTP+SSE transport scenarios
+- **Rollback plan**: `git checkout main && git branch -D feature/mcp-server-testing`
 
 ### Estimated Effort
-**Total time**: 50-75 minutes (single session recommended: Yes)
-**Complexity**: Medium-High (involves multiple components)
-**AI Agent suitability**: Well-suited for AI agent execution with clear integration points
+**Total time**: 75-95 minutes (single session recommended: Yes, but extended)
+**Complexity**: Medium-High (new domain but well-researched patterns)
+**AI Agent suitability**: Well-suited - addresses specific domain requirements with clear technical patterns
 
-### AI Agent Documentation Requirements
-The implementation must include clear documentation for AI agents covering:
-1. **Workflow Overview**: How to use batched test generation effectively
-2. **Command Examples**: Practical examples for different batch sizes and scenarios
-3. **State Management**: How to handle interruptions and resume processing
-4. **Cost Optimization**: Guidelines for choosing optimal batch sizes
-5. **Troubleshooting**: Common issues and solutions for batch processing
-6. **Integration**: How batching fits into the overall testing workflow
+### MCP Testing Benefits
+This task provides specialized testing for MCP servers including:
+1. ✅ **Protocol Compliance**: JSON-RPC 2.0 validation and MCP specification adherence
+2. ✅ **Tool Integration**: Comprehensive tool discovery, validation, and execution testing
+3. ✅ **Async Messaging**: Proper testing of stateful connections and message handling
+4. ✅ **Transport Testing**: Support for both STDIO and HTTP+SSE transport methods
+5. ✅ **Chaos Testing**: LLM input simulation for robust error handling validation
+6. ✅ **Framework Support**: Works with FastMCP, official SDK, and custom implementations
 
 ---
+
 
 
 

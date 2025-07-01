@@ -1,6 +1,6 @@
 # Commands Reference
 
-*Last updated: 2025-06-30 | Updated by: /document command | Batched AI Processing Implementation*
+*Last updated: 2025-07-01 | Updated by: /document command | All UX improvements complete*
 
 ## 🆕 Core CLI Commands (TypeScript Infrastructure)
 ```bash
@@ -9,6 +9,8 @@ node dist/cli/index.js analyze <path>                 # Analyze project structur
 node dist/cli/index.js analyze <path> --verbose       # Detailed analysis output
 node dist/cli/index.js analyze <path> --format json   # JSON output for integration
 node dist/cli/index.js analyze <path> --format markdown --output report.md # Generate markdown report
+node dist/cli/index.js analyze <path> --output analysis.txt # Save console output to file ✅ FIXED
+node dist/cli/index.js analyze <path> --format json --output analysis.json # Save JSON to file
 node dist/cli/index.js analyze <path> --validate-config # Validate .claude-testing.config.json
 
 # Test Generation ✅ IMPLEMENTED
@@ -23,6 +25,7 @@ node dist/cli/index.js test <path> --coverage         # Include coverage analysi
 node dist/cli/index.js test <path> --config config.json # Use custom configuration
 node dist/cli/index.js test <path> --update           # Update existing tests (don't skip)
 node dist/cli/index.js test <path> --force            # Skip validation checks (e.g., test-to-source ratio)
+node dist/cli/index.js test <path> --max-ratio 15     # Override maximum test-to-source file ratio (default: 10)
 node dist/cli/index.js test <path> --enable-chunking  # Enable file chunking for large files (default: true)
 node dist/cli/index.js test <path> --chunk-size 4000  # Set custom chunk size in tokens (default: 3500)
 
@@ -136,9 +139,25 @@ node dist/cli/index.js test <path> --force
 ```
 
 **Validation Thresholds**:
-- **5x ratio**: Warning logged but generation continues
-- **10x ratio**: Generation blocked unless `--force` flag used
+- **Warning threshold**: At 75% of maximum ratio, warning is displayed but generation continues
+- **Maximum ratio**: Generation blocked unless `--force` flag used (default: 10x, configurable via `--max-ratio`)
 - **Source file counting**: Automatically excludes test files, node_modules, build directories
+
+**Customization Options**:
+```bash
+# Override ratio limit temporarily 
+node dist/cli/index.js test <path> --max-ratio 20
+
+# Configure permanently in .claude-testing.config.json
+{
+  "generation": {
+    "maxTestToSourceRatio": 15
+  }
+}
+
+# Skip validation entirely (use with caution)
+node dist/cli/index.js test <path> --force
+```
 
 ## Configuration Validation ✅ NEW
 

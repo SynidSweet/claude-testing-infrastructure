@@ -1,10 +1,60 @@
 # Changelog
 
-*Last updated: 2025-07-01 | Updated by: /document command | Enhanced AI Authentication and Error Handling*
+*Last updated: 2025-07-01 | Updated by: /document command | Completed tasks cleanup*
 
 ## Recent Updates
 
-- **2025-07-01 (Latest Session)**: ✅ **CRITICAL AI HANGING ISSUE RESOLVED!**
+- **2025-07-01 (Current Session)**: ✅ **ALL MODERATE-PRIORITY TASKS COMPLETED**
+  - **Discovery**:
+    - ✅ Found 9 supposedly "pending" tasks that were already implemented
+    - ✅ Infrastructure more complete than planning documents indicated
+    - ✅ All user experience improvements already in production
+  - **Completed Features Verified**:
+    - ✅ **Mixed Project Test Cases**: Comprehensive test fixtures with passing test harness
+    - ✅ **Dry-Run Mode**: Full preview functionality with detailed output
+    - ✅ **Progress Reporting**: Real-time progress with file tracking and statistics
+    - ✅ **File Count Validation**: Test-to-source ratio validation with configurable thresholds
+    - ✅ **Test Assertion Templates**: Meaningful assertions, not TODOs
+    - ✅ **Analysis Output Flag**: Working --output and --format options
+    - ✅ **CLAUDE.md Files**: All directories properly documented
+    - ✅ **Template Engine Consolidation**: Already refactored per git history
+    - ✅ **Batched Logical Test Creation**: generate-logical-batch command functional
+  - **Documentation Cleanup**:
+    - ✅ Removed all completed tasks from REFACTORING_PLAN.md
+    - ✅ Updated task numbering and organization
+    - ✅ Confirmed only investigation tasks and MCP testing remain pending
+
+- **2025-07-01 (Previous Session)**: ✅ **ES MODULE SUPPORT VERIFIED & DOCUMENTED**
+  - **Investigation Result**:
+    - ✅ **Already Implemented**: All ES module features were already fully functional
+    - ✅ **Module Detection**: ProjectAnalyzer correctly detects `"type": "module"` in package.json
+    - ✅ **Jest Configuration**: JestRunner generates proper ES module configuration with ts-jest presets
+    - ✅ **Import Generation**: TestTemplateEngine generates correct ES/CommonJS imports based on module type
+    - ✅ **File Filtering**: StructuralTestGenerator already excludes .d.ts files
+  - **Documentation Updates**:
+    - ✅ Updated `test-runner.md` with ES module configuration details
+    - ✅ Enhanced `test-generator.md` with ES module import generation info
+    - ✅ Updated `REFACTORING_PLAN.md` to mark task as completed
+  - **User Impact**:
+    - ✅ ES module projects work seamlessly with the infrastructure
+    - ✅ Clear documentation for ES module support capabilities
+    - ✅ No code changes needed - feature was already production-ready
+
+- **2025-07-01 (Previous Session)**: ✅ **ANALYZE COMMAND OUTPUT FLAG FIXED**
+  - **Bug Fix**:
+    - ✅ **Console Format Support**: --output flag now saves console format to file
+    - ✅ **Consistent Behavior**: All formats (console, json, markdown) now support --output
+    - ✅ **Backward Compatible**: Existing JSON and markdown output functionality preserved
+  - **Implementation**:
+    - ✅ Capture console.log output when --output is specified with console format
+    - ✅ Write captured output to specified file path
+    - ✅ Display success message after file creation
+  - **User Impact**:
+    - ✅ Users can now save analysis results in any format to files
+    - ✅ Improves CI/CD integration and report generation workflows
+    - ✅ Consistent interface across all output formats
+
+- **2025-07-01 (Previous Session)**: ✅ **CRITICAL AI HANGING ISSUE RESOLVED!**
   - **Authentication Validation**:
     - ✅ **Pre-flight Checks**: Added `validateClaudeAuth()` method to verify CLI authentication
     - ✅ **Clear Error Messages**: Authentication failures now provide specific guidance
