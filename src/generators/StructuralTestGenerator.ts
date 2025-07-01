@@ -5,6 +5,12 @@ import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/common-imports';
 import type { TemplateContext } from './templates/TestTemplateEngine';
 import { TestTemplateEngine } from './templates/TestTemplateEngine';
+import { MCPProtocolComplianceTemplate } from './templates/MCPProtocolComplianceTemplate';
+import { MCPToolIntegrationTemplate } from './templates/MCPToolIntegrationTemplate';
+import { MCPMessageHandlingTemplate } from './templates/MCPMessageHandlingTemplate';
+import { MCPTransportTemplate } from './templates/MCPTransportTemplate';
+import { MCPChaosTemplate } from './templates/MCPChaosTemplate';
+import { isMCPProjectAnalysis } from '../types/mcp-types';
 
 export interface StructuralTestGeneratorOptions {
   /** Patterns for files to include in test generation */
@@ -21,6 +27,8 @@ export interface StructuralTestGeneratorOptions {
   skipExistingTests?: boolean;
   /** Skip validation checks (e.g., test-to-source ratio) */
   skipValidation?: boolean;
+  /** Override maximum test-to-source file ratio */
+  maxRatio?: number;
   /** Dry run mode - don't create any files */
   dryRun?: boolean;
 }
@@ -41,19 +49,25 @@ export class StructuralTestGenerator extends TestGenerator {
     options: StructuralTestGeneratorOptions = {}
   ) {
     super(config, analysis);
+    
+    // Use configuration patterns if available, otherwise use defaults
+    const defaultIncludePatterns = ['**/*.{js,ts,jsx,tsx,py}'];
+    const defaultExcludePatterns = [
+      '**/*.test.*',
+      '**/*.spec.*',
+      '**/*.d.ts', // Exclude TypeScript declaration files
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/__pycache__/**',
+      '**/coverage/**',
+      '**/tests/**',
+      '**/__tests__/**',
+    ];
+    
     this.options = {
-      includePatterns: ['**/*.{js,ts,jsx,tsx,py}'],
-      excludePatterns: [
-        '**/*.test.*',
-        '**/*.spec.*',
-        '**/node_modules/**',
-        '**/dist/**',
-        '**/build/**',
-        '**/__pycache__/**',
-        '**/coverage/**',
-        '**/tests/**',
-        '**/__tests__/**',
-      ],
+      includePatterns: config.patterns?.include || options.includePatterns || defaultIncludePatterns,
+      excludePatterns: config.patterns?.exclude || options.excludePatterns || defaultExcludePatterns,
       generateMocks: true,
       generateSetup: true,
       includeTestData: false,
@@ -69,14 +83,20 @@ export class StructuralTestGenerator extends TestGenerator {
       excludePatterns: this.options.excludePatterns,
     });
 
-    const patterns = this.options.includePatterns!.map((pattern) =>
-      path.join(this.config.projectPath, pattern)
-    );
+    // Validate patterns
+    this.validatePatterns();
 
-    const allFiles = await fg(patterns, {
+    // Use relative patterns (no path.join) - fast-glob handles cwd option better
+    const allFiles = await fg(this.options.includePatterns!, {
       ignore: this.options.excludePatterns || [],
+      cwd: this.config.projectPath,
       absolute: true,
       onlyFiles: true,
+      dot: false, // Don't include hidden files by default
+    });
+
+    logger.debug(`Found ${allFiles.length} files before language filtering`, {
+      sampleFiles: allFiles.slice(0, 5),
     });
 
     // Filter files based on detected languages
@@ -163,6 +183,11 @@ export class StructuralTestGenerator extends TestGenerator {
     // Generate setup files if configured
     if (this.options.generateSetup && results.length > 0) {
       await this.generateTestSetupFiles(results);
+    }
+
+    // Generate MCP-specific tests if this is an MCP server project
+    if (this.analysis.projectType === 'mcp-server' && this.analysis.mcpCapabilities) {
+      await this.generateMCPTests(results);
     }
   }
 
@@ -532,10 +557,10 @@ export class StructuralTestGenerator extends TestGenerator {
   private getMockFilePath(filePath: string): string {
     const conventions = this.getNamingConventions();
     const ext = this.getTestFileExtension().replace('.test', conventions.mockFileSuffix);
-    const relativePath = filePath.replace(this.config.projectPath, '').replace(/^\//, '');
+    const relativePath = path.relative(this.config.projectPath, filePath);
     const pathWithoutExt = relativePath.replace(/\.[^/.]+$/, '');
 
-    return `${this.config.outputPath}/__mocks__/${pathWithoutExt}${ext}`;
+    return path.join(this.config.outputPath, '__mocks__', `${pathWithoutExt}${ext}`);
   }
 
   private generateMockFileContent(dependencies: string[]): string {
@@ -605,16 +630,13 @@ ${mockConsole}
 ${reactConfig}`;
   }
 
-  private generateJavaScriptSetupImports(framework: string, hasReact: boolean): string {
+  private generateJavaScriptSetupImports(_framework: string, _hasReact: boolean): string {
     const imports: string[] = [];
 
-    if (framework === 'jest') {
-      imports.push("import '@testing-library/jest-dom';");
-    }
+    // Only add imports that are commonly available without additional dependencies
+    // Skip testing library imports to avoid dependency issues
 
-    if (hasReact) {
-      imports.push("import { configure } from '@testing-library/react';");
-    }
+    // No imports needed for basic test setup
 
     return imports.join('\n');
   }
@@ -653,16 +675,135 @@ global.console = {
   private generateReactConfig(hasReact: boolean): string {
     if (!hasReact) return '';
 
-    return `// Configure testing library
-configure({
-  testIdAttribute: 'data-testid',
-});
+    return `// React testing configuration (basic setup)
+// Note: Advanced React testing requires @testing-library/react
+// For now, using basic Jest setup
 `;
   }
 
   private getSetupFileName(): string {
     const language = this.getPrimaryLanguage();
     return language === 'python' ? 'conftest.py' : 'setupTests.js';
+  }
+
+  /**
+   * Validate include and exclude patterns
+   */
+  private validatePatterns(): void {
+    // Check for valid pattern formats
+    const invalidIncludePatterns = this.options.includePatterns?.filter(pattern => 
+      !pattern || typeof pattern !== 'string' || pattern.trim() === ''
+    ) || [];
+
+    const invalidExcludePatterns = this.options.excludePatterns?.filter(pattern => 
+      !pattern || typeof pattern !== 'string' || pattern.trim() === ''
+    ) || [];
+
+    if (invalidIncludePatterns.length > 0) {
+      logger.warn('Invalid include patterns found', { patterns: invalidIncludePatterns });
+    }
+
+    if (invalidExcludePatterns.length > 0) {
+      logger.warn('Invalid exclude patterns found', { patterns: invalidExcludePatterns });
+    }
+
+    // Log pattern validation for debugging
+    logger.debug('Pattern validation completed', {
+      includeCount: this.options.includePatterns?.length || 0,
+      excludeCount: this.options.excludePatterns?.length || 0,
+      hasNodeModulesExclude: this.options.excludePatterns?.some(p => p.includes('node_modules')) || false,
+    });
+  }
+
+  private async generateMCPTests(existingResults: GeneratedTest[]): Promise<void> {
+    if (!isMCPProjectAnalysis(this.analysis)) {
+      return;
+    }
+
+    logger.info('Generating MCP-specific tests');
+    const mcpAnalysis = this.analysis;
+    const mcpTests: GeneratedTest[] = [];
+
+    try {
+      // Generate protocol compliance tests
+      const protocolTemplate = new MCPProtocolComplianceTemplate();
+      const protocolTest = protocolTemplate.generateComplianceTests(mcpAnalysis);
+      mcpTests.push({
+        sourcePath: 'mcp-server',
+        testPath: protocolTest.path,
+        testType: TestType.INTEGRATION,
+        framework: this.getFramework(),
+        content: protocolTest.content,
+      });
+
+      // Generate tool integration tests if tools are present
+      if (mcpAnalysis.mcpCapabilities.tools.length > 0) {
+        const toolTemplate = new MCPToolIntegrationTemplate();
+        const toolTest = toolTemplate.generateToolTests(
+          mcpAnalysis.mcpCapabilities.tools,
+          mcpAnalysis
+        );
+        mcpTests.push({
+          sourcePath: 'mcp-server',
+          testPath: toolTest.path,
+          testType: TestType.INTEGRATION,
+          framework: this.getFramework(),
+          content: toolTest.content,
+        });
+      }
+
+      // Generate message handling tests
+      const messageTemplate = new MCPMessageHandlingTemplate();
+      const messageTest = messageTemplate.generateMessageTests(mcpAnalysis);
+      mcpTests.push({
+        sourcePath: 'mcp-server',
+        testPath: messageTest.path,
+        testType: TestType.INTEGRATION,
+        framework: this.getFramework(),
+        content: messageTest.content,
+      });
+
+      // Generate transport-specific tests
+      const transportTemplate = new MCPTransportTemplate();
+      for (const transport of mcpAnalysis.mcpCapabilities.transports) {
+        const transportTest = transportTemplate.generateTransportTests(transport, mcpAnalysis);
+        mcpTests.push({
+          sourcePath: 'mcp-server',
+          testPath: transportTest.path,
+          testType: TestType.INTEGRATION,
+          framework: this.getFramework(),
+          content: transportTest.content,
+        });
+      }
+
+      // Generate chaos tests
+      const chaosTemplate = new MCPChaosTemplate();
+      const chaosTest = chaosTemplate.generateChaosTests(mcpAnalysis);
+      mcpTests.push({
+        sourcePath: 'mcp-server',
+        testPath: chaosTest.path,
+        testType: TestType.INTEGRATION,
+        framework: this.getFramework(),
+        content: chaosTest.content,
+      });
+
+      // Write MCP tests if not in dry-run mode
+      if (!this.options.dryRun) {
+        for (const test of mcpTests) {
+          const fullPath = path.join(this.config.projectPath, test.testPath);
+          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.writeFile(fullPath, test.content, 'utf-8');
+          logger.info(`Generated MCP test: ${test.testPath}`);
+        }
+      }
+
+      // Update results count
+      existingResults.push(...mcpTests);
+      
+    } catch (error) {
+      logger.error('Failed to generate MCP tests', { error });
+      throw error;
+    }
   }
 }
 

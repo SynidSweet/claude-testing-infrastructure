@@ -10,6 +10,8 @@ export interface ProjectAnalysis {
   testingSetup: TestingSetup;
   complexity: ComplexityMetrics;
   moduleSystem: ModuleSystemInfo;
+  projectType?: 'standard' | 'mcp-server';
+  mcpCapabilities?: MCPCapabilities;
 }
 
 export interface ModuleSystemInfo {
@@ -17,6 +19,7 @@ export interface ModuleSystemInfo {
   hasPackageJsonType: boolean;
   packageJsonType?: 'module' | 'commonjs';
   confidence: number;
+  fileExtensionPattern: 'js' | 'mjs' | 'ts';
 }
 
 export interface DetectedLanguage {
@@ -37,7 +40,9 @@ export interface DetectedFramework {
     | 'flask'
     | 'nextjs'
     | 'nuxt'
-    | 'svelte';
+    | 'svelte'
+    | 'mcp-server'
+    | 'fastmcp';
   confidence: number;
   version?: string;
   configFiles: string[];
@@ -78,6 +83,32 @@ export interface ComplexityMetrics {
   largestFiles: Array<{ path: string; lines: number }>;
 }
 
+export interface MCPCapabilities {
+  tools: MCPTool[];
+  resources: MCPResource[];
+  prompts: MCPPrompt[];
+  transports: ('stdio' | 'http-sse')[];
+  framework: 'fastmcp' | 'official-sdk' | 'custom';
+}
+
+export interface MCPTool {
+  name: string;
+  description?: string;
+  inputSchema?: unknown;
+}
+
+export interface MCPResource {
+  name: string;
+  uri: string;
+  mimeType?: string;
+}
+
+export interface MCPPrompt {
+  name: string;
+  description?: string;
+  arguments?: unknown;
+}
+
 export class ProjectAnalyzer {
   private projectPath: string;
 
@@ -116,6 +147,9 @@ export class ProjectAnalyzer {
         this.analyzeModuleSystem(),
       ]);
 
+      // Check if this is an MCP server project
+      const isMCPServer = frameworks.some(f => f.name === 'mcp-server' || f.name === 'fastmcp');
+      
       const analysis: ProjectAnalysis = {
         projectPath: this.projectPath,
         languages,
@@ -126,7 +160,14 @@ export class ProjectAnalyzer {
         testingSetup,
         complexity,
         moduleSystem,
+        projectType: isMCPServer ? 'mcp-server' : 'standard',
       };
+
+      // Add MCP capabilities if this is an MCP server
+      if (isMCPServer) {
+        const mcpCapabilities = await this.analyzeMCPCapabilities();
+        analysis.mcpCapabilities = mcpCapabilities;
+      }
 
       logger.info('Project analysis completed successfully');
       return analysis;
@@ -301,6 +342,36 @@ export class ProjectAnalyzer {
         confidence: 0.8,
         configFiles,
       });
+    }
+
+    // MCP Server detection
+    if (await this.hasMCPServer(packageJsonContent)) {
+      const configFiles = await this.findFiles([
+        '**/mcp.json',
+        '**/.mcp/**',
+        '**/package.json',
+        '**/server.py',
+        '**/server.js',
+        '**/server.ts',
+      ]);
+      
+      const framework = await this.detectMCPFramework(packageJsonContent);
+      if (framework === 'fastmcp') {
+        frameworks.push({
+          name: 'fastmcp',
+          confidence: 0.95,
+          version: packageJsonContent?.dependencies?.fastmcp || packageJsonContent?.devDependencies?.fastmcp,
+          configFiles,
+        });
+      } else {
+        frameworks.push({
+          name: 'mcp-server',
+          confidence: 0.9,
+          version: packageJsonContent?.dependencies?.['@modelcontextprotocol/sdk'] || 
+                   packageJsonContent?.devDependencies?.['@modelcontextprotocol/sdk'],
+          configFiles,
+        });
+      }
     }
 
     return frameworks.sort((a, b) => b.confidence - a.confidence);
@@ -566,6 +637,95 @@ export class ProjectAnalyzer {
     return !!(pythonDeps?.flask || pythonDeps?.Flask);
   }
 
+  private async hasMCPServer(packageJson: any): Promise<boolean> {
+    if (!packageJson) return false;
+    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    return !!(
+      deps?.['@modelcontextprotocol/sdk'] || 
+      deps?.['@modelcontextprotocol/server'] ||
+      deps?.fastmcp ||
+      deps?.['mcp-framework'] ||
+      deps?.['@anthropic/mcp']
+    );
+  }
+
+  private async detectMCPFramework(packageJson: any): Promise<'fastmcp' | 'official-sdk' | 'custom'> {
+    if (!packageJson) return 'custom';
+    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    
+    if (deps?.fastmcp) {
+      return 'fastmcp';
+    } else if (deps?.['@modelcontextprotocol/sdk']) {
+      return 'official-sdk';
+    }
+    
+    return 'custom';
+  }
+
+  private async analyzeMCPCapabilities(): Promise<MCPCapabilities> {
+    const packageJson = await this.readPackageJson();
+    const framework = await this.detectMCPFramework(packageJson);
+    
+    // Basic capability detection - would be enhanced with actual AST parsing
+    const capabilities: MCPCapabilities = {
+      tools: [],
+      resources: [],
+      prompts: [],
+      transports: ['stdio'], // Default transport
+      framework,
+    };
+    
+    // Check for HTTP+SSE transport indicators
+    const hasHttpIndicators = packageJson?.dependencies?.express || 
+                             packageJson?.dependencies?.fastify ||
+                             packageJson?.dependencies?.['@fastify/sse'] ||
+                             packageJson?.devDependencies?.express ||
+                             packageJson?.devDependencies?.fastify;
+    
+    if (hasHttpIndicators) {
+      capabilities.transports.push('http-sse');
+    }
+    
+    // Try to detect MCP configuration file
+    const mcpConfigFiles = await this.findFiles(['mcp.json', '.mcp/config.json', '**/mcp.json', '**/.mcp/config.json']);
+    if (mcpConfigFiles.length > 0 && mcpConfigFiles[0]) {
+      try {
+        const configPath = path.join(this.projectPath, mcpConfigFiles[0]);
+        const configContent = await fs.readFile(configPath, 'utf-8');
+        const config = JSON.parse(configContent);
+        
+        // Extract capabilities from config if available
+        if (config.tools) {
+          capabilities.tools = config.tools.map((tool: any) => ({
+            name: tool.name || 'unknown',
+            description: tool.description,
+            inputSchema: tool.inputSchema,
+          }));
+        }
+        
+        if (config.resources) {
+          capabilities.resources = config.resources.map((resource: any) => ({
+            name: resource.name || 'unknown',
+            uri: resource.uri || '',
+            mimeType: resource.mimeType,
+          }));
+        }
+        
+        if (config.prompts) {
+          capabilities.prompts = config.prompts.map((prompt: any) => ({
+            name: prompt.name || 'unknown',
+            description: prompt.description,
+            arguments: prompt.arguments,
+          }));
+        }
+      } catch (error) {
+        logger.debug('Could not parse MCP config file:', error);
+      }
+    }
+    
+    return capabilities;
+  }
+
   // Utility methods
   private async findFiles(
     patterns: string[],
@@ -679,6 +839,7 @@ export class ProjectAnalyzer {
           type: 'commonjs',
           hasPackageJsonType: false,
           confidence: 0.7,
+          fileExtensionPattern: await this.detectFileExtensionPattern(),
         };
       }
 
@@ -690,6 +851,7 @@ export class ProjectAnalyzer {
           hasPackageJsonType: true,
           packageJsonType: 'module',
           confidence: 1.0,
+          fileExtensionPattern: await this.detectFileExtensionPattern(),
         };
       } else if (packageJsonType === 'commonjs') {
         return {
@@ -697,6 +859,7 @@ export class ProjectAnalyzer {
           hasPackageJsonType: true,
           packageJsonType: 'commonjs',
           confidence: 1.0,
+          fileExtensionPattern: await this.detectFileExtensionPattern(),
         };
       } else {
         // No explicit type field - analyze imports/exports in source files
@@ -706,6 +869,7 @@ export class ProjectAnalyzer {
           type: moduleTypeFromFiles.type,
           hasPackageJsonType: false,
           confidence: moduleTypeFromFiles.confidence,
+          fileExtensionPattern: await this.detectFileExtensionPattern(),
         };
       }
     } catch (error) {
@@ -714,6 +878,7 @@ export class ProjectAnalyzer {
         type: 'commonjs',
         hasPackageJsonType: false,
         confidence: 0.5,
+        fileExtensionPattern: await this.detectFileExtensionPattern(),
       };
     }
   }
@@ -798,5 +963,24 @@ export class ProjectAnalyzer {
       /\bmodule\.exports\s*=/.test(content) ||
       /\bexports\.\w+\s*=/.test(content)
     );
+  }
+
+  private async detectFileExtensionPattern(): Promise<'js' | 'mjs' | 'ts'> {
+    try {
+      // Check for common file patterns in the project
+      const tsFiles = await this.findFiles(['**/*.ts', '**/*.tsx'], ['node_modules/**', 'dist/**', 'build/**']);
+      const mjsFiles = await this.findFiles(['**/*.mjs'], ['node_modules/**', 'dist/**', 'build/**']);
+      
+      if (tsFiles.length > 0) {
+        return 'ts';
+      } else if (mjsFiles.length > 0) {
+        return 'mjs';
+      } else {
+        return 'js';
+      }
+    } catch (error) {
+      logger.debug('Error detecting file extension pattern:', error);
+      return 'js';
+    }
   }
 }

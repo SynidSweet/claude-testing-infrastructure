@@ -122,6 +122,19 @@ node dist/cli/index.js incremental /path/to/your/project --stats
 node dist/cli/index.js watch /path/to/your/project
 ```
 
+### Step 7: MCP Server Testing (specialized)
+```bash
+# For MCP (Model Context Protocol) server projects
+node dist/cli/index.js test /path/to/mcp-server
+
+# MCP testing includes:
+# - Protocol compliance (JSON-RPC 2.0)
+# - Tool integration validation
+# - Async message handling
+# - Transport layer testing (STDIO/HTTP+SSE)
+# - Chaos testing for LLM inputs
+```
+
 ## 📊 Key Features
 
 ### AI-Powered Test Generation
@@ -157,6 +170,7 @@ node dist/cli/index.js watch /path/to/your/project
 - ✅ Angular - Component and service testing
 - ✅ Node.js/Express - API and middleware testing
 - ✅ Next.js - Page and API route testing
+- ✅ MCP Servers - Protocol compliance and tool testing ✨ NEW
 - ⚠️ Svelte - Basic support (community patterns)
 
 **Python** (Confidence: High)
@@ -225,6 +239,35 @@ node dist/cli/index.js generate-logical-batch /path/to/large/project --cost-limi
 
 # Use smaller batches for complex files or budget constraints
 node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 5
+```
+
+### MCP Server Testing
+```bash
+# Analyze MCP server project
+node dist/cli/index.js analyze /path/to/mcp-server
+
+# Generate comprehensive MCP tests
+node dist/cli/index.js test /path/to/mcp-server
+
+# Generated tests include:
+# - .claude-testing/mcp-protocol-compliance.test.js
+# - .claude-testing/mcp-tool-integration.test.js
+# - .claude-testing/mcp-message-handling.test.js
+# - .claude-testing/mcp-transport-stdio.test.js
+# - .claude-testing/mcp-transport-http-sse.test.js
+# - .claude-testing/mcp-chaos-testing.test.js
+
+# Run MCP tests with Jest
+cd /path/to/mcp-server/.claude-testing
+npm test
+
+# For FastMCP servers
+node dist/cli/index.js test /path/to/fastmcp-server
+# Detects FastMCP framework automatically
+
+# For servers using official SDK
+node dist/cli/index.js test /path/to/official-mcp-server
+# Detects @modelcontextprotocol/sdk usage
 ```
 
 ### CI/CD Integration
