@@ -2,7 +2,7 @@
 
 *Common issues and solutions when using Claude Testing Infrastructure*
 
-*Last updated: 2025-06-30 | Added CLI error message fix information*
+*Last updated: 2025-07-01 | Updated by: /document command | Enhanced AI troubleshooting*
 
 ## 🔍 Quick Diagnosis
 
@@ -431,22 +431,46 @@ npm run format:check
 
 ### Claude Code CLI Integration
 
-#### "AI test generation times out"
-**Symptoms**: Commands hang or timeout after 2 minutes during AI generation
+#### "AI test generation hangs indefinitely" (FIXED)
+**Symptoms**: AI generation hangs without timeout or error
 ```bash
-# Command stuck here:
-Executing Claude for task task-1...
+# Command stuck indefinitely:
+Generating logical tests... (0/10) - Starting AI generation
 ```
 
-**Solutions**:
-The system automatically configures extended timeouts for AI operations. If issues persist:
+**Root Cause**: Claude CLI authentication issues
 
+**Solutions**:
 ```bash
-# Verify Claude Code CLI is installed and working
+# 1. Verify Claude CLI is installed
 claude --version
 
-# Test Claude CLI directly with a simple prompt
-claude -p "Hello" --output-format json
+# 2. Check authentication (NEW validation)
+claude config get  # Should show config without prompts
+
+# 3. If not authenticated, run interactively
+claude chat  # Complete authentication flow
+
+# 4. Test with simple query
+echo "What is 2+2?" | claude  # Should respond without hanging
+
+# 5. If still hanging, check for zombie processes
+ps aux | grep claude
+killall claude  # Kill any stuck processes
+
+# 6. Try again with verbose mode
+node dist/cli/index.js test /path/to/project --only-logical --verbose
+```
+
+#### Enhanced Error Messages (NEW)
+The system now provides specific error types:
+- `AIAuthenticationError` - Clear authentication guidance
+- `AITimeoutError` - Timeout duration and troubleshooting steps
+- `AIRateLimitError` - Rate limit info with model suggestions
+- `AINetworkError` - Network connectivity guidance
+
+#### "Unknown model: sonnet" warnings (FIXED)
+**Note**: Model aliases "opus", "sonnet", "haiku" are now fully supported and automatically mapped.
 
 # Check if logged in to Claude Code CLI
 claude config get

@@ -98,7 +98,34 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
       }
     } else {
       // Console format (default)
-      displayConsoleResults(analysis, options.verbose);
+      if (options.output) {
+        // Capture console output for file writing
+        const originalLog = console.log;
+        let consoleOutput = '';
+        console.log = (...args: any[]) => {
+          consoleOutput += args.map(arg => 
+            typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+          ).join(' ') + '\n';
+        };
+        
+        displayConsoleResults(analysis, options.verbose);
+        
+        // Restore original console.log
+        console.log = originalLog;
+        
+        // Write captured output to file
+        await handleFileOperation(
+          async () => {
+            const fs = await import('fs/promises');
+            await fs.writeFile(options.output!, consoleOutput);
+          },
+          `writing console analysis to file`,
+          options.output
+        );
+        console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
+      } else {
+        displayConsoleResults(analysis, options.verbose);
+      }
     }
     
   } catch (error) {

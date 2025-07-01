@@ -19,7 +19,6 @@ import { validateModelConfiguration } from '../utils/model-mapping';
 import { 
   AIAuthenticationError, 
   AITimeoutError, 
-  AIModelError, 
   AIRateLimitError,
   AINetworkError,
   type AIProgressUpdate 

@@ -1,6 +1,6 @@
 # AI Integration Features
 
-*Last updated: 2025-06-30 | Phase 5.3 Complete + Batched AI Processing System Implementation*
+*Last updated: 2025-07-01 | Updated by: /document command | Enhanced authentication and error handling*
 
 ## Overview
 
@@ -37,14 +37,14 @@ Advanced batched processing system for large-scale AI test generation:
 
 #### 2. ClaudeOrchestrator (`src/ai/ClaudeOrchestrator.ts`)
 Orchestrates parallel Claude processes for test generation with enhanced reliability:
+- **Authentication Validation**: Pre-flight validation of Claude CLI authentication with `validateClaudeAuth()` method
+- **Typed Error Handling**: Comprehensive error types (`AIAuthenticationError`, `AITimeoutError`, `AIRateLimitError`, `AINetworkError`)
+- **Real-time Progress Tracking**: Event-based progress updates for authentication, generation phases with percentage completion
+- **Enhanced Timeout Management**: Improved timeout errors with specific troubleshooting guidance
 - **Concurrency Control**: Manages multiple Claude processes with configurable limits
-- **Authentication Validation**: Comprehensive Claude CLI authentication checking with detailed error messages
-- **Progress Tracking**: Real-time status updates via event emitters with ETA calculations and verbose logging
-- **Enhanced Error Handling**: Context-aware error messages for authentication, network, rate limit, and connection issues
-- **Robust Timeout Management**: 15-minute individual task timeouts with 30-minute overall process timeout to prevent infinite hangs
+- **Model Alias Resolution**: Automatic mapping of "opus", "sonnet", "haiku" to full model identifiers
 - **Result Aggregation**: Collects and processes generated tests with graceful fallback handling
 - **Chunked Task Support**: Handles merging results from chunked file processing
-- **Command Optimization**: Corrected Claude CLI command invocation removing problematic flags
 - **Process Lifecycle Management**: Proper cleanup of active processes on timeout or error
 
 #### 3. PromptTemplates (`src/ai/PromptTemplates.ts`)
@@ -291,6 +291,23 @@ The AI integration leverages Claude Code CLI for headless operation with optimal
 - **Max Subscription**: Automatic authentication when logged in to Claude Code CLI
 - **No API Key Required**: Uses your existing Claude subscription for seamless operation
 - **Session Isolation**: Each headless process operates independently
+
+#### Authentication Validation (NEW)
+The ClaudeOrchestrator now validates authentication before processing:
+```typescript
+const authStatus = await orchestrator.validateClaudeAuth();
+if (!authStatus.authenticated) {
+  throw new AIAuthenticationError(authStatus.error);
+}
+```
+
+#### Error Handling (ENHANCED)
+The system uses typed errors for better debugging:
+- `AIAuthenticationError` - Claude CLI not installed or not authenticated
+- `AITimeoutError` - Generation exceeded timeout with specific duration info
+- `AIRateLimitError` - API rate limits reached with fallback suggestions
+- `AINetworkError` - Network connectivity issues
+- Progress events provide real-time status updates
 
 #### Timeout Configuration
 ```typescript
