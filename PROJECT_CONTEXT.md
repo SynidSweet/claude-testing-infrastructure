@@ -1,6 +1,6 @@
 # Project Context & AI Agent Guide
 
-*Last updated: 2025-07-01 | Updated by: /document command | All moderate-priority improvements completed*
+*Last updated: 2025-07-01 | Updated by: /document command | MCP server testing support added*
 
 ## 🎯 Project Overview
 
@@ -39,9 +39,10 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 7. **Watch Mode**: `node dist/cli/index.js watch /path/to/project` - Real-time file monitoring with automatic incremental test generation
 
 ### Key Feature Modules
-- **ProjectAnalyzer** (`src/analyzers/ProjectAnalyzer.ts`): Language/framework detection with 8+ framework support
+- **ProjectAnalyzer** (`src/analyzers/ProjectAnalyzer.ts`): Language/framework detection with 10+ framework support including MCP servers
 - **TestGenerator** (`src/generators/TestGenerator.ts`): Structural + AI-powered test generation system with fixed path resolution, correct directory structure, and dependency-free templates
 - **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Robust template system generating CommonJS-compatible tests with basic structural assertions (100% executable without external dependencies)
+- **MCP Test Templates** (`src/generators/templates/MCP*.ts`): Specialized templates for MCP server testing - protocol compliance, tool integration, message handling, transport validation, and chaos testing
 - **ProgressReporter** (`src/utils/ProgressReporter.ts`): Real-time progress tracking with ETA calculations and file-by-file updates
 - **TestRunner** (`src/runners/TestRunner.ts`): Production-ready Jest/pytest execution with timeout handling
 - **CoverageReporter** (`src/runners/CoverageReporter.ts`): Advanced multi-format coverage analysis and gap visualization with consolidated template engines
@@ -88,7 +89,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 ## 🎯 Current Status & Priorities
 
 ### Current Status
-**PRODUCTION MAINTENANCE MODE** (2025-07-01): Production-ready infrastructure with **all moderate-priority improvements completed**. Infrastructure includes dry-run mode, real-time progress reporting, file count validation, meaningful test assertions, batched AI generation, and comprehensive mixed-project support. Core validation workflow operational with 97% success rate (160/163 tests passing). Only specialized features (MCP testing) and investigation-phase tasks remain.
+**PRODUCTION MAINTENANCE MODE** (2025-07-01): Production-ready infrastructure with **MCP server testing support added**. Infrastructure includes dry-run mode, real-time progress reporting, file count validation, meaningful test assertions, batched AI generation, comprehensive mixed-project support, and specialized MCP server testing. Core validation workflow operational with 97% success rate (160/163 tests passing). Only investigation-phase tasks remain.
 
 📖 **See active tasks**: [`/docs/planning/ACTIVE_TASKS.md`](./docs/planning/ACTIVE_TASKS.md)  
 📖 **See future work**: [`/docs/planning/FUTURE_WORK.md`](./docs/planning/FUTURE_WORK.md)

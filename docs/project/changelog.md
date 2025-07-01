@@ -1,8 +1,31 @@
 # Changelog
 
-*Last updated: 2025-07-01 | Updated by: /document command | Completed tasks cleanup*
+*Last updated: 2025-07-01 | Updated by: /document command | MCP server testing support added*
 
 ## Recent Updates
+
+- **2025-07-01 (Current Session)**: ✅ **MCP SERVER TESTING SUPPORT IMPLEMENTED**
+  - **Added Features**:
+    - ✅ **MCP Server Detection**: Automatically detects MCP servers via package dependencies
+    - ✅ **Protocol Compliance Tests**: JSON-RPC 2.0 validation and message format testing
+    - ✅ **Tool Integration Tests**: Tool discovery, parameter validation, and execution testing
+    - ✅ **Message Handling Tests**: Async message processing, ordering, and session management
+    - ✅ **Transport Layer Tests**: Both STDIO and HTTP+SSE transport validation
+    - ✅ **Chaos Testing**: LLM input simulation with unpredictable patterns for robustness
+  - **Implementation Details**:
+    - ✅ Extended ProjectAnalyzer with MCP detection capabilities
+    - ✅ Created 5 specialized MCP test templates
+    - ✅ Integrated with StructuralTestGenerator for automatic MCP test generation
+    - ✅ Added comprehensive MCP type definitions
+    - ✅ Full test coverage for MCP detection functionality
+  - **Supported Frameworks**:
+    - ✅ FastMCP servers
+    - ✅ Official @modelcontextprotocol/sdk
+    - ✅ Custom MCP implementations
+  - **Documentation**:
+    - ✅ Created dedicated MCP testing documentation at `/docs/features/mcp-testing.md`
+    - ✅ Updated AI_AGENT_GUIDE.md with MCP testing examples
+    - ✅ Enhanced PROJECT_CONTEXT.md with MCP feature details
 
 - **2025-07-01 (Current Session)**: ✅ **ALL MODERATE-PRIORITY TASKS COMPLETED**
   - **Discovery**:

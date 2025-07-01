@@ -47,6 +47,19 @@ This guide helps AI agents understand and work with individual features of the C
 - `src/runners/TestRunner.ts` - Execution orchestrator
 - `src/runners/CoverageReporter.ts` - Coverage analysis
 - `src/runners/CoverageVisualizer.ts` - Report generation
+- `src/runners/templates/` - Consolidated template engine system ✅ UPDATED
+
+### Progress Reporting ✅ NEW
+**Purpose**: Real-time progress tracking for test generation  
+**Key File**: `src/utils/ProgressReporter.ts` - Progress tracking system  
+**Features**: ETA calculations, file-by-file updates, error integration
+
+### MCP Server Testing ✅ NEW
+**Purpose**: Specialized testing for Model Context Protocol servers  
+**Key Files**:
+- `src/generators/templates/MCP*.ts` - 5 specialized test templates
+- `src/types/mcp-types.ts` - MCP-specific type definitions
+**Features**: Protocol compliance, tool integration, message handling, transport validation, chaos testing
 
 ## 📦 Working with Features
 
@@ -229,6 +242,11 @@ class FeatureRepository {
 - Track: `ManifestManager`
 - Detect: `ChangeDetector`
 - Update: `IncrementalTestGenerator`
+
+### Progress
+- Report: `ProgressReporter` ✅ NEW
+- Track: Real-time file processing
+- Display: ETA and completion stats
 
 ---
 
