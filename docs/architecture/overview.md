@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-06-30 | Updated by: /document command | File Chunking Architecture & ES Module Support*
+*Last updated: 2025-07-01 | Updated by: /document command | Template Engine Consolidation*
 
 ## Architecture Summary
 
@@ -460,20 +460,26 @@ Generated Tests → Runner Selection → Test Execution → Coverage Processing 
 - **Error Handling**: Graceful degradation and detailed error reporting
 - **CLI Integration**: Complete `run` command with enhanced coverage options
 
-### Template Method Pattern Implementation (Session 2 Complete)
+### Template Method Pattern Implementation (Updated 2025-07-01)
 
-The Coverage Reporter system now uses the Template Method pattern for report generation:
+The Coverage Reporter system uses the Template Method pattern with inheritance-based consolidation:
 
-1. **HtmlTemplateEngine**: Renders external HTML templates with variable substitution
-2. **MarkdownTemplateEngine**: Generates structured Markdown reports
-3. **XmlTemplateEngine**: Creates JUnit-compatible XML reports
+1. **BaseTemplateEngine**: Abstract base class providing common functionality (122 lines)
+   - Template data transformation utilities
+   - Coverage percentage formatting
+   - Common template data interfaces
+   - Shared helper methods
+
+2. **HtmlTemplateEngine**: Extends base with HTML-specific rendering (144 lines)
+3. **MarkdownTemplateEngine**: Extends base with Markdown-specific rendering (122 lines)
+4. **XmlTemplateEngine**: Extends base with XML-specific rendering (103 lines)
 
 Benefits achieved:
-- Reduced `generateHtmlReport` from 137 lines to 16 lines (88% reduction)
-- Reduced `generateMarkdownReport` from 48 lines to 14 lines (71% reduction)
-- Reduced `generateXmlReport` from 30 lines to 9 lines (70% reduction)
-- Separation of content (templates) from logic (engines)
-- Easy customization without code modification
+- Eliminated duplicate template preparation logic
+- Consistent async render interface across all engines
+- Shared utilities for data transformation and formatting
+- Type-safe template data interfaces with inheritance
+- Maintainable separation of format-specific logic
 
 Template engines location: `/src/runners/templates/`
 

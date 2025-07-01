@@ -102,10 +102,10 @@ export abstract class CoverageParser {
       !this.thresholds.statements || summary.statements >= this.thresholds.statements,
       !this.thresholds.branches || summary.branches >= this.thresholds.branches,
       !this.thresholds.functions || summary.functions >= this.thresholds.functions,
-      !this.thresholds.lines || summary.lines >= this.thresholds.lines
+      !this.thresholds.lines || summary.lines >= this.thresholds.lines,
     ];
 
-    return checks.every(check => check);
+    return checks.every((check) => check);
   }
 
   /**
@@ -131,7 +131,7 @@ export abstract class CoverageParser {
           file: filePath,
           type: 'line',
           line,
-          description: `Uncovered line ${line} in ${filePath}`
+          description: `Uncovered line ${line} in ${filePath}`,
         });
       }
 
@@ -142,13 +142,13 @@ export abstract class CoverageParser {
             file: filePath,
             type: 'branch',
             line: branch.line,
-            description: `Uncovered ${branch.type} branch at line ${branch.line} in ${filePath}`
+            description: `Uncovered ${branch.type} branch at line ${branch.line} in ${filePath}`,
           };
-          
+
           if (branch.column !== undefined) {
             area.column = branch.column;
           }
-          
+
           areas.push(area);
         }
       }
@@ -161,7 +161,7 @@ export abstract class CoverageParser {
             type: 'function',
             line: 0, // Line number would need to be extracted from source
             function: func,
-            description: `Uncovered function '${func}' in ${filePath}`
+            description: `Uncovered function '${func}' in ${filePath}`,
           });
         }
       }
@@ -194,7 +194,7 @@ export class JestCoverageParser extends CoverageParser {
           logger.warn('Empty coverage string provided, returning empty coverage');
           return this.createEmptyCoverage();
         }
-        
+
         // Try to parse as JSON first
         try {
           coverageData = JSON.parse(data);
@@ -232,27 +232,27 @@ export class JestCoverageParser extends CoverageParser {
           uncoveredAreas: coverageData.uncoveredAreas,
           meetsThreshold: coverageData.meetsThreshold,
           ...(coverageData.thresholds && { thresholds: coverageData.thresholds }),
-          ...(this.thresholds && !coverageData.thresholds && { thresholds: this.thresholds })
+          ...(this.thresholds && !coverageData.thresholds && { thresholds: this.thresholds }),
         };
-        
+
         // Recalculate meetsThreshold if thresholds are available but meetsThreshold isn't set correctly
         if (result.thresholds && !result.meetsThreshold) {
           result.meetsThreshold = this.checkThresholds(result.summary);
         }
-        
+
         return result;
       }
 
-      logger.warn('Unrecognized Jest coverage format, returning empty coverage', { 
+      logger.warn('Unrecognized Jest coverage format, returning empty coverage', {
         hasKeys: Object.keys(coverageData),
-        dataType: typeof coverageData 
+        dataType: typeof coverageData,
       });
       return this.createEmptyCoverage();
     } catch (error) {
-      logger.error('Failed to parse Jest coverage', { 
+      logger.error('Failed to parse Jest coverage', {
         error: error instanceof Error ? error.message : String(error),
         dataType: typeof data,
-        dataLength: typeof data === 'string' ? data.length : 'N/A'
+        dataLength: typeof data === 'string' ? data.length : 'N/A',
       });
       return this.createEmptyCoverage();
     }
@@ -269,19 +269,19 @@ export class JestCoverageParser extends CoverageParser {
     try {
       // Istanbul format has file paths as keys
       const coverageMap = coverageData.coverageMap || coverageData;
-      
+
       if (!coverageMap || typeof coverageMap !== 'object') {
         logger.warn('Invalid coverage map format, returning empty coverage');
         return this.createEmptyCoverage();
       }
-      
+
       for (const [filePath, fileData] of Object.entries(coverageMap)) {
         if (typeof fileData !== 'object' || !fileData) continue;
 
         try {
           const normalizedPath = this.normalizePath(filePath);
           const coverage = this.parseIstanbulFileData(fileData as any);
-          
+
           if (coverage) {
             files[normalizedPath] = coverage;
             totalStatements += coverage.summary.statements;
@@ -291,9 +291,9 @@ export class JestCoverageParser extends CoverageParser {
             fileCount++;
           }
         } catch (fileError) {
-          logger.warn('Failed to parse coverage for file, skipping', { 
-            filePath, 
-            error: fileError instanceof Error ? fileError.message : String(fileError) 
+          logger.warn('Failed to parse coverage for file, skipping', {
+            filePath,
+            error: fileError instanceof Error ? fileError.message : String(fileError),
           });
           continue;
         }
@@ -307,7 +307,7 @@ export class JestCoverageParser extends CoverageParser {
       statements: fileCount > 0 ? totalStatements / fileCount : 0,
       branches: fileCount > 0 ? totalBranches / fileCount : 0,
       functions: fileCount > 0 ? totalFunctions / fileCount : 0,
-      lines: fileCount > 0 ? totalLines / fileCount : 0
+      lines: fileCount > 0 ? totalLines / fileCount : 0,
     };
 
     const uncoveredAreas = this.extractUncoveredAreas(files);
@@ -317,13 +317,13 @@ export class JestCoverageParser extends CoverageParser {
       summary,
       files,
       uncoveredAreas,
-      meetsThreshold
+      meetsThreshold,
     };
-    
+
     if (this.thresholds) {
       result.thresholds = this.thresholds;
     }
-    
+
     return result;
   }
 
@@ -363,7 +363,7 @@ export class JestCoverageParser extends CoverageParser {
               uncoveredBranches.push({
                 line: branchInfo.loc?.start?.line || 0,
                 column: branchInfo.loc?.start?.column,
-                type: branchInfo.type || 'other'
+                type: branchInfo.type || 'other',
               });
             }
           }
@@ -384,11 +384,11 @@ export class JestCoverageParser extends CoverageParser {
           statements: statementsPct,
           branches: branchesPct,
           functions: functionsPct,
-          lines: linesPct
+          lines: linesPct,
         },
         uncoveredLines: uncoveredLines.sort((a, b) => a - b),
         uncoveredBranches,
-        uncoveredFunctions
+        uncoveredFunctions,
       };
     } catch (error) {
       logger.warn('Failed to parse Istanbul file data', { error });
@@ -408,7 +408,9 @@ export class JestCoverageParser extends CoverageParser {
 
     // Look for coverage summary line
     for (const line of lines) {
-      const match = line.match(/All files\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)/);
+      const match = line.match(
+        /All files\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)/
+      );
       if (match) {
         overallMatch = match;
         break;
@@ -420,20 +422,20 @@ export class JestCoverageParser extends CoverageParser {
         statements: parseFloat(overallMatch[1] || '0'),
         branches: parseFloat(overallMatch[2] || '0'),
         functions: parseFloat(overallMatch[3] || '0'),
-        lines: parseFloat(overallMatch[4] || '0')
+        lines: parseFloat(overallMatch[4] || '0'),
       };
 
       const result: CoverageData = {
         summary,
         files: {},
         uncoveredAreas: [],
-        meetsThreshold: this.checkThresholds(summary)
+        meetsThreshold: this.checkThresholds(summary),
       };
-      
+
       if (this.thresholds) {
         result.thresholds = this.thresholds;
       }
-      
+
       return result;
     }
 
@@ -443,8 +445,8 @@ export class JestCoverageParser extends CoverageParser {
   private calculatePercentage(coverage: Record<string, number>): number {
     const total = Object.keys(coverage).length;
     if (total === 0) return 100;
-    
-    const covered = Object.values(coverage).filter(hit => hit > 0).length;
+
+    const covered = Object.values(coverage).filter((hit) => hit > 0).length;
     return (covered / total) * 100;
   }
 
@@ -453,13 +455,13 @@ export class JestCoverageParser extends CoverageParser {
       summary: { statements: 0, branches: 0, functions: 0, lines: 0 },
       files: {},
       uncoveredAreas: [],
-      meetsThreshold: !this.thresholds
+      meetsThreshold: !this.thresholds,
     };
-    
+
     if (this.thresholds) {
       result.thresholds = this.thresholds;
     }
-    
+
     return result;
   }
 }
@@ -489,7 +491,7 @@ export class PytestCoverageParser extends CoverageParser {
 
   private async parseCoverageJson(coverageData: any): Promise<CoverageData> {
     const files: Record<string, FileCoverage> = {};
-    
+
     if (coverageData.files) {
       for (const [filePath, fileData] of Object.entries(coverageData.files)) {
         const normalizedPath = this.normalizePath(filePath || '');
@@ -501,12 +503,14 @@ export class PytestCoverageParser extends CoverageParser {
     }
 
     // Extract summary from totals or calculate from files
-    const summary = coverageData.totals ? {
-      statements: coverageData.totals.covered_percent || 0,
-      branches: coverageData.totals.branch_percent || 0,
-      functions: coverageData.totals.covered_percent || 0, // Coverage.py doesn't separate functions
-      lines: coverageData.totals.covered_percent || 0
-    } : this.calculateOverallSummary(files);
+    const summary = coverageData.totals
+      ? {
+          statements: coverageData.totals.covered_percent || 0,
+          branches: coverageData.totals.branch_percent || 0,
+          functions: coverageData.totals.covered_percent || 0, // Coverage.py doesn't separate functions
+          lines: coverageData.totals.covered_percent || 0,
+        }
+      : this.calculateOverallSummary(files);
 
     const uncoveredAreas = this.extractUncoveredAreas(files);
     const meetsThreshold = this.checkThresholds(summary);
@@ -515,13 +519,13 @@ export class PytestCoverageParser extends CoverageParser {
       summary,
       files,
       uncoveredAreas,
-      meetsThreshold
+      meetsThreshold,
     };
-    
+
     if (this.thresholds) {
       result.thresholds = this.thresholds;
     }
-    
+
     return result;
   }
 
@@ -530,7 +534,7 @@ export class PytestCoverageParser extends CoverageParser {
       const executedLines = fileData.executed_lines || [];
       const missingLines = fileData.missing_lines || [];
       // const excludedLines = fileData.excluded_lines || []; // Not currently used
-      
+
       const totalLines = executedLines.length + missingLines.length;
       const coveredLines = executedLines.length;
       const lineCoverage = totalLines > 0 ? (coveredLines / totalLines) * 100 : 100;
@@ -540,13 +544,13 @@ export class PytestCoverageParser extends CoverageParser {
         statements: lineCoverage,
         branches: lineCoverage, // Approximation
         functions: lineCoverage, // Approximation
-        lines: lineCoverage
+        lines: lineCoverage,
       };
 
       return {
         path: fileData.filename || '',
         summary,
-        uncoveredLines: missingLines.sort((a: number, b: number) => a - b)
+        uncoveredLines: missingLines.sort((a: number, b: number) => a - b),
       };
     } catch (error) {
       logger.warn('Failed to parse coverage.py file data', { error });
@@ -567,7 +571,7 @@ export class PytestCoverageParser extends CoverageParser {
         const [, filePath, , , pct] = fileMatch;
         const percentage = parseInt(pct || '0');
         const uncoveredLines: number[] = [];
-        
+
         // Look for missing lines in next lines (format: "5-7, 10")
         const normalizedPath = this.normalizePath(filePath || '');
         files[normalizedPath] = {
@@ -576,9 +580,9 @@ export class PytestCoverageParser extends CoverageParser {
             statements: percentage,
             branches: percentage,
             functions: percentage,
-            lines: percentage
+            lines: percentage,
           },
-          uncoveredLines
+          uncoveredLines,
         };
       }
 
@@ -594,7 +598,7 @@ export class PytestCoverageParser extends CoverageParser {
       statements: overallPercentage,
       branches: overallPercentage,
       functions: overallPercentage,
-      lines: overallPercentage
+      lines: overallPercentage,
     };
 
     const uncoveredAreas = this.extractUncoveredAreas(files);
@@ -604,13 +608,13 @@ export class PytestCoverageParser extends CoverageParser {
       summary,
       files,
       uncoveredAreas,
-      meetsThreshold
+      meetsThreshold,
     };
-    
+
     if (this.thresholds) {
       result.thresholds = this.thresholds;
     }
-    
+
     return result;
   }
 
@@ -636,7 +640,7 @@ export class PytestCoverageParser extends CoverageParser {
       statements: totalStatements / fileCount,
       branches: totalBranches / fileCount,
       functions: totalFunctions / fileCount,
-      lines: totalLines / fileCount
+      lines: totalLines / fileCount,
     };
   }
 
@@ -645,13 +649,13 @@ export class PytestCoverageParser extends CoverageParser {
       summary: { statements: 0, branches: 0, functions: 0, lines: 0 },
       files: {},
       uncoveredAreas: [],
-      meetsThreshold: !this.thresholds
+      meetsThreshold: !this.thresholds,
     };
-    
+
     if (this.thresholds) {
       result.thresholds = this.thresholds;
     }
-    
+
     return result;
   }
 }
@@ -660,7 +664,11 @@ export class PytestCoverageParser extends CoverageParser {
  * Factory for creating appropriate coverage parsers
  */
 export class CoverageParserFactory {
-  static createParser(framework: string, projectPath: string, thresholds?: CoverageThresholds): CoverageParser {
+  static createParser(
+    framework: string,
+    projectPath: string,
+    thresholds?: CoverageThresholds
+  ): CoverageParser {
     switch (framework.toLowerCase()) {
       case 'jest':
         return new JestCoverageParser(projectPath, thresholds);

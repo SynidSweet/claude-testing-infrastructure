@@ -342,7 +342,7 @@ function calculateQualityScore(metrics: {
   meaningfulAssertions: number;
   totalLines: number;
 }): number {
-  const { assertionCount, todoCount, testCaseCount, meaningfulAssertions, totalLines } = metrics;
+  const { assertionCount, todoCount, testCaseCount, meaningfulAssertions } = metrics;
   
   // Penalties for poor quality indicators
   const todoPenalty = Math.min(todoCount * 0.1, 0.5); // Max 50% penalty for TODOs

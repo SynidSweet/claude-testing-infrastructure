@@ -1,6 +1,6 @@
 /**
  * AI Task Preparation System
- * 
+ *
  * Prepares test generation tasks for AI processing, including:
  * - Task queue management
  * - Context extraction
@@ -9,7 +9,7 @@
  * - Cost estimation
  */
 
-import { TestGap, TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
+import type { TestGap, TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -62,24 +62,26 @@ export interface AITaskBatch {
 
 export class AITaskPreparation {
   private readonly MODEL_COSTS = {
-    'claude-3-opus': { input: 0.015, output: 0.075 },    // per 1K tokens
-    'claude-3-sonnet': { input: 0.003, output: 0.015 },  // per 1K tokens
-    'claude-3-haiku': { input: 0.00025, output: 0.00125 } // per 1K tokens
+    'claude-3-opus': { input: 0.015, output: 0.075 }, // per 1K tokens
+    'claude-3-sonnet': { input: 0.003, output: 0.015 }, // per 1K tokens
+    'claude-3-haiku': { input: 0.00025, output: 0.00125 }, // per 1K tokens
   };
 
   private readonly DEFAULT_MODEL = 'claude-3-sonnet';
   private taskIdCounter = 0;
 
-  constructor(private config: {
-    model?: string;
-    maxConcurrentTasks?: number;
-    minComplexityForAI?: number;
-  } = {}) {
+  constructor(
+    private config: {
+      model?: string;
+      maxConcurrentTasks?: number;
+      minComplexityForAI?: number;
+    } = {}
+  ) {
     this.config = {
       model: this.DEFAULT_MODEL,
       maxConcurrentTasks: 3,
       minComplexityForAI: 5,
-      ...config
+      ...config,
     };
   }
 
@@ -91,7 +93,7 @@ export class AITaskPreparation {
 
     // Filter gaps based on complexity threshold
     const eligibleGaps = gapReport.gaps.filter(
-      gap => gap.complexity.overall >= (this.config.minComplexityForAI || 5)
+      (gap) => gap.complexity.overall >= (this.config.minComplexityForAI || 5)
     );
 
     // Create tasks for each eligible gap
@@ -111,7 +113,7 @@ export class AITaskPreparation {
       tasks,
       totalEstimatedTokens: tasks.reduce((sum, t) => sum + t.estimatedTokens, 0),
       totalEstimatedCost: tasks.reduce((sum, t) => sum + t.estimatedCost, 0),
-      maxConcurrency: this.config.maxConcurrentTasks || 3
+      maxConcurrency: this.config.maxConcurrentTasks || 3,
     };
 
     return batch;
@@ -124,10 +126,10 @@ export class AITaskPreparation {
     try {
       // Extract context
       const context = await this.extractContext(gap);
-      
+
       // Build prompt
       const prompt = this.buildPrompt(gap, context);
-      
+
       // Estimate tokens and cost
       const estimatedTokens = this.estimateTokens(prompt, context);
       const estimatedCost = this.estimateCost(estimatedTokens);
@@ -142,7 +144,7 @@ export class AITaskPreparation {
         context,
         estimatedTokens,
         estimatedCost,
-        status: 'pending'
+        status: 'pending',
       };
 
       return task;
@@ -158,7 +160,7 @@ export class AITaskPreparation {
   private async extractContext(gap: TestGap): Promise<TaskContext> {
     // Read source code
     const sourceCode = await fs.readFile(gap.sourceFile, 'utf-8');
-    
+
     // Read existing tests if available
     let existingTests = '';
     try {
@@ -181,7 +183,7 @@ export class AITaskPreparation {
       businessDomain,
       criticalPaths,
       missingScenarios: this.extractMissingScenarios(gap),
-      frameworkInfo
+      frameworkInfo,
     };
   }
 
@@ -190,25 +192,25 @@ export class AITaskPreparation {
    */
   private detectFrameworkInfo(filePath: string, content: string): FrameworkInfo {
     const ext = path.extname(filePath).toLowerCase();
-    
+
     if (ext === '.py') {
       return {
         language: 'python',
         testFramework: content.includes('pytest') ? 'pytest' : 'unittest',
         moduleType: 'python',
-        hasTypeScript: false
+        hasTypeScript: false,
       };
     }
-    
+
     const isTypeScript = ext === '.ts' || ext === '.tsx';
     const hasVitest = content.includes('vitest') || content.includes('vi.');
     const isESM = content.includes('export') || content.includes('import');
-    
+
     return {
       language: isTypeScript ? 'typescript' : 'javascript',
       testFramework: hasVitest ? 'vitest' : 'jest',
       moduleType: isESM ? 'esm' : 'commonjs',
-      hasTypeScript: isTypeScript
+      hasTypeScript: isTypeScript,
     };
   }
 
@@ -217,7 +219,7 @@ export class AITaskPreparation {
    */
   private buildPrompt(gap: TestGap, context: TaskContext): string {
     const { frameworkInfo } = context;
-    
+
     const prompt = `You are an expert test engineer tasked with writing comprehensive logical/business tests to complement existing structural tests.
 
 **CONTEXT**
@@ -232,13 +234,17 @@ export class AITaskPreparation {
 ${context.sourceCode}
 \`\`\`
 
-${context.existingTests ? `**EXISTING TESTS**: ${gap.testFile}
+${
+  context.existingTests
+    ? `**EXISTING TESTS**: ${gap.testFile}
 \`\`\`${frameworkInfo.language}
 ${context.existingTests}
-\`\`\`` : '**EXISTING TESTS**: None yet'}
+\`\`\``
+    : '**EXISTING TESTS**: None yet'
+}
 
 **IDENTIFIED GAPS**:
-${context.missingScenarios.map(s => `- ${s}`).join('\n')}
+${context.missingScenarios.map((s) => `- ${s}`).join('\n')}
 
 **REQUIREMENTS**:
 1. Write tests that verify business logic correctness
@@ -268,14 +274,14 @@ Generate comprehensive logical tests that thoroughly validate the business logic
   private estimateTokens(prompt: string, context: TaskContext): number {
     // Rough estimation: 1 token ≈ 4 characters
     const promptTokens = Math.ceil(prompt.length / 4);
-    
+
     // Estimate output based on complexity and scenarios
     const scenarioCount = context.missingScenarios.length;
     const outputTokens = Math.ceil(
       scenarioCount * 150 + // Base tokens per scenario
-      context.sourceCode.length / 8 // Proportional to source complexity
+        context.sourceCode.length / 8 // Proportional to source complexity
     );
-    
+
     return promptTokens + outputTokens;
   }
 
@@ -285,19 +291,19 @@ Generate comprehensive logical tests that thoroughly validate the business logic
   private estimateCost(tokens: number): number {
     const model = this.config.model || this.DEFAULT_MODEL;
     const costs = this.MODEL_COSTS[model as keyof typeof this.MODEL_COSTS];
-    
+
     if (!costs) {
       console.warn(`Unknown model: ${model}, using default costs`);
-      return tokens * 0.01 / 1000; // Default fallback
+      return (tokens * 0.01) / 1000; // Default fallback
     }
-    
+
     // Assume 70% input, 30% output for estimation
     const inputTokens = Math.ceil(tokens * 0.7);
     const outputTokens = Math.ceil(tokens * 0.3);
-    
+
     const inputCost = (inputTokens / 1000) * costs.input;
     const outputCost = (outputTokens / 1000) * costs.output;
-    
+
     return inputCost + outputCost;
   }
 
@@ -306,12 +312,12 @@ Generate comprehensive logical tests that thoroughly validate the business logic
    */
   optimizeBatch(batch: AITaskBatch, maxBudget?: number): AITaskBatch {
     let optimizedTasks = [...batch.tasks];
-    
+
     // If budget constraint, select highest priority tasks within budget
     if (maxBudget && batch.totalEstimatedCost > maxBudget) {
       optimizedTasks = [];
       let currentCost = 0;
-      
+
       for (const task of batch.tasks) {
         if (currentCost + task.estimatedCost <= maxBudget) {
           optimizedTasks.push(task);
@@ -319,7 +325,7 @@ Generate comprehensive logical tests that thoroughly validate the business logic
         }
       }
     }
-    
+
     // Group by similar complexity for better batching
     optimizedTasks.sort((a, b) => {
       // First by priority, then by complexity
@@ -328,12 +334,12 @@ Generate comprehensive logical tests that thoroughly validate the business logic
       }
       return a.complexity - b.complexity;
     });
-    
+
     return {
       ...batch,
       tasks: optimizedTasks,
       totalEstimatedTokens: optimizedTasks.reduce((sum, t) => sum + t.estimatedTokens, 0),
-      totalEstimatedCost: optimizedTasks.reduce((sum, t) => sum + t.estimatedCost, 0)
+      totalEstimatedCost: optimizedTasks.reduce((sum, t) => sum + t.estimatedCost, 0),
     };
   }
 
@@ -343,22 +349,18 @@ Generate comprehensive logical tests that thoroughly validate the business logic
   async saveBatch(batch: AITaskBatch, outputPath: string): Promise<void> {
     const batchData = {
       ...batch,
-      tasks: batch.tasks.map(t => ({
+      tasks: batch.tasks.map((t) => ({
         ...t,
         context: {
           ...t.context,
           // Don't save full source code to reduce file size
           sourceCode: `[${t.context.sourceCode.length} characters]`,
-          existingTests: `[${t.context.existingTests.length} characters]`
-        }
-      }))
+          existingTests: `[${t.context.existingTests.length} characters]`,
+        },
+      })),
     };
-    
-    await fs.writeFile(
-      outputPath,
-      JSON.stringify(batchData, null, 2),
-      'utf-8'
-    );
+
+    await fs.writeFile(outputPath, JSON.stringify(batchData, null, 2), 'utf-8');
   }
 
   /**
@@ -375,29 +377,34 @@ Generate comprehensive logical tests that thoroughly validate the business logic
       `- Max Concurrency: ${batch.maxConcurrency}`,
       '',
       '## Tasks by Priority:',
-      ''
+      '',
     ];
-    
-    const byPriority = batch.tasks.reduce((acc, task) => {
-      const priority = Math.floor(task.priority);
-      if (!acc[priority]) acc[priority] = [];
-      acc[priority].push(task);
-      return acc;
-    }, {} as Record<number, AITask[]>);
-    
+
+    const byPriority = batch.tasks.reduce(
+      (acc, task) => {
+        const priority = Math.floor(task.priority);
+        if (!acc[priority]) acc[priority] = [];
+        acc[priority].push(task);
+        return acc;
+      },
+      {} as Record<number, AITask[]>
+    );
+
     Object.keys(byPriority)
       .sort((a, b) => Number(b) - Number(a))
-      .forEach(priority => {
+      .forEach((priority) => {
         const tasks = byPriority[Number(priority)];
         if (tasks) {
           summary.push(`### Priority ${priority} (${tasks.length} tasks)`);
-          tasks.forEach(task => {
-            summary.push(`- ${path.basename(task.sourceFile)} - ${task.estimatedTokens} tokens, $${task.estimatedCost.toFixed(3)}`);
+          tasks.forEach((task) => {
+            summary.push(
+              `- ${path.basename(task.sourceFile)} - ${task.estimatedTokens} tokens, $${task.estimatedCost.toFixed(3)}`
+            );
           });
           summary.push('');
         }
       });
-    
+
     return summary.join('\n');
   }
 
@@ -406,10 +413,10 @@ Generate comprehensive logical tests that thoroughly validate the business logic
    */
   private mapPriorityToNumber(priority: any): number {
     const priorityMap: Record<string, number> = {
-      'critical': 10,
-      'high': 8,
-      'medium': 5,
-      'low': 3
+      critical: 10,
+      high: 8,
+      medium: 5,
+      low: 3,
     };
     return priorityMap[priority] || 5;
   }
@@ -438,25 +445,25 @@ Generate comprehensive logical tests that thoroughly validate the business logic
    */
   private extractMissingScenarios(gap: TestGap): string[] {
     const scenarios: string[] = [];
-    
+
     // Extract from coverage analysis
     if (gap.currentCoverage.businessLogicGaps.length > 0) {
       scenarios.push(...gap.currentCoverage.businessLogicGaps);
     }
-    
+
     if (gap.currentCoverage.edgeCaseGaps.length > 0) {
       scenarios.push(...gap.currentCoverage.edgeCaseGaps);
     }
-    
+
     if (gap.currentCoverage.integrationGaps.length > 0) {
       scenarios.push(...gap.currentCoverage.integrationGaps);
     }
-    
+
     // Extract from identified gaps
-    gap.gaps.forEach(g => {
+    gap.gaps.forEach((g) => {
       scenarios.push(g.description);
     });
-    
+
     return scenarios;
   }
 }

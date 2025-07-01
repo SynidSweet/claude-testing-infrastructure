@@ -1,6 +1,6 @@
 /**
  * Debouncer Utility
- * 
+ *
  * Provides intelligent debouncing for file changes to avoid excessive processing:
  * - Batches rapid file changes together
  * - Configurable delay and batch sizes
@@ -46,17 +46,20 @@ export interface DebouncerConfig<T> {
  */
 export class Debouncer<T> extends EventEmitter {
   private readonly config: Required<DebouncerConfig<T>>;
-  private pendingBatches = new Map<string, {
-    events: T[];
-    timeout: NodeJS.Timeout;
-    firstEventTime: Date;
-    lastEventTime: Date;
-  }>();
+  private pendingBatches = new Map<
+    string,
+    {
+      events: T[];
+      timeout: NodeJS.Timeout;
+      firstEventTime: Date;
+      lastEventTime: Date;
+    }
+  >();
   private eventCounter = 0;
 
   constructor(config: DebouncerConfig<T> = {}) {
     super();
-    
+
     this.config = {
       delay: 300, // 300ms default debounce
       maxBatchSize: 50, // Process if more than 50 events
@@ -64,7 +67,7 @@ export class Debouncer<T> extends EventEmitter {
       groupBy: () => 'default', // Group all events together by default
       shouldMerge: () => false, // Don't merge events by default
       verbose: false,
-      ...config
+      ...config,
     };
   }
 
@@ -72,40 +75,42 @@ export class Debouncer<T> extends EventEmitter {
    * Add an event to be debounced
    */
   debounce(event: T): void {
-    const groupKey = this.config.groupBy!(event);
+    const groupKey = this.config.groupBy(event);
     const now = new Date();
-    
+
     if (this.config.verbose) {
       logger.debug('Debouncer received event', {
         groupKey,
-        eventType: typeof event === 'object' && event !== null ? 
-          (event as any).type || 'unknown' : typeof event
+        eventType:
+          typeof event === 'object' && event !== null
+            ? (event as any).type || 'unknown'
+            : typeof event,
       });
     }
 
     // Get or create batch for this group
     let batch = this.pendingBatches.get(groupKey);
-    
+
     if (!batch) {
       // Create new batch
       batch = {
         events: [],
         timeout: setTimeout(() => this.processBatch(groupKey), this.config.delay),
         firstEventTime: now,
-        lastEventTime: now
+        lastEventTime: now,
       };
       this.pendingBatches.set(groupKey, batch);
     } else {
       // Update existing batch
       clearTimeout(batch.timeout);
       batch.lastEventTime = now;
-      
+
       // Check if we should merge with existing event
       let merged = false;
       if (this.config.shouldMerge && batch.events.length > 0) {
         for (let i = batch.events.length - 1; i >= 0; i--) {
           const existingEvent = batch.events[i];
-          if (existingEvent && this.config.shouldMerge!(existingEvent, event)) {
+          if (existingEvent && this.config.shouldMerge(existingEvent, event)) {
             // Replace the existing event with the new one
             batch.events[i] = event;
             merged = true;
@@ -113,16 +118,16 @@ export class Debouncer<T> extends EventEmitter {
           }
         }
       }
-      
+
       if (!merged) {
         batch.events.push(event);
       }
-      
+
       // Check if we should force processing due to batch size or wait time
-      const shouldForceProcess = 
+      const shouldForceProcess =
         batch.events.length >= this.config.maxBatchSize ||
-        (now.getTime() - batch.firstEventTime.getTime()) >= this.config.maxWaitTime;
-      
+        now.getTime() - batch.firstEventTime.getTime() >= this.config.maxWaitTime;
+
       if (shouldForceProcess) {
         // Process immediately
         this.processBatch(groupKey);
@@ -132,7 +137,7 @@ export class Debouncer<T> extends EventEmitter {
         batch.timeout = setTimeout(() => this.processBatch(groupKey), this.config.delay);
       }
     }
-    
+
     // Add event to batch if not merged
     if (!this.pendingBatches.get(groupKey)?.events.includes(event)) {
       this.pendingBatches.get(groupKey)?.events.push(event);
@@ -145,12 +150,12 @@ export class Debouncer<T> extends EventEmitter {
   flush(): void {
     if (this.config.verbose) {
       logger.debug('Flushing all pending batches', {
-        pendingGroups: this.pendingBatches.size
+        pendingGroups: this.pendingBatches.size,
       });
     }
-    
+
     const groupKeys = Array.from(this.pendingBatches.keys());
-    groupKeys.forEach(groupKey => this.processBatch(groupKey));
+    groupKeys.forEach((groupKey) => this.processBatch(groupKey));
   }
 
   /**
@@ -159,10 +164,10 @@ export class Debouncer<T> extends EventEmitter {
   cancel(): void {
     if (this.config.verbose) {
       logger.debug('Cancelling all pending batches', {
-        pendingGroups: this.pendingBatches.size
+        pendingGroups: this.pendingBatches.size,
       });
     }
-    
+
     for (const batch of this.pendingBatches.values()) {
       clearTimeout(batch.timeout);
     }
@@ -185,7 +190,7 @@ export class Debouncer<T> extends EventEmitter {
       eventCount: batch.events.length,
       firstEventTime: batch.firstEventTime,
       lastEventTime: batch.lastEventTime,
-      waitTime: now - batch.firstEventTime.getTime()
+      waitTime: now - batch.firstEventTime.getTime(),
     }));
   }
 
@@ -217,7 +222,7 @@ export class Debouncer<T> extends EventEmitter {
       eventCount: batch.events.length,
       firstEventTime: batch.firstEventTime,
       lastEventTime: batch.lastEventTime,
-      duration: batch.lastEventTime.getTime() - batch.firstEventTime.getTime()
+      duration: batch.lastEventTime.getTime() - batch.firstEventTime.getTime(),
     };
 
     if (this.config.verbose) {
@@ -225,7 +230,7 @@ export class Debouncer<T> extends EventEmitter {
         groupKey,
         eventId,
         eventCount: debouncedEvent.eventCount,
-        duration: debouncedEvent.duration
+        duration: debouncedEvent.duration,
       });
     }
 
@@ -245,19 +250,26 @@ export interface FileChangeDebounceEvent {
 }
 
 export class FileChangeDebouncer extends Debouncer<FileChangeDebounceEvent> {
-  constructor(config: Omit<DebouncerConfig<FileChangeDebounceEvent>, 'groupBy' | 'shouldMerge'> & {
-    /** Group by file extension or directory */
-    groupBy?: 'extension' | 'directory' | 'file' | ((event: FileChangeDebounceEvent) => string);
-  } = {}) {
+  constructor(
+    config: Omit<DebouncerConfig<FileChangeDebounceEvent>, 'groupBy' | 'shouldMerge'> & {
+      /** Group by file extension or directory */
+      groupBy?: 'extension' | 'directory' | 'file' | ((event: FileChangeDebounceEvent) => string);
+    } = {}
+  ) {
     // Smart defaults for file changes
-    const groupByFn = typeof config.groupBy === 'function' ? config.groupBy :
-      config.groupBy === 'extension' ? (event: FileChangeDebounceEvent) => event.extension || 'unknown' :
-      config.groupBy === 'directory' ? (event: FileChangeDebounceEvent) => {
-        const path = require('path');
-        return path.dirname(event.filePath);
-      } :
-      config.groupBy === 'file' ? (event: FileChangeDebounceEvent) => event.filePath :
-      () => 'files'; // Default: group all file changes together
+    const groupByFn =
+      typeof config.groupBy === 'function'
+        ? config.groupBy
+        : config.groupBy === 'extension'
+          ? (event: FileChangeDebounceEvent) => event.extension || 'unknown'
+          : config.groupBy === 'directory'
+            ? (event: FileChangeDebounceEvent) => {
+                const path = require('path');
+                return path.dirname(event.filePath);
+              }
+            : config.groupBy === 'file'
+              ? (event: FileChangeDebounceEvent) => event.filePath
+              : () => 'files'; // Default: group all file changes together
 
     const shouldMergeFn = (event1: FileChangeDebounceEvent, event2: FileChangeDebounceEvent) => {
       // Merge events for the same file (keep latest)
@@ -270,7 +282,7 @@ export class FileChangeDebouncer extends Debouncer<FileChangeDebounceEvent> {
       maxWaitTime: 3000, // Allow longer wait for file operations
       ...config,
       groupBy: groupByFn,
-      shouldMerge: shouldMergeFn
+      shouldMerge: shouldMergeFn,
     });
   }
 }

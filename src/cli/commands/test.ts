@@ -17,6 +17,7 @@ interface TestOptions {
   verbose?: boolean;
   enableChunking?: boolean;
   chunkSize?: number;
+  dryRun?: boolean;
 }
 
 export async function testCommand(projectPath: string, options: TestOptions = {}): Promise<void> {
@@ -24,6 +25,10 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
   
   try {
     logger.info(`Starting test generation for project: ${projectPath}`);
+    
+    if (options.dryRun) {
+      console.log(chalk.yellow('\n🔍 DRY RUN MODE - No files will be created'));
+    }
     
     if (options.verbose) {
       console.log(chalk.gray(`\n🔍 Verbose mode enabled`));
@@ -95,7 +100,8 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
         generateMocks: true,
         generateSetup: true,
         skipExistingTests: !options.update,
-        skipValidation: !!options.force
+        skipValidation: !!options.force,
+        dryRun: !!options.dryRun
       });
       
       const result = await generator.generateAllTests();
@@ -115,22 +121,54 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
         process.exit(1);
       }
       
-      // Step 5: Write generated tests to filesystem
-      if (options.verbose) {
-        console.log(chalk.gray(`\n💾 Writing ${result.tests.length} test files to filesystem...`));
+      // Step 5: Write generated tests to filesystem or show dry-run preview
+      if (options.dryRun) {
+        spinner.succeed('Test generation preview completed');
+        await showDryRunPreview(result.tests, config, options.verbose);
+      } else {
+        if (options.verbose) {
+          console.log(chalk.gray(`\n💾 Writing ${result.tests.length} test files to filesystem...`));
+        }
+        
+        await writeGeneratedTests(result.tests, options.verbose);
+        spinner.succeed('Structural tests generated');
       }
       
-      await writeGeneratedTests(result.tests, options.verbose);
-      
-      spinner.succeed('Structural tests generated');
-      
       // Display results
-      console.log(chalk.green('\n✓ Test generation completed successfully\n'));
-      console.log(chalk.cyan('📊 Generation Statistics:'));
-      console.log(`  • Files analyzed: ${result.stats.filesAnalyzed}`);
-      console.log(`  • Tests generated: ${result.stats.testsGenerated}`);
-      console.log(`  • Test lines generated: ${result.stats.testLinesGenerated}`);
-      console.log(`  • Generation time: ${result.stats.generationTime}ms`);
+      if (options.dryRun) {
+        console.log(chalk.green('\n✓ Test generation preview completed successfully\n'));
+        console.log(chalk.cyan('📊 Preview Statistics:'));
+        console.log(`  • Files that would be analyzed: ${result.stats.filesAnalyzed}`);
+        console.log(`  • Tests that would be generated: ${result.stats.testsGenerated}`);
+        console.log(`  • Test lines that would be generated: ${result.stats.testLinesGenerated}`);
+        console.log(`  • Preview generation time: ${result.stats.generationTime}ms`);
+        
+        console.log(chalk.cyan(`\n📁 Target output directory: ${config.outputPath}`));
+        console.log(chalk.blue('\n🔍 Dry run complete - no files were created\n'));
+        
+        // Show next steps for dry run
+        console.log(chalk.gray('To actually generate tests:'));
+        console.log(chalk.gray(`  • Remove --dry-run flag and run the command again`));
+        console.log(chalk.gray(`  • Or use: node dist/cli/index.js test ${projectPath}`));
+      } else {
+        console.log(chalk.green('\n✓ Test generation completed successfully\n'));
+        console.log(chalk.cyan('📊 Generation Statistics:'));
+        console.log(`  • Files analyzed: ${result.stats.filesAnalyzed}`);
+        console.log(`  • Tests generated: ${result.stats.testsGenerated}`);
+        console.log(`  • Test lines generated: ${result.stats.testLinesGenerated}`);
+        console.log(`  • Generation time: ${result.stats.generationTime}ms`);
+        
+        console.log(chalk.cyan(`\n📁 Output directory: ${config.outputPath}`));
+        console.log(chalk.green('\n✨ Tests ready for execution!\n'));
+        
+        // Optional: Show next steps
+        console.log(chalk.gray('Next steps:'));
+        console.log(chalk.gray(`  • Review generated tests in ${config.outputPath}`));
+        console.log(chalk.gray(`  • Run tests with your test framework (${config.testFramework})`));
+        if (options.onlyStructural) {
+          console.log(chalk.gray('  • Consider adding --only-logical for AI-powered logical tests'));
+        }
+      }
       
       if (result.warnings.length > 0) {
         console.log(chalk.yellow('\n⚠️  Warnings:'));
@@ -139,24 +177,21 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
         });
       }
       
-      console.log(chalk.cyan(`\n📁 Output directory: ${config.outputPath}`));
-      console.log(chalk.green('\n✨ Tests ready for execution!\n'));
-      
-      // Optional: Show next steps
-      console.log(chalk.gray('Next steps:'));
-      console.log(chalk.gray(`  • Review generated tests in ${config.outputPath}`));
-      console.log(chalk.gray(`  • Run tests with your test framework (${config.testFramework})`));
-      if (options.onlyStructural) {
-        console.log(chalk.gray('  • Consider adding --only-logical for AI-powered logical tests'));
-      }
-      
       if (options.verbose) {
         console.log(chalk.green('\n✓ Test generation completed successfully with detailed logging enabled.'));
       }
     }
     
     if (options.onlyLogical) {
-      await generateLogicalTests(projectPath, analysis, config, options);
+      if (options.dryRun) {
+        console.log(chalk.blue('\n🔍 Dry Run: AI logical test generation would be performed here.'));
+        console.log(chalk.gray('  • AI analysis would identify test gaps'));
+        console.log(chalk.gray('  • Claude CLI would generate logical tests'));
+        console.log(chalk.gray('  • Enhanced tests would be created with meaningful assertions'));
+        console.log(chalk.gray('Note: Use --only-logical without --dry-run to actually generate AI tests.'));
+      } else {
+        await generateLogicalTests(projectPath, analysis, config, options);
+      }
     }
     
   } catch (error) {
@@ -174,8 +209,10 @@ async function loadConfiguration(
   // Create default output path
   const outputPath = path.join(projectPath, '.claude-testing');
   
-  // Ensure output directory exists
-  await fs.mkdir(outputPath, { recursive: true });
+  // Ensure output directory exists (skip in dry-run mode)
+  if (!options.dryRun) {
+    await fs.mkdir(outputPath, { recursive: true });
+  }
   
   // Determine test framework
   let testFramework = 'jest'; // default
@@ -253,6 +290,91 @@ async function writeGeneratedTests(tests: any[], verbose = false): Promise<void>
   }
 }
 
+async function showDryRunPreview(tests: any[], config: any, verbose = false): Promise<void> {
+  console.log(chalk.blue('\n🔍 Dry Run Preview:\n'));
+  
+  // Group tests by directory for better organization
+  const testsByDirectory = new Map<string, any[]>();
+  let totalAdditionalFiles = 0;
+  
+  tests.forEach(test => {
+    const dir = path.dirname(test.testPath);
+    if (!testsByDirectory.has(dir)) {
+      testsByDirectory.set(dir, []);
+    }
+    testsByDirectory.get(dir)!.push(test);
+    
+    // Count additional files
+    if (test.additionalFiles) {
+      totalAdditionalFiles += test.additionalFiles.length;
+    }
+  });
+  
+  // Show directory structure preview
+  console.log(chalk.cyan('📂 Directory Structure:'));
+  Array.from(testsByDirectory.keys()).sort().forEach(dir => {
+    const relativePath = path.relative(config.projectPath, dir);
+    console.log(chalk.gray(`  📁 ${relativePath || '.'}/`));
+    
+    const testsInDir = testsByDirectory.get(dir)!;
+    testsInDir.forEach(test => {
+      const fileName = path.basename(test.testPath);
+      const fileSize = Math.round(test.content.length / 1024 * 10) / 10; // KB with 1 decimal
+      console.log(chalk.gray(`    • ${fileName} (${fileSize} KB, ${test.content.split('\n').length} lines)`));
+      
+      if (verbose && test.additionalFiles) {
+        test.additionalFiles.forEach((additionalFile: any) => {
+          const addFileName = path.basename(additionalFile.path);
+          const addFileSize = Math.round(additionalFile.content.length / 1024 * 10) / 10;
+          console.log(chalk.gray(`      └─ ${addFileName} (${additionalFile.type}, ${addFileSize} KB)`));
+        });
+      }
+    });
+  });
+  
+  // Show file type breakdown
+  console.log(chalk.cyan('\n📊 File Type Breakdown:'));
+  const testFiles = tests.length;
+  console.log(chalk.gray(`  • Test files: ${testFiles}`));
+  if (totalAdditionalFiles > 0) {
+    console.log(chalk.gray(`  • Additional files (mocks, fixtures): ${totalAdditionalFiles}`));
+  }
+  console.log(chalk.gray(`  • Total files that would be created: ${testFiles + totalAdditionalFiles}`));
+  
+  // Calculate total size
+  const totalSize = tests.reduce((sum, test) => {
+    let testSize = test.content.length;
+    if (test.additionalFiles) {
+      testSize += test.additionalFiles.reduce((addSum: number, file: any) => addSum + file.content.length, 0);
+    }
+    return sum + testSize;
+  }, 0);
+  
+  const totalSizeKB = Math.round(totalSize / 1024 * 10) / 10;
+  console.log(chalk.gray(`  • Total size: ${totalSizeKB} KB`));
+  
+  // Show framework information
+  console.log(chalk.cyan('\n⚙️ Test Framework Information:'));
+  console.log(chalk.gray(`  • Framework: ${config.testFramework}`));
+  console.log(chalk.gray(`  • Output directory: ${path.relative(config.projectPath, config.outputPath)}/`));
+  console.log(chalk.gray(`  • Mocks enabled: ${config.options.generateMocks}`));
+  console.log(chalk.gray(`  • Setup/teardown enabled: ${config.options.includeSetupTeardown}`));
+  
+  if (verbose) {
+    console.log(chalk.cyan('\n📄 Sample Test File Preview:'));
+    if (tests.length > 0) {
+      const sampleTest = tests[0];
+      const preview = sampleTest.content.split('\n').slice(0, 10).join('\n');
+      console.log(chalk.gray(`File: ${path.basename(sampleTest.testPath)}`));
+      console.log(chalk.gray('Content preview (first 10 lines):'));
+      console.log(chalk.gray(preview));
+      if (sampleTest.content.split('\n').length > 10) {
+        console.log(chalk.gray(`... (${sampleTest.content.split('\n').length - 10} more lines)`));
+      }
+    }
+  }
+}
+
 async function generateLogicalTests(
   projectPath: string, 
   analysis: any, 
@@ -268,7 +390,8 @@ async function generateLogicalTests(
       generateMocks: true,
       generateSetup: true,
       skipExistingTests: true, // Don't overwrite existing tests
-      skipValidation: true
+      skipValidation: true,
+      dryRun: false // Always false for logical tests (they need structural tests to exist)
     });
     
     const generationResult = await structuralGenerator.generateAllTests();
@@ -295,12 +418,38 @@ async function generateLogicalTests(
 
     spinner.succeed(`Found ${gapReport.gaps.length} files requiring logical tests`);
     
-    // Step 3: Check Claude CLI availability
+    // Step 3: Check Claude CLI availability and authentication
     try {
       const { execSync } = require('child_process');
       execSync('claude --version', { stdio: 'ignore' });
-    } catch {
-      throw new Error('Claude Code CLI not found. Please install it first or run with --only-structural flag.');
+      
+      // Check if Claude CLI is authenticated by testing a simple command
+      try {
+        const authTest = execSync('claude --help', { encoding: 'utf8', timeout: 10000 });
+        if (!authTest || authTest.includes('authentication') || authTest.includes('login')) {
+          throw new Error('Claude CLI authentication required');
+        }
+      } catch (authError) {
+        const errorMsg = authError instanceof Error ? authError.message : String(authError);
+        if (errorMsg.includes('timeout') || errorMsg.includes('authentication') || errorMsg.includes('login')) {
+          throw new Error(
+            'Claude CLI authentication required. Please ensure Claude Code is properly authenticated.\n' +
+            'If you have Claude Code installed, try running it interactively first to ensure authentication is working.\n' +
+            'Alternatively, use --only-structural flag to generate structural tests only.'
+          );
+        }
+        // If it's a different error, continue - authentication might still work
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('Claude CLI authentication required') || errorMsg.includes('authentication')) {
+        throw error; // Re-throw authentication errors as-is
+      }
+      throw new Error(
+        'Claude Code CLI not found or not accessible. Please ensure Claude Code is installed and available in your PATH.\n' +
+        'Visit https://claude.ai/code for installation instructions.\n' +
+        'Alternatively, use --only-structural flag to generate structural tests only.'
+      );
     }
 
     // Step 4: Prepare AI tasks (with chunking support)
@@ -348,22 +497,76 @@ async function generateLogicalTests(
       verbose: options.verbose || false
     });
 
-    // Set up progress tracking
+    // Set up progress tracking with detailed feedback
     let completed = 0;
+    let failed = 0;
     const total = batch.tasks.length;
+    const startTime = Date.now();
     
-    orchestrator.on('task:complete', ({ task }) => {
+    // Handle progress events for better user feedback
+    orchestrator.on('progress', (update: any) => {
+      if (update.phase === 'authenticating') {
+        spinner.text = update.message;
+      } else if (update.phase === 'generating') {
+        const fileName = update.taskId === 'auth-check' ? 'Authentication' : path.basename(update.taskId);
+        spinner.text = `${update.message} - ${fileName} (${update.progress}%)`;
+      }
+    });
+    
+    orchestrator.on('task:start', ({ task }) => {
+      if (options.verbose) {
+        console.log(chalk.gray(`  Starting AI generation for ${path.basename(task.sourceFile)}...`));
+      }
+    });
+
+    orchestrator.on('task:complete', ({ task, result }) => {
       completed++;
-      spinner.text = `Generating tests... (${completed}/${total}) - ${path.basename(task.sourceFile)}`;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const eta = completed > 0 ? (((Date.now() - startTime) * (total - completed)) / completed / 1000).toFixed(1) : '?';
+      
+      spinner.text = `Generating tests... (${completed}/${total}) - ${path.basename(task.sourceFile)} ✓ (${elapsed}s elapsed, ETA: ${eta}s)`;
+      
+      if (options.verbose) {
+        console.log(chalk.green(`  ✓ Completed ${path.basename(task.sourceFile)} - Cost: $${result.result?.actualCost?.toFixed(3) || '?'}`));
+      }
     });
 
     orchestrator.on('task:failed', ({ task, error }) => {
+      failed++;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      
+      spinner.text = `Generating tests... (${completed}/${total}, ${failed} failed) - ${path.basename(task.sourceFile)} ✗ (${elapsed}s elapsed)`;
       logger.error(`Failed to generate tests for ${task.sourceFile}: ${error}`);
+      
+      if (options.verbose) {
+        console.log(chalk.red(`  ✗ Failed ${path.basename(task.sourceFile)}: ${error}`));
+      }
     });
 
-    // Process the batch
-    spinner.text = `Generating logical tests... (0/${total})`;
-    const results = await orchestrator.processBatch(batch);
+    orchestrator.on('task:retry', ({ task, attemptNumber, error }) => {
+      if (options.verbose) {
+        console.log(chalk.yellow(`  ↻ Retrying ${path.basename(task.sourceFile)} (attempt ${attemptNumber + 1}): ${error}`));
+      }
+    });
+
+    // Process the batch with timeout handling
+    spinner.text = `Generating logical tests... (0/${total}) - Starting AI generation`;
+    
+    let results;
+    try {
+      results = await Promise.race([
+        orchestrator.processBatch(batch),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Overall AI generation process timed out after 30 minutes. This may indicate authentication or network issues.'));
+          }, 30 * 60 * 1000); // 30 minute overall timeout
+        })
+      ]);
+    } catch (error) {
+      // Kill all active processes on timeout or error
+      await orchestrator.killAll();
+      throw error;
+    }
 
     // Step 7: Show results
     const successfulResults = results.filter(r => r.success);

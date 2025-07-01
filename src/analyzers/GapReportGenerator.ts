@@ -1,5 +1,6 @@
 import { logger } from '../utils/common-imports';
-import { TestGapAnalysisResult, TestGap, GapPriority } from './TestGapAnalyzer';
+import type { TestGapAnalysisResult, TestGap } from './TestGapAnalyzer';
+import { GapPriority } from './TestGapAnalyzer';
 import { MarkdownReportGenerator } from './reporting/MarkdownReportGenerator';
 import { TerminalReportGenerator } from './reporting/TerminalReportGenerator';
 import { ReportVisualizationService } from './reporting/ReportVisualizationService';
@@ -102,10 +103,10 @@ export interface ActionableInsight {
 
 /**
  * Gap Report Generator - Orchestrates focused report generators
- * 
+ *
  * This orchestrator coordinates specialized report generators to transform
  * TestGapAnalysisResult into various formatted reports with enhanced visualization.
- * 
+ *
  * Refactored to use composition pattern with focused classes:
  * - MarkdownReportGenerator: Handles markdown output
  * - TerminalReportGenerator: Handles colorized terminal output
@@ -116,7 +117,7 @@ export class GapReportGenerator {
   private readonly markdownGenerator: MarkdownReportGenerator;
   private readonly terminalGenerator: TerminalReportGenerator;
   private readonly visualizationService: ReportVisualizationService;
-  
+
   constructor(
     private options: ReportOptions = {},
     private visualConfig: VisualizationConfig = {}
@@ -127,14 +128,14 @@ export class GapReportGenerator {
       maxGapsToShow: 20,
       useColors: true,
       includeTiming: true,
-      ...options
+      ...options,
     };
-    
+
     this.visualConfig = {
       terminalWidth: 80,
       useUnicode: true,
       colorScheme: 'default',
-      ...visualConfig
+      ...visualConfig,
     };
 
     // Initialize focused report generators
@@ -153,7 +154,9 @@ export class GapReportGenerator {
       version: this.VERSION,
       generatedAt: new Date().toISOString(),
       projectPath: analysis.projectPath,
-      ...(this.options.includeTiming && analysis.timing ? { duration: analysis.timing.duration } : {})
+      ...(this.options.includeTiming && analysis.timing
+        ? { duration: analysis.timing.duration }
+        : {}),
     };
 
     const summary = {
@@ -162,14 +165,14 @@ export class GapReportGenerator {
       filesNeedingLogicalTests: analysis.summary.filesNeedingLogicalTests,
       totalGaps: analysis.summary.totalGaps,
       overallAssessment: analysis.summary.overallAssessment,
-      priorityDistribution: analysis.summary.priorityBreakdown
+      priorityDistribution: analysis.summary.priorityBreakdown,
     };
 
     const cost = {
       numberOfTasks: analysis.estimatedCost.numberOfTasks,
       estimatedTokens: analysis.estimatedCost.estimatedTokens,
       estimatedCostUSD: analysis.estimatedCost.estimatedCostUSD,
-      complexityDistribution: analysis.estimatedCost.complexityDistribution
+      complexityDistribution: analysis.estimatedCost.complexityDistribution,
     };
 
     const recommendations = this.categorizeRecommendations(analysis.recommendations);
@@ -182,7 +185,7 @@ export class GapReportGenerator {
       cost,
       recommendations,
       gaps,
-      insights
+      insights,
     };
   }
 
@@ -207,11 +210,11 @@ export class GapReportGenerator {
    */
   generateJsonReport(analysis: TestGapAnalysisResult): string {
     const schema = this.generateReportSchema(analysis);
-    
+
     // Add schema information for programmatic consumption
     const jsonReport = {
       $schema: 'https://claude-testing-infrastructure.schema.json/gap-analysis/v1',
-      ...schema
+      ...schema,
     };
 
     return JSON.stringify(jsonReport, null, 2);
@@ -225,17 +228,24 @@ export class GapReportGenerator {
     return this.visualizationService.generateTextReport(schema);
   }
 
-
   private categorizeRecommendations(recommendations: string[]): GapReportSchema['recommendations'] {
     const immediate: string[] = [];
     const shortTerm: string[] = [];
     const longTerm: string[] = [];
 
-    recommendations.forEach(rec => {
+    recommendations.forEach((rec) => {
       const lowerRec = rec.toLowerCase();
-      if (lowerRec.includes('critical') || lowerRec.includes('address') || lowerRec.includes('first')) {
+      if (
+        lowerRec.includes('critical') ||
+        lowerRec.includes('address') ||
+        lowerRec.includes('first')
+      ) {
         immediate.push(rec);
-      } else if (lowerRec.includes('focus') || lowerRec.includes('generate') || lowerRec.includes('create')) {
+      } else if (
+        lowerRec.includes('focus') ||
+        lowerRec.includes('generate') ||
+        lowerRec.includes('create')
+      ) {
         shortTerm.push(rec);
       } else {
         longTerm.push(rec);
@@ -246,7 +256,7 @@ export class GapReportGenerator {
   }
 
   private transformGapsToDetailed(gaps: TestGap[]): DetailedGap[] {
-    return gaps.map(gap => ({
+    return gaps.map((gap) => ({
       sourceFile: gap.sourceFile,
       testFile: gap.testFile,
       priority: gap.priority,
@@ -254,26 +264,26 @@ export class GapReportGenerator {
       gapCount: gap.gaps.length,
       framework: gap.context.framework,
       language: gap.context.language,
-      gaps: gap.gaps.map(g => ({
+      gaps: gap.gaps.map((g) => ({
         type: g.type,
         description: g.description,
         priority: g.priority,
-        estimatedEffort: g.estimatedEffort
+        estimatedEffort: g.estimatedEffort,
       })),
       ...(this.options.includeCodeSnippets && {
         context: {
           dependencies: gap.context.dependencies,
-          codeSnippets: gap.context.codeSnippets.map(snippet => ({
+          codeSnippets: gap.context.codeSnippets.map((snippet) => ({
             name: snippet.name,
             complexity: {
               hasAsync: snippet.hasAsyncOperations,
               hasConditionals: snippet.hasConditionals,
               hasLoops: snippet.hasLoops,
-              hasErrorHandling: snippet.hasErrorHandling
-            }
-          }))
-        }
-      })
+              hasErrorHandling: snippet.hasErrorHandling,
+            },
+          })),
+        },
+      }),
     }));
   }
 
@@ -282,7 +292,7 @@ export class GapReportGenerator {
 
     // Analyze patterns in gaps
     const totalGaps = analysis.summary.totalGaps;
-    const criticalFiles = analysis.gaps.filter(g => g.priority === GapPriority.CRITICAL).length;
+    const criticalFiles = analysis.gaps.filter((g) => g.priority === GapPriority.CRITICAL).length;
 
     if (criticalFiles > 0) {
       insights.push({
@@ -294,9 +304,11 @@ export class GapReportGenerator {
         actions: [
           'Generate logical tests for critical complexity files first',
           'Consider breaking down complex functions into smaller, testable units',
-          'Implement integration tests for external dependencies'
+          'Implement integration tests for external dependencies',
         ],
-        relatedGaps: analysis.gaps.filter(g => g.priority === GapPriority.CRITICAL).map(g => g.sourceFile)
+        relatedGaps: analysis.gaps
+          .filter((g) => g.priority === GapPriority.CRITICAL)
+          .map((g) => g.sourceFile),
       });
     }
 
@@ -310,8 +322,8 @@ export class GapReportGenerator {
         actions: [
           'Group similar files by framework and language',
           'Use shared context for related components',
-          'Generate tests in priority order to maximize early value'
-        ]
+          'Generate tests in priority order to maximize early value',
+        ],
       });
     }
 
@@ -325,13 +337,14 @@ export class GapReportGenerator {
         actions: [
           'Implement git-based change detection',
           'Generate tests only for modified files',
-          'Set up automated cost monitoring'
-        ]
+          'Set up automated cost monitoring',
+        ],
       });
     }
 
-    const businessLogicGaps = analysis.gaps.reduce((count, gap) => 
-      count + gap.gaps.filter(g => g.type === 'business-logic').length, 0
+    const businessLogicGaps = analysis.gaps.reduce(
+      (count, gap) => count + gap.gaps.filter((g) => g.type === 'business-logic').length,
+      0
     );
 
     if (businessLogicGaps > totalGaps * 0.6) {
@@ -344,12 +357,11 @@ export class GapReportGenerator {
         actions: [
           'Prioritize business logic test generation',
           'Include edge case scenarios in prompts',
-          'Consider property-based testing for complex algorithms'
-        ]
+          'Consider property-based testing for complex algorithms',
+        ],
       });
     }
 
     return insights.slice(0, 5); // Limit to top 5 insights
   }
-
 }

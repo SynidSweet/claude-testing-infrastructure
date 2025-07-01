@@ -3,7 +3,7 @@
  * Provides strong typing for coverage inputs and results to improve AI comprehension
  */
 
-import { CoverageData } from '../runners/CoverageParser';
+import type { CoverageData } from '../runners/CoverageParser';
 
 /**
  * Discriminated union for coverage input types
@@ -56,52 +56,74 @@ export type CoverageReportFormat =
 /**
  * Type guards for CoverageInput
  */
-export function isJsonInput(input: CoverageInput): input is Extract<CoverageInput, { type: 'json' }> {
+export function isJsonInput(
+  input: CoverageInput
+): input is Extract<CoverageInput, { type: 'json' }> {
   return input.type === 'json';
 }
 
-export function isTextInput(input: CoverageInput): input is Extract<CoverageInput, { type: 'text' }> {
+export function isTextInput(
+  input: CoverageInput
+): input is Extract<CoverageInput, { type: 'text' }> {
   return input.type === 'text';
 }
 
-export function isFileInput(input: CoverageInput): input is Extract<CoverageInput, { type: 'file' }> {
+export function isFileInput(
+  input: CoverageInput
+): input is Extract<CoverageInput, { type: 'file' }> {
   return input.type === 'file';
 }
 
 /**
  * Type guards for CoverageParseResult
  */
-export function isCoverageSuccessResult(result: CoverageParseResult): result is Extract<CoverageParseResult, { type: 'success' }> {
+export function isCoverageSuccessResult(
+  result: CoverageParseResult
+): result is Extract<CoverageParseResult, { type: 'success' }> {
   return result.type === 'success';
 }
 
-export function isCoveragePartialResult(result: CoverageParseResult): result is Extract<CoverageParseResult, { type: 'partial' }> {
+export function isCoveragePartialResult(
+  result: CoverageParseResult
+): result is Extract<CoverageParseResult, { type: 'partial' }> {
   return result.type === 'partial';
 }
 
-export function isCoverageErrorResult(result: CoverageParseResult): result is Extract<CoverageParseResult, { type: 'error' }> {
+export function isCoverageErrorResult(
+  result: CoverageParseResult
+): result is Extract<CoverageParseResult, { type: 'error' }> {
   return result.type === 'error';
 }
 
 /**
  * Type guards for CoverageReportFormat
  */
-export function isHtmlFormat(format: CoverageReportFormat): format is Extract<CoverageReportFormat, { type: 'html' }> {
+export function isHtmlFormat(
+  format: CoverageReportFormat
+): format is Extract<CoverageReportFormat, { type: 'html' }> {
   return format.type === 'html';
 }
 
-export function isJsonFormat(format: CoverageReportFormat): format is Extract<CoverageReportFormat, { type: 'json' }> {
+export function isJsonFormat(
+  format: CoverageReportFormat
+): format is Extract<CoverageReportFormat, { type: 'json' }> {
   return format.type === 'json';
 }
 
-export function isXmlFormat(format: CoverageReportFormat): format is Extract<CoverageReportFormat, { type: 'xml' }> {
+export function isXmlFormat(
+  format: CoverageReportFormat
+): format is Extract<CoverageReportFormat, { type: 'xml' }> {
   return format.type === 'xml';
 }
 
-export function isMarkdownFormat(format: CoverageReportFormat): format is Extract<CoverageReportFormat, { type: 'markdown' }> {
+export function isMarkdownFormat(
+  format: CoverageReportFormat
+): format is Extract<CoverageReportFormat, { type: 'markdown' }> {
   return format.type === 'markdown';
 }
 
-export function isTerminalFormat(format: CoverageReportFormat): format is Extract<CoverageReportFormat, { type: 'terminal' }> {
+export function isTerminalFormat(
+  format: CoverageReportFormat
+): format is Extract<CoverageReportFormat, { type: 'terminal' }> {
   return format.type === 'terminal';
 }

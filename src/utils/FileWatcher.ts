@@ -1,6 +1,6 @@
 /**
  * File Watcher Utility
- * 
+ *
  * Provides intelligent file watching capabilities for watch mode:
  * - Monitors project files for changes
  * - Filters out irrelevant changes (node_modules, etc.)
@@ -8,7 +8,8 @@
  * - Handles graceful shutdown
  */
 
-import { watch, FSWatcher } from 'chokidar';
+import type { FSWatcher } from 'chokidar';
+import { watch } from 'chokidar';
 import { EventEmitter } from 'events';
 import path from 'path';
 import { logger } from './logger';
@@ -59,37 +60,37 @@ export class FileWatcher extends EventEmitter {
 
   constructor(config: FileWatcherConfig) {
     super();
-    
+
     this.projectPath = path.resolve(config.projectPath);
-    
+
     const defaultIncludePatterns = [
       '**/*.{js,jsx,ts,tsx,py,vue,svelte}', // Source files
-      '**/package.json',                    // Dependencies
-      '**/requirements.txt',                // Python dependencies
-      '**/pyproject.toml',                  // Python projects
-      '**/*.json',                         // Config files
-      '**/*.yaml',                         // Config files
-      '**/*.yml'                           // Config files
+      '**/package.json', // Dependencies
+      '**/requirements.txt', // Python dependencies
+      '**/pyproject.toml', // Python projects
+      '**/*.json', // Config files
+      '**/*.yaml', // Config files
+      '**/*.yml', // Config files
     ];
-    
+
     const defaultIgnorePatterns = [
       'node_modules/**',
       '.git/**',
       'dist/**',
       'build/**',
       'coverage/**',
-      '.claude-testing/**',                // Our own output
-      '**/*.test.{js,ts,jsx,tsx,py}',      // Generated tests
-      '**/*.spec.{js,ts,jsx,tsx,py}',      // Generated tests
-      '**/__pycache__/**',                 // Python cache
-      '**/*.pyc',                          // Python compiled
-      '**/.pytest_cache/**',               // Pytest cache
-      '**/jest.config.*',                  // Test configs
-      '**/babel.config.*',                 // Build configs
-      '**/webpack.config.*',               // Build configs
-      '**/tsconfig.json'                   // TS configs (usually don't need test regeneration)
+      '.claude-testing/**', // Our own output
+      '**/*.test.{js,ts,jsx,tsx,py}', // Generated tests
+      '**/*.spec.{js,ts,jsx,tsx,py}', // Generated tests
+      '**/__pycache__/**', // Python cache
+      '**/*.pyc', // Python compiled
+      '**/.pytest_cache/**', // Pytest cache
+      '**/jest.config.*', // Test configs
+      '**/babel.config.*', // Build configs
+      '**/webpack.config.*', // Build configs
+      '**/tsconfig.json', // TS configs (usually don't need test regeneration)
     ];
-    
+
     this.config = {
       projectPath: this.projectPath,
       includePatterns: config.includePatterns || defaultIncludePatterns,
@@ -97,7 +98,7 @@ export class FileWatcher extends EventEmitter {
       watchAdditions: config.watchAdditions ?? true,
       watchDeletions: config.watchDeletions ?? true,
       pollingInterval: config.pollingInterval ?? 1000,
-      verbose: config.verbose ?? false
+      verbose: config.verbose ?? false,
     };
 
     this.setupEventHandlers();
@@ -114,7 +115,7 @@ export class FileWatcher extends EventEmitter {
     logger.info('Starting file watcher', {
       projectPath: this.projectPath,
       includePatterns: this.config.includePatterns,
-      ignorePatterns: this.config.ignorePatterns.slice(0, 5) // Log first 5 for brevity
+      ignorePatterns: this.config.ignorePatterns.slice(0, 5), // Log first 5 for brevity
     });
 
     try {
@@ -127,10 +128,10 @@ export class FileWatcher extends EventEmitter {
         depth: 10, // Reasonable depth limit
         awaitWriteFinish: {
           stabilityThreshold: 100, // Wait 100ms for file writes to finish
-          pollInterval: 50
+          pollInterval: 50,
         },
         usePolling: process.platform === 'win32', // Use polling on Windows
-        interval: this.config.pollingInterval
+        interval: this.config.pollingInterval,
       });
 
       // Set up event listeners
@@ -159,10 +160,12 @@ export class FileWatcher extends EventEmitter {
       this.watcher.on('ready', () => {
         this.isWatching = true;
         this.emit('ready');
-        
+
         if (this.config.verbose) {
           logger.info('File watcher ready', {
-            watchedPaths: this.watcher?.getWatched() ? Object.keys(this.watcher.getWatched()).length : 0
+            watchedPaths: this.watcher?.getWatched()
+              ? Object.keys(this.watcher.getWatched()).length
+              : 0,
           });
         }
       });
@@ -171,11 +174,10 @@ export class FileWatcher extends EventEmitter {
       await new Promise<void>((resolve, reject) => {
         this.watcher!.on('ready', resolve);
         this.watcher!.on('error', reject);
-        
+
         // Timeout after 10 seconds
         setTimeout(() => reject(new Error('File watcher startup timeout')), 10000);
       });
-
     } catch (error) {
       logger.error('Failed to start file watcher', { error });
       throw error;
@@ -191,7 +193,7 @@ export class FileWatcher extends EventEmitter {
     }
 
     logger.info('Stopping file watcher');
-    
+
     try {
       await this.watcher.close();
       this.watcher = null;
@@ -220,28 +222,24 @@ export class FileWatcher extends EventEmitter {
 
     const watched = this.watcher.getWatched();
     const files: string[] = [];
-    
+
     for (const [dir, fileList] of Object.entries(watched)) {
       for (const file of fileList) {
         files.push(path.join(dir, file));
       }
     }
-    
+
     return files;
   }
 
   /**
    * Handle individual file change events
    */
-  private handleFileChange(
-    type: FileChangeEvent['type'], 
-    filePath: string, 
-    stats?: any
-  ): void {
+  private handleFileChange(type: FileChangeEvent['type'], filePath: string, stats?: any): void {
     const absolutePath = path.resolve(this.projectPath, filePath);
     const relativePath = path.relative(this.projectPath, absolutePath);
     const extension = path.extname(filePath);
-    
+
     const changeEvent: FileChangeEvent = {
       type,
       filePath: absolutePath,
@@ -251,9 +249,9 @@ export class FileWatcher extends EventEmitter {
       ...(stats && {
         stats: {
           size: stats.size,
-          mtime: stats.mtime
-        }
-      })
+          mtime: stats.mtime,
+        },
+      }),
     };
 
     if (this.config.verbose) {
@@ -261,13 +259,13 @@ export class FileWatcher extends EventEmitter {
         type,
         relativePath,
         extension,
-        size: stats?.size
+        size: stats?.size,
       });
     }
 
     // Emit the change event
     this.emit('fileChange', changeEvent);
-    
+
     // Emit type-specific events
     this.emit(type, changeEvent);
   }
@@ -279,7 +277,7 @@ export class FileWatcher extends EventEmitter {
     // Graceful shutdown on process signals
     const cleanup = () => {
       if (this.isWatching) {
-        this.stopWatching().catch(error => {
+        this.stopWatching().catch((error) => {
           logger.error('Error during file watcher cleanup', { error });
         });
       }

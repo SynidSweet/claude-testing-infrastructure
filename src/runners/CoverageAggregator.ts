@@ -1,4 +1,9 @@
-import { CoverageData, FileCoverage, UncoveredArea, CoverageThresholds } from './CoverageParser';
+import type {
+  CoverageData,
+  FileCoverage,
+  UncoveredArea,
+  CoverageThresholds,
+} from './CoverageParser';
 import { logger } from '../utils/logger';
 
 /**
@@ -72,7 +77,7 @@ export class CoverageAggregator {
       strategy: 'union',
       preserveMetadata: true,
       coverageThreshold: 0,
-      ...config
+      ...config,
     };
   }
 
@@ -84,20 +89,22 @@ export class CoverageAggregator {
       data,
       framework,
       timestamp: new Date(),
-      metadata: metadata || {}
+      metadata: metadata || {},
     });
-    
-    logger.debug('Added coverage source', { 
-      framework, 
+
+    logger.debug('Added coverage source', {
+      framework,
       filesCount: Object.keys(data.files).length,
-      summary: data.summary 
+      summary: data.summary,
     });
   }
 
   /**
    * Add multiple coverage sources at once
    */
-  addSources(sources: Array<{ data: CoverageData; framework: string; metadata?: Record<string, any> }>): void {
+  addSources(
+    sources: Array<{ data: CoverageData; framework: string; metadata?: Record<string, any> }>
+  ): void {
     for (const source of sources) {
       this.addSource(source.data, source.framework, source.metadata);
     }
@@ -120,9 +127,9 @@ export class CoverageAggregator {
       return this.createEmptyAggregation();
     }
 
-    logger.info('Aggregating coverage data', { 
+    logger.info('Aggregating coverage data', {
       sourceCount: this.sources.length,
-      strategy: this.config.strategy 
+      strategy: this.config.strategy,
     });
 
     const filteredSources = this.filterSources(this.sources);
@@ -133,10 +140,10 @@ export class CoverageAggregator {
 
     const metadata: AggregationMetadata = {
       sourceCount: filteredSources.length,
-      timestamps: filteredSources.map(s => s.timestamp),
-      frameworks: [...new Set(filteredSources.map(s => s.framework))],
+      timestamps: filteredSources.map((s) => s.timestamp),
+      frameworks: [...new Set(filteredSources.map((s) => s.framework))],
       totalFiles: Object.keys(aggregatedFiles).length,
-      strategy: this.config.strategy
+      strategy: this.config.strategy,
     };
 
     const result: AggregatedCoverageData = {
@@ -144,9 +151,9 @@ export class CoverageAggregator {
       files: aggregatedFiles,
       uncoveredAreas,
       meetsThreshold,
-      metadata
+      metadata,
     };
-    
+
     if (this.config.thresholds) {
       result.thresholds = this.config.thresholds;
     }
@@ -154,7 +161,7 @@ export class CoverageAggregator {
     logger.info('Coverage aggregation completed', {
       totalFiles: metadata.totalFiles,
       summary,
-      meetsThreshold
+      meetsThreshold,
     });
 
     return result;
@@ -174,25 +181,25 @@ export class CoverageAggregator {
         count: 0,
         frameworks: [],
         totalFiles: 0,
-        dateRange: null
+        dateRange: null,
       };
     }
 
-    const timestamps = this.sources.map(s => s.timestamp);
+    const timestamps = this.sources.map((s) => s.timestamp);
     const allFiles = new Set<string>();
-    
+
     for (const source of this.sources) {
-      Object.keys(source.data.files).forEach(file => allFiles.add(file));
+      Object.keys(source.data.files).forEach((file) => allFiles.add(file));
     }
 
     return {
       count: this.sources.length,
-      frameworks: [...new Set(this.sources.map(s => s.framework))],
+      frameworks: [...new Set(this.sources.map((s) => s.framework))],
       totalFiles: allFiles.size,
       dateRange: {
-        earliest: new Date(Math.min(...timestamps.map(t => t.getTime()))),
-        latest: new Date(Math.max(...timestamps.map(t => t.getTime())))
-      }
+        earliest: new Date(Math.min(...timestamps.map((t) => t.getTime()))),
+        latest: new Date(Math.max(...timestamps.map((t) => t.getTime()))),
+      },
     };
   }
 
@@ -204,10 +211,10 @@ export class CoverageAggregator {
 
   private aggregateFiles(sources: CoverageSource[]): Record<string, FileCoverage> {
     const allFiles = new Set<string>();
-    
+
     // Collect all unique file paths
     for (const source of sources) {
-      Object.keys(source.data.files).forEach(file => {
+      Object.keys(source.data.files).forEach((file) => {
         if (this.shouldIncludeFile(file)) {
           allFiles.add(file);
         }
@@ -219,8 +226,8 @@ export class CoverageAggregator {
     // Aggregate each file according to strategy
     for (const filePath of allFiles) {
       const fileCoverages = sources
-        .map(source => source.data.files[filePath])
-        .filter(coverage => coverage !== undefined);
+        .map((source) => source.data.files[filePath])
+        .filter((coverage) => coverage !== undefined);
 
       if (fileCoverages.length > 0) {
         aggregatedFiles[filePath] = this.aggregateFileCoverage(fileCoverages, filePath);
@@ -241,7 +248,9 @@ export class CoverageAggregator {
       case 'highest':
         return this.highestFileCoverage(coverages, filePath);
       default:
-        logger.warn('Unknown aggregation strategy, using union', { strategy: this.config.strategy });
+        logger.warn('Unknown aggregation strategy, using union', {
+          strategy: this.config.strategy,
+        });
         return this.unionFileCoverage(coverages, filePath);
     }
   }
@@ -249,7 +258,7 @@ export class CoverageAggregator {
   private unionFileCoverage(coverages: FileCoverage[], filePath: string): FileCoverage {
     // Union: A line is covered if it's covered in ANY source
     const allUncoveredLines = new Set<number>();
-    
+
     let maxStatements = 0;
     let maxBranches = 0;
     let maxFunctions = 0;
@@ -263,7 +272,7 @@ export class CoverageAggregator {
       maxLines = Math.max(maxLines, coverage.summary.lines);
 
       // Collect all uncovered lines
-      coverage.uncoveredLines.forEach(line => allUncoveredLines.add(line));
+      coverage.uncoveredLines.forEach((line) => allUncoveredLines.add(line));
     }
 
     // In union strategy, use the highest coverage percentages found
@@ -273,9 +282,9 @@ export class CoverageAggregator {
         statements: maxStatements,
         branches: maxBranches,
         functions: maxFunctions,
-        lines: maxLines
+        lines: maxLines,
       },
-      uncoveredLines: Array.from(allUncoveredLines).sort((a, b) => a - b)
+      uncoveredLines: Array.from(allUncoveredLines).sort((a, b) => a - b),
     };
   }
 
@@ -284,7 +293,7 @@ export class CoverageAggregator {
     if (coverages.length === 1) {
       return coverages[0] || this.createEmptyFileCoverage(filePath);
     }
-    
+
     if (coverages.length === 0) {
       return this.createEmptyFileCoverage(filePath);
     }
@@ -305,7 +314,7 @@ export class CoverageAggregator {
     // For uncovered lines, include lines that are uncovered in ANY source
     const allUncoveredLines = new Set<number>();
     for (const coverage of coverages) {
-      coverage.uncoveredLines.forEach(line => allUncoveredLines.add(line));
+      coverage.uncoveredLines.forEach((line) => allUncoveredLines.add(line));
     }
 
     return {
@@ -314,9 +323,9 @@ export class CoverageAggregator {
         statements: minStatements,
         branches: minBranches,
         functions: minFunctions,
-        lines: minLines
+        lines: minLines,
       },
-      uncoveredLines: Array.from(allUncoveredLines).sort((a, b) => a - b)
+      uncoveredLines: Array.from(allUncoveredLines).sort((a, b) => a - b),
     };
   }
 
@@ -326,10 +335,10 @@ export class CoverageAggregator {
       return {
         path: filePath,
         summary: { statements: 0, branches: 0, functions: 0, lines: 0 },
-        uncoveredLines: []
+        uncoveredLines: [],
       };
     }
-    
+
     let bestCoverage = coverages[0]!; // Already checked for empty array above
     let bestScore = this.calculateOverallScore(bestCoverage.summary);
 
@@ -354,7 +363,9 @@ export class CoverageAggregator {
     );
   }
 
-  private calculateAggregatedSummary(files: Record<string, FileCoverage>): AggregatedCoverageData['summary'] {
+  private calculateAggregatedSummary(
+    files: Record<string, FileCoverage>
+  ): AggregatedCoverageData['summary'] {
     const fileCount = Object.keys(files).length;
     if (fileCount === 0) {
       return { statements: 0, branches: 0, functions: 0, lines: 0 };
@@ -376,7 +387,7 @@ export class CoverageAggregator {
       statements: totalStatements / fileCount,
       branches: totalBranches / fileCount,
       functions: totalFunctions / fileCount,
-      lines: totalLines / fileCount
+      lines: totalLines / fileCount,
     };
   }
 
@@ -389,7 +400,7 @@ export class CoverageAggregator {
 
         // Create unique key for deduplication
         const key = `${area.file}:${area.line}:${area.type}:${area.function || ''}`;
-        
+
         if (!areasMap.has(key)) {
           areasMap.set(key, { ...area });
         }
@@ -427,11 +438,8 @@ export class CoverageAggregator {
 
   private matchesPattern(filePath: string, pattern: string): boolean {
     // Simple glob-like pattern matching
-    const regexPattern = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.');
-    
+    const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.');
+
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(filePath);
   }
@@ -459,14 +467,14 @@ export class CoverageAggregator {
         timestamps: [],
         frameworks: [],
         totalFiles: 0,
-        strategy: this.config.strategy
-      }
+        strategy: this.config.strategy,
+      },
     };
-    
+
     if (this.config.thresholds) {
       result.thresholds = this.config.thresholds;
     }
-    
+
     return result;
   }
 
@@ -474,7 +482,7 @@ export class CoverageAggregator {
     return {
       path: filePath,
       summary: { statements: 0, branches: 0, functions: 0, lines: 0 },
-      uncoveredLines: []
+      uncoveredLines: [],
     };
   }
 }

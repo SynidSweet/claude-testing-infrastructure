@@ -1,14 +1,10 @@
 import { fs, path, fg } from '../utils/common-imports';
-import {
-  TestGenerator,
-  TestGeneratorConfig,
-  GeneratedTest,
-  TestType,
-  GeneratedFile
-} from './TestGenerator';
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { TestGeneratorConfig, GeneratedTest, GeneratedFile } from './TestGenerator';
+import { TestGenerator, TestType } from './TestGenerator';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/common-imports';
-import { TestTemplateEngine, TemplateContext } from './templates/TestTemplateEngine';
+import type { TemplateContext } from './templates/TestTemplateEngine';
+import { TestTemplateEngine } from './templates/TestTemplateEngine';
 
 export interface StructuralTestGeneratorOptions {
   /** Patterns for files to include in test generation */
@@ -25,11 +21,13 @@ export interface StructuralTestGeneratorOptions {
   skipExistingTests?: boolean;
   /** Skip validation checks (e.g., test-to-source ratio) */
   skipValidation?: boolean;
+  /** Dry run mode - don't create any files */
+  dryRun?: boolean;
 }
 
 /**
  * Structural test generator that creates basic test scaffolding
- * 
+ *
  * This generator analyzes the project structure and creates appropriate
  * test files with basic structure based on the detected languages,
  * frameworks, and patterns.
@@ -54,36 +52,36 @@ export class StructuralTestGenerator extends TestGenerator {
         '**/__pycache__/**',
         '**/coverage/**',
         '**/tests/**',
-        '**/__tests__/**'
+        '**/__tests__/**',
       ],
       generateMocks: true,
       generateSetup: true,
       includeTestData: false,
       skipExistingTests: true,
       skipValidation: false,
-      ...options
+      ...options,
     };
   }
 
   protected async getFilesToTest(): Promise<string[]> {
     logger.info('Scanning for files to test', {
       includePatterns: this.options.includePatterns,
-      excludePatterns: this.options.excludePatterns
+      excludePatterns: this.options.excludePatterns,
     });
 
-    const patterns = this.options.includePatterns!.map(pattern => 
+    const patterns = this.options.includePatterns!.map((pattern) =>
       path.join(this.config.projectPath, pattern)
     );
 
     const allFiles = await fg(patterns, {
       ignore: this.options.excludePatterns || [],
       absolute: true,
-      onlyFiles: true
+      onlyFiles: true,
     });
 
     // Filter files based on detected languages
     const languageExtensions = this.getLanguageExtensions();
-    const filteredFiles = allFiles.filter(file => {
+    const filteredFiles = allFiles.filter((file) => {
       const ext = path.extname(file);
       return languageExtensions.includes(ext);
     });
@@ -91,14 +89,14 @@ export class StructuralTestGenerator extends TestGenerator {
     // Skip existing tests if configured
     if (this.options.skipExistingTests) {
       const filesWithoutTests: string[] = [];
-      
+
       for (const file of filteredFiles) {
         const hasExistingTest = await this.hasExistingTest(file);
         if (!hasExistingTest) {
           filesWithoutTests.push(file);
         }
       }
-      
+
       return filesWithoutTests;
     }
 
@@ -122,9 +120,12 @@ export class StructuralTestGenerator extends TestGenerator {
 
       // Generate additional files if needed
       const additionalFiles: GeneratedFile[] = [];
-      
+
       if (this.options.generateMocks && fileAnalysis.dependencies.length > 0) {
-        const mockFile = await this.generateMockFileForDependencies(filePath, fileAnalysis.dependencies);
+        const mockFile = await this.generateMockFileForDependencies(
+          filePath,
+          fileAnalysis.dependencies
+        );
         if (mockFile) {
           additionalFiles.push(mockFile);
         }
@@ -136,9 +137,8 @@ export class StructuralTestGenerator extends TestGenerator {
         testType: fileAnalysis.testType,
         framework: this.getFramework(),
         content: testContent,
-        ...(additionalFiles.length > 0 && { additionalFiles })
+        ...(additionalFiles.length > 0 && { additionalFiles }),
       };
-
     } catch (error) {
       logger.error(`Failed to generate test for ${filePath}`, { error });
       throw error;
@@ -186,11 +186,10 @@ export class StructuralTestGenerator extends TestGenerator {
         isComponent: this.isComponent(filePath, content),
         isUtility: this.isUtility(filePath, content),
         isService: this.isService(filePath, content),
-        hasAsyncCode: this.hasAsyncCode(content)
+        hasAsyncCode: this.hasAsyncCode(content),
       };
 
       return analysis;
-
     } catch (error) {
       logger.error(`Failed to analyze file: ${filePath}`, { error });
       return null;
@@ -200,7 +199,7 @@ export class StructuralTestGenerator extends TestGenerator {
   private async generateTestFileContent(filePath: string, analysis: FileAnalysis): Promise<string> {
     const templateEngine = new TestTemplateEngine();
     const fileName = path.basename(filePath, path.extname(filePath));
-    
+
     const context: TemplateContext = {
       moduleName: fileName,
       imports: analysis.dependencies,
@@ -211,9 +210,9 @@ export class StructuralTestGenerator extends TestGenerator {
       language: analysis.language as 'javascript' | 'typescript' | 'python',
       isAsync: analysis.hasAsyncCode,
       isComponent: analysis.isComponent,
-      dependencies: analysis.dependencies
+      dependencies: analysis.dependencies,
     };
-    
+
     // Add modulePath only for Python files
     if (analysis.language === 'python') {
       context.modulePath = this.getPythonModulePath(filePath);
@@ -223,24 +222,24 @@ export class StructuralTestGenerator extends TestGenerator {
     if (analysis.language === 'javascript' || analysis.language === 'typescript') {
       context.moduleSystem = this.analysis.moduleSystem.type;
     }
-    
+
     return templateEngine.generateTest(context);
   }
 
   private getPythonModulePath(filePath: string): string {
     // Get relative path from project root to source file
     const relativePath = path.relative(this.config.projectPath, filePath);
-    
+
     // Remove .py extension and convert path separators to dots
-    const modulePath = relativePath
-      .replace(/\.py$/, '')
-      .split(path.sep)
-      .join('.');
-    
+    const modulePath = relativePath.replace(/\.py$/, '').split(path.sep).join('.');
+
     return modulePath;
   }
 
-  private async generateMockFileForDependencies(filePath: string, dependencies: string[]): Promise<GeneratedFile | null> {
+  private async generateMockFileForDependencies(
+    filePath: string,
+    dependencies: string[]
+  ): Promise<GeneratedFile | null> {
     if (dependencies.length === 0) {
       return null;
     }
@@ -251,14 +250,19 @@ export class StructuralTestGenerator extends TestGenerator {
     return {
       path: mockPath,
       content: mockContent,
-      type: 'mock'
+      type: 'mock',
     };
   }
 
   private async generateTestSetupFiles(results: GeneratedTest[]): Promise<void> {
     const setupContent = this.generateTestSetupContent(results);
     const setupPath = path.join(this.config.outputPath, this.getSetupFileName());
-    
+
+    if (this.options.dryRun) {
+      logger.info(`Dry run: would generate setup file: ${setupPath}`);
+      return;
+    }
+
     try {
       await fs.mkdir(path.dirname(setupPath), { recursive: true });
       await fs.writeFile(setupPath, setupContent);
@@ -280,7 +284,7 @@ export class StructuralTestGenerator extends TestGenerator {
 
   private getLanguageExtensions(): string[] {
     const extensions: string[] = [];
-    
+
     for (const lang of this.analysis.languages) {
       switch (lang.name) {
         case 'javascript':
@@ -294,7 +298,7 @@ export class StructuralTestGenerator extends TestGenerator {
           break;
       }
     }
-    
+
     return extensions;
   }
 
@@ -304,9 +308,9 @@ export class StructuralTestGenerator extends TestGenerator {
       '.jsx': 'javascript',
       '.ts': 'typescript',
       '.tsx': 'typescript',
-      '.py': 'python'
+      '.py': 'python',
     };
-    
+
     return extMap[ext] || null;
   }
 
@@ -314,9 +318,9 @@ export class StructuralTestGenerator extends TestGenerator {
     if (this.analysis.languages.length === 0) {
       return 'javascript';
     }
-    
+
     // Return the language with highest confidence
-    return this.analysis.languages.reduce((prev, current) => 
+    return this.analysis.languages.reduce((prev, current) =>
       current.confidence > prev.confidence ? current : prev
     ).name;
   }
@@ -325,73 +329,84 @@ export class StructuralTestGenerator extends TestGenerator {
     if (this.analysis.frameworks.length === 0) {
       return null;
     }
-    
+
     // Return the framework with highest confidence
-    return this.analysis.frameworks.reduce((prev, current) => 
+    return this.analysis.frameworks.reduce((prev, current) =>
       current.confidence > prev.confidence ? current : prev
     ).name;
   }
 
   private determineTestType(filePath: string, content: string): TestType {
     const fileName = path.basename(filePath).toLowerCase();
-    
+
     // Component detection
     if (this.isComponent(filePath, content)) {
       return TestType.COMPONENT;
     }
-    
+
     // Service detection
     if (this.isService(filePath, content)) {
       return TestType.SERVICE;
     }
-    
+
     // Utility detection
     if (this.isUtility(filePath, content)) {
       return TestType.UTILITY;
     }
-    
+
     // Hook detection (React)
-    if (fileName.includes('hook') || content.includes('use') && content.includes('useState')) {
+    if (fileName.includes('hook') || (content.includes('use') && content.includes('useState'))) {
       return TestType.HOOK;
     }
-    
+
     // API detection
-    if (fileName.includes('api') || fileName.includes('route') || content.includes('router') || content.includes('app.')) {
+    if (
+      fileName.includes('api') ||
+      fileName.includes('route') ||
+      content.includes('router') ||
+      content.includes('app.')
+    ) {
       return TestType.API;
     }
-    
+
     // Default to unit test
     return TestType.UNIT;
   }
 
   private extractExports(content: string, language: string): string[] {
     const exports: string[] = [];
-    
+
     if (language === 'python') {
       // Python exports (functions and classes at module level)
       // Use more precise regex that doesn't match across lines
       const functionRegex = /^(?:async\s+)?def\s+(\w+)\s*\(/gm;
       const classRegex = /^class\s+(\w+)\s*[:\(]/gm;
-      
+
       let match;
       while ((match = functionRegex.exec(content)) !== null) {
-        if (match[1] && match[1].trim() && !match[1].startsWith('_')) {
+        if (match[1]?.trim() && !match[1].startsWith('_')) {
           exports.push(match[1].trim());
         }
       }
-      
+
       while ((match = classRegex.exec(content)) !== null) {
-        if (match[1] && match[1].trim() && !match[1].startsWith('_')) {
+        if (match[1]?.trim() && !match[1].startsWith('_')) {
           exports.push(match[1].trim());
         }
       }
-      
+
       // Also look for module-level variables that might be exports
       const variableRegex = /^(\w+)\s*=\s*[^=]/gm;
       while ((match = variableRegex.exec(content)) !== null) {
-        if (match[1] && match[1].trim() && !match[1].startsWith('_') && 
-            match[1] !== 'if' && match[1] !== 'for' && match[1] !== 'while' && 
-            match[1] !== 'import' && match[1] !== 'from') {
+        if (
+          match[1]?.trim() &&
+          !match[1].startsWith('_') &&
+          match[1] !== 'if' &&
+          match[1] !== 'for' &&
+          match[1] !== 'while' &&
+          match[1] !== 'import' &&
+          match[1] !== 'from'
+        ) {
           exports.push(match[1].trim());
         }
       }
@@ -399,47 +414,50 @@ export class StructuralTestGenerator extends TestGenerator {
       // JavaScript/TypeScript exports
       const namedExports = content.match(/export\s+(?:const|let|var|function|class)\s+(\w+)/g);
       const exportList = content.match(/export\s*\{\s*([^}]+)\s*\}/g);
-      
+
       if (namedExports) {
-        namedExports.forEach(match => {
+        namedExports.forEach((match) => {
           const parts = match.split(/\s+/);
           const exportName = parts[parts.length - 1];
-          if (exportName && exportName.trim()) {
+          if (exportName?.trim()) {
             exports.push(exportName.trim());
           }
         });
       }
       if (exportList) {
-        exportList.forEach(match => {
+        exportList.forEach((match) => {
           const namesSection = match.replace(/export\s*\{\s*|\s*\}/g, '');
-          const names = namesSection.split(',')
-            .map(s => s.trim())
-            .filter(s => s && !s.includes('as')); // Skip renamed exports for now
+          const names = namesSection
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s && !s.includes('as')); // Skip renamed exports for now
           exports.push(...names);
         });
       }
-      
+
       // Also look for default exports
-      const defaultExportMatch = content.match(/export\s+default\s+(?:class\s+(\w+)|function\s+(\w+)|(\w+))/);
+      const defaultExportMatch = content.match(
+        /export\s+default\s+(?:class\s+(\w+)|function\s+(\w+)|(\w+))/
+      );
       if (defaultExportMatch) {
         const exportName = defaultExportMatch[1] || defaultExportMatch[2] || defaultExportMatch[3];
-        if (exportName && exportName.trim()) {
+        if (exportName?.trim()) {
           exports.push(exportName.trim());
         }
       }
     }
-    
+
     // Remove duplicates and empty strings
-    return [...new Set(exports.filter(exp => exp && exp.trim()))];
+    return [...new Set(exports.filter((exp) => exp && exp.trim()))];
   }
 
   private extractDependencies(content: string, language: string): string[] {
     const dependencies: string[] = [];
-    
+
     if (language === 'python') {
       const imports = content.match(/^(?:from\s+(\w+)|import\s+(\w+))/gm);
       if (imports) {
-        imports.forEach(imp => {
+        imports.forEach((imp) => {
           const cleaned = imp.replace(/^(?:from\s+|import\s+)/, '');
           const moduleName = cleaned.split('.')[0];
           if (moduleName) {
@@ -451,15 +469,15 @@ export class StructuralTestGenerator extends TestGenerator {
       // Match both named imports and side-effect imports
       const namedImports = content.match(/import.*?from\s+['"`]([^'"`]+)['"`]/g) || [];
       const sideEffectImports = content.match(/import\s+['"`]([^'"`]+)['"`]/g) || [];
-      
-      [...namedImports, ...sideEffectImports].forEach(imp => {
+
+      [...namedImports, ...sideEffectImports].forEach((imp) => {
         const match = imp.match(/['"`]([^'"`]+)['"`]/);
-        if (match && match[1]) {
+        if (match?.[1]) {
           dependencies.push(match[1]);
         }
       });
     }
-    
+
     return [...new Set(dependencies)]; // Remove duplicates
   }
 
@@ -472,39 +490,43 @@ export class StructuralTestGenerator extends TestGenerator {
 
   private isComponent(filePath: string, content: string): boolean {
     const fileName = path.basename(filePath);
-    const isReactFile = fileName.match(/\.(jsx|tsx)$/) || 
-                      content.includes('React') || 
-                      content.includes('jsx') ||
-                      content.includes('return (') && content.includes('<');
-    
-    return isReactFile && (
-      fileName.charAt(0) === fileName.charAt(0).toUpperCase() || // PascalCase filename
-      content.includes('function') && content.includes('return') && content.includes('<')
+    const isReactFile =
+      fileName.match(/\.(jsx|tsx)$/) ||
+      content.includes('React') ||
+      content.includes('jsx') ||
+      (content.includes('return (') && content.includes('<'));
+
+    return (
+      isReactFile &&
+      (fileName.charAt(0) === fileName.charAt(0).toUpperCase() || // PascalCase filename
+        (content.includes('function') && content.includes('return') && content.includes('<')))
     );
   }
 
   private isUtility(filePath: string, content: string): boolean {
     const fileName = path.basename(filePath).toLowerCase();
-    return fileName.includes('util') || 
-           fileName.includes('helper') || 
-           fileName.includes('tool') ||
-           content.includes('export function') && !content.includes('React');
+    return (
+      fileName.includes('util') ||
+      fileName.includes('helper') ||
+      fileName.includes('tool') ||
+      (content.includes('export function') && !content.includes('React'))
+    );
   }
 
   private isService(filePath: string, content: string): boolean {
     const fileName = path.basename(filePath).toLowerCase();
-    return fileName.includes('service') || 
-           fileName.includes('api') || 
-           fileName.includes('client') ||
-           content.includes('fetch(') || 
-           content.includes('axios') ||
-           content.includes('http');
+    return (
+      fileName.includes('service') ||
+      fileName.includes('api') ||
+      fileName.includes('client') ||
+      content.includes('fetch(') ||
+      content.includes('axios') ||
+      content.includes('http')
+    );
   }
 
   private hasAsyncCode(content: string): boolean {
-    return content.includes('async') || 
-           content.includes('await') || 
-           content.includes('Promise');
+    return content.includes('async') || content.includes('await') || content.includes('Promise');
   }
 
   private getMockFilePath(filePath: string): string {
@@ -512,27 +534,25 @@ export class StructuralTestGenerator extends TestGenerator {
     const ext = this.getTestFileExtension().replace('.test', conventions.mockFileSuffix);
     const relativePath = filePath.replace(this.config.projectPath, '').replace(/^\//, '');
     const pathWithoutExt = relativePath.replace(/\.[^/.]+$/, '');
-    
+
     return `${this.config.outputPath}/__mocks__/${pathWithoutExt}${ext}`;
   }
 
   private generateMockFileContent(dependencies: string[]): string {
     const language = this.getPrimaryLanguage();
-    
+
     if (language === 'python') {
-      return dependencies.map(dep => 
-        `from unittest.mock import MagicMock\n\n${dep} = MagicMock()`
-      ).join('\n\n');
+      return dependencies
+        .map((dep) => `from unittest.mock import MagicMock\n\n${dep} = MagicMock()`)
+        .join('\n\n');
     } else {
-      return dependencies.map(dep => 
-        `export const ${dep} = jest.fn();`
-      ).join('\n');
+      return dependencies.map((dep) => `export const ${dep} = jest.fn();`).join('\n');
     }
   }
 
   private generateTestSetupContent(_results: GeneratedTest[]): string {
     const language = this.getPrimaryLanguage();
-    
+
     if (language === 'python') {
       return this.generatePythonTestSetup();
     } else {
@@ -563,13 +583,13 @@ pytest_plugins = []
 
   private generateJavaScriptTestSetup(): string {
     const framework = this.getFramework();
-    const hasReact = this.analysis.frameworks.some(f => f.name === 'react');
-    
+    const hasReact = this.analysis.frameworks.some((f) => f.name === 'react');
+
     const imports = this.generateJavaScriptSetupImports(framework, hasReact);
     const globalSetup = this.generateJavaScriptGlobalSetup(framework);
     const mockConsole = this.generateJavaScriptConsoleMocks();
     const reactConfig = this.generateReactConfig(hasReact);
-    
+
     return `/**
  * Test setup and configuration
  * Generated by Claude Testing Infrastructure
@@ -587,21 +607,21 @@ ${reactConfig}`;
 
   private generateJavaScriptSetupImports(framework: string, hasReact: boolean): string {
     const imports: string[] = [];
-    
+
     if (framework === 'jest') {
       imports.push("import '@testing-library/jest-dom';");
     }
-    
+
     if (hasReact) {
       imports.push("import { configure } from '@testing-library/react';");
     }
-    
+
     return imports.join('\n');
   }
 
   private generateJavaScriptGlobalSetup(framework: string): string {
     if (framework !== 'jest') return '';
-    
+
     return `
 beforeAll(() => {
   // Global setup before all tests
@@ -632,7 +652,7 @@ global.console = {
 
   private generateReactConfig(hasReact: boolean): string {
     if (!hasReact) return '';
-    
+
     return `// Configure testing library
 configure({
   testIdAttribute: 'data-testid',

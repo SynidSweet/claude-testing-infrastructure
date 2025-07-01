@@ -1,6 +1,6 @@
 /**
  * Claude Model Mapping Utility
- * 
+ *
  * Provides consistent model name resolution across the infrastructure:
  * - Maps short names to full model identifiers
  * - Provides pricing information for cost estimation
@@ -36,7 +36,7 @@ export const MODEL_DATABASE: Record<string, ModelInfo> = {
     outputCostPer1K: 0.015,
     contextWindow: 200000,
     bestForComplexity: [5, 8],
-    aliases: ['sonnet', 'claude-3-sonnet', 'claude-3-5-sonnet']
+    aliases: ['sonnet', 'claude-3-sonnet', 'claude-3-5-sonnet'],
   },
   'claude-3-opus-20240229': {
     fullName: 'claude-3-opus-20240229',
@@ -45,7 +45,7 @@ export const MODEL_DATABASE: Record<string, ModelInfo> = {
     outputCostPer1K: 0.075,
     contextWindow: 200000,
     bestForComplexity: [8, 10],
-    aliases: ['opus', 'claude-3-opus']
+    aliases: ['opus', 'claude-3-opus'],
   },
   'claude-3-haiku-20240307': {
     fullName: 'claude-3-haiku-20240307',
@@ -54,8 +54,8 @@ export const MODEL_DATABASE: Record<string, ModelInfo> = {
     outputCostPer1K: 0.00125,
     contextWindow: 200000,
     bestForComplexity: [1, 5],
-    aliases: ['haiku', 'claude-3-haiku']
-  }
+    aliases: ['haiku', 'claude-3-haiku'],
+  },
 };
 
 /**
@@ -65,7 +65,7 @@ const ALIAS_MAP: Record<string, string> = {};
 for (const [fullName, info] of Object.entries(MODEL_DATABASE)) {
   // Map full name to itself
   ALIAS_MAP[fullName] = fullName;
-  
+
   // Map all aliases to full name
   for (const alias of info.aliases) {
     ALIAS_MAP[alias] = fullName;
@@ -84,7 +84,7 @@ export function resolveModelName(modelName: string): string | null {
  */
 export function getModelInfo(modelName: string): ModelInfo | null {
   const fullName = resolveModelName(modelName);
-  return fullName ? (MODEL_DATABASE[fullName] || null) : null;
+  return fullName ? MODEL_DATABASE[fullName] || null : null;
 }
 
 /**
@@ -99,8 +99,8 @@ export function isValidModel(modelName: string): boolean {
  */
 export function getSupportedModels(): { fullNames: string[]; aliases: string[] } {
   const fullNames = Object.keys(MODEL_DATABASE);
-  const aliases = Object.keys(ALIAS_MAP).filter(name => !fullNames.includes(name));
-  
+  const aliases = Object.keys(ALIAS_MAP).filter((name) => !fullNames.includes(name));
+
   return { fullNames, aliases };
 }
 
@@ -120,7 +120,7 @@ export function selectOptimalModel(complexity: number, preferredModel?: string):
       return fullName;
     }
   }
-  
+
   // Default to Sonnet if no optimal match
   return 'claude-3-5-sonnet-20241022';
 }
@@ -134,10 +134,10 @@ export function getModelPricing(modelName: string): {
 } | null {
   const info = getModelInfo(modelName);
   if (!info) return null;
-  
+
   return {
     inputCostPer1K: info.inputCostPer1K,
-    outputCostPer1K: info.outputCostPer1K
+    outputCostPer1K: info.outputCostPer1K,
   };
 }
 
@@ -154,25 +154,38 @@ export function validateModelConfiguration(modelName: string): {
     return {
       valid: false,
       error: 'Model name is required',
-      suggestion: 'Use one of: sonnet, opus, haiku, or full model identifiers'
+      suggestion: 'Use one of: sonnet, opus, haiku, or full model identifiers',
     };
   }
 
   const resolvedName = resolveModelName(modelName);
-  
+
   if (!resolvedName) {
     const { aliases } = getSupportedModels();
     return {
       valid: false,
       error: `Unknown model: ${modelName}`,
-      suggestion: `Supported models: ${aliases.slice(0, 6).join(', ')} (and full identifiers)`
+      suggestion: `Supported models: ${aliases.slice(0, 6).join(', ')} (and full identifiers)`,
     };
   }
 
   return {
     valid: true,
-    resolvedName
+    resolvedName,
   };
+}
+
+/**
+ * Calculate cost for model usage
+ */
+export function calculateCost(modelName: string, inputTokens: number, outputTokens: number): number {
+  const pricing = getModelPricing(modelName);
+  if (!pricing) return 0;
+
+  const inputCost = (inputTokens / 1000) * pricing.inputCostPer1K;
+  const outputCost = (outputTokens / 1000) * pricing.outputCostPer1K;
+  
+  return inputCost + outputCost;
 }
 
 /**
@@ -196,8 +209,8 @@ export function generateModelHelp(): string {
     '  Haiku:  $0.00025 input, $0.00125 output (80-90% cheaper)',
     '  Sonnet: $0.003 input,   $0.015 output   (balanced)',
     '  Opus:   $0.015 input,   $0.075 output   (highest quality)',
-    ''
+    '',
   ];
-  
+
   return lines.join('\n');
 }

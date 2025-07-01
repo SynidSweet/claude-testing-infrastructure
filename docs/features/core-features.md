@@ -1,21 +1,22 @@
 # Core Features & User Journeys
 
-*Last updated: 2025-06-29 | Error handling standardization added*
+*Last updated: 2025-06-30 | Dry-run mode implementation added*
 
 ## Primary User Flows
 1. **Project Analysis**: `analyze` → Detect languages, frameworks, and generate recommendations
-2. **Test Generation**: `test` → Create comprehensive structural tests with optional AI-powered logical tests  
-3. **Test Execution**: `run` → Execute tests with coverage reporting and gap analysis
-4. **Incremental Updates**: `incremental` → Smart test updates based on Git changes with cost optimization
-5. **Watch Mode**: `watch` → Real-time file monitoring with automatic incremental test generation
-6. **AI Enhancement**: `analyze-gaps` → `generate-logical` → Complete AI-powered logical test generation
+2. **Test Generation Preview**: `test --dry-run` → Preview test generation without creating files
+3. **Test Generation**: `test` → Create comprehensive structural tests with optional AI-powered logical tests  
+4. **Test Execution**: `run` → Execute tests with coverage reporting and gap analysis
+5. **Incremental Updates**: `incremental` → Smart test updates based on Git changes with cost optimization
+6. **Watch Mode**: `watch` → Real-time file monitoring with automatic incremental test generation
+7. **AI Enhancement**: `analyze-gaps` → `generate-logical` → Complete AI-powered logical test generation
 
 ## Feature Modules
 
 ### Core Analysis & Generation
 - **ProjectAnalyzer** (`src/analyzers/ProjectAnalyzer.ts`): Language/framework detection with 8+ framework support
 - **TestGenerator** (`src/generators/TestGenerator.ts`): Abstract base class for test generation with lifecycle management  
-- **StructuralTestGenerator** (`src/generators/StructuralTestGenerator.ts`): Intelligent structural test scaffolding and analysis
+- **StructuralTestGenerator** (`src/generators/StructuralTestGenerator.ts`): Intelligent structural test scaffolding and analysis with dry-run support
 - **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Framework-specific template system
 
 ### Test Execution & Coverage

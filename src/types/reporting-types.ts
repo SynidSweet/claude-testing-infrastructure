@@ -15,13 +15,7 @@ export type ReportInput =
 /**
  * Report format specifications
  */
-export type ReportFormat =
-  | 'markdown'
-  | 'html'
-  | 'json'
-  | 'xml'
-  | 'terminal'
-  | 'csv';
+export type ReportFormat = 'markdown' | 'html' | 'json' | 'xml' | 'terminal' | 'csv';
 
 /**
  * Discriminated union for report generation results
@@ -83,59 +77,83 @@ export interface ReportOptions {
 /**
  * Type guards for ReportInput
  */
-export function isGapAnalysisInput(input: ReportInput): input is Extract<ReportInput, { type: 'gap-analysis' }> {
+export function isGapAnalysisInput(
+  input: ReportInput
+): input is Extract<ReportInput, { type: 'gap-analysis' }> {
   return input.type === 'gap-analysis';
 }
 
-export function isCoverageInput(input: ReportInput): input is Extract<ReportInput, { type: 'coverage' }> {
+export function isCoverageInput(
+  input: ReportInput
+): input is Extract<ReportInput, { type: 'coverage' }> {
   return input.type === 'coverage';
 }
 
-export function isTestResultsInput(input: ReportInput): input is Extract<ReportInput, { type: 'test-results' }> {
+export function isTestResultsInput(
+  input: ReportInput
+): input is Extract<ReportInput, { type: 'test-results' }> {
   return input.type === 'test-results';
 }
 
-export function isProjectAnalysisInput(input: ReportInput): input is Extract<ReportInput, { type: 'project-analysis' }> {
+export function isProjectAnalysisInput(
+  input: ReportInput
+): input is Extract<ReportInput, { type: 'project-analysis' }> {
   return input.type === 'project-analysis';
 }
 
 /**
  * Type guards for ReportResult
  */
-export function isReportSuccessResult(result: ReportResult): result is Extract<ReportResult, { type: 'success' }> {
+export function isReportSuccessResult(
+  result: ReportResult
+): result is Extract<ReportResult, { type: 'success' }> {
   return result.type === 'success';
 }
 
-export function isReportErrorResult(result: ReportResult): result is Extract<ReportResult, { type: 'error' }> {
+export function isReportErrorResult(
+  result: ReportResult
+): result is Extract<ReportResult, { type: 'error' }> {
   return result.type === 'error';
 }
 
 /**
  * Type guards for ReportOutput
  */
-export function isFileOutput(output: ReportOutput): output is Extract<ReportOutput, { type: 'file' }> {
+export function isFileOutput(
+  output: ReportOutput
+): output is Extract<ReportOutput, { type: 'file' }> {
   return output.type === 'file';
 }
 
-export function isConsoleOutput(output: ReportOutput): output is Extract<ReportOutput, { type: 'console' }> {
+export function isConsoleOutput(
+  output: ReportOutput
+): output is Extract<ReportOutput, { type: 'console' }> {
   return output.type === 'console';
 }
 
-export function isBufferOutput(output: ReportOutput): output is Extract<ReportOutput, { type: 'buffer' }> {
+export function isBufferOutput(
+  output: ReportOutput
+): output is Extract<ReportOutput, { type: 'buffer' }> {
   return output.type === 'buffer';
 }
 
 /**
  * Type guards for ReportTemplate
  */
-export function isBuiltInTemplate(template: ReportTemplate): template is Extract<ReportTemplate, { type: 'built-in' }> {
+export function isBuiltInTemplate(
+  template: ReportTemplate
+): template is Extract<ReportTemplate, { type: 'built-in' }> {
   return template.type === 'built-in';
 }
 
-export function isCustomTemplate(template: ReportTemplate): template is Extract<ReportTemplate, { type: 'custom' }> {
+export function isCustomTemplate(
+  template: ReportTemplate
+): template is Extract<ReportTemplate, { type: 'custom' }> {
   return template.type === 'custom';
 }
 
-export function isInlineTemplate(template: ReportTemplate): template is Extract<ReportTemplate, { type: 'inline' }> {
+export function isInlineTemplate(
+  template: ReportTemplate
+): template is Extract<ReportTemplate, { type: 'inline' }> {
   return template.type === 'inline';
 }

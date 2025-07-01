@@ -1,6 +1,6 @@
 /**
  * Generators module
- * 
+ *
  * This module contains test generators for different frameworks and patterns
  */
 
@@ -14,21 +14,14 @@ export {
   GeneratedFile,
   TestType,
   NamingConventions,
-  GenerationStats
+  GenerationStats,
 } from './TestGenerator';
 
 // Export concrete implementations
-export {
-  StructuralTestGenerator,
-  StructuralTestGeneratorOptions
-} from './StructuralTestGenerator';
+export { StructuralTestGenerator, StructuralTestGeneratorOptions } from './StructuralTestGenerator';
 
 // Export template engine
-export {
-  TestTemplateEngine,
-  Template,
-  TemplateContext
-} from './templates/TestTemplateEngine';
+export { TestTemplateEngine, Template, TemplateContext } from './templates/TestTemplateEngine';
 
 // Legacy interfaces (deprecated - use TestGenerator instead)
 export interface Generator {
@@ -54,6 +47,6 @@ export async function generateTestsDeprecated(_config: GeneratorConfig): Promise
   // TODO: Implement test generation logic
   return {
     success: true,
-    files: []
+    files: [],
   };
 }

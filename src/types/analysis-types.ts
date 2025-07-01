@@ -3,7 +3,7 @@
  * Provides strong typing for analysis inputs and results to improve AI comprehension
  */
 
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 
 /**
  * Discriminated union for analysis input types
@@ -53,34 +53,44 @@ export interface AnalysisErrorContext {
 /**
  * Type guard for AnalysisInput
  */
-export function isPathInput(input: AnalysisInput): input is Extract<AnalysisInput, { type: 'path' }> {
+export function isPathInput(
+  input: AnalysisInput
+): input is Extract<AnalysisInput, { type: 'path' }> {
   return input.type === 'path';
 }
 
 /**
  * Type guard for AnalysisInput
  */
-export function isAnalysisInput(input: AnalysisInput): input is Extract<AnalysisInput, { type: 'analysis' }> {
+export function isAnalysisInput(
+  input: AnalysisInput
+): input is Extract<AnalysisInput, { type: 'analysis' }> {
   return input.type === 'analysis';
 }
 
 /**
  * Type guard for AnalysisResult
  */
-export function isAnalysisSuccessResult(result: AnalysisResult): result is Extract<AnalysisResult, { type: 'success' }> {
+export function isAnalysisSuccessResult(
+  result: AnalysisResult
+): result is Extract<AnalysisResult, { type: 'success' }> {
   return result.type === 'success';
 }
 
 /**
  * Type guard for AnalysisResult
  */
-export function isAnalysisPartialResult(result: AnalysisResult): result is Extract<AnalysisResult, { type: 'partial' }> {
+export function isAnalysisPartialResult(
+  result: AnalysisResult
+): result is Extract<AnalysisResult, { type: 'partial' }> {
   return result.type === 'partial';
 }
 
 /**
  * Type guard for AnalysisResult
  */
-export function isAnalysisErrorResult(result: AnalysisResult): result is Extract<AnalysisResult, { type: 'error' }> {
+export function isAnalysisErrorResult(
+  result: AnalysisResult
+): result is Extract<AnalysisResult, { type: 'error' }> {
   return result.type === 'error';
 }

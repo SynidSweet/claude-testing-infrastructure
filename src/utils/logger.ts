@@ -17,14 +17,16 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
   };
 
   const colorize = levelColors[level as keyof typeof levelColors] || chalk.white;
-  const formattedTime = chalk.gray(new Date(timestamp as string | number | Date).toLocaleTimeString());
-  
+  const formattedTime = chalk.gray(
+    new Date(timestamp as string | number | Date).toLocaleTimeString()
+  );
+
   let output = `${formattedTime} ${colorize(level.toUpperCase().padEnd(5))} ${message}`;
-  
+
   if (Object.keys(meta).length > 0) {
     output += chalk.gray(` ${JSON.stringify(meta)}`);
   }
-  
+
   return output;
 });
 
@@ -41,10 +43,7 @@ export const logger = winston.createLogger({
   transports: [
     // Console output
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        consoleFormat
-      ),
+      format: winston.format.combine(winston.format.timestamp(), consoleFormat),
     }),
     // File output for errors
     new winston.transports.File({

@@ -1,6 +1,6 @@
 /**
  * Prompt Templates for AI Test Generation
- * 
+ *
  * Provides specialized prompt templates for different:
  * - Test types (unit, integration, edge cases)
  * - Languages (JavaScript, TypeScript, Python)
@@ -47,7 +47,7 @@ ${outputInstructions}`;
    */
   private getBasePrompt(context: PromptContext): string {
     const frameworkName = this.getFrameworkName(context);
-    
+
     return `You are an expert test engineer specializing in ${context.language} and ${context.testFramework}. Your task is to write comprehensive ${context.testType || 'logical'} tests for a ${frameworkName} application.
 
 **CONTEXT**
@@ -62,13 +62,17 @@ ${context.businessDomain ? `- Business Domain: ${context.businessDomain}` : ''}
 ${context.sourceCode}
 \`\`\`
 
-${context.existingTests ? `**EXISTING TESTS**:
+${
+  context.existingTests
+    ? `**EXISTING TESTS**:
 \`\`\`${context.language}
 ${context.existingTests}
-\`\`\`` : '**EXISTING TESTS**: None yet'}
+\`\`\``
+    : '**EXISTING TESTS**: None yet'
+}
 
 **MISSING TEST SCENARIOS**:
-${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
+${context.missingScenarios.map((s) => `- ${s}`).join('\n')}`;
   }
 
   /**
@@ -79,7 +83,7 @@ ${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
       '**REQUIREMENTS**:',
       '1. Write tests that thoroughly validate the implementation',
       '2. Focus on the identified missing scenarios',
-      '3. Ensure tests are independent and deterministic'
+      '3. Ensure tests are independent and deterministic',
     ];
 
     // Add framework-specific requirements
@@ -92,7 +96,7 @@ ${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
           '7. Mock external dependencies and API calls'
         );
         break;
-      
+
       case 'express':
         requirements.push(
           '4. Use supertest for HTTP endpoint testing',
@@ -101,7 +105,7 @@ ${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
           '7. Mock database and external service calls'
         );
         break;
-      
+
       case 'fastapi':
         requirements.push(
           '4. Use TestClient for API endpoint testing',
@@ -110,7 +114,7 @@ ${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
           '7. Use pytest fixtures for setup/teardown'
         );
         break;
-      
+
       default:
         requirements.push(
           '4. Test all public methods and functions',
@@ -129,7 +133,7 @@ ${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
           '10. Test both success and failure paths'
         );
         break;
-      
+
       case 'integration':
         requirements.push(
           '8. Test interactions between multiple components',
@@ -137,7 +141,7 @@ ${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
           '10. Verify data flow and state management'
         );
         break;
-      
+
       case 'edge-cases':
         requirements.push(
           '8. Test boundary conditions and limits',
@@ -145,7 +149,7 @@ ${context.missingScenarios.map(s => `- ${s}`).join('\n')}`;
           '10. Verify proper error messages and handling'
         );
         break;
-      
+
       case 'business-logic':
         requirements.push(
           '8. Test complex business rules and workflows',
@@ -291,7 +295,7 @@ class TestFunction:
    */
   private getOutputInstructions(context: PromptContext): string {
     const importStyle = this.getImportStyle(context);
-    
+
     return `**OUTPUT INSTRUCTIONS**:
 - Output ONLY the test code, no explanations or markdown
 - Start with necessary imports using ${importStyle}
@@ -311,16 +315,19 @@ Generate the complete test file:`;
    */
   private getFrameworkName(context: PromptContext): string {
     const frameworkNames = {
-      'react': 'React',
-      'vue': 'Vue.js',
-      'angular': 'Angular',
-      'express': 'Express.js',
-      'fastapi': 'FastAPI',
-      'django': 'Django',
-      'flask': 'Flask'
+      react: 'React',
+      vue: 'Vue.js',
+      angular: 'Angular',
+      express: 'Express.js',
+      fastapi: 'FastAPI',
+      django: 'Django',
+      flask: 'Flask',
     };
-    
-    return frameworkNames[context.projectType || 'unknown' as keyof typeof frameworkNames] || context.language;
+
+    return (
+      frameworkNames[context.projectType || ('unknown' as keyof typeof frameworkNames)] ||
+      context.language
+    );
   }
 
   /**
@@ -361,7 +368,7 @@ ${context.sourceCode}
 8. Verify component state changes
 
 **TEST SCENARIOS**:
-${context.missingScenarios.map(s => `- ${s}`).join('\n')}
+${context.missingScenarios.map((s) => `- ${s}`).join('\n')}
 
 Write comprehensive React component tests:`;
   }
@@ -370,9 +377,13 @@ Write comprehensive React component tests:`;
    * Get specialized prompt for API endpoints
    */
   getAPIEndpointPrompt(context: PromptContext): string {
-    const framework = context.projectType === 'express' ? 'Express.js' : 
-                     context.projectType === 'fastapi' ? 'FastAPI' : 'API';
-    
+    const framework =
+      context.projectType === 'express'
+        ? 'Express.js'
+        : context.projectType === 'fastapi'
+          ? 'FastAPI'
+          : 'API';
+
     return `You are an API testing expert. Write comprehensive tests for the following ${framework} endpoints.
 
 **API FILE**: ${context.fileName}
@@ -391,7 +402,7 @@ ${context.sourceCode}
 8. Mock database and external services
 
 **TEST SCENARIOS**:
-${context.missingScenarios.map(s => `- ${s}`).join('\n')}
+${context.missingScenarios.map((s) => `- ${s}`).join('\n')}
 
 Write comprehensive API endpoint tests:`;
   }
@@ -418,7 +429,7 @@ ${context.sourceCode}
 8. Verify output format and structure
 
 **TEST SCENARIOS**:
-${context.missingScenarios.map(s => `- ${s}`).join('\n')}
+${context.missingScenarios.map((s) => `- ${s}`).join('\n')}
 
 Write comprehensive data processing tests:`;
   }

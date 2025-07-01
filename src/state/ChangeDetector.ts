@@ -36,13 +36,13 @@ export class ChangeDetector {
 
     // Default to comparing with last commit if no baseline specified
     const compareWith = baselineCommit || 'HEAD~1';
-    
+
     try {
       // Get list of changed files
-      const diffOutput = execSync(
-        `git diff --name-status ${compareWith}..HEAD`,
-        { cwd: gitRoot, encoding: 'utf-8' }
-      );
+      const diffOutput = execSync(`git diff --name-status ${compareWith}..HEAD`, {
+        cwd: gitRoot,
+        encoding: 'utf-8',
+      });
 
       const changedFiles = this.parseDiffOutput(diffOutput);
       const affectedTestFiles = await this.findAffectedTestFiles(changedFiles);
@@ -54,7 +54,7 @@ export class ChangeDetector {
         affectedTestFiles,
         impactScore,
         requiresFullRegeneration,
-        changesSinceBaseline: changedFiles
+        changesSinceBaseline: changedFiles,
       };
     } catch (error) {
       // If git diff fails, fall back to filesystem-based detection
@@ -68,7 +68,7 @@ export class ChangeDetector {
   async detectChangesFromFilesystem(): Promise<ChangeAnalysis> {
     // Implementation for non-git or fallback detection
     const changedFiles: FileChange[] = [];
-    
+
     // This would compare against manifest file timestamps/hashes
     // For now, return empty analysis
     return {
@@ -76,7 +76,7 @@ export class ChangeDetector {
       affectedTestFiles: [],
       impactScore: 0,
       requiresFullRegeneration: false,
-      changesSinceBaseline: []
+      changesSinceBaseline: [],
     };
   }
 
@@ -90,10 +90,10 @@ export class ChangeDetector {
     }
 
     try {
-      const diffOutput = execSync(
-        `git diff --name-status ${fromCommit}..${toCommit}`,
-        { cwd: gitRoot, encoding: 'utf-8' }
-      );
+      const diffOutput = execSync(`git diff --name-status ${fromCommit}..${toCommit}`, {
+        cwd: gitRoot,
+        encoding: 'utf-8',
+      });
 
       return this.parseDiffOutput(diffOutput);
     } catch {
@@ -119,9 +119,9 @@ export class ChangeDetector {
     }
 
     try {
-      const commit = execSync('git rev-parse HEAD', { 
-        cwd: gitRoot, 
-        encoding: 'utf-8' 
+      const commit = execSync('git rev-parse HEAD', {
+        cwd: gitRoot,
+        encoding: 'utf-8',
       }).trim();
       return commit;
     } catch {
@@ -140,24 +140,24 @@ export class ChangeDetector {
 
     try {
       // Get staged changes
-      const stagedOutput = execSync(
-        'git diff --cached --name-status',
-        { cwd: gitRoot, encoding: 'utf-8' }
-      );
+      const stagedOutput = execSync('git diff --cached --name-status', {
+        cwd: gitRoot,
+        encoding: 'utf-8',
+      });
 
       // Get unstaged changes
-      const unstagedOutput = execSync(
-        'git diff --name-status',
-        { cwd: gitRoot, encoding: 'utf-8' }
-      );
+      const unstagedOutput = execSync('git diff --name-status', {
+        cwd: gitRoot,
+        encoding: 'utf-8',
+      });
 
       const stagedChanges = this.parseDiffOutput(stagedOutput);
       const unstagedChanges = this.parseDiffOutput(unstagedOutput);
 
       // Combine and deduplicate
       const allChanges = [...stagedChanges, ...unstagedChanges];
-      const uniqueChanges = allChanges.filter((change, index, arr) => 
-        arr.findIndex(c => c.path === change.path) === index
+      const uniqueChanges = allChanges.filter(
+        (change, index, arr) => arr.findIndex((c) => c.path === change.path) === index
       );
 
       return uniqueChanges;
@@ -170,7 +170,10 @@ export class ChangeDetector {
    * Parse git diff output into FileChange objects
    */
   private parseDiffOutput(diffOutput: string): FileChange[] {
-    const lines = diffOutput.trim().split('\n').filter(line => line.length > 0);
+    const lines = diffOutput
+      .trim()
+      .split('\n')
+      .filter((line) => line.length > 0);
     const changes: FileChange[] = [];
 
     for (const line of lines) {
@@ -210,7 +213,7 @@ export class ChangeDetector {
         path: filePath,
         ...(oldPath && { oldPath }),
         severity,
-        affectedTests: [] // Will be populated by findAffectedTestFiles
+        affectedTests: [], // Will be populated by findAffectedTestFiles
       });
     }
 
@@ -254,16 +257,19 @@ export class ChangeDetector {
       /\.git/,
       /node_modules/,
       /\.vscode/,
-      /\.idea/
+      /\.idea/,
     ];
 
-    return !skipPatterns.some(pattern => pattern.test(filePath));
+    return !skipPatterns.some((pattern) => pattern.test(filePath));
   }
 
   /**
    * Calculate severity of a file change
    */
-  private calculateChangeSeverity(filePath: string, changeType: FileChange['type']): 'low' | 'medium' | 'high' {
+  private calculateChangeSeverity(
+    filePath: string,
+    changeType: FileChange['type']
+  ): 'low' | 'medium' | 'high' {
     // Deletions are high severity
     if (changeType === 'deleted') {
       return 'high';
@@ -275,7 +281,11 @@ export class ChangeDetector {
     }
 
     // Configuration files are medium severity
-    if (filePath.includes('config') || filePath.endsWith('.config.js') || filePath.endsWith('.config.ts')) {
+    if (
+      filePath.includes('config') ||
+      filePath.endsWith('.config.js') ||
+      filePath.endsWith('.config.ts')
+    ) {
       return 'medium';
     }
 
@@ -292,7 +302,7 @@ export class ChangeDetector {
     for (const change of changes) {
       // Simple heuristic: look for test files with similar names
       const baseName = path.basename(change.path, path.extname(change.path));
-      
+
       // Common test file patterns
       const testPatterns = [
         `${baseName}.test.js`,
@@ -302,7 +312,7 @@ export class ChangeDetector {
         `${baseName}.test.jsx`,
         `${baseName}.test.tsx`,
         `${baseName}.spec.jsx`,
-        `${baseName}.spec.tsx`
+        `${baseName}.spec.tsx`,
       ];
 
       for (const pattern of testPatterns) {
@@ -349,8 +359,8 @@ export class ChangeDetector {
    */
   private shouldRegenerateAll(changes: FileChange[]): boolean {
     // Regenerate all if too many high-severity changes
-    const highSeverityChanges = changes.filter(c => c.severity === 'high').length;
-    
+    const highSeverityChanges = changes.filter((c) => c.severity === 'high').length;
+
     return highSeverityChanges > 5 || changes.length > 20;
   }
 

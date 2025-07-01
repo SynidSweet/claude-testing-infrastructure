@@ -17,7 +17,7 @@ export class ClaudeTestingError extends Error {
     this.name = this.constructor.name;
     this.context = context;
     this.timestamp = new Date().toISOString();
-    
+
     // Ensure proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, ClaudeTestingError.prototype);
   }
@@ -88,7 +88,7 @@ export async function handleFileOperation<T>(
     if (filePath) {
       context.filePath = filePath;
     }
-    
+
     logger.error(`File operation failed: ${description}`, context);
     throw new FileOperationError(`Failed ${description}`, context);
   }
@@ -109,7 +109,7 @@ export async function handleAnalysisOperation<T>(
     if (projectPath) {
       context.projectPath = projectPath;
     }
-    
+
     logger.error(`Analysis operation failed: ${description}`, context);
     throw new AnalysisError(`Failed ${description}`, context);
   }
@@ -130,7 +130,7 @@ export async function handleValidation<T>(
     if (validationTarget) {
       context.validationTarget = validationTarget;
     }
-    
+
     logger.error(`Validation failed: ${description}`, context);
     throw new ValidationError(`Validation failed: ${description}`, context);
   }
@@ -147,11 +147,11 @@ export async function handleGenerationOperation<T>(
   try {
     return await operation();
   } catch (error) {
-    const context: Record<string, unknown> = { 
+    const context: Record<string, unknown> = {
       originalError: error,
-      ...generationContext 
+      ...generationContext,
     };
-    
+
     logger.error(`Generation operation failed: ${description}`, context);
     throw new GenerationError(`Failed ${description}`, context);
   }
@@ -168,11 +168,11 @@ export async function handleTestExecution<T>(
   try {
     return await operation();
   } catch (error) {
-    const context: Record<string, unknown> = { 
+    const context: Record<string, unknown> = {
       originalError: error,
-      ...executionContext 
+      ...executionContext,
     };
-    
+
     logger.error(`Test execution failed: ${description}`, context);
     throw new TestExecutionError(`Failed ${description}`, context);
   }
@@ -193,7 +193,7 @@ export function handleValidationSync<T>(
     if (validationTarget) {
       context.validationTarget = validationTarget;
     }
-    
+
     logger.error(`Validation failed: ${description}`, context);
     throw new ValidationError(`Validation failed: ${description}`, context);
   }
@@ -221,15 +221,14 @@ export function getErrorContext(error: unknown): Record<string, unknown> {
  */
 export function formatErrorMessage(error: unknown): string {
   if (isClaudeTestingError(error)) {
-    const contextInfo = Object.keys(error.context).length > 0 
-      ? ` (${Object.keys(error.context).join(', ')})`
-      : '';
+    const contextInfo =
+      Object.keys(error.context).length > 0 ? ` (${Object.keys(error.context).join(', ')})` : '';
     return `${error.message}${contextInfo}`;
   }
-  
+
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   return String(error);
 }

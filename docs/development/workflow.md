@@ -2,7 +2,7 @@
 
 *Complete setup and development practices for the Claude Testing Infrastructure*
 
-*Last updated: 2025-06-30 | AI Agent Validation System Added - 156/156 tests passing*
+*Last updated: 2025-06-30 | Dry-Run Mode Implementation Added - 156/156 tests passing*
 
 ## 🔒 CRITICAL: Infrastructure Usage
 
@@ -51,13 +51,16 @@ node dist/cli/index.js run /path/to/any/project
 # 1. Analyze project structure
 node dist/cli/index.js analyze /path/to/project [--output analysis.json] [--format json|markdown|console]
 
-# 2. Generate comprehensive tests
+# 2. Preview test generation (recommended)
+node dist/cli/index.js test /path/to/project --dry-run [--verbose]
+
+# 3. Generate comprehensive tests
 node dist/cli/index.js test /path/to/project [--config config.json] [--only-structural|--only-logical]
 
-# 3. Run tests with coverage
+# 4. Run tests with coverage
 node dist/cli/index.js run /path/to/project [--coverage] [--framework jest|pytest] [--watch]
 
-# 4. Analyze gaps for AI generation
+# 5. Analyze gaps for AI generation
 node dist/cli/index.js analyze-gaps /path/to/project [--format json|markdown|text] [--threshold 3]
 ```
 

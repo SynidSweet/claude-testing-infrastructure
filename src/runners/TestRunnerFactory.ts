@@ -1,17 +1,17 @@
-import { TestRunner, TestRunnerConfig } from './TestRunner';
+import type { TestRunner, TestRunnerConfig } from './TestRunner';
 import { JestRunner } from './JestRunner';
 import { PytestRunner } from './PytestRunner';
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
 
 /**
  * Factory for creating appropriate test runners based on framework
  */
 export class TestRunnerFactory {
-  private static runners: (new (config: TestRunnerConfig, analysis: ProjectAnalysis) => TestRunner)[] = [
-    JestRunner,
-    PytestRunner
-  ];
+  private static runners: (new (
+    config: TestRunnerConfig,
+    analysis: ProjectAnalysis
+  ) => TestRunner)[] = [JestRunner, PytestRunner];
 
   /**
    * Create a test runner for the specified framework
@@ -58,8 +58,8 @@ export class TestRunnerFactory {
     }
 
     // Recommend based on languages and frameworks
-    const languages = analysis.languages?.map(l => l.name).filter(Boolean) || [];
-    const frameworks = analysis.frameworks?.map(f => f.name).filter(Boolean) || [];
+    const languages = analysis.languages?.map((l) => l.name).filter(Boolean) || [];
+    const frameworks = analysis.frameworks?.map((f) => f.name).filter(Boolean) || [];
 
     // Python projects
     if (languages.includes('python')) {
@@ -72,7 +72,7 @@ export class TestRunnerFactory {
       if (frameworks.includes('react')) {
         return 'jest';
       }
-      
+
       // Vue projects can use Jest or Vitest
       if (frameworks.includes('vue')) {
         return 'jest'; // Default to Jest for now
@@ -89,7 +89,9 @@ export class TestRunnerFactory {
   /**
    * Register a new test runner
    */
-  static registerRunner(runnerClass: new (config: TestRunnerConfig, analysis: ProjectAnalysis) => TestRunner): void {
+  static registerRunner(
+    runnerClass: new (config: TestRunnerConfig, analysis: ProjectAnalysis) => TestRunner
+  ): void {
     this.runners.push(runnerClass);
     logger.debug(`Registered new test runner: ${runnerClass.name}`);
   }

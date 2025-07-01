@@ -1,8 +1,8 @@
 import { CoverageData } from '../CoverageParser';
 import { AggregatedCoverageData } from '../CoverageAggregator';
+import { BaseTemplateEngine, BaseTemplateData } from './BaseTemplateEngine';
 
-export interface XmlTemplateData {
-  timestamp: string;
+export interface XmlTemplateData extends BaseTemplateData {
   summary: {
     statements: number;
     branches: number;
@@ -27,8 +27,8 @@ export interface XmlTemplateData {
   }>;
 }
 
-export class XmlTemplateEngine {
-  render(data: XmlTemplateData): string {
+export class XmlTemplateEngine extends BaseTemplateEngine<XmlTemplateData> {
+  async render(data: XmlTemplateData): Promise<string> {
     const xml: string[] = [];
     
     xml.push('<?xml version="1.0" encoding="UTF-8"?>');
@@ -72,6 +72,8 @@ export class XmlTemplateEngine {
   }
 
   prepareTemplateData(data: CoverageData | AggregatedCoverageData): XmlTemplateData {
+    const baseData = this.createBaseTemplateData();
+    
     const files = Object.entries(data.files).map(([path, coverage]) => ({
       path,
       summary: {
@@ -84,7 +86,7 @@ export class XmlTemplateEngine {
     }));
 
     return {
-      timestamp: new Date().toISOString(),
+      ...baseData,
       summary: data.summary,
       files,
       uncoveredAreas: data.uncoveredAreas

@@ -1,10 +1,12 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { TestRunner, TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
+import { TestRunner } from './TestRunner';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
-import { CoverageReporter, CoverageReporterFactory } from './CoverageReporter';
+import type { CoverageReporter } from './CoverageReporter';
+import { CoverageReporterFactory } from './CoverageReporter';
 
 /**
  * Jest test runner implementation
@@ -14,18 +16,18 @@ export class JestRunner extends TestRunner {
 
   constructor(config: TestRunnerConfig, analysis: ProjectAnalysis) {
     super(config, analysis);
-    
+
     // Initialize coverage reporter if coverage is enabled
     if (config.coverage?.enabled) {
       const reporterConfig: any = {
         outputDir: config.coverage.outputDir,
-        failOnThreshold: false // Don't fail here, let the runner handle it
+        failOnThreshold: false, // Don't fail here, let the runner handle it
       };
-      
+
       if (config.coverage.thresholds) {
         reporterConfig.thresholds = config.coverage.thresholds;
       }
-      
+
       this.coverageReporter = CoverageReporterFactory.createJestReporter(
         config.projectPath,
         reporterConfig
@@ -55,7 +57,7 @@ export class JestRunner extends TestRunner {
 
   protected async executeTests(): Promise<TestResult> {
     const { command, args } = this.getRunCommand();
-    
+
     return new Promise((resolve) => {
       let stdout = '';
       let stderr = '';
@@ -63,7 +65,7 @@ export class JestRunner extends TestRunner {
       const child = spawn(command, args, {
         cwd: this.getWorkingDirectory(),
         env: this.getEnvironment(),
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       child.stdout?.on('data', (data) => {
@@ -91,13 +93,15 @@ export class JestRunner extends TestRunner {
           failed: 0,
           skipped: 0,
           duration: 0,
-          failures: [{
-            suite: 'Process Error',
-            test: 'Jest Execution',
-            message: error.message
-          }],
+          failures: [
+            {
+              suite: 'Process Error',
+              test: 'Jest Execution',
+              message: error.message,
+            },
+          ],
           output: stdout,
-          errorOutput: stderr
+          errorOutput: stderr,
         });
       });
     });
@@ -117,14 +121,14 @@ export class JestRunner extends TestRunner {
     // Coverage options
     if (this.config.coverage?.enabled) {
       args.push('--coverage');
-      
+
       if (this.config.coverage.outputDir) {
         args.push('--coverageDirectory');
         args.push(this.config.coverage.outputDir);
       }
 
       if (this.config.coverage.reporters) {
-        this.config.coverage.reporters.forEach(reporter => {
+        this.config.coverage.reporters.forEach((reporter) => {
           args.push('--coverageReporters');
           args.push(reporter);
         });
@@ -175,17 +179,21 @@ export class JestRunner extends TestRunner {
     return { command: jestCommand, args };
   }
 
-  protected async parseOutput(stdout: string, stderr: string, exitCode: number): Promise<TestResult> {
+  protected async parseOutput(
+    stdout: string,
+    stderr: string,
+    exitCode: number
+  ): Promise<TestResult> {
     try {
       // Jest outputs JSON when --json flag is used
-      const lines = stdout.split('\n').filter(line => line.trim());
+      const lines = stdout.split('\n').filter((line) => line.trim());
       let jsonOutput = '';
-      
+
       // Find the JSON output (usually the last valid JSON line)
       for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i];
         if (!line) continue;
-        
+
         try {
           const parsed = JSON.parse(line);
           if (parsed.numTotalTests !== undefined) {
@@ -209,7 +217,12 @@ export class JestRunner extends TestRunner {
     return this.parseTextOutput(stdout, stderr, exitCode);
   }
 
-  private async parseJestJson(jestResult: any, stdout: string, stderr: string, exitCode: number): Promise<TestResult> {
+  private async parseJestJson(
+    jestResult: any,
+    stdout: string,
+    stderr: string,
+    exitCode: number
+  ): Promise<TestResult> {
     const failures: TestFailure[] = [];
 
     // Extract test failures
@@ -223,7 +236,7 @@ export class JestRunner extends TestRunner {
                 suite: testResult.name || 'Unknown Suite',
                 test: assertionResult.title || 'Unknown Test',
                 message: assertionResult.failureMessages?.join('\n') || 'Test failed',
-                stack: assertionResult.failureMessages?.join('\n') || undefined
+                stack: assertionResult.failureMessages?.join('\n') || undefined,
               });
             }
           }
@@ -236,7 +249,7 @@ export class JestRunner extends TestRunner {
     if (jestResult.coverageMap && this.coverageReporter) {
       try {
         const coverageReport = await this.coverageReporter.processSingleCoverageSource(jestResult);
-        
+
         // Convert to legacy format for compatibility
         coverage = {
           statements: coverageReport.data.summary.statements,
@@ -244,18 +257,19 @@ export class JestRunner extends TestRunner {
           functions: coverageReport.data.summary.functions,
           lines: coverageReport.data.summary.lines,
           meetsThreshold: coverageReport.meetsThreshold,
-          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data)
+          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data),
         };
 
         // Log coverage summary
         logger.info('Coverage processing completed', {
           summary: coverageReport.data.summary,
           meetsThreshold: coverageReport.meetsThreshold,
-          reportFiles: coverageReport.reportFiles.length
+          reportFiles: coverageReport.reportFiles.length,
         });
-        
       } catch (error) {
-        logger.warn('Failed to process coverage with new system, falling back to legacy', { error });
+        logger.warn('Failed to process coverage with new system, falling back to legacy', {
+          error,
+        });
         coverage = this.parseCoverage(jestResult.coverageMap);
       }
     } else if (jestResult.coverageMap) {
@@ -271,11 +285,11 @@ export class JestRunner extends TestRunner {
       passed: jestResult.numPassedTests || 0,
       failed: jestResult.numFailedTests || 0,
       skipped: jestResult.numPendingTests || 0,
-      duration: jestResult.startTime && jestResult.endTime ? 
-        jestResult.endTime - jestResult.startTime : 0,
+      duration:
+        jestResult.startTime && jestResult.endTime ? jestResult.endTime - jestResult.startTime : 0,
       failures,
       output: stdout,
-      errorOutput: stderr
+      errorOutput: stderr,
     };
 
     if (coverage) {
@@ -297,7 +311,9 @@ export class JestRunner extends TestRunner {
     // Look for Jest summary line patterns
     for (const line of lines) {
       // Match patterns like "Tests: 5 passed, 1 failed, 6 total"
-      const testMatch = line.match(/Tests:\s*(?:(\d+)\s+passed(?:,\s*)?)?(?:(\d+)\s+failed(?:,\s*)?)?(?:(\d+)\s+skipped(?:,\s*)?)?(?:(\d+)\s+total)?/);
+      const testMatch = line.match(
+        /Tests:\s*(?:(\d+)\s+passed(?:,\s*)?)?(?:(\d+)\s+failed(?:,\s*)?)?(?:(\d+)\s+skipped(?:,\s*)?)?(?:(\d+)\s+total)?/
+      );
       if (testMatch) {
         passed = parseInt(testMatch[1] || '0');
         failed = parseInt(testMatch[2] || '0');
@@ -307,7 +323,7 @@ export class JestRunner extends TestRunner {
 
       // Match test suites pattern
       const suiteMatch = line.match(/Test Suites:\s*(?:\d+\s+\w+(?:,\s*)?)*(\d+)\s+total/);
-      if (suiteMatch && suiteMatch[1]) {
+      if (suiteMatch?.[1]) {
         testSuites = parseInt(suiteMatch[1]);
       }
     }
@@ -323,7 +339,7 @@ export class JestRunner extends TestRunner {
       duration: 0,
       failures: [],
       output: stdout,
-      errorOutput: stderr
+      errorOutput: stderr,
     };
   }
 
@@ -343,19 +359,19 @@ export class JestRunner extends TestRunner {
 
     // Check if coverage meets thresholds
     const thresholds = this.config.coverage?.thresholds;
-    const meetsThreshold = !thresholds || (
-      (thresholds.statements ? statements >= thresholds.statements : true) &&
-      (thresholds.branches ? branches >= thresholds.branches : true) &&
-      (thresholds.functions ? functions >= thresholds.functions : true) &&
-      (thresholds.lines ? lines >= thresholds.lines : true)
-    );
+    const meetsThreshold =
+      !thresholds ||
+      ((thresholds.statements ? statements >= thresholds.statements : true) &&
+        (thresholds.branches ? branches >= thresholds.branches : true) &&
+        (thresholds.functions ? functions >= thresholds.functions : true) &&
+        (thresholds.lines ? lines >= thresholds.lines : true));
 
     return {
       statements,
       branches,
       functions,
       lines,
-      meetsThreshold
+      meetsThreshold,
     };
   }
 
@@ -366,13 +382,13 @@ export class JestRunner extends TestRunner {
 
   private async findTestFiles(directory: string): Promise<string[]> {
     const testFiles: string[] = [];
-    
+
     try {
       const entries = await fs.readdir(directory, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(directory, entry.name);
-        
+
         if (entry.isDirectory()) {
           // Recursively search subdirectories
           const subFiles = await this.findTestFiles(fullPath);
@@ -387,7 +403,7 @@ export class JestRunner extends TestRunner {
     } catch (error) {
       logger.warn('Error reading test directory', { directory, error });
     }
-    
+
     return testFiles;
   }
 
@@ -396,15 +412,15 @@ export class JestRunner extends TestRunner {
     const testPatterns = [
       /\.test\.(js|jsx|ts|tsx)$/,
       /\.spec\.(js|jsx|ts|tsx)$/,
-      /__tests__\/.*\.(js|jsx|ts|tsx)$/
+      /__tests__\/.*\.(js|jsx|ts|tsx)$/,
     ];
 
-    return testPatterns.some(pattern => pattern.test(filename));
+    return testPatterns.some((pattern) => pattern.test(filename));
   }
 
   private extractUncoveredLinesFromReport(coverageData: any): Record<string, number[]> {
     const uncoveredLines: Record<string, number[]> = {};
-    
+
     if (coverageData && typeof coverageData === 'object' && 'files' in coverageData) {
       for (const [filePath, fileData] of Object.entries(coverageData.files)) {
         if (fileData && typeof fileData === 'object' && 'uncoveredLines' in fileData) {
@@ -415,7 +431,7 @@ export class JestRunner extends TestRunner {
         }
       }
     }
-    
+
     return uncoveredLines;
   }
 }

@@ -4,8 +4,10 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
-import { ManifestManager, TestManifest } from './ManifestManager';
-import { ChangeDetector, ChangeAnalysis, FileChange } from './ChangeDetector';
+import type { TestManifest } from './ManifestManager';
+import { ManifestManager } from './ManifestManager';
+import type { ChangeAnalysis, FileChange } from './ChangeDetector';
+import { ChangeDetector } from './ChangeDetector';
 // import { TestGenerator } from '../generators/TestGenerator';
 // import { ProjectAnalyzer } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
@@ -49,9 +51,9 @@ export class IncrementalGenerator {
 
     // Detect changes
     const changeAnalysis = await this.changeDetector.detectChangesSinceBaseline();
-    logger.info('Change analysis completed', { 
+    logger.info('Change analysis completed', {
       changedFiles: changeAnalysis.changedFiles.length,
-      impactScore: changeAnalysis.impactScore
+      impactScore: changeAnalysis.impactScore,
     });
 
     if (changeAnalysis.changedFiles.length === 0 && !options.forceRegenerate) {
@@ -63,7 +65,7 @@ export class IncrementalGenerator {
         newTests: [],
         skippedFiles: [],
         totalTime: Date.now() - startTime,
-        costEstimate: 0
+        costEstimate: 0,
       };
     }
 
@@ -98,7 +100,7 @@ export class IncrementalGenerator {
     try {
       const manifest = await this.manifestManager.load();
       const changes = await this.changeDetector.detectChangesSinceBaseline();
-      
+
       // Use incremental if less than 30% of files changed
       const changeRatio = changes.changedFiles.length / Math.max(manifest.files.length, 1);
       return changeRatio < 0.3 && changes.changedFiles.length < 20;
@@ -124,14 +126,14 @@ export class IncrementalGenerator {
         filesTracked: manifest.files.length,
         testsGenerated: manifest.tests.length,
         lastUpdate: manifest.lastGeneration,
-        changesSinceLastUpdate: changes.changedFiles.length
+        changesSinceLastUpdate: changes.changedFiles.length,
       };
     } catch {
       return {
         filesTracked: 0,
         testsGenerated: 0,
         lastUpdate: 'never',
-        changesSinceLastUpdate: 0
+        changesSinceLastUpdate: 0,
       };
     }
   }
@@ -144,7 +146,7 @@ export class IncrementalGenerator {
       fullRegeneration: changeAnalysis.requiresFullRegeneration || options.forceRegenerate || false,
       useAI: !options.skipAI && changeAnalysis.impactScore > 20,
       parallel: (options.maxConcurrency || 3) > 1,
-      costBudget: options.costLimit || 5.0
+      costBudget: options.costLimit || 5.0,
     };
   }
 
@@ -152,7 +154,7 @@ export class IncrementalGenerator {
    * Perform full regeneration of all tests
    */
   private async performFullRegeneration(
-    _manifest: TestManifest, 
+    _manifest: TestManifest,
     _options: IncrementalOptions
   ): Promise<IncrementalUpdate> {
     logger.info('Performing full test regeneration');
@@ -166,7 +168,7 @@ export class IncrementalGenerator {
       newTests: [],
       skippedFiles: [],
       totalTime: 0,
-      costEstimate: 0
+      costEstimate: 0,
     };
   }
 
@@ -179,7 +181,7 @@ export class IncrementalGenerator {
     options: IncrementalOptions
   ): Promise<IncrementalUpdate> {
     logger.info('Performing incremental test update', {
-      changedFiles: changeAnalysis.changedFiles.length
+      changedFiles: changeAnalysis.changedFiles.length,
     });
 
     const result: IncrementalUpdate = {
@@ -189,16 +191,16 @@ export class IncrementalGenerator {
       newTests: [],
       skippedFiles: [],
       totalTime: 0,
-      costEstimate: 0
+      costEstimate: 0,
     };
 
     for (const change of changeAnalysis.changedFiles) {
       try {
         await this.processFileChange(change, manifest, result, options);
       } catch (error) {
-        logger.error('Failed to process file change', { 
-          file: change.path, 
-          error: error instanceof Error ? error.message : String(error)
+        logger.error('Failed to process file change', {
+          file: change.path,
+          error: error instanceof Error ? error.message : String(error),
         });
         result.skippedFiles.push(change.path);
       }
@@ -276,7 +278,7 @@ export class IncrementalGenerator {
 
     // Check if we need to update existing tests
     const existingTests = this.findTestsForFile(relativePath, manifest);
-    
+
     if (existingTests.length > 0) {
       // Update existing tests
       const updatedTests = await this.updateTestsForFile(fullPath, relativePath, existingTests);
@@ -300,7 +302,7 @@ export class IncrementalGenerator {
   ): Promise<void> {
     // Remove tests for deleted file
     const testsToDelete = this.findTestsForFile(relativePath, manifest);
-    
+
     for (const testFile of testsToDelete) {
       const testPath = path.join(this.manifestManager.getTestsDir(), testFile);
       try {
@@ -325,7 +327,7 @@ export class IncrementalGenerator {
   ): Promise<void> {
     // Handle as delete + add for simplicity
     await this.handleDeletedFile(oldPath, manifest, result);
-    
+
     const fullNewPath = path.join(this.projectPath, newPath);
     await this.handleAddedFile(fullNewPath, newPath, result, options);
   }
@@ -357,7 +359,7 @@ export class IncrementalGenerator {
    * Find test files associated with a source file
    */
   private findTestsForFile(relativePath: string, manifest: TestManifest): string[] {
-    const fileManifest = manifest.files.find(f => f.relativePath === relativePath);
+    const fileManifest = manifest.files.find((f) => f.relativePath === relativePath);
     return fileManifest?.testFiles || [];
   }
 
@@ -366,8 +368,8 @@ export class IncrementalGenerator {
    */
   private estimateGenerationCost(relativePath: string, type: 'new' | 'update'): number {
     // Simple cost estimation based on file type and operation
-    const baselineCost = type === 'new' ? 0.25 : 0.10;
-    
+    const baselineCost = type === 'new' ? 0.25 : 0.1;
+
     if (relativePath.includes('.test.') || relativePath.includes('.spec.')) {
       return 0; // Don't generate tests for test files
     }

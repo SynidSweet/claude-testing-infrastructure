@@ -1,5 +1,5 @@
 import { logger } from '../utils/common-imports';
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 
 export interface TestRunnerConfig {
   /** Path to the project being tested */
@@ -108,7 +108,7 @@ export interface TestFailure {
 
 /**
  * Abstract base class for test runners
- * 
+ *
  * This class provides the common interface and utilities for running tests
  * with different testing frameworks. Concrete implementations should extend
  * this class and implement the abstract methods.
@@ -131,7 +131,7 @@ export abstract class TestRunner {
     logger.info(`Running tests with ${this.config.framework}`, {
       testPath: this.config.testPath,
       coverage: this.config.coverage?.enabled || false,
-      watch: this.config.watch || false
+      watch: this.config.watch || false,
     });
 
     try {
@@ -147,7 +147,7 @@ export abstract class TestRunner {
 
       // Execute tests
       const result = await this.executeTests();
-      
+
       // Post-run processing
       await this.postRun(result);
 
@@ -159,15 +159,14 @@ export abstract class TestRunner {
         tests: result.tests,
         passed: result.passed,
         failed: result.failed,
-        duration: result.duration
+        duration: result.duration,
       });
 
       return result;
-
     } catch (error) {
       const errorMsg = `Test execution failed: ${error instanceof Error ? error.message : String(error)}`;
       logger.error(errorMsg, { error });
-      
+
       return {
         success: false,
         exitCode: 1,
@@ -177,13 +176,15 @@ export abstract class TestRunner {
         failed: 0,
         skipped: 0,
         duration: Date.now() - startTime,
-        failures: [{
-          suite: 'Runner Error',
-          test: 'Execution',
-          message: errorMsg
-        }],
+        failures: [
+          {
+            suite: 'Runner Error',
+            test: 'Execution',
+            message: errorMsg,
+          },
+        ],
         output: '',
-        errorOutput: errorMsg
+        errorOutput: errorMsg,
       };
     }
   }
@@ -270,14 +271,18 @@ export abstract class TestRunner {
       duration: 0,
       failures: [],
       output: 'No tests found',
-      errorOutput: ''
+      errorOutput: '',
     };
   }
 
   /**
    * Parse test runner output into structured results
    */
-  protected abstract parseOutput(stdout: string, stderr: string, exitCode: number): TestResult | Promise<TestResult>;
+  protected abstract parseOutput(
+    stdout: string,
+    stderr: string,
+    exitCode: number
+  ): TestResult | Promise<TestResult>;
 
   /**
    * Get the command and arguments for running tests
@@ -291,7 +296,7 @@ export abstract class TestRunner {
     return {
       ...process.env,
       NODE_ENV: 'test',
-      ...this.config.env
+      ...this.config.env,
     };
   }
 

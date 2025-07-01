@@ -1,6 +1,6 @@
 /**
  * Configuration schema for Claude Testing Infrastructure
- * 
+ *
  * This file defines the complete configuration interface for .claude-testing.config.json
  * files in target projects. All options are documented with JSDoc for IDE support.
  */
@@ -47,19 +47,12 @@ export interface ClaudeTestingConfig {
 /**
  * Supported test frameworks
  */
-export type TestFramework = 
-  | 'jest'
-  | 'vitest' 
-  | 'pytest'
-  | 'mocha'
-  | 'chai'
-  | 'jasmine'
-  | 'auto';
+export type TestFramework = 'jest' | 'vitest' | 'pytest' | 'mocha' | 'chai' | 'jasmine' | 'auto';
 
 /**
  * Supported AI models for test generation
  */
-export type AIModel = 
+export type AIModel =
   | 'claude-3-5-sonnet-20241022'
   | 'claude-3-opus-20240229'
   | 'claude-3-haiku-20240307';
@@ -68,55 +61,55 @@ export type AIModel =
  * Feature flags to enable/disable functionality
  */
 export interface FeatureFlags {
-  /** 
+  /**
    * Enable coverage analysis and reporting
    * @default true
    */
   coverage?: boolean;
 
-  /** 
+  /**
    * Generate edge case tests using AI
    * @default true
    */
   edgeCases?: boolean;
 
-  /** 
+  /**
    * Generate integration tests
    * @default true
    */
   integrationTests?: boolean;
 
-  /** 
+  /**
    * Generate unit tests
    * @default true
    */
   unitTests?: boolean;
 
-  /** 
+  /**
    * Generate mock files for dependencies
    * @default false
    */
   mocks?: boolean;
 
-  /** 
+  /**
    * Generate test data factories
    * @default false
    */
   testData?: boolean;
 
-  /** 
+  /**
    * Enable AI-powered logical test generation
    * @default true
    */
   aiGeneration?: boolean;
 
-  /** 
+  /**
    * Enable incremental test updates
    * @default true
    */
   incremental?: boolean;
 
-  /** 
+  /**
    * Enable watch mode for real-time updates
    * @default false
    */
@@ -127,7 +120,7 @@ export interface FeatureFlags {
  * Test generation configuration options
  */
 export interface GenerationOptions {
-  /** 
+  /**
    * Maximum number of tests to generate per file
    * @default 50
    * @minimum 1
@@ -135,7 +128,7 @@ export interface GenerationOptions {
    */
   maxTestsPerFile?: number;
 
-  /** 
+  /**
    * Maximum ratio of test files to source files
    * @default 10
    * @minimum 1
@@ -143,18 +136,18 @@ export interface GenerationOptions {
    */
   maxTestToSourceRatio?: number;
 
-  /** 
+  /**
    * Test file naming convention
    */
   naming?: NamingConventions;
 
-  /** 
+  /**
    * Template overrides for specific file types
    * @example { "react-component": "custom-react.template.js" }
    */
   templates?: Record<string, string>;
 
-  /** 
+  /**
    * Custom test types to generate
    */
   testTypes?: TestType[];
@@ -164,21 +157,21 @@ export interface GenerationOptions {
  * Test file naming conventions
  */
 export interface NamingConventions {
-  /** 
+  /**
    * Test file suffix
    * @default ".test"
    * @example ".test" | ".spec" | "_test"
    */
   testFileSuffix?: string;
 
-  /** 
+  /**
    * Test directory name
    * @default "__tests__"
    * @example "__tests__" | "tests" | "test"
    */
   testDirectory?: string;
 
-  /** 
+  /**
    * Mock file suffix
    * @default ".mock"
    * @example ".mock" | "__mocks__"
@@ -195,37 +188,37 @@ export enum TestType {
   COMPONENT = 'component',
   API = 'api',
   E2E = 'e2e',
-  PERFORMANCE = 'performance'
+  PERFORMANCE = 'performance',
 }
 
 /**
  * Coverage analysis and reporting options
  */
 export interface CoverageOptions {
-  /** 
+  /**
    * Enable coverage collection during test runs
    * @default true
    */
   enabled?: boolean;
 
-  /** 
+  /**
    * Coverage threshold percentages
    */
   thresholds?: CoverageThresholds;
 
-  /** 
+  /**
    * Coverage report formats to generate
    * @default ["html", "json"]
    */
   formats?: CoverageFormat[];
 
-  /** 
+  /**
    * Output directory for coverage reports
    * @default "coverage-reports"
    */
   outputDir?: string;
 
-  /** 
+  /**
    * Include files in coverage even if not tested
    * @default true
    */
@@ -236,7 +229,7 @@ export interface CoverageOptions {
  * Coverage threshold configuration
  */
 export interface CoverageThresholds {
-  /** 
+  /**
    * Global coverage thresholds
    */
   global?: {
@@ -250,40 +243,37 @@ export interface CoverageThresholds {
     statements?: number;
   };
 
-  /** 
+  /**
    * Per-file coverage thresholds
    * @example { "src/critical.js": { lines: 100 } }
    */
-  perFile?: Record<string, {
-    lines?: number;
-    functions?: number;
-    branches?: number;
-    statements?: number;
-  }>;
+  perFile?: Record<
+    string,
+    {
+      lines?: number;
+      functions?: number;
+      branches?: number;
+      statements?: number;
+    }
+  >;
 }
 
 /**
  * Supported coverage report formats
  */
-export type CoverageFormat = 
-  | 'html'
-  | 'json'
-  | 'lcov'
-  | 'text'
-  | 'markdown'
-  | 'xml';
+export type CoverageFormat = 'html' | 'json' | 'lcov' | 'text' | 'markdown' | 'xml';
 
 /**
  * Incremental testing configuration
  */
 export interface IncrementalOptions {
-  /** 
+  /**
    * Enable incremental test updates
    * @default true
    */
   enabled?: boolean;
 
-  /** 
+  /**
    * Cost limit for AI generation per update
    * @default 5.00
    * @minimum 0.01
@@ -291,7 +281,7 @@ export interface IncrementalOptions {
    */
   costLimit?: number;
 
-  /** 
+  /**
    * Maximum number of files to update per run
    * @default 50
    * @minimum 1
@@ -299,12 +289,12 @@ export interface IncrementalOptions {
    */
   maxFilesPerUpdate?: number;
 
-  /** 
+  /**
    * Git integration options
    */
   git?: GitOptions;
 
-  /** 
+  /**
    * Baseline management options
    */
   baseline?: BaselineOptions;
@@ -314,19 +304,19 @@ export interface IncrementalOptions {
  * Git integration configuration
  */
 export interface GitOptions {
-  /** 
+  /**
    * Use Git for change detection
    * @default true
    */
   enabled?: boolean;
 
-  /** 
+  /**
    * Base branch for comparison
    * @default "main"
    */
   baseBranch?: string;
 
-  /** 
+  /**
    * Include uncommitted changes
    * @default true
    */
@@ -337,13 +327,13 @@ export interface GitOptions {
  * Baseline management configuration
  */
 export interface BaselineOptions {
-  /** 
+  /**
    * Automatic baseline creation
    * @default true
    */
   autoCreate?: boolean;
 
-  /** 
+  /**
    * Baseline retention period in days
    * @default 30
    * @minimum 1
@@ -356,13 +346,13 @@ export interface BaselineOptions {
  * Watch mode configuration
  */
 export interface WatchOptions {
-  /** 
+  /**
    * Enable watch mode
    * @default false
    */
   enabled?: boolean;
 
-  /** 
+  /**
    * Debounce delay in milliseconds
    * @default 1000
    * @minimum 100
@@ -370,19 +360,19 @@ export interface WatchOptions {
    */
   debounceMs?: number;
 
-  /** 
+  /**
    * Patterns to watch for changes
    * @default Uses include patterns
    */
   patterns?: string[];
 
-  /** 
+  /**
    * Automatically run tests after generation
    * @default false
    */
   autoRun?: boolean;
 
-  /** 
+  /**
    * Generate tests immediately on file changes
    * @default true
    */
@@ -393,19 +383,19 @@ export interface WatchOptions {
  * AI-specific configuration options
  */
 export interface AIOptions {
-  /** 
+  /**
    * Enable AI-powered test generation
    * @default true
    */
   enabled?: boolean;
 
-  /** 
+  /**
    * AI model to use
    * @default "claude-3-5-sonnet-20241022"
    */
   model?: AIModel;
 
-  /** 
+  /**
    * Maximum cost per AI generation session
    * @default 10.00
    * @minimum 0.01
@@ -413,7 +403,7 @@ export interface AIOptions {
    */
   maxCost?: number;
 
-  /** 
+  /**
    * Timeout for AI operations in milliseconds
    * @default 900000 (15 minutes)
    * @minimum 30000
@@ -421,7 +411,7 @@ export interface AIOptions {
    */
   timeout?: number;
 
-  /** 
+  /**
    * Temperature for AI generation (creativity level)
    * @default 0.3
    * @minimum 0.0
@@ -429,7 +419,7 @@ export interface AIOptions {
    */
   temperature?: number;
 
-  /** 
+  /**
    * Custom prompts for specific scenarios
    */
   customPrompts?: Record<string, string>;
@@ -439,31 +429,31 @@ export interface AIOptions {
  * Output and reporting configuration
  */
 export interface OutputOptions {
-  /** 
+  /**
    * Verbosity level for console output
    * @default "info"
    */
   logLevel?: LogLevel;
 
-  /** 
+  /**
    * Output formats for reports
    * @default ["console"]
    */
   formats?: OutputFormat[];
 
-  /** 
+  /**
    * Output directory for generated files
    * @default ".claude-testing"
    */
   outputDir?: string;
 
-  /** 
+  /**
    * Preserve generated files after completion
    * @default true
    */
   preserveFiles?: boolean;
 
-  /** 
+  /**
    * Include timestamps in output files
    * @default true
    */
@@ -473,23 +463,12 @@ export interface OutputOptions {
 /**
  * Log levels for console output
  */
-export type LogLevel = 
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'verbose';
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose';
 
 /**
  * Output formats for reports and results
  */
-export type OutputFormat = 
-  | 'console'
-  | 'json'
-  | 'markdown'
-  | 'xml'
-  | 'html'
-  | 'junit';
+export type OutputFormat = 'console' | 'json' | 'markdown' | 'xml' | 'html' | 'junit';
 
 /**
  * Default configuration values
@@ -505,7 +484,7 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     '**/build/**',
     '**/__pycache__/**',
     '**/coverage/**',
-    '**/.claude-testing/**'
+    '**/.claude-testing/**',
   ],
   testFramework: 'auto',
   aiModel: 'claude-3-5-sonnet-20241022',
@@ -518,7 +497,7 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     testData: false,
     aiGeneration: true,
     incremental: true,
-    watch: false
+    watch: false,
   },
   generation: {
     maxTestsPerFile: 50,
@@ -526,10 +505,10 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     naming: {
       testFileSuffix: '.test',
       testDirectory: '__tests__',
-      mockFileSuffix: '.mock'
+      mockFileSuffix: '.mock',
     },
     templates: {},
-    testTypes: [TestType.UNIT, TestType.INTEGRATION]
+    testTypes: [TestType.UNIT, TestType.INTEGRATION],
   },
   coverage: {
     enabled: true,
@@ -538,50 +517,50 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
         lines: 80,
         functions: 80,
         branches: 70,
-        statements: 80
+        statements: 80,
       },
-      perFile: {}
+      perFile: {},
     },
     formats: ['html', 'json'],
     outputDir: 'coverage-reports',
-    includeUntested: true
+    includeUntested: true,
   },
   incremental: {
     enabled: true,
-    costLimit: 5.00,
+    costLimit: 5.0,
     maxFilesPerUpdate: 50,
     git: {
       enabled: true,
       baseBranch: 'main',
-      includeUncommitted: true
+      includeUncommitted: true,
     },
     baseline: {
       autoCreate: true,
-      retentionDays: 30
-    }
+      retentionDays: 30,
+    },
   },
   watch: {
     enabled: false,
     debounceMs: 1000,
     patterns: [],
     autoRun: false,
-    autoGenerate: true
+    autoGenerate: true,
   },
   ai: {
     enabled: true,
     model: 'claude-3-5-sonnet-20241022',
-    maxCost: 10.00,
+    maxCost: 10.0,
     timeout: 900000,
     temperature: 0.3,
-    customPrompts: {}
+    customPrompts: {},
   },
   output: {
     logLevel: 'info',
     formats: ['console'],
     outputDir: '.claude-testing',
     preserveFiles: true,
-    includeTimestamps: true
-  }
+    includeTimestamps: true,
+  },
 };
 
 /**

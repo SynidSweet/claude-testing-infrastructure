@@ -1,6 +1,9 @@
-import { CoverageParser, CoverageParserFactory, CoverageData, CoverageThresholds } from './CoverageParser';
-import { CoverageAggregator, AggregatedCoverageData, AggregationConfig } from './CoverageAggregator';
-import { CoverageVisualizer, CoverageReportConfig, CoverageGapAnalysis } from './CoverageVisualizer';
+import type { CoverageParser, CoverageData, CoverageThresholds } from './CoverageParser';
+import { CoverageParserFactory } from './CoverageParser';
+import type { AggregatedCoverageData, AggregationConfig } from './CoverageAggregator';
+import { CoverageAggregator } from './CoverageAggregator';
+import type { CoverageReportConfig, CoverageGapAnalysis } from './CoverageVisualizer';
+import { CoverageVisualizer } from './CoverageVisualizer';
 import { logger } from '../utils/common-imports';
 
 /**
@@ -55,33 +58,33 @@ export class CoverageReporter {
 
   constructor(config: CoverageReporterConfig) {
     this.config = config;
-    
+
     // Initialize components
     this.parser = CoverageParserFactory.createParser(
       config.framework,
       config.projectPath,
       config.thresholds
     );
-    
+
     this.aggregator = new CoverageAggregator({
       strategy: 'union',
       ...(config.thresholds && { thresholds: config.thresholds }),
-      ...config.aggregation
+      ...config.aggregation,
     });
-    
+
     this.visualizer = new CoverageVisualizer({
       outputDir: './coverage-reports',
       formats: ['html', 'json', 'markdown'],
       projectName: 'Test Project',
       goodCoverageThreshold: 80,
       poorCoverageThreshold: 50,
-      ...config.reporting
+      ...config.reporting,
     });
 
     logger.debug('CoverageReporter initialized', {
       framework: config.framework,
       projectPath: config.projectPath,
-      thresholds: config.thresholds
+      thresholds: config.thresholds,
     });
   }
 
@@ -90,29 +93,29 @@ export class CoverageReporter {
    */
   async processSingleCoverageSource(coverageData: string | object): Promise<CoverageReport> {
     const startTime = Date.now();
-    
+
     try {
       logger.info('Processing single coverage source', { framework: this.config.framework });
-      
+
       // Parse coverage data
       const data = await this.parser.parse(coverageData);
-      
+
       // Generate reports
       const gapAnalysis = this.visualizer.analyzeGaps(data);
       const reportFiles = await this.visualizer.generateReports(data);
       const consoleSummary = this.visualizer.generateConsoleSummary(data);
-      
+
       // Check thresholds
       const meetsThreshold = data.meetsThreshold;
       if (this.config.failOnThreshold && !meetsThreshold) {
         logger.warn('Coverage does not meet configured thresholds', {
           thresholds: this.config.thresholds,
-          actual: data.summary
+          actual: data.summary,
         });
       }
 
       const processingTime = Date.now() - startTime;
-      
+
       const report: CoverageReport = {
         data,
         gapAnalysis,
@@ -123,38 +126,41 @@ export class CoverageReporter {
           framework: this.config.framework,
           processingTime,
           sourceCount: 1,
-          totalFiles: Object.keys(data.files).length
-        }
+          totalFiles: Object.keys(data.files).length,
+        },
       };
 
       logger.info('Single coverage processing completed', {
         processingTime,
         totalFiles: report.metadata.totalFiles,
-        meetsThreshold
+        meetsThreshold,
       });
 
       return report;
-      
     } catch (error) {
       logger.error('Failed to process coverage data', { error });
-      throw new Error(`Coverage processing failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Coverage processing failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
   /**
    * Process multiple coverage sources and generate aggregated reports
    */
-  async processMultiple(sources: Array<{
-    data: string | object;
-    framework: string;
-    metadata?: Record<string, any>;
-  }>): Promise<CoverageReport> {
+  async processMultiple(
+    sources: Array<{
+      data: string | object;
+      framework: string;
+      metadata?: Record<string, any>;
+    }>
+  ): Promise<CoverageReport> {
     const startTime = Date.now();
-    
+
     try {
-      logger.info('Processing multiple coverage sources', { 
+      logger.info('Processing multiple coverage sources', {
         sourceCount: sources.length,
-        frameworks: [...new Set(sources.map(s => s.framework))]
+        frameworks: [...new Set(sources.map((s) => s.framework))],
       });
 
       // Clear any existing sources
@@ -167,30 +173,30 @@ export class CoverageReporter {
           this.config.projectPath,
           this.config.thresholds
         );
-        
+
         const parsedData = await parser.parse(source.data);
         this.aggregator.addSource(parsedData, source.framework, source.metadata);
       }
 
       // Aggregate all sources
       const aggregatedData = this.aggregator.aggregate();
-      
+
       // Generate reports
       const gapAnalysis = this.visualizer.analyzeGaps(aggregatedData);
       const reportFiles = await this.visualizer.generateReports(aggregatedData);
       const consoleSummary = this.visualizer.generateConsoleSummary(aggregatedData);
-      
+
       // Check thresholds
       const meetsThreshold = aggregatedData.meetsThreshold;
       if (this.config.failOnThreshold && !meetsThreshold) {
         logger.warn('Aggregated coverage does not meet configured thresholds', {
           thresholds: this.config.thresholds,
-          actual: aggregatedData.summary
+          actual: aggregatedData.summary,
         });
       }
 
       const processingTime = Date.now() - startTime;
-      
+
       const report: CoverageReport = {
         data: aggregatedData,
         gapAnalysis,
@@ -201,22 +207,23 @@ export class CoverageReporter {
           framework: 'aggregated',
           processingTime,
           sourceCount: sources.length,
-          totalFiles: aggregatedData.metadata.totalFiles
-        }
+          totalFiles: aggregatedData.metadata.totalFiles,
+        },
       };
 
       logger.info('Multiple coverage processing completed', {
         processingTime,
         sourceCount: sources.length,
         totalFiles: report.metadata.totalFiles,
-        meetsThreshold
+        meetsThreshold,
       });
 
       return report;
-      
     } catch (error) {
       logger.error('Failed to process multiple coverage sources', { error });
-      throw new Error(`Coverage aggregation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Coverage aggregation failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -229,7 +236,9 @@ export class CoverageReporter {
       return this.visualizer.analyzeGaps(data);
     } catch (error) {
       logger.error('Failed to analyze coverage gaps', { error });
-      throw new Error(`Gap analysis failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Gap analysis failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -245,13 +254,15 @@ export class CoverageReporter {
     try {
       const data = await this.parser.parse(coverageData);
       const violations: string[] = [];
-      
+
       if (data.thresholds) {
         const { thresholds } = data;
         const { summary } = data;
-        
+
         if (thresholds.statements && summary.statements < thresholds.statements) {
-          violations.push(`Statements: ${summary.statements.toFixed(1)}% < ${thresholds.statements}%`);
+          violations.push(
+            `Statements: ${summary.statements.toFixed(1)}% < ${thresholds.statements}%`
+          );
         }
         if (thresholds.branches && summary.branches < thresholds.branches) {
           violations.push(`Branches: ${summary.branches.toFixed(1)}% < ${thresholds.branches}%`);
@@ -268,11 +279,13 @@ export class CoverageReporter {
         meetsThreshold: data.meetsThreshold,
         summary: data.summary,
         ...(data.thresholds && { thresholds: data.thresholds }),
-        violations
+        violations,
       };
     } catch (error) {
       logger.error('Failed to check coverage thresholds', { error });
-      throw new Error(`Threshold check failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Threshold check failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -288,7 +301,7 @@ export class CoverageReporter {
    */
   updateConfig(updates: Partial<CoverageReporterConfig>): void {
     this.config = { ...this.config, ...updates };
-    
+
     // Recreate components if necessary
     if (updates.framework && updates.framework !== this.config.framework) {
       this.parser = CoverageParserFactory.createParser(
@@ -297,16 +310,16 @@ export class CoverageReporter {
         this.config.thresholds
       );
     }
-    
+
     if (updates.aggregation) {
       this.aggregator = new CoverageAggregator({
         strategy: 'union',
         ...(this.config.thresholds && { thresholds: this.config.thresholds }),
         ...this.config.aggregation,
-        ...updates.aggregation
+        ...updates.aggregation,
       });
     }
-    
+
     if (updates.reporting) {
       this.visualizer = new CoverageVisualizer({
         outputDir: './coverage-reports',
@@ -315,7 +328,7 @@ export class CoverageReporter {
         goodCoverageThreshold: 80,
         poorCoverageThreshold: 50,
         ...this.config.reporting,
-        ...updates.reporting
+        ...updates.reporting,
       });
     }
 
@@ -344,11 +357,14 @@ export class CoverageReporterFactory {
   /**
    * Create a reporter for Jest projects
    */
-  static createJestReporter(projectPath: string, options: {
-    thresholds?: CoverageThresholds;
-    outputDir?: string;
-    failOnThreshold?: boolean;
-  } = {}): CoverageReporter {
+  static createJestReporter(
+    projectPath: string,
+    options: {
+      thresholds?: CoverageThresholds;
+      outputDir?: string;
+      failOnThreshold?: boolean;
+    } = {}
+  ): CoverageReporter {
     return new CoverageReporter({
       projectPath,
       framework: 'jest',
@@ -358,19 +374,22 @@ export class CoverageReporterFactory {
         ...(options.outputDir && { outputDir: options.outputDir }),
         formats: ['html', 'json', 'text'],
         includeFileDetails: true,
-        includeUncoveredAreas: true
-      }
+        includeUncoveredAreas: true,
+      },
     });
   }
 
   /**
    * Create a reporter for Pytest projects
    */
-  static createPytestReporter(projectPath: string, options: {
-    thresholds?: CoverageThresholds;
-    outputDir?: string;
-    failOnThreshold?: boolean;
-  } = {}): CoverageReporter {
+  static createPytestReporter(
+    projectPath: string,
+    options: {
+      thresholds?: CoverageThresholds;
+      outputDir?: string;
+      failOnThreshold?: boolean;
+    } = {}
+  ): CoverageReporter {
     return new CoverageReporter({
       projectPath,
       framework: 'pytest',
@@ -380,20 +399,23 @@ export class CoverageReporterFactory {
         ...(options.outputDir && { outputDir: options.outputDir }),
         formats: ['html', 'json', 'text'],
         includeFileDetails: true,
-        includeUncoveredAreas: true
-      }
+        includeUncoveredAreas: true,
+      },
     });
   }
 
   /**
    * Create a reporter with aggregation support for multi-framework projects
    */
-  static createMultiFrameworkReporter(projectPath: string, options: {
-    thresholds?: CoverageThresholds;
-    outputDir?: string;
-    aggregationStrategy?: 'union' | 'intersection' | 'latest' | 'highest';
-    failOnThreshold?: boolean;
-  } = {}): CoverageReporter {
+  static createMultiFrameworkReporter(
+    projectPath: string,
+    options: {
+      thresholds?: CoverageThresholds;
+      outputDir?: string;
+      aggregationStrategy?: 'union' | 'intersection' | 'latest' | 'highest';
+      failOnThreshold?: boolean;
+    } = {}
+  ): CoverageReporter {
     return new CoverageReporter({
       projectPath,
       framework: 'jest', // Default, will be overridden during processing
@@ -401,14 +423,14 @@ export class CoverageReporterFactory {
       ...(options.failOnThreshold !== undefined && { failOnThreshold: options.failOnThreshold }),
       aggregation: {
         strategy: options.aggregationStrategy || 'union',
-        preserveMetadata: true
+        preserveMetadata: true,
       },
       reporting: {
         ...(options.outputDir && { outputDir: options.outputDir }),
         formats: ['html', 'json', 'markdown'],
         includeFileDetails: true,
-        includeUncoveredAreas: true
-      }
+        includeUncoveredAreas: true,
+      },
     });
   }
 }

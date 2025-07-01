@@ -1,6 +1,6 @@
 /**
  * Analyzers module
- * 
+ *
  * This module contains code analyzers for different frameworks and languages
  */
 
@@ -13,7 +13,7 @@ export type {
   ProjectStructure,
   Dependencies,
   TestingSetup,
-  ComplexityMetrics
+  ComplexityMetrics,
 } from './ProjectAnalyzer';
 
 export { TestGapAnalyzer } from './TestGapAnalyzer';
@@ -30,7 +30,7 @@ export type {
   TestGapAnalysisResult,
   GapAnalysisSummary,
   CostEstimation,
-  TestGapAnalyzerConfig
+  TestGapAnalyzerConfig,
 } from './TestGapAnalyzer';
 
 export { GapReportGenerator } from './GapReportGenerator';
@@ -39,7 +39,7 @@ export type {
   VisualizationConfig,
   GapReportSchema,
   DetailedGap,
-  ActionableInsight
+  ActionableInsight,
 } from './GapReportGenerator';
 
 // Legacy interface for backward compatibility
@@ -55,21 +55,24 @@ export interface AnalysisResult {
 }
 
 // Updated function using ProjectAnalyzer
-export async function analyzeProjectStructure(projectPath: string, _analyzerType?: string): Promise<AnalysisResult> {
+export async function analyzeProjectStructure(
+  projectPath: string,
+  _analyzerType?: string
+): Promise<AnalysisResult> {
   const { ProjectAnalyzer } = await import('./ProjectAnalyzer');
-  
+
   try {
     const analyzer = new ProjectAnalyzer(projectPath);
     const analysis = await analyzer.analyzeProject();
-    
+
     return {
       success: true,
-      data: analysis
+      data: analysis,
     };
   } catch (error) {
     return {
       success: false,
-      errors: [error instanceof Error ? error.message : String(error)]
+      errors: [error instanceof Error ? error.message : String(error)],
     };
   }
 }

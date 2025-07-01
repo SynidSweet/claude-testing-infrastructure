@@ -1,6 +1,6 @@
 /**
  * AI-Enhanced Testing Workflow
- * 
+ *
  * Complete workflow that combines:
  * 1. Project analysis
  * 2. Structural test generation
@@ -17,33 +17,29 @@ import { ProjectAnalyzer } from '../analyzers/ProjectAnalyzer';
 import { TestRunnerFactory } from '../runners/TestRunnerFactory';
 import { TestGapAnalyzer } from '../analyzers/TestGapAnalyzer';
 // import { CoverageReporter } from '../runners/CoverageReporter'; // Not currently used
-import {
-  ChunkedAITaskPreparation,
-  ClaudeOrchestrator,
-  CostEstimator
-} from '../ai';
+import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../ai';
 import { logger } from '../utils/logger';
 
 export interface WorkflowConfig {
   // Analysis options
   includePatterns?: string[];
   excludePatterns?: string[];
-  
+
   // Generation options
   testFramework?: string;
   generateMocks?: boolean;
-  
+
   // AI options
   enableAI?: boolean;
   aiModel?: string;
   aiBudget?: number;
   aiConcurrency?: number;
   minComplexityForAI?: number;
-  
+
   // Execution options
   runTests?: boolean;
   coverage?: boolean;
-  
+
   // Output options
   outputDir?: string;
   verbose?: boolean;
@@ -73,7 +69,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
 
   constructor(private config: WorkflowConfig = {}) {
     super();
-    
+
     // Set defaults
     this.config = {
       enableAI: true,
@@ -82,7 +78,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       minComplexityForAI: 5,
       runTests: true,
       coverage: true,
-      ...config
+      ...config,
     };
   }
 
@@ -93,7 +89,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     this.startTime = Date.now();
     const result: Partial<WorkflowResult> = {
       success: false,
-      generatedTests: { structural: 0, logical: 0 }
+      generatedTests: { structural: 0, logical: 0 },
     };
 
     try {
@@ -111,7 +107,10 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
         result.projectAnalysis
       );
       result.generatedTests!.structural = structuralTests.length;
-      this.emit('phase:complete', { phase: 'structural-generation', count: structuralTests.length });
+      this.emit('phase:complete', {
+        phase: 'structural-generation',
+        count: structuralTests.length,
+      });
 
       // Phase 3: Test Execution (if enabled)
       if (this.config.runTests) {
@@ -154,13 +153,12 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
 
       this.emit('workflow:complete', { result });
       return result as WorkflowResult;
-
     } catch (error) {
       this.emit('workflow:error', { error });
       result.duration = (Date.now() - this.startTime) / 1000;
       result.reports = {
         summary: `Workflow failed: ${error}`,
-        detailed: { error: error instanceof Error ? error.stack : error }
+        detailed: { error: error instanceof Error ? error.stack : error },
       };
       return result as WorkflowResult;
     }
@@ -172,7 +170,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   private async analyzeProject(projectPath: string): Promise<any> {
     const analyzer = new ProjectAnalyzer(projectPath);
     const analysis = await analyzer.analyzeProject();
-    
+
     logger.info(`Analyzed project with ${analysis.languages?.length || 0} languages`);
     return analysis;
   }
@@ -180,10 +178,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   /**
    * Phase 2: Generate structural tests
    */
-  private async generateStructuralTests(
-    projectPath: string,
-    analysis: any
-  ): Promise<any[]> {
+  private async generateStructuralTests(projectPath: string, analysis: any): Promise<any[]> {
     // Import StructuralTestGenerator since TestGenerator is abstract
     const { StructuralTestGenerator } = await import('../generators/StructuralTestGenerator');
     const config = {
@@ -191,20 +186,20 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       outputPath: path.join(projectPath, '.claude-testing', 'tests'),
       testFramework: this.config.testFramework || 'jest',
       options: {
-        generateMocks: this.config.generateMocks || false
-      }
+        generateMocks: this.config.generateMocks || false,
+      },
     };
-    
+
     const generator = new StructuralTestGenerator(config, analysis, {
-      generateMocks: this.config.generateMocks || false
+      generateMocks: this.config.generateMocks || false,
     });
 
     const generatedTests = await generator.generateAllTests();
-    
+
     // Save generated tests
     const testDir = path.join(projectPath, '.claude-testing', 'tests');
     await fs.mkdir(testDir, { recursive: true });
-    
+
     let testCount = 0;
     if (generatedTests.tests) {
       for (const test of generatedTests.tests) {
@@ -226,21 +221,21 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     // Create a temporary ProjectAnalysis for the runner
     const analyzer = new ProjectAnalyzer(projectPath);
     const analysis = await analyzer.analyzeProject();
-    
+
     const config: any = {
       projectPath,
       testPath: path.join(projectPath, '.claude-testing', 'tests'),
-      framework: this.config.testFramework || 'jest'
+      framework: this.config.testFramework || 'jest',
     };
-    
+
     if (this.config.coverage) {
       config.coverage = {
         enabled: true,
         outputDir: path.join(projectPath, '.claude-testing', 'coverage'),
-        reporters: ['html', 'json', 'text']
+        reporters: ['html', 'json', 'text'],
       };
     }
-    
+
     const runner = TestRunnerFactory.createRunner(config, analysis);
     const results = await runner.run();
 
@@ -253,9 +248,9 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   private async analyzeTestGaps(projectPath: string): Promise<any> {
     const projectAnalyzer = new ProjectAnalyzer(projectPath);
     const projectAnalysis = await projectAnalyzer.analyzeProject();
-    
+
     const analyzer = new TestGapAnalyzer(projectAnalysis);
-    
+
     // Create a mock TestGenerationResult to simulate having generated tests
     const testGenerationResult = {
       success: true,
@@ -266,12 +261,12 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
         filesAnalyzed: 0,
         testsGenerated: 0,
         testLinesGenerated: 0,
-        generationTime: 0
-      }
+        generationTime: 0,
+      },
     };
-    
+
     const gapReport = await analyzer.analyzeTestGaps(testGenerationResult);
-    
+
     logger.info(`Found ${gapReport.gaps?.length || 0} files needing logical tests`);
     return gapReport;
   }
@@ -294,18 +289,18 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       model: `claude-3-${this.config.aiModel}`,
       maxConcurrentTasks: this.config.aiConcurrency || 3,
       minComplexityForAI: this.config.minComplexityForAI || 5,
-      enableChunking: true
+      enableChunking: true,
     });
 
-    let batch = await taskPrep.prepareTasks(gapReport);
+    const batch = await taskPrep.prepareTasks(gapReport);
 
     // Apply budget optimization if specified
     if (this.config.aiBudget) {
       const estimator = new CostEstimator(`claude-3-${this.config.aiModel}`);
       const optimization = estimator.optimizeForBudget(gapReport, this.config.aiBudget);
-      
-      batch.tasks = batch.tasks.filter(task => {
-        const allocation = optimization.allocations.find(a => a.file === task.sourceFile);
+
+      batch.tasks = batch.tasks.filter((task) => {
+        const allocation = optimization.allocations.find((a) => a.file === task.sourceFile);
         return allocation?.includeInBatch;
       });
     }
@@ -314,7 +309,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     const orchestrator = new ClaudeOrchestrator({
       maxConcurrent: this.config.aiConcurrency || 3,
       model: `claude-3-${this.config.aiModel}`,
-      verbose: this.config.verbose || false
+      verbose: this.config.verbose || false,
     });
 
     // Track progress
@@ -323,9 +318,9 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     });
 
     const results = await orchestrator.processBatch(batch);
-    
-    const successful = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
+
+    const successful = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
     const stats = orchestrator['stats'];
 
     return {
@@ -333,7 +328,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       failed,
       totalCost: stats.totalCost,
       totalTokens: stats.totalTokensUsed,
-      duration: stats.totalDuration
+      duration: stats.totalDuration,
     };
   }
 
@@ -349,7 +344,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       timestamp: new Date().toISOString(),
       projectPath,
       config: this.config,
-      ...result
+      ...result,
     };
 
     // Save reports if output directory specified
@@ -363,11 +358,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
 
       // Save detailed report
       const detailedPath = path.join(outputDir, 'workflow-report.json');
-      await fs.writeFile(
-        detailedPath,
-        JSON.stringify(detailed, null, 2),
-        'utf-8'
-      );
+      await fs.writeFile(detailedPath, JSON.stringify(detailed, null, 2), 'utf-8');
 
       logger.info(`Reports saved to: ${outputDir}`);
     }
@@ -391,7 +382,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       `- Structural tests: ${result.generatedTests?.structural || 0}`,
       `- Logical tests (AI): ${result.generatedTests?.logical || 0}`,
       `- Total tests: ${(result.generatedTests?.structural || 0) + (result.generatedTests?.logical || 0)}`,
-      ''
+      '',
     ];
 
     if (result.coverage) {

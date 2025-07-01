@@ -1,6 +1,6 @@
 /**
  * Adapters module
- * 
+ *
  * This module contains adapters for integrating with different testing frameworks and tools
  */
 

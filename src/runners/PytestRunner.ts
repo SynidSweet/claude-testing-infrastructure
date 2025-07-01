@@ -1,10 +1,12 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { TestRunner, TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
+import { TestRunner } from './TestRunner';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
-import { CoverageReporter, CoverageReporterFactory } from './CoverageReporter';
+import type { CoverageReporter } from './CoverageReporter';
+import { CoverageReporterFactory } from './CoverageReporter';
 
 /**
  * Pytest test runner implementation
@@ -14,18 +16,18 @@ export class PytestRunner extends TestRunner {
 
   constructor(config: TestRunnerConfig, analysis: ProjectAnalysis) {
     super(config, analysis);
-    
+
     // Initialize coverage reporter if coverage is enabled
     if (config.coverage?.enabled) {
       const reporterConfig: any = {
         outputDir: config.coverage.outputDir,
-        failOnThreshold: false // Don't fail here, let the runner handle it
+        failOnThreshold: false, // Don't fail here, let the runner handle it
       };
-      
+
       if (config.coverage.thresholds) {
         reporterConfig.thresholds = config.coverage.thresholds;
       }
-      
+
       this.coverageReporter = CoverageReporterFactory.createPytestReporter(
         config.projectPath,
         reporterConfig
@@ -55,7 +57,7 @@ export class PytestRunner extends TestRunner {
 
   protected async executeTests(): Promise<TestResult> {
     const { command, args } = this.getRunCommand();
-    
+
     return new Promise((resolve) => {
       let stdout = '';
       let stderr = '';
@@ -63,7 +65,7 @@ export class PytestRunner extends TestRunner {
       const child = spawn(command, args, {
         cwd: this.getWorkingDirectory(),
         env: this.getEnvironment(),
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       child.stdout?.on('data', (data) => {
@@ -91,13 +93,15 @@ export class PytestRunner extends TestRunner {
           failed: 0,
           skipped: 0,
           duration: 0,
-          failures: [{
-            suite: 'Process Error',
-            test: 'Pytest Execution',
-            message: error.message
-          }],
+          failures: [
+            {
+              suite: 'Process Error',
+              test: 'Pytest Execution',
+              message: error.message,
+            },
+          ],
           output: stdout,
-          errorOutput: stderr
+          errorOutput: stderr,
         });
       });
     });
@@ -119,7 +123,7 @@ export class PytestRunner extends TestRunner {
     if (this.config.coverage?.enabled) {
       args.push('--cov=' + this.config.projectPath);
       args.push('--cov-report=term-missing');
-      
+
       if (this.config.coverage.outputDir) {
         args.push('--cov-report=html:' + this.config.coverage.outputDir);
       }
@@ -133,7 +137,7 @@ export class PytestRunner extends TestRunner {
 
       // Coverage exclusions
       if (this.config.coverage.exclude) {
-        this.config.coverage.exclude.forEach(pattern => {
+        this.config.coverage.exclude.forEach((pattern) => {
           args.push('--cov-config=' + pattern);
         });
       }
@@ -141,9 +145,9 @@ export class PytestRunner extends TestRunner {
 
     // JUnit XML output
     if (this.config.reporter?.junit) {
-      const junitPath = this.config.reporter.outputDir ? 
-        path.join(this.config.reporter.outputDir, 'junit.xml') : 
-        'junit.xml';
+      const junitPath = this.config.reporter.outputDir
+        ? path.join(this.config.reporter.outputDir, 'junit.xml')
+        : 'junit.xml';
       args.push('--junit-xml=' + junitPath);
     }
 
@@ -155,13 +159,17 @@ export class PytestRunner extends TestRunner {
     return { command: 'python', args: ['-m', 'pytest', ...args] };
   }
 
-  protected async parseOutput(stdout: string, stderr: string, exitCode: number): Promise<TestResult> {
+  protected async parseOutput(
+    stdout: string,
+    stderr: string,
+    exitCode: number
+  ): Promise<TestResult> {
     // Try enhanced coverage processing first
     if (this.coverageReporter && this.config.coverage?.enabled) {
       try {
         const coverageReport = await this.coverageReporter.processSingleCoverageSource(stdout);
         const result = this.parseTextOutput(stdout, stderr, exitCode);
-        
+
         // Enhance result with advanced coverage data
         result.coverage = {
           statements: coverageReport.data.summary.statements,
@@ -169,25 +177,26 @@ export class PytestRunner extends TestRunner {
           functions: coverageReport.data.summary.functions,
           lines: coverageReport.data.summary.lines,
           meetsThreshold: coverageReport.meetsThreshold,
-          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data)
+          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data),
         };
 
         logger.info('Pytest coverage processing completed', {
           summary: coverageReport.data.summary,
           meetsThreshold: coverageReport.meetsThreshold,
-          reportFiles: coverageReport.reportFiles.length
+          reportFiles: coverageReport.reportFiles.length,
         });
 
         return result;
       } catch (error) {
-        logger.warn('Failed to process coverage with new system, falling back to legacy', { error });
+        logger.warn('Failed to process coverage with new system, falling back to legacy', {
+          error,
+        });
       }
     }
-    
+
     // Fallback to text parsing
     return this.parseTextOutput(stdout, stderr, exitCode);
   }
-
 
   private parseTextOutput(stdout: string, stderr: string, exitCode: number): TestResult {
     const lines = stdout.split('\n');
@@ -204,7 +213,9 @@ export class PytestRunner extends TestRunner {
       if (!line) continue;
 
       // Match summary line: "= 5 passed, 1 failed, 2 skipped in 0.12s ="
-      const summaryMatch = line.match(/=+\s*(?:(\d+)\s+passed[,\s]*)?(?:(\d+)\s+failed[,\s]*)?(?:(\d+)\s+skipped[,\s]*)?.*?in\s+[\d.]+s\s*=+/);
+      const summaryMatch = line.match(
+        /=+\s*(?:(\d+)\s+passed[,\s]*)?(?:(\d+)\s+failed[,\s]*)?(?:(\d+)\s+skipped[,\s]*)?.*?in\s+[\d.]+s\s*=+/
+      );
       if (summaryMatch) {
         passed = parseInt(summaryMatch[1] || '0');
         failed = parseInt(summaryMatch[2] || '0');
@@ -219,7 +230,7 @@ export class PytestRunner extends TestRunner {
           failures.push({
             suite: failureMatch[1] || 'Unknown Suite',
             test: failureMatch[2] || 'Unknown Test',
-            message: failureMatch[3] || 'Test failed'
+            message: failureMatch[3] || 'Test failed',
           });
         }
       }
@@ -233,15 +244,16 @@ export class PytestRunner extends TestRunner {
     // Parse coverage if present
     let coverage: CoverageResult | undefined;
     const coverageMatch = stdout.match(/TOTAL\s+\d+\s+\d+\s+(\d+)%/);
-    if (coverageMatch && coverageMatch[1]) {
+    if (coverageMatch?.[1]) {
       const coveragePercent = parseInt(coverageMatch[1]);
       coverage = {
         statements: coveragePercent,
         branches: coveragePercent,
         functions: coveragePercent,
         lines: coveragePercent,
-        meetsThreshold: !this.config.coverage?.thresholds?.lines || 
-          coveragePercent >= this.config.coverage.thresholds.lines
+        meetsThreshold:
+          !this.config.coverage?.thresholds?.lines ||
+          coveragePercent >= this.config.coverage.thresholds.lines,
       };
     }
 
@@ -256,7 +268,7 @@ export class PytestRunner extends TestRunner {
       duration: 0,
       failures,
       output: stdout,
-      errorOutput: stderr
+      errorOutput: stderr,
     };
 
     if (coverage) {
@@ -266,16 +278,15 @@ export class PytestRunner extends TestRunner {
     return result;
   }
 
-
   private async findTestFiles(directory: string): Promise<string[]> {
     const testFiles: string[] = [];
-    
+
     try {
       const entries = await fs.readdir(directory, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(directory, entry.name);
-        
+
         if (entry.isDirectory()) {
           // Recursively search subdirectories
           const subFiles = await this.findTestFiles(fullPath);
@@ -290,19 +301,15 @@ export class PytestRunner extends TestRunner {
     } catch (error) {
       logger.warn('Error reading test directory', { directory, error });
     }
-    
+
     return testFiles;
   }
 
   private isTestFile(filename: string): boolean {
     // Pytest test file patterns
-    const testPatterns = [
-      /^test_.*\.py$/,
-      /.*_test\.py$/,
-      /test\.py$/
-    ];
+    const testPatterns = [/^test_.*\.py$/, /.*_test\.py$/, /test\.py$/];
 
-    return testPatterns.some(pattern => pattern.test(filename));
+    return testPatterns.some((pattern) => pattern.test(filename));
   }
 
   protected getEnvironment(): Record<string, string> {
@@ -310,13 +317,13 @@ export class PytestRunner extends TestRunner {
       ...super.getEnvironment(),
       PYTHONPATH: this.config.projectPath,
       // Add common Python test environment variables
-      PYTEST_CURRENT_TEST: '1'
+      PYTEST_CURRENT_TEST: '1',
     };
   }
 
   private extractUncoveredLinesFromReport(coverageData: any): Record<string, number[]> {
     const uncoveredLines: Record<string, number[]> = {};
-    
+
     if (coverageData && typeof coverageData === 'object' && 'files' in coverageData) {
       for (const [filePath, fileData] of Object.entries(coverageData.files)) {
         if (fileData && typeof fileData === 'object' && 'uncoveredLines' in fileData) {
@@ -327,7 +334,7 @@ export class PytestRunner extends TestRunner {
         }
       }
     }
-    
+
     return uncoveredLines;
   }
 }

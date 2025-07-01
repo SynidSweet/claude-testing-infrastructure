@@ -98,44 +98,62 @@ export type GenerationStrategy =
 /**
  * Type guards for GenerationInput
  */
-export function isStructuralInput(input: GenerationInput): input is Extract<GenerationInput, { type: 'structural' }> {
+export function isStructuralInput(
+  input: GenerationInput
+): input is Extract<GenerationInput, { type: 'structural' }> {
   return input.type === 'structural';
 }
 
-export function isLogicalInput(input: GenerationInput): input is Extract<GenerationInput, { type: 'logical' }> {
+export function isLogicalInput(
+  input: GenerationInput
+): input is Extract<GenerationInput, { type: 'logical' }> {
   return input.type === 'logical';
 }
 
-export function isIncrementalInput(input: GenerationInput): input is Extract<GenerationInput, { type: 'incremental' }> {
+export function isIncrementalInput(
+  input: GenerationInput
+): input is Extract<GenerationInput, { type: 'incremental' }> {
   return input.type === 'incremental';
 }
 
 /**
  * Type guards for GenerationResult
  */
-export function isGenerationSuccessResult(result: GenerationResult): result is Extract<GenerationResult, { type: 'success' }> {
+export function isGenerationSuccessResult(
+  result: GenerationResult
+): result is Extract<GenerationResult, { type: 'success' }> {
   return result.type === 'success';
 }
 
-export function isGenerationPartialResult(result: GenerationResult): result is Extract<GenerationResult, { type: 'partial' }> {
+export function isGenerationPartialResult(
+  result: GenerationResult
+): result is Extract<GenerationResult, { type: 'partial' }> {
   return result.type === 'partial';
 }
 
-export function isGenerationErrorResult(result: GenerationResult): result is Extract<GenerationResult, { type: 'error' }> {
+export function isGenerationErrorResult(
+  result: GenerationResult
+): result is Extract<GenerationResult, { type: 'error' }> {
   return result.type === 'error';
 }
 
 /**
  * Type guards for GenerationStrategy
  */
-export function isFullStrategy(strategy: GenerationStrategy): strategy is Extract<GenerationStrategy, { type: 'full' }> {
+export function isFullStrategy(
+  strategy: GenerationStrategy
+): strategy is Extract<GenerationStrategy, { type: 'full' }> {
   return strategy.type === 'full';
 }
 
-export function isIncrementalStrategy(strategy: GenerationStrategy): strategy is Extract<GenerationStrategy, { type: 'incremental' }> {
+export function isIncrementalStrategy(
+  strategy: GenerationStrategy
+): strategy is Extract<GenerationStrategy, { type: 'incremental' }> {
   return strategy.type === 'incremental';
 }
 
-export function isSelectiveStrategy(strategy: GenerationStrategy): strategy is Extract<GenerationStrategy, { type: 'selective' }> {
+export function isSelectiveStrategy(
+  strategy: GenerationStrategy
+): strategy is Extract<GenerationStrategy, { type: 'selective' }> {
   return strategy.type === 'selective';
 }

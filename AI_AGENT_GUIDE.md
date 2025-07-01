@@ -556,24 +556,66 @@ cat /path/to/project/.claude-testing.config.json
 
 **Root Cause**: Most often due to Claude CLI authentication issues
 
-**Diagnostic Steps**:
+**🔧 Claude CLI Setup Guide**:
+
+**Step 1: Install Claude Code**
 ```bash
-# 1. Check Claude CLI installation and version
+# Claude Code must be installed from: https://claude.ai/code
+# After installation, verify it's available in PATH:
 claude --version
-# Should show: 1.0.35 (Claude Code) or similar
+# Should show: Claude Code 1.0.35 or similar
+```
 
-# 2. Test basic Claude CLI functionality
+**Step 2: Authenticate Claude CLI (CRITICAL)**
+```bash
+# IMPORTANT: Authentication MUST be done interactively first time
+# Option 1: Run any interactive Claude command
+claude chat
+
+# Option 2: Open Claude Code application and sign in
+
+# Verify authentication succeeded:
+claude config get
+# Should show your configuration without login prompts
+```
+
+**Step 3: Test Claude CLI Functionality**
+```bash
+# 1. Quick version check
+claude --version
+# Should complete immediately
+
+# 2. Test help command (shouldn't prompt for auth)
 claude --help
-# Should show help without errors or prompts for authentication
+# Should show help without authentication prompts
 
-# 3. Test Claude CLI with a simple query (this verifies full authentication)
+# 3. Test actual AI query (final verification)
 echo "What is 2+2?" | claude
-# Should respond with "4" or similar without hanging
+# Should respond with "4" without hanging
 
-# 4. If the above hangs or asks for authentication:
-# - Run Claude Code interactively first to ensure authentication
-# - Open Claude Code application and sign in
-# - Try the test query again
+# 4. If any of the above hang or prompt for auth:
+# - Kill the process (Ctrl+C)
+# - Run Claude Code interactively: claude chat
+# - Complete authentication flow
+# - Try tests again
+```
+
+**Step 4: Common Authentication Solutions**
+```bash
+# Issue: "Claude CLI not authenticated" error
+# Solution: Always authenticate interactively first
+claude chat  # Complete the login flow
+
+# Issue: Commands hang indefinitely
+# Solution: This indicates auth issues
+# 1. Kill hanging process (Ctrl+C)
+# 2. Check if claude process is still running: ps aux | grep claude
+# 3. Kill any zombie claude processes: killall claude
+# 4. Re-authenticate interactively
+
+# Issue: "Unknown model: sonnet" warnings
+# Solution: These are harmless - infrastructure handles model aliases
+# Supported: opus, sonnet, haiku (automatically mapped to full names)
 ```
 
 **Workarounds**:
@@ -588,13 +630,36 @@ node dist/cli/index.js analyze-gaps /path/to/project
 node dist/cli/index.js test /path/to/project --only-logical --dry-run
 ```
 
-**Model Recognition Issues**:
-If you see warnings like "Unknown model: sonnet", this is usually harmless - the infrastructure includes comprehensive model mapping for "sonnet", "haiku", and "opus" aliases.
+**Enhanced Error Handling** (v2.0 improvements):
+The infrastructure now provides detailed error messages for common issues:
+- `AIAuthenticationError`: Clear guidance on Claude CLI authentication
+- `AITimeoutError`: Specific timeout information with troubleshooting steps
+- `AIRateLimitError`: Rate limit guidance with model suggestions
+- `AINetworkError`: Network connectivity troubleshooting
 
-**Timeout Issues**:
-- Individual AI tasks timeout after 15 minutes
-- Overall generation process times out after 30 minutes
-- These timeouts prevent infinite hangs and provide clear error messages
+**Model Recognition**:
+- Aliases supported: "opus", "sonnet", "haiku" 
+- Automatically mapped to full model identifiers
+- Warnings about "Unknown model" are harmless - models are validated
+
+**Timeout Configuration**:
+```bash
+# Default: 15 minutes per AI task
+# For complex projects, increase timeout:
+node dist/cli/index.js test /path/to/project --timeout 1800000  # 30 minutes
+
+# Timeouts prevent infinite hangs and provide clear error messages:
+# - "AI generation timed out after X seconds"
+# - Includes troubleshooting suggestions
+# - Recommends batch size reduction or timeout increase
+```
+
+**Progress Tracking** (NEW):
+The infrastructure now shows real-time progress during AI generation:
+- Authentication validation status
+- Per-file generation progress
+- Estimated time remaining
+- Clear indication of current operation phase
 
 ### "Build failed" or TypeScript errors
 ```bash

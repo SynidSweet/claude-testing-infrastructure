@@ -1,6 +1,6 @@
 import { logger } from '../utils/common-imports';
-import { ProjectAnalysis } from './ProjectAnalyzer';
-import { GeneratedTest, TestGenerationResult, TestType } from '../generators/TestGenerator';
+import type { ProjectAnalysis } from './ProjectAnalyzer';
+import type { GeneratedTest, TestGenerationResult, TestType } from '../generators/TestGenerator';
 import { ComplexityCalculator } from './gap-analysis/ComplexityCalculator';
 import { CoverageAnalyzer } from './gap-analysis/CoverageAnalyzer';
 import { GapIdentifier } from './gap-analysis/GapIdentifier';
@@ -63,9 +63,9 @@ export interface IdentifiedGap {
 
 export enum GapPriority {
   CRITICAL = 'critical',
-  HIGH = 'high', 
+  HIGH = 'high',
   MEDIUM = 'medium',
-  LOW = 'low'
+  LOW = 'low',
 }
 
 export interface ComplexityScore {
@@ -161,10 +161,10 @@ export interface CostEstimation {
 
 /**
  * Test Gap Analyzer - Identifies gaps in generated structural tests
- * 
+ *
  * This analyzer examines the generated structural tests and identifies
  * areas where AI-powered logical test generation would be beneficial.
- * 
+ *
  * Orchestrates focused service classes for complexity calculation,
  * coverage analysis, gap identification, and context extraction.
  */
@@ -176,22 +176,19 @@ export class TestGapAnalyzer {
   private gapIdentifier: GapIdentifier;
   private contextExtractor: ContextExtractor;
 
-  constructor(
-    projectAnalysis: ProjectAnalysis,
-    config: TestGapAnalyzerConfig = {}
-  ) {
+  constructor(projectAnalysis: ProjectAnalysis, config: TestGapAnalyzerConfig = {}) {
     this.projectAnalysis = projectAnalysis;
     this.config = {
       complexityThreshold: 3, // Lower threshold for better test coverage
       priorityWeights: {
         complexity: 0.3,
         businessLogic: 0.4,
-        integrations: 0.3
+        integrations: 0.3,
       },
       costPerToken: 0.00001, // $0.01 per 1000 tokens
-      ...config
+      ...config,
     };
-    
+
     // Initialize focused service classes
     this.complexityCalculator = new ComplexityCalculator();
     this.coverageAnalyzer = new CoverageAnalyzer();
@@ -205,11 +202,11 @@ export class TestGapAnalyzer {
   async analyzeTestGaps(generationResult: TestGenerationResult): Promise<TestGapAnalysisResult> {
     logger.info('Starting test gap analysis', {
       generatedTests: generationResult.tests.length,
-      projectPath: this.projectAnalysis.projectPath
+      projectPath: this.projectAnalysis.projectPath,
     });
 
     const gaps: TestGap[] = [];
-    
+
     for (const test of generationResult.tests) {
       const gap = await this.analyzeTestFileForGaps(test);
       if (gap) {
@@ -227,7 +224,7 @@ export class TestGapAnalyzer {
       summary,
       gaps,
       recommendations,
-      estimatedCost: costEstimation
+      estimatedCost: costEstimation,
     };
   }
 
@@ -244,32 +241,45 @@ export class TestGapAnalyzer {
       const testContent = test.content;
 
       // Calculate complexity using focused service
-      const complexity = await this.complexityCalculator.calculateCodeComplexityMetrics(sourceContent, test.sourcePath);
-      
+      const complexity = await this.complexityCalculator.calculateCodeComplexityMetrics(
+        sourceContent,
+        test.sourcePath
+      );
+
       // Skip low-complexity files
       if (complexity.overall < this.config.complexityThreshold!) {
-        logger.debug('Skipping low-complexity file', { 
+        logger.debug('Skipping low-complexity file', {
           sourceFile: test.sourcePath,
-          complexity: complexity.overall 
+          complexity: complexity.overall,
         });
         return null;
       }
 
       // Analyze current coverage using focused service
-      const currentCoverage = await this.coverageAnalyzer.analyzeStructuralTestCoverage(sourceContent, testContent);
-      
+      const currentCoverage = await this.coverageAnalyzer.analyzeStructuralTestCoverage(
+        sourceContent,
+        testContent
+      );
+
       // Identify gaps using focused service
-      const gaps = await this.gapIdentifier.identifyLogicalTestingGaps(sourceContent, currentCoverage, test);
-      
+      const gaps = await this.gapIdentifier.identifyLogicalTestingGaps(
+        sourceContent,
+        currentCoverage,
+        test
+      );
+
       if (gaps.length === 0) {
         return null;
       }
 
       // Calculate priority
       const priority = this.calculateGapPriority(complexity, gaps);
-      
+
       // Extract context for AI using focused service
-      const context = await this.contextExtractor.extractAITestContext(sourceContent, test.sourcePath);
+      const context = await this.contextExtractor.extractAITestContext(
+        sourceContent,
+        test.sourcePath
+      );
 
       return {
         sourceFile: test.sourcePath,
@@ -278,13 +288,12 @@ export class TestGapAnalyzer {
         gaps,
         complexity,
         priority,
-        context
+        context,
       };
-
     } catch (error) {
       logger.error('Error analyzing test file', {
         testPath: test.testPath,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return null;
     }
@@ -295,15 +304,15 @@ export class TestGapAnalyzer {
    */
   private calculateGapPriority(complexity: ComplexityScore, gaps: IdentifiedGap[]): GapPriority {
     const weights = this.config.priorityWeights!;
-    
-    const complexityScore = complexity.overall / 10; // Normalize to 0-1
-    const businessLogicScore = gaps.filter(g => g.type === 'business-logic').length / 5; // Normalize
-    const integrationScore = gaps.filter(g => g.type === 'integration').length / 3; // Normalize
 
-    const weightedScore = 
-      (complexityScore * weights.complexity!) +
-      (businessLogicScore * weights.businessLogic!) +
-      (integrationScore * weights.integrations!);
+    const complexityScore = complexity.overall / 10; // Normalize to 0-1
+    const businessLogicScore = gaps.filter((g) => g.type === 'business-logic').length / 5; // Normalize
+    const integrationScore = gaps.filter((g) => g.type === 'integration').length / 3; // Normalize
+
+    const weightedScore =
+      complexityScore * weights.complexity! +
+      businessLogicScore * weights.businessLogic! +
+      integrationScore * weights.integrations!;
 
     if (weightedScore > 0.8) return GapPriority.CRITICAL;
     if (weightedScore > 0.6) return GapPriority.HIGH;
@@ -314,28 +323,38 @@ export class TestGapAnalyzer {
   /**
    * Generate summary statistics
    */
-  private generateGapAnalysisSummary(gaps: TestGap[], generationResult: TestGenerationResult): GapAnalysisSummary {
+  private generateGapAnalysisSummary(
+    gaps: TestGap[],
+    generationResult: TestGenerationResult
+  ): GapAnalysisSummary {
     const totalFiles = generationResult.tests.length;
     const filesWithTests = totalFiles;
     const filesNeedingLogicalTests = gaps.length;
     const totalGaps = gaps.reduce((sum, gap) => sum + gap.gaps.length, 0);
 
-    const priorityBreakdown = gaps.reduce((breakdown, gap) => {
-      breakdown[gap.priority] = (breakdown[gap.priority] || 0) + 1;
-      return breakdown;
-    }, {} as Record<GapPriority, number>);
+    const priorityBreakdown = gaps.reduce(
+      (breakdown, gap) => {
+        breakdown[gap.priority] = (breakdown[gap.priority] || 0) + 1;
+        return breakdown;
+      },
+      {} as Record<GapPriority, number>
+    );
 
     // Set default values for missing priorities
-    Object.values(GapPriority).forEach(priority => {
+    Object.values(GapPriority).forEach((priority) => {
       if (!(priority in priorityBreakdown)) {
         priorityBreakdown[priority] = 0;
       }
     });
 
-    const overallAssessment: GapAnalysisSummary['overallAssessment'] = 
-      filesNeedingLogicalTests === 0 ? 'excellent' :
-      filesNeedingLogicalTests < totalFiles * 0.3 ? 'good' :
-      filesNeedingLogicalTests < totalFiles * 0.7 ? 'needs-improvement' : 'poor';
+    const overallAssessment: GapAnalysisSummary['overallAssessment'] =
+      filesNeedingLogicalTests === 0
+        ? 'excellent'
+        : filesNeedingLogicalTests < totalFiles * 0.3
+          ? 'good'
+          : filesNeedingLogicalTests < totalFiles * 0.7
+            ? 'needs-improvement'
+            : 'poor';
 
     return {
       totalFiles,
@@ -343,7 +362,7 @@ export class TestGapAnalyzer {
       filesNeedingLogicalTests,
       totalGaps,
       priorityBreakdown,
-      overallAssessment
+      overallAssessment,
     };
   }
 
@@ -353,35 +372,47 @@ export class TestGapAnalyzer {
   private generateAITestRecommendations(gaps: TestGap[]): string[] {
     const recommendations: string[] = [];
 
-    const criticalGaps = gaps.filter(g => g.priority === GapPriority.CRITICAL);
-    const highGaps = gaps.filter(g => g.priority === GapPriority.HIGH);
+    const criticalGaps = gaps.filter((g) => g.priority === GapPriority.CRITICAL);
+    const highGaps = gaps.filter((g) => g.priority === GapPriority.HIGH);
 
     if (criticalGaps.length > 0) {
-      recommendations.push(`Address ${criticalGaps.length} critical complexity files first for maximum impact`);
+      recommendations.push(
+        `Address ${criticalGaps.length} critical complexity files first for maximum impact`
+      );
     }
 
     if (highGaps.length > 0) {
-      recommendations.push(`Focus on ${highGaps.length} high-priority files with business logic gaps`);
+      recommendations.push(
+        `Focus on ${highGaps.length} high-priority files with business logic gaps`
+      );
     }
 
-    const businessLogicCount = gaps.reduce((count, gap) => 
-      count + gap.gaps.filter(g => g.type === 'business-logic').length, 0
+    const businessLogicCount = gaps.reduce(
+      (count, gap) => count + gap.gaps.filter((g) => g.type === 'business-logic').length,
+      0
     );
-    
+
     if (businessLogicCount > 0) {
-      recommendations.push(`Generate ${businessLogicCount} logical tests for business logic validation`);
+      recommendations.push(
+        `Generate ${businessLogicCount} logical tests for business logic validation`
+      );
     }
 
-    const integrationCount = gaps.reduce((count, gap) => 
-      count + gap.gaps.filter(g => g.type === 'integration').length, 0
+    const integrationCount = gaps.reduce(
+      (count, gap) => count + gap.gaps.filter((g) => g.type === 'integration').length,
+      0
     );
-    
+
     if (integrationCount > 0) {
-      recommendations.push(`Create ${integrationCount} integration tests for external dependencies`);
+      recommendations.push(
+        `Create ${integrationCount} integration tests for external dependencies`
+      );
     }
 
     if (recommendations.length === 0) {
-      recommendations.push('Structural tests appear comprehensive - no additional logical tests needed');
+      recommendations.push(
+        'Structural tests appear comprehensive - no additional logical tests needed'
+      );
     }
 
     return recommendations;
@@ -398,12 +429,12 @@ export class TestGapAnalyzer {
     for (const gap of gaps) {
       for (const specificGap of gap.gaps) {
         numberOfTasks++;
-        
+
         // Estimate tokens based on complexity and context
         const baseTokens = 800; // Base prompt + response
         const complexityMultiplier = gap.complexity.overall / 5; // 0.2 to 2.0
         const contextTokens = gap.context.codeSnippets.length * 200; // Context snippets
-        
+
         const taskTokens = Math.round(baseTokens * complexityMultiplier + contextTokens);
         totalTokens += taskTokens;
 
@@ -420,7 +451,7 @@ export class TestGapAnalyzer {
       estimatedTokens: totalTokens,
       estimatedCostUSD: Number(estimatedCostUSD.toFixed(4)),
       numberOfTasks,
-      complexityDistribution
+      complexityDistribution,
     };
   }
 }

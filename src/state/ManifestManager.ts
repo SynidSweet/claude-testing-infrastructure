@@ -77,13 +77,13 @@ export class ManifestManager {
       'temp/',
       '*.log',
       'coverage/',
-      'reports/*.html'
+      'reports/*.html',
     ].join('\n');
-    
+
     await fs.writeFile(gitignorePath, gitignoreContent);
 
     // Initialize manifest if it doesn't exist
-    if (!await this.exists()) {
+    if (!(await this.exists())) {
       await this.createInitialManifest();
     }
   }
@@ -142,7 +142,7 @@ export class ManifestManager {
       language: 'unknown',
       files: [],
       tests: [],
-      baselines: []
+      baselines: [],
     };
 
     await this.save(manifest);
@@ -152,16 +152,19 @@ export class ManifestManager {
   /**
    * Update file in manifest
    */
-  async updateFile(relativePath: string, stats: {
-    hash: string;
-    lastModified: string;
-    complexity: number;
-    hasTests: boolean;
-    testFiles: string[];
-  }): Promise<void> {
+  async updateFile(
+    relativePath: string,
+    stats: {
+      hash: string;
+      lastModified: string;
+      complexity: number;
+      hasTests: boolean;
+      testFiles: string[];
+    }
+  ): Promise<void> {
     const manifest = await this.load();
-    
-    const existingIndex = manifest.files.findIndex(f => f.relativePath === relativePath);
+
+    const existingIndex = manifest.files.findIndex((f) => f.relativePath === relativePath);
     const fileManifest: FileManifest = {
       relativePath,
       hash: stats.hash,
@@ -169,7 +172,7 @@ export class ManifestManager {
       lastAnalyzed: new Date().toISOString(),
       complexity: stats.complexity,
       hasTests: stats.hasTests,
-      testFiles: stats.testFiles
+      testFiles: stats.testFiles,
     };
 
     if (existingIndex >= 0) {
@@ -190,7 +193,7 @@ export class ManifestManager {
 
     for (const fileManifest of manifest.files) {
       const fullPath = path.join(this.projectPath, fileManifest.relativePath);
-      
+
       try {
         const currentHash = await this.calculateFileHash(fullPath);
         if (currentHash !== fileManifest.hash) {
@@ -211,14 +214,14 @@ export class ManifestManager {
   async createBaseline(description: string, gitCommit?: string): Promise<string> {
     const manifest = await this.load();
     const baselineId = crypto.randomUUID();
-    
+
     const baseline: BaselineManifest = {
       id: baselineId,
       ...(gitCommit && { gitCommit }),
       timestamp: new Date().toISOString(),
       description,
       coverage: 0, // Will be updated after test execution
-      testCount: manifest.tests.length
+      testCount: manifest.tests.length,
     };
 
     manifest.baselines.push(baseline);
@@ -226,11 +229,18 @@ export class ManifestManager {
 
     // Save baseline snapshot
     const baselinePath = path.join(this.stateDir, 'history', `baseline-${baselineId}.json`);
-    await fs.writeFile(baselinePath, JSON.stringify({
-      ...baseline,
-      files: manifest.files,
-      tests: manifest.tests
-    }, null, 2));
+    await fs.writeFile(
+      baselinePath,
+      JSON.stringify(
+        {
+          ...baseline,
+          files: manifest.files,
+          tests: manifest.tests,
+        },
+        null,
+        2
+      )
+    );
 
     return baselineId;
   }

@@ -27,7 +27,17 @@ export interface DetectedLanguage {
 }
 
 export interface DetectedFramework {
-  name: 'react' | 'vue' | 'angular' | 'express' | 'fastapi' | 'django' | 'flask' | 'nextjs' | 'nuxt' | 'svelte';
+  name:
+    | 'react'
+    | 'vue'
+    | 'angular'
+    | 'express'
+    | 'fastapi'
+    | 'django'
+    | 'flask'
+    | 'nextjs'
+    | 'nuxt'
+    | 'svelte';
   confidence: number;
   version?: string;
   configFiles: string[];
@@ -94,7 +104,7 @@ export class ProjectAnalyzer {
         dependencies,
         testingSetup,
         complexity,
-        moduleSystem
+        moduleSystem,
       ] = await Promise.all([
         this.detectLanguages(),
         this.detectFrameworks(),
@@ -103,7 +113,7 @@ export class ProjectAnalyzer {
         this.analyzeDependencies(),
         this.analyzeTestingSetup(),
         this.calculateComplexity(),
-        this.analyzeModuleSystem()
+        this.analyzeModuleSystem(),
       ]);
 
       const analysis: ProjectAnalysis = {
@@ -115,14 +125,16 @@ export class ProjectAnalyzer {
         dependencies,
         testingSetup,
         complexity,
-        moduleSystem
+        moduleSystem,
       };
 
       logger.info('Project analysis completed successfully');
       return analysis;
     } catch (error) {
       logger.error('Project analysis failed:', error);
-      throw new Error(`Failed to analyze project: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to analyze project: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -130,22 +142,28 @@ export class ProjectAnalyzer {
     const languages: DetectedLanguage[] = [];
 
     // JavaScript detection
-    const jsFiles = await this.findFiles(['**/*.js', '**/*.jsx'], ['node_modules/**', 'dist/**', 'build/**']);
+    const jsFiles = await this.findFiles(
+      ['**/*.js', '**/*.jsx'],
+      ['node_modules/**', 'dist/**', 'build/**']
+    );
     if (jsFiles.length > 0) {
       languages.push({
         name: 'javascript',
         confidence: Math.min(0.9, jsFiles.length / 10),
-        files: jsFiles.slice(0, 10) // Limit for performance
+        files: jsFiles.slice(0, 10), // Limit for performance
       });
     }
 
     // TypeScript detection
-    const tsFiles = await this.findFiles(['**/*.ts', '**/*.tsx'], ['node_modules/**', 'dist/**', 'build/**']);
+    const tsFiles = await this.findFiles(
+      ['**/*.ts', '**/*.tsx'],
+      ['node_modules/**', 'dist/**', 'build/**']
+    );
     if (tsFiles.length > 0) {
       languages.push({
         name: 'typescript',
         confidence: Math.min(0.9, tsFiles.length / 10),
-        files: tsFiles.slice(0, 10)
+        files: tsFiles.slice(0, 10),
       });
     }
 
@@ -155,7 +173,7 @@ export class ProjectAnalyzer {
       languages.push({
         name: 'python',
         confidence: Math.min(0.9, pyFiles.length / 10),
-        files: pyFiles.slice(0, 10)
+        files: pyFiles.slice(0, 10),
       });
     }
 
@@ -169,45 +187,63 @@ export class ProjectAnalyzer {
 
     // React detection
     if (await this.hasReact(packageJsonContent)) {
-      const configFiles = await this.findFiles(['**/package.json', '**/.babelrc*', '**/webpack.config.*']);
+      const configFiles = await this.findFiles([
+        '**/package.json',
+        '**/.babelrc*',
+        '**/webpack.config.*',
+      ]);
       frameworks.push({
         name: 'react',
         confidence: 0.9,
-        version: packageJsonContent?.dependencies?.react || packageJsonContent?.devDependencies?.react,
-        configFiles
+        version:
+          packageJsonContent?.dependencies?.react || packageJsonContent?.devDependencies?.react,
+        configFiles,
       });
     }
 
     // Vue detection
     if (await this.hasVue(packageJsonContent)) {
-      const configFiles = await this.findFiles(['**/package.json', '**/vue.config.*', '**/vite.config.*']);
+      const configFiles = await this.findFiles([
+        '**/package.json',
+        '**/vue.config.*',
+        '**/vite.config.*',
+      ]);
       frameworks.push({
         name: 'vue',
         confidence: 0.9,
         version: packageJsonContent?.dependencies?.vue || packageJsonContent?.devDependencies?.vue,
-        configFiles
+        configFiles,
       });
     }
 
     // Angular detection
     if (await this.hasAngular(packageJsonContent)) {
-      const configFiles = await this.findFiles(['**/angular.json', '**/package.json', '**/tsconfig.json']);
+      const configFiles = await this.findFiles([
+        '**/angular.json',
+        '**/package.json',
+        '**/tsconfig.json',
+      ]);
       frameworks.push({
         name: 'angular',
         confidence: 0.9,
         version: packageJsonContent?.dependencies?.['@angular/core'],
-        configFiles
+        configFiles,
       });
     }
 
     // Express detection
     if (await this.hasExpress(packageJsonContent)) {
-      const configFiles = await this.findFiles(['**/package.json', '**/app.js', '**/server.js', '**/index.js']);
+      const configFiles = await this.findFiles([
+        '**/package.json',
+        '**/app.js',
+        '**/server.js',
+        '**/index.js',
+      ]);
       frameworks.push({
         name: 'express',
         confidence: 0.8,
         version: packageJsonContent?.dependencies?.express,
-        configFiles
+        configFiles,
       });
     }
 
@@ -218,37 +254,52 @@ export class ProjectAnalyzer {
         name: 'nextjs',
         confidence: 0.9,
         version: packageJsonContent?.dependencies?.next,
-        configFiles
+        configFiles,
       });
     }
 
     // FastAPI detection
     if (await this.hasFastAPI(pythonDeps)) {
-      const configFiles = await this.findFiles(['**/main.py', '**/app.py', '**/requirements.txt', '**/pyproject.toml']);
+      const configFiles = await this.findFiles([
+        '**/main.py',
+        '**/app.py',
+        '**/requirements.txt',
+        '**/pyproject.toml',
+      ]);
       frameworks.push({
         name: 'fastapi',
         confidence: 0.9,
-        configFiles
+        configFiles,
       });
     }
 
     // Django detection
     if (await this.hasDjango(pythonDeps)) {
-      const configFiles = await this.findFiles(['**/manage.py', '**/settings.py', '**/requirements.txt', '**/pyproject.toml']);
+      const configFiles = await this.findFiles([
+        '**/manage.py',
+        '**/settings.py',
+        '**/requirements.txt',
+        '**/pyproject.toml',
+      ]);
       frameworks.push({
         name: 'django',
         confidence: 0.9,
-        configFiles
+        configFiles,
       });
     }
 
     // Flask detection
     if (await this.hasFlask(pythonDeps)) {
-      const configFiles = await this.findFiles(['**/app.py', '**/main.py', '**/requirements.txt', '**/pyproject.toml']);
+      const configFiles = await this.findFiles([
+        '**/app.py',
+        '**/main.py',
+        '**/requirements.txt',
+        '**/pyproject.toml',
+      ]);
       frameworks.push({
         name: 'flask',
         confidence: 0.8,
-        configFiles
+        configFiles,
       });
     }
 
@@ -264,7 +315,7 @@ export class ProjectAnalyzer {
       packageManagers.push({
         name: 'npm',
         confidence: 0.9,
-        lockFiles: npmLock
+        lockFiles: npmLock,
       });
     }
 
@@ -274,7 +325,7 @@ export class ProjectAnalyzer {
       packageManagers.push({
         name: 'yarn',
         confidence: 0.9,
-        lockFiles: yarnLock
+        lockFiles: yarnLock,
       });
     }
 
@@ -284,7 +335,7 @@ export class ProjectAnalyzer {
       packageManagers.push({
         name: 'pnpm',
         confidence: 0.9,
-        lockFiles: pnpmLock
+        lockFiles: pnpmLock,
       });
     }
 
@@ -294,7 +345,7 @@ export class ProjectAnalyzer {
       packageManagers.push({
         name: 'poetry',
         confidence: 0.9,
-        lockFiles: poetryLock
+        lockFiles: poetryLock,
       });
     }
 
@@ -304,17 +355,20 @@ export class ProjectAnalyzer {
       packageManagers.push({
         name: 'pipenv',
         confidence: 0.9,
-        lockFiles: pipfileLock
+        lockFiles: pipfileLock,
       });
     }
 
     // pip (fallback)
     const requirements = await this.findFiles(['**/requirements.txt', '**/requirements-*.txt']);
-    if (requirements.length > 0 && packageManagers.filter(pm => pm.name.includes('pip') || pm.name === 'poetry').length === 0) {
+    if (
+      requirements.length > 0 &&
+      packageManagers.filter((pm) => pm.name.includes('pip') || pm.name === 'poetry').length === 0
+    ) {
       packageManagers.push({
         name: 'pip',
         confidence: 0.7,
-        lockFiles: requirements
+        lockFiles: requirements,
       });
     }
 
@@ -323,11 +377,11 @@ export class ProjectAnalyzer {
 
   private async analyzeProjectStructure(): Promise<ProjectStructure> {
     const rootFiles = await this.findFiles(['*'], [], { onlyFiles: true, deep: 1 });
-    
+
     // Common src directories
     const srcCandidates = ['src', 'lib', 'app', 'source'];
     let srcDirectory: string | undefined;
-    
+
     for (const candidate of srcCandidates) {
       const candidatePath = path.join(this.projectPath, candidate);
       try {
@@ -341,18 +395,38 @@ export class ProjectAnalyzer {
       }
     }
 
-    const testDirectories = await this.findDirectories(['**/test', '**/tests', '**/__tests__', '**/*.test.*'], ['node_modules/**']);
+    const testDirectories = await this.findDirectories(
+      ['**/test', '**/tests', '**/__tests__', '**/*.test.*'],
+      ['node_modules/**']
+    );
     const configFiles = await this.findFiles([
-      '**/package.json', '**/tsconfig.json', '**/babel.config.*', '**/webpack.config.*',
-      '**/vite.config.*', '**/jest.config.*', '**/pytest.ini', '**/pyproject.toml',
-      '**/requirements.txt', '**/Pipfile', '**/poetry.lock'
+      '**/package.json',
+      '**/tsconfig.json',
+      '**/babel.config.*',
+      '**/webpack.config.*',
+      '**/vite.config.*',
+      '**/jest.config.*',
+      '**/pytest.ini',
+      '**/pyproject.toml',
+      '**/requirements.txt',
+      '**/Pipfile',
+      '**/poetry.lock',
     ]);
-    
-    const buildOutputs = await this.findDirectories(['**/dist', '**/build', '**/out', '**/.next', '**/__pycache__']);
-    
+
+    const buildOutputs = await this.findDirectories([
+      '**/dist',
+      '**/build',
+      '**/out',
+      '**/.next',
+      '**/__pycache__',
+    ]);
+
     const entryPoints = await this.findFiles([
-      '**/index.{js,ts,jsx,tsx,py}', '**/main.{js,ts,jsx,tsx,py}', 
-      '**/app.{js,ts,jsx,tsx,py}', '**/server.{js,ts,py}', '**/manage.py'
+      '**/index.{js,ts,jsx,tsx,py}',
+      '**/main.{js,ts,jsx,tsx,py}',
+      '**/app.{js,ts,jsx,tsx,py}',
+      '**/server.{js,ts,py}',
+      '**/manage.py',
     ]);
 
     return {
@@ -361,7 +435,7 @@ export class ProjectAnalyzer {
       testDirectories,
       configFiles,
       buildOutputs,
-      entryPoints
+      entryPoints,
     };
   }
 
@@ -372,33 +446,32 @@ export class ProjectAnalyzer {
     return {
       production: packageJsonContent?.dependencies || {},
       development: packageJsonContent?.devDependencies || {},
-      python: pythonDeps || undefined
+      python: pythonDeps || undefined,
     };
   }
 
   private async analyzeTestingSetup(): Promise<TestingSetup> {
-    const testFiles = await this.findFiles([
-      '**/*.test.{js,ts,jsx,tsx,py}', 
-      '**/*.spec.{js,ts,jsx,tsx,py}',
-      '**/test_*.py'
-    ], ['node_modules/**']);
+    const testFiles = await this.findFiles(
+      ['**/*.test.{js,ts,jsx,tsx,py}', '**/*.spec.{js,ts,jsx,tsx,py}', '**/test_*.py'],
+      ['node_modules/**']
+    );
 
     const packageJsonContent = await this.readPackageJson();
     const testFrameworks: string[] = [];
     const coverageTools: string[] = [];
 
     // Detect test frameworks from dependencies
-    const allDeps = { 
-      ...(packageJsonContent?.dependencies || {}), 
-      ...(packageJsonContent?.devDependencies || {}) 
+    const allDeps = {
+      ...(packageJsonContent?.dependencies || {}),
+      ...(packageJsonContent?.devDependencies || {}),
     };
-    
+
     if (allDeps?.jest) testFrameworks.push('jest');
     if (allDeps?.vitest) testFrameworks.push('vitest');
     if (allDeps?.mocha) testFrameworks.push('mocha');
     if (allDeps?.cypress) testFrameworks.push('cypress');
     if (allDeps?.playwright) testFrameworks.push('playwright');
-    
+
     // Python test frameworks
     const pythonDeps = await this.readPythonDependencies();
     if (pythonDeps?.pytest) testFrameworks.push('pytest');
@@ -414,16 +487,20 @@ export class ProjectAnalyzer {
       hasTests: testFiles.length > 0,
       testFrameworks,
       testFiles: testFiles.slice(0, 20), // Limit for performance
-      coverageTools
+      coverageTools,
     };
   }
 
   private async calculateComplexity(): Promise<ComplexityMetrics> {
-    const allFiles = await this.findFiles(['**/*.{js,ts,jsx,tsx,py}'], ['node_modules/**', 'dist/**', 'build/**']);
+    const allFiles = await this.findFiles(
+      ['**/*.{js,ts,jsx,tsx,py}'],
+      ['node_modules/**', 'dist/**', 'build/**']
+    );
     let totalLines = 0;
     const fileSizes: Array<{ path: string; lines: number }> = [];
 
-    for (const file of allFiles.slice(0, 100)) { // Limit for performance
+    for (const file of allFiles.slice(0, 100)) {
+      // Limit for performance
       try {
         const content = await fs.readFile(path.join(this.projectPath, file), 'utf-8');
         const lines = content.split('\n').length;
@@ -442,7 +519,7 @@ export class ProjectAnalyzer {
       totalFiles: allFiles.length,
       totalLines,
       averageFileSize,
-      largestFiles
+      largestFiles,
     };
   }
 
@@ -490,14 +567,18 @@ export class ProjectAnalyzer {
   }
 
   // Utility methods
-  private async findFiles(patterns: string[], ignore: string[] = [], options: any = {}): Promise<string[]> {
+  private async findFiles(
+    patterns: string[],
+    ignore: string[] = [],
+    options: any = {}
+  ): Promise<string[]> {
     try {
       return await fg(patterns, {
         cwd: this.projectPath,
         ignore,
         onlyFiles: options.onlyFiles !== false,
         deep: options.deep,
-        dot: false
+        dot: false,
       });
     } catch (error) {
       logger.debug('Error finding files:', error);
@@ -511,7 +592,7 @@ export class ProjectAnalyzer {
         cwd: this.projectPath,
         ignore,
         onlyDirectories: true,
-        dot: false
+        dot: false,
       });
     } catch (error) {
       logger.debug('Error finding directories:', error);
@@ -539,9 +620,12 @@ export class ProjectAnalyzer {
       const deps: Record<string, string> = {};
       const lines = content.split('\n');
       let inDependencies = false;
-      
+
       for (const line of lines) {
-        if (line.includes('[tool.poetry.dependencies]') || line.includes('[project.dependencies]')) {
+        if (
+          line.includes('[tool.poetry.dependencies]') ||
+          line.includes('[project.dependencies]')
+        ) {
           inDependencies = true;
           continue;
         }
@@ -549,13 +633,13 @@ export class ProjectAnalyzer {
           inDependencies = false;
         }
         if (inDependencies && line.includes('=')) {
-          const [key, value] = line.split('=').map(s => s.trim());
+          const [key, value] = line.split('=').map((s) => s.trim());
           if (key && value) {
             deps[key] = value.replace(/['"]/g, '');
           }
         }
       }
-      
+
       if (Object.keys(deps).length > 0) return deps;
     } catch (error) {
       logger.debug('No pyproject.toml found');
@@ -566,17 +650,17 @@ export class ProjectAnalyzer {
       const requirementsPath = path.join(this.projectPath, 'requirements.txt');
       const content = await fs.readFile(requirementsPath, 'utf-8');
       const deps: Record<string, string> = {};
-      
-      content.split('\n').forEach(line => {
+
+      content.split('\n').forEach((line) => {
         line = line.trim();
         if (line && !line.startsWith('#')) {
           const match = line.match(/^([a-zA-Z0-9_-]+)([>=<~!]+.*)?$/);
-          if (match && match[1]) {
+          if (match?.[1]) {
             deps[match[1]] = match[2] || '*';
           }
         }
       });
-      
+
       return Object.keys(deps).length > 0 ? deps : null;
     } catch (error) {
       logger.debug('No requirements.txt found');
@@ -588,40 +672,40 @@ export class ProjectAnalyzer {
   private async analyzeModuleSystem(): Promise<ModuleSystemInfo> {
     try {
       const packageJsonContent = await this.readPackageJson();
-      
+
       if (!packageJsonContent) {
         // No package.json found, assume CommonJS for JavaScript projects
         return {
           type: 'commonjs',
           hasPackageJsonType: false,
-          confidence: 0.7
+          confidence: 0.7,
         };
       }
 
       const packageJsonType = packageJsonContent.type;
-      
+
       if (packageJsonType === 'module') {
         return {
           type: 'esm',
           hasPackageJsonType: true,
           packageJsonType: 'module',
-          confidence: 1.0
+          confidence: 1.0,
         };
       } else if (packageJsonType === 'commonjs') {
         return {
           type: 'commonjs',
           hasPackageJsonType: true,
           packageJsonType: 'commonjs',
-          confidence: 1.0
+          confidence: 1.0,
         };
       } else {
         // No explicit type field - analyze imports/exports in source files
         const moduleTypeFromFiles = await this.detectModuleTypeFromFiles();
-        
+
         return {
           type: moduleTypeFromFiles.type,
           hasPackageJsonType: false,
-          confidence: moduleTypeFromFiles.confidence
+          confidence: moduleTypeFromFiles.confidence,
         };
       }
     } catch (error) {
@@ -629,23 +713,21 @@ export class ProjectAnalyzer {
       return {
         type: 'commonjs',
         hasPackageJsonType: false,
-        confidence: 0.5
+        confidence: 0.5,
       };
     }
   }
 
-  private async detectModuleTypeFromFiles(): Promise<{ type: 'commonjs' | 'esm' | 'mixed', confidence: number }> {
+  private async detectModuleTypeFromFiles(): Promise<{
+    type: 'commonjs' | 'esm' | 'mixed';
+    confidence: number;
+  }> {
     try {
       // Find JavaScript/TypeScript files to analyze
-      const sourceFiles = await this.findFiles([
-        '**/*.{js,ts,jsx,tsx}'
-      ], [
-        'node_modules/**',
-        '**/dist/**',
-        '**/build/**',
-        '**/*.test.*',
-        '**/*.spec.*'
-      ]);
+      const sourceFiles = await this.findFiles(
+        ['**/*.{js,ts,jsx,tsx}'],
+        ['node_modules/**', '**/dist/**', '**/build/**', '**/*.test.*', '**/*.spec.*']
+      );
 
       if (sourceFiles.length === 0) {
         return { type: 'commonjs', confidence: 0.5 };
@@ -702,15 +784,19 @@ export class ProjectAnalyzer {
 
   private hasEsmSyntax(content: string): boolean {
     // Check for ES module syntax
-    return /\bimport\s+.*\s+from\s+['"`]/.test(content) ||
-           /\bexport\s+(?:default\s+|(?:const|let|var|function|class)\s+)/.test(content) ||
-           /\bexport\s*\{/.test(content);
+    return (
+      /\bimport\s+.*\s+from\s+['"`]/.test(content) ||
+      /\bexport\s+(?:default\s+|(?:const|let|var|function|class)\s+)/.test(content) ||
+      /\bexport\s*\{/.test(content)
+    );
   }
 
   private hasCjsSyntax(content: string): boolean {
     // Check for CommonJS syntax
-    return /\brequire\s*\(/.test(content) ||
-           /\bmodule\.exports\s*=/.test(content) ||
-           /\bexports\.\w+\s*=/.test(content);
+    return (
+      /\brequire\s*\(/.test(content) ||
+      /\bmodule\.exports\s*=/.test(content) ||
+      /\bexports\.\w+\s*=/.test(content)
+    );
   }
 }

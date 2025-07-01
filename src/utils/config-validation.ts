@@ -3,18 +3,17 @@
  */
 
 import { fs, path, logger } from './common-imports';
-import { 
-  ClaudeTestingConfig, 
-  PartialClaudeTestingConfig, 
+import type {
+  ClaudeTestingConfig,
+  PartialClaudeTestingConfig,
   ConfigValidationResult,
-  DEFAULT_CONFIG,
   TestFramework,
   AIModel,
-  TestType,
   CoverageFormat,
   LogLevel,
-  OutputFormat
+  OutputFormat,
 } from '../types/config';
+import { DEFAULT_CONFIG, TestType } from '../types/config';
 
 /**
  * Configuration loader and validator
@@ -42,7 +41,7 @@ export class ConfigurationManager {
     try {
       await fs.access(this.configPath);
       configExists = true;
-      
+
       const configContent = await fs.readFile(this.configPath, 'utf8');
       userConfig = JSON.parse(configContent);
       logger.info(`Loaded configuration from: ${this.configPath}`);
@@ -53,7 +52,7 @@ export class ConfigurationManager {
           valid: false,
           errors: [`Invalid JSON in configuration file: ${(error as Error).message}`],
           warnings: [],
-          config: this.config
+          config: this.config,
         };
       } else {
         // File doesn't exist - use defaults
@@ -94,7 +93,6 @@ export class ConfigurationManager {
 
       // Cross-validation checks
       this.performCrossValidation(mergedConfig, errors, warnings);
-
     } catch (error) {
       errors.push(`Configuration validation failed: ${(error as Error).message}`);
     }
@@ -103,7 +101,7 @@ export class ConfigurationManager {
       valid: errors.length === 0,
       errors,
       warnings,
-      config: mergedConfig
+      config: mergedConfig,
     };
   }
 
@@ -139,15 +137,15 @@ export class ConfigurationManager {
   // Private validation methods
 
   private validateAndMergeArrays(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[]
   ): void {
     // Validate include patterns
     if (userConfig.include !== undefined) {
       if (!Array.isArray(userConfig.include)) {
         errors.push('include must be an array of strings');
-      } else if (userConfig.include.some(pattern => typeof pattern !== 'string')) {
+      } else if (userConfig.include.some((pattern) => typeof pattern !== 'string')) {
         errors.push('All include patterns must be strings');
       } else if (userConfig.include.length === 0) {
         errors.push('include array cannot be empty');
@@ -160,7 +158,7 @@ export class ConfigurationManager {
     if (userConfig.exclude !== undefined) {
       if (!Array.isArray(userConfig.exclude)) {
         errors.push('exclude must be an array of strings');
-      } else if (userConfig.exclude.some(pattern => typeof pattern !== 'string')) {
+      } else if (userConfig.exclude.some((pattern) => typeof pattern !== 'string')) {
         errors.push('All exclude patterns must be strings');
       } else {
         mergedConfig.exclude = userConfig.exclude;
@@ -169,46 +167,66 @@ export class ConfigurationManager {
   }
 
   private validateAndMergeFramework(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
   ): void {
     if (userConfig.testFramework !== undefined) {
-      const validFrameworks: TestFramework[] = ['jest', 'vitest', 'pytest', 'mocha', 'chai', 'jasmine', 'auto'];
-      if (!validFrameworks.includes(userConfig.testFramework as TestFramework)) {
-        errors.push(`Invalid testFramework: ${userConfig.testFramework}. Valid options: ${validFrameworks.join(', ')}`);
+      const validFrameworks: TestFramework[] = [
+        'jest',
+        'vitest',
+        'pytest',
+        'mocha',
+        'chai',
+        'jasmine',
+        'auto',
+      ];
+      if (!validFrameworks.includes(userConfig.testFramework)) {
+        errors.push(
+          `Invalid testFramework: ${userConfig.testFramework}. Valid options: ${validFrameworks.join(', ')}`
+        );
       } else {
-        mergedConfig.testFramework = userConfig.testFramework as TestFramework;
+        mergedConfig.testFramework = userConfig.testFramework;
         if (userConfig.testFramework !== 'auto') {
-          warnings.push(`Using explicit testFramework: ${userConfig.testFramework}. Consider using "auto" for automatic detection.`);
+          warnings.push(
+            `Using explicit testFramework: ${userConfig.testFramework}. Consider using "auto" for automatic detection.`
+          );
         }
       }
     }
   }
 
   private validateAndMergeAIModel(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
   ): void {
     if (userConfig.aiModel !== undefined) {
-      const validModels: AIModel[] = ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'];
-      if (!validModels.includes(userConfig.aiModel as AIModel)) {
-        errors.push(`Invalid aiModel: ${userConfig.aiModel}. Valid options: ${validModels.join(', ')}`);
+      const validModels: AIModel[] = [
+        'claude-3-5-sonnet-20241022',
+        'claude-3-opus-20240229',
+        'claude-3-haiku-20240307',
+      ];
+      if (!validModels.includes(userConfig.aiModel)) {
+        errors.push(
+          `Invalid aiModel: ${userConfig.aiModel}. Valid options: ${validModels.join(', ')}`
+        );
       } else {
-        mergedConfig.aiModel = userConfig.aiModel as AIModel;
+        mergedConfig.aiModel = userConfig.aiModel;
         if (userConfig.aiModel === 'claude-3-opus-20240229') {
-          warnings.push('Using claude-3-opus model will result in higher AI costs. Consider claude-3-5-sonnet for better cost/performance balance.');
+          warnings.push(
+            'Using claude-3-opus model will result in higher AI costs. Consider claude-3-5-sonnet for better cost/performance balance.'
+          );
         }
       }
     }
   }
 
   private validateAndMergeFeatures(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[]
   ): void {
     if (userConfig.features !== undefined) {
@@ -218,8 +236,15 @@ export class ConfigurationManager {
       }
 
       const booleanFeatures = [
-        'coverage', 'edgeCases', 'integrationTests', 'unitTests', 
-        'mocks', 'testData', 'aiGeneration', 'incremental', 'watch'
+        'coverage',
+        'edgeCases',
+        'integrationTests',
+        'unitTests',
+        'mocks',
+        'testData',
+        'aiGeneration',
+        'incremental',
+        'watch',
       ];
 
       for (const [key, value] of Object.entries(userConfig.features)) {
@@ -237,8 +262,8 @@ export class ConfigurationManager {
   }
 
   private validateAndMergeGeneration(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
   ): void {
@@ -250,9 +275,11 @@ export class ConfigurationManager {
 
       // Validate maxTestsPerFile
       if (userConfig.generation.maxTestsPerFile !== undefined) {
-        if (!Number.isInteger(userConfig.generation.maxTestsPerFile) || 
-            userConfig.generation.maxTestsPerFile < 1 || 
-            userConfig.generation.maxTestsPerFile > 1000) {
+        if (
+          !Number.isInteger(userConfig.generation.maxTestsPerFile) ||
+          userConfig.generation.maxTestsPerFile < 1 ||
+          userConfig.generation.maxTestsPerFile > 1000
+        ) {
           errors.push('generation.maxTestsPerFile must be an integer between 1 and 1000');
         } else {
           mergedConfig.generation.maxTestsPerFile = userConfig.generation.maxTestsPerFile;
@@ -264,9 +291,11 @@ export class ConfigurationManager {
 
       // Validate maxTestToSourceRatio
       if (userConfig.generation.maxTestToSourceRatio !== undefined) {
-        if (!Number.isInteger(userConfig.generation.maxTestToSourceRatio) || 
-            userConfig.generation.maxTestToSourceRatio < 1 || 
-            userConfig.generation.maxTestToSourceRatio > 100) {
+        if (
+          !Number.isInteger(userConfig.generation.maxTestToSourceRatio) ||
+          userConfig.generation.maxTestToSourceRatio < 1 ||
+          userConfig.generation.maxTestToSourceRatio > 100
+        ) {
           errors.push('generation.maxTestToSourceRatio must be an integer between 1 and 100');
         } else {
           mergedConfig.generation.maxTestToSourceRatio = userConfig.generation.maxTestToSourceRatio;
@@ -288,7 +317,11 @@ export class ConfigurationManager {
     }
   }
 
-  private validateNamingConventions(naming: any, mergedConfig: ClaudeTestingConfig, errors: string[]): void {
+  private validateNamingConventions(
+    naming: any,
+    mergedConfig: ClaudeTestingConfig,
+    errors: string[]
+  ): void {
     if (typeof naming !== 'object' || naming === null) {
       errors.push('generation.naming must be an object');
       return;
@@ -319,7 +352,11 @@ export class ConfigurationManager {
     }
   }
 
-  private validateTestTypes(testTypes: any, mergedConfig: ClaudeTestingConfig, errors: string[]): void {
+  private validateTestTypes(
+    testTypes: any,
+    mergedConfig: ClaudeTestingConfig,
+    errors: string[]
+  ): void {
     if (!Array.isArray(testTypes)) {
       errors.push('generation.testTypes must be an array');
       return;
@@ -338,8 +375,8 @@ export class ConfigurationManager {
   }
 
   private validateAndMergeCoverage(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
   ): void {
@@ -365,24 +402,36 @@ export class ConfigurationManager {
           errors.push('coverage.formats must be an array');
         } else {
           for (const format of userConfig.coverage.formats) {
-            if (!validFormats.includes(format as CoverageFormat)) {
-              errors.push(`Invalid coverage format: ${format}. Valid options: ${validFormats.join(', ')}`);
+            if (!validFormats.includes(format)) {
+              errors.push(
+                `Invalid coverage format: ${format}. Valid options: ${validFormats.join(', ')}`
+              );
             }
           }
           if (errors.length === 0) {
-            mergedConfig.coverage.formats = userConfig.coverage.formats as CoverageFormat[];
+            mergedConfig.coverage.formats = userConfig.coverage.formats;
           }
         }
       }
 
       // Validate thresholds
       if (userConfig.coverage.thresholds !== undefined) {
-        this.validateCoverageThresholds(userConfig.coverage.thresholds, mergedConfig, errors, warnings);
+        this.validateCoverageThresholds(
+          userConfig.coverage.thresholds,
+          mergedConfig,
+          errors,
+          warnings
+        );
       }
     }
   }
 
-  private validateCoverageThresholds(thresholds: any, mergedConfig: ClaudeTestingConfig, errors: string[], warnings: string[]): void {
+  private validateCoverageThresholds(
+    thresholds: any,
+    mergedConfig: ClaudeTestingConfig,
+    errors: string[],
+    warnings: string[]
+  ): void {
     if (typeof thresholds !== 'object' || thresholds === null) {
       errors.push('coverage.thresholds must be an object');
       return;
@@ -396,14 +445,20 @@ export class ConfigurationManager {
         const metrics = ['lines', 'functions', 'branches', 'statements'];
         for (const metric of metrics) {
           if (thresholds.global[metric] !== undefined) {
-            if (typeof thresholds.global[metric] !== 'number' || 
-                thresholds.global[metric] < 0 || 
-                thresholds.global[metric] > 100) {
-              errors.push(`coverage.thresholds.global.${metric} must be a number between 0 and 100`);
+            if (
+              typeof thresholds.global[metric] !== 'number' ||
+              thresholds.global[metric] < 0 ||
+              thresholds.global[metric] > 100
+            ) {
+              errors.push(
+                `coverage.thresholds.global.${metric} must be a number between 0 and 100`
+              );
             } else {
               (mergedConfig.coverage.thresholds!.global as any)[metric] = thresholds.global[metric];
               if (thresholds.global[metric] > 95) {
-                warnings.push(`Very high coverage threshold for ${metric}: ${thresholds.global[metric]}%`);
+                warnings.push(
+                  `Very high coverage threshold for ${metric}: ${thresholds.global[metric]}%`
+                );
               }
             }
           }
@@ -413,8 +468,8 @@ export class ConfigurationManager {
   }
 
   private validateAndMergeIncremental(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
   ): void {
@@ -426,13 +481,15 @@ export class ConfigurationManager {
 
       // Validate cost limit
       if (userConfig.incremental.costLimit !== undefined) {
-        if (typeof userConfig.incremental.costLimit !== 'number' || 
-            userConfig.incremental.costLimit < 0.01 || 
-            userConfig.incremental.costLimit > 100.00) {
+        if (
+          typeof userConfig.incremental.costLimit !== 'number' ||
+          userConfig.incremental.costLimit < 0.01 ||
+          userConfig.incremental.costLimit > 100.0
+        ) {
           errors.push('incremental.costLimit must be a number between 0.01 and 100.00');
         } else {
           mergedConfig.incremental.costLimit = userConfig.incremental.costLimit;
-          if (userConfig.incremental.costLimit > 20.00) {
+          if (userConfig.incremental.costLimit > 20.0) {
             warnings.push('High incremental cost limit may result in unexpected AI charges');
           }
         }
@@ -440,9 +497,11 @@ export class ConfigurationManager {
 
       // Validate max files per update
       if (userConfig.incremental.maxFilesPerUpdate !== undefined) {
-        if (!Number.isInteger(userConfig.incremental.maxFilesPerUpdate) || 
-            userConfig.incremental.maxFilesPerUpdate < 1 || 
-            userConfig.incremental.maxFilesPerUpdate > 1000) {
+        if (
+          !Number.isInteger(userConfig.incremental.maxFilesPerUpdate) ||
+          userConfig.incremental.maxFilesPerUpdate < 1 ||
+          userConfig.incremental.maxFilesPerUpdate > 1000
+        ) {
           errors.push('incremental.maxFilesPerUpdate must be an integer between 1 and 1000');
         } else {
           mergedConfig.incremental.maxFilesPerUpdate = userConfig.incremental.maxFilesPerUpdate;
@@ -452,8 +511,8 @@ export class ConfigurationManager {
   }
 
   private validateAndMergeWatch(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
   ): void {
@@ -465,9 +524,11 @@ export class ConfigurationManager {
 
       // Validate debounce
       if (userConfig.watch.debounceMs !== undefined) {
-        if (!Number.isInteger(userConfig.watch.debounceMs) || 
-            userConfig.watch.debounceMs < 100 || 
-            userConfig.watch.debounceMs > 10000) {
+        if (
+          !Number.isInteger(userConfig.watch.debounceMs) ||
+          userConfig.watch.debounceMs < 100 ||
+          userConfig.watch.debounceMs > 10000
+        ) {
           errors.push('watch.debounceMs must be an integer between 100 and 10000');
         } else {
           mergedConfig.watch.debounceMs = userConfig.watch.debounceMs;
@@ -480,8 +541,8 @@ export class ConfigurationManager {
   }
 
   private validateAndMergeAI(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
   ): void {
@@ -493,13 +554,15 @@ export class ConfigurationManager {
 
       // Validate max cost
       if (userConfig.ai.maxCost !== undefined) {
-        if (typeof userConfig.ai.maxCost !== 'number' || 
-            userConfig.ai.maxCost < 0.01 || 
-            userConfig.ai.maxCost > 100.00) {
+        if (
+          typeof userConfig.ai.maxCost !== 'number' ||
+          userConfig.ai.maxCost < 0.01 ||
+          userConfig.ai.maxCost > 100.0
+        ) {
           errors.push('ai.maxCost must be a number between 0.01 and 100.00');
         } else {
           mergedConfig.ai.maxCost = userConfig.ai.maxCost;
-          if (userConfig.ai.maxCost > 50.00) {
+          if (userConfig.ai.maxCost > 50.0) {
             warnings.push('High AI max cost may result in unexpected charges');
           }
         }
@@ -507,9 +570,11 @@ export class ConfigurationManager {
 
       // Validate timeout
       if (userConfig.ai.timeout !== undefined) {
-        if (!Number.isInteger(userConfig.ai.timeout) || 
-            userConfig.ai.timeout < 30000 || 
-            userConfig.ai.timeout > 1800000) {
+        if (
+          !Number.isInteger(userConfig.ai.timeout) ||
+          userConfig.ai.timeout < 30000 ||
+          userConfig.ai.timeout > 1800000
+        ) {
           errors.push('ai.timeout must be an integer between 30000 and 1800000 (30s to 30m)');
         } else {
           mergedConfig.ai.timeout = userConfig.ai.timeout;
@@ -518,9 +583,11 @@ export class ConfigurationManager {
 
       // Validate temperature
       if (userConfig.ai.temperature !== undefined) {
-        if (typeof userConfig.ai.temperature !== 'number' || 
-            userConfig.ai.temperature < 0.0 || 
-            userConfig.ai.temperature > 1.0) {
+        if (
+          typeof userConfig.ai.temperature !== 'number' ||
+          userConfig.ai.temperature < 0.0 ||
+          userConfig.ai.temperature > 1.0
+        ) {
           errors.push('ai.temperature must be a number between 0.0 and 1.0');
         } else {
           mergedConfig.ai.temperature = userConfig.ai.temperature;
@@ -530,8 +597,8 @@ export class ConfigurationManager {
   }
 
   private validateAndMergeOutput(
-    userConfig: PartialClaudeTestingConfig, 
-    mergedConfig: ClaudeTestingConfig, 
+    userConfig: PartialClaudeTestingConfig,
+    mergedConfig: ClaudeTestingConfig,
     errors: string[],
     _warnings: string[]
   ): void {
@@ -544,33 +611,48 @@ export class ConfigurationManager {
       // Validate log level
       if (userConfig.output.logLevel !== undefined) {
         const validLevels: LogLevel[] = ['error', 'warn', 'info', 'debug', 'verbose'];
-        if (!validLevels.includes(userConfig.output.logLevel as LogLevel)) {
-          errors.push(`Invalid logLevel: ${userConfig.output.logLevel}. Valid options: ${validLevels.join(', ')}`);
+        if (!validLevels.includes(userConfig.output.logLevel)) {
+          errors.push(
+            `Invalid logLevel: ${userConfig.output.logLevel}. Valid options: ${validLevels.join(', ')}`
+          );
         } else {
-          mergedConfig.output.logLevel = userConfig.output.logLevel as LogLevel;
+          mergedConfig.output.logLevel = userConfig.output.logLevel;
         }
       }
 
       // Validate formats
       if (userConfig.output.formats !== undefined) {
-        const validFormats: OutputFormat[] = ['console', 'json', 'markdown', 'xml', 'html', 'junit'];
+        const validFormats: OutputFormat[] = [
+          'console',
+          'json',
+          'markdown',
+          'xml',
+          'html',
+          'junit',
+        ];
         if (!Array.isArray(userConfig.output.formats)) {
           errors.push('output.formats must be an array');
         } else {
           for (const format of userConfig.output.formats) {
-            if (!validFormats.includes(format as OutputFormat)) {
-              errors.push(`Invalid output format: ${format}. Valid options: ${validFormats.join(', ')}`);
+            if (!validFormats.includes(format)) {
+              errors.push(
+                `Invalid output format: ${format}. Valid options: ${validFormats.join(', ')}`
+              );
             }
           }
           if (errors.length === 0) {
-            mergedConfig.output.formats = userConfig.output.formats as OutputFormat[];
+            mergedConfig.output.formats = userConfig.output.formats;
           }
         }
       }
     }
   }
 
-  private performCrossValidation(config: ClaudeTestingConfig, _errors: string[], warnings: string[]): void {
+  private performCrossValidation(
+    config: ClaudeTestingConfig,
+    _errors: string[],
+    warnings: string[]
+  ): void {
     // Check if AI features are enabled but AI generation is disabled
     if (!config.features.aiGeneration && (config.features.edgeCases || config.ai.enabled)) {
       warnings.push('AI features are configured but aiGeneration is disabled');
@@ -587,9 +669,11 @@ export class ConfigurationManager {
     }
 
     // Validate include/exclude patterns don't conflict
-    const hasJavaScript = config.include.some(pattern => pattern.includes('.js') || pattern.includes('.ts'));
-    const hasPython = config.include.some(pattern => pattern.includes('.py'));
-    
+    const hasJavaScript = config.include.some(
+      (pattern) => pattern.includes('.js') || pattern.includes('.ts')
+    );
+    const hasPython = config.include.some((pattern) => pattern.includes('.py'));
+
     if (hasJavaScript && hasPython && config.testFramework !== 'auto') {
       warnings.push('Mixed language project detected. Consider using testFramework: "auto"');
     }

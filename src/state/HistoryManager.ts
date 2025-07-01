@@ -4,7 +4,8 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import { ManifestManager, BaselineManifest } from './ManifestManager';
+import type { BaselineManifest } from './ManifestManager';
+import { ManifestManager } from './ManifestManager';
 import { ChangeDetector } from './ChangeDetector';
 import { logger } from '../utils/logger';
 
@@ -71,7 +72,7 @@ export class HistoryManager {
    */
   async initialize(): Promise<void> {
     await fs.mkdir(this.historyDir, { recursive: true });
-    
+
     // Create history index if it doesn't exist
     const indexPath = path.join(this.historyDir, 'index.json');
     try {
@@ -90,7 +91,7 @@ export class HistoryManager {
     const historyEntry: HistoryEntry = {
       id: this.generateId(),
       timestamp: new Date().toISOString(),
-      ...entry
+      ...entry,
     };
 
     // Add git commit if available
@@ -108,9 +109,9 @@ export class HistoryManager {
     // Update index
     await this.updateIndex(historyEntry);
 
-    logger.info('History entry recorded', { 
-      id: historyEntry.id, 
-      operation: historyEntry.operation 
+    logger.info('History entry recorded', {
+      id: historyEntry.id,
+      operation: historyEntry.operation,
     });
 
     return historyEntry.id;
@@ -121,7 +122,7 @@ export class HistoryManager {
    */
   async getStats(): Promise<HistoryStats> {
     const index = await this.loadIndex();
-    
+
     if (index.entries.length === 0) {
       return {
         totalGenerations: 0,
@@ -129,16 +130,17 @@ export class HistoryManager {
         averageCost: 0,
         lastGeneration: 'never',
         mostActiveFiles: [],
-        errorRate: 0
+        errorRate: 0,
       };
     }
 
-    const totalCost = index.entries.reduce((sum, entry) => 
-      sum + (entry.summary?.costIncurred || 0), 0
+    const totalCost = index.entries.reduce(
+      (sum, entry) => sum + (entry.summary?.costIncurred || 0),
+      0
     );
 
-    const entriesWithErrors = index.entries.filter(entry => 
-      entry.details?.errors && entry.details.errors.length > 0
+    const entriesWithErrors = index.entries.filter(
+      (entry) => entry.details?.errors && entry.details.errors.length > 0
     );
 
     // Count file update frequency
@@ -160,7 +162,7 @@ export class HistoryManager {
       averageCost: totalCost / index.entries.length,
       lastGeneration: index.entries[index.entries.length - 1]?.timestamp || 'never',
       mostActiveFiles,
-      errorRate: entriesWithErrors.length / index.entries.length
+      errorRate: entriesWithErrors.length / index.entries.length,
     };
   }
 
@@ -169,7 +171,10 @@ export class HistoryManager {
    */
   async createBaseline(description: string): Promise<string> {
     const gitCommit = await this.changeDetector.getCurrentCommit();
-    const baselineId = await this.manifestManager.createBaseline(description, gitCommit || undefined);
+    const baselineId = await this.manifestManager.createBaseline(
+      description,
+      gitCommit || undefined
+    );
 
     // Record in history
     await this.recordEntry({
@@ -179,12 +184,12 @@ export class HistoryManager {
         testsGenerated: 0,
         testsUpdated: 0,
         testsDeleted: 0,
-        costIncurred: 0
+        costIncurred: 0,
       },
       details: {
         changedFiles: [],
-        generatedTests: []
-      }
+        generatedTests: [],
+      },
     });
 
     logger.info('Baseline created', { id: baselineId, description });
@@ -196,11 +201,11 @@ export class HistoryManager {
    */
   async compareWithBaseline(baselineId?: string): Promise<BaselineComparison> {
     const manifest = await this.manifestManager.load();
-    
+
     // Use latest baseline if none specified
     let targetBaseline: BaselineManifest;
     if (baselineId) {
-      const found = manifest.baselines.find(b => b.id === baselineId);
+      const found = manifest.baselines.find((b) => b.id === baselineId);
       if (!found) {
         throw new Error(`Baseline ${baselineId} not found`);
       }
@@ -215,14 +220,14 @@ export class HistoryManager {
 
     // Load baseline snapshot
     const baselineSnapshot = await this.loadBaselineSnapshot(targetBaseline.id);
-    
+
     const comparison: BaselineComparison = {
       baselineId: targetBaseline.id,
       baselineDate: targetBaseline.timestamp,
       currentState: {
         files: manifest.files.length,
         tests: manifest.tests.length,
-        coverage: 0 // Would be calculated from coverage data
+        coverage: 0, // Would be calculated from coverage data
       },
       changes: {
         filesAdded: Math.max(0, manifest.files.length - baselineSnapshot.files.length),
@@ -230,9 +235,9 @@ export class HistoryManager {
         filesDeleted: Math.max(0, baselineSnapshot.files.length - manifest.files.length),
         testsAdded: Math.max(0, manifest.tests.length - baselineSnapshot.tests.length),
         testsUpdated: 0, // Would be calculated by comparing test hashes
-        testsDeleted: Math.max(0, baselineSnapshot.tests.length - manifest.tests.length)
+        testsDeleted: Math.max(0, baselineSnapshot.tests.length - manifest.tests.length),
       },
-      recommendations: []
+      recommendations: [],
     };
 
     // Generate recommendations
@@ -271,12 +276,10 @@ export class HistoryManager {
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
     const index = await this.loadIndex();
-    const entriesToKeep = index.entries.filter(entry => 
-      new Date(entry.timestamp) > cutoffDate
-    );
+    const entriesToKeep = index.entries.filter((entry) => new Date(entry.timestamp) > cutoffDate);
 
-    const entriesToDelete = index.entries.filter(entry =>
-      new Date(entry.timestamp) <= cutoffDate
+    const entriesToDelete = index.entries.filter(
+      (entry) => new Date(entry.timestamp) <= cutoffDate
     );
 
     // Delete old entry files
@@ -297,14 +300,16 @@ export class HistoryManager {
 
     logger.info('History cleanup completed', {
       deleted: entriesToDelete.length,
-      retained: entriesToKeep.length
+      retained: entriesToKeep.length,
     });
   }
 
   /**
    * Load history index
    */
-  private async loadIndex(): Promise<{ entries: Array<Pick<HistoryEntry, 'id' | 'timestamp' | 'operation' | 'summary' | 'details'>> }> {
+  private async loadIndex(): Promise<{
+    entries: Array<Pick<HistoryEntry, 'id' | 'timestamp' | 'operation' | 'summary' | 'details'>>;
+  }> {
     try {
       const indexPath = path.join(this.historyDir, 'index.json');
       const content = await fs.readFile(indexPath, 'utf-8');
@@ -319,14 +324,14 @@ export class HistoryManager {
    */
   private async updateIndex(entry: HistoryEntry): Promise<void> {
     const index = await this.loadIndex();
-    
+
     // Add summary entry to index
     index.entries.push({
       id: entry.id,
       timestamp: entry.timestamp,
       operation: entry.operation,
       summary: entry.summary,
-      details: entry.details
+      details: entry.details,
     });
 
     // Keep only last 100 entries in index

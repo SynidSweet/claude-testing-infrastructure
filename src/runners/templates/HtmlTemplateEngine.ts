@@ -3,10 +3,9 @@ import path from 'path';
 import { CoverageData } from '../CoverageParser';
 import { AggregatedCoverageData } from '../CoverageAggregator';
 import { CoverageGapAnalysis } from '../CoverageVisualizer';
+import { BaseTemplateEngine, BaseTemplateData } from './BaseTemplateEngine';
 
-export interface HtmlTemplateData {
-  projectName: string;
-  generatedDate: string;
+export interface HtmlTemplateData extends BaseTemplateData {
   metrics: Array<{
     name: string;
     value: string;
@@ -37,7 +36,7 @@ export interface HtmlTemplateData {
   }>;
 }
 
-export class HtmlTemplateEngine {
+export class HtmlTemplateEngine extends BaseTemplateEngine<HtmlTemplateData> {
   private templateCache: Map<string, string> = new Map();
 
   async loadTemplate(templateName: string): Promise<string> {
@@ -51,7 +50,12 @@ export class HtmlTemplateEngine {
     return template;
   }
 
-  render(template: string, data: any): string {
+  async render(data: HtmlTemplateData): Promise<string> {
+    const template = await this.loadTemplate('coverage-report');
+    return this.renderTemplate(template, data);
+  }
+
+  private renderTemplate(template: string, data: any): string {
     // Simple template engine - replace {{variable}} patterns
     let result = template;
 
@@ -97,56 +101,41 @@ export class HtmlTemplateEngine {
     return current;
   }
 
-  getCoverageClass(percentage: number): string {
-    if (percentage >= 80) return 'good';
-    if (percentage >= 60) return 'warning';
-    return 'poor';
-  }
 
   prepareTemplateData(
     data: CoverageData | AggregatedCoverageData,
     gaps: CoverageGapAnalysis,
     projectName?: string
   ): HtmlTemplateData {
+    const baseData = this.createBaseTemplateData(projectName);
+    
     const metrics = [
       {
         name: 'Statements',
-        value: data.summary.statements.toFixed(1),
+        value: this.formatPercentage(data.summary.statements),
         coverageClass: this.getCoverageClass(data.summary.statements)
       },
       {
         name: 'Branches',
-        value: data.summary.branches.toFixed(1),
+        value: this.formatPercentage(data.summary.branches),
         coverageClass: this.getCoverageClass(data.summary.branches)
       },
       {
         name: 'Functions',
-        value: data.summary.functions.toFixed(1),
+        value: this.formatPercentage(data.summary.functions),
         coverageClass: this.getCoverageClass(data.summary.functions)
       },
       {
         name: 'Lines',
-        value: data.summary.lines.toFixed(1),
+        value: this.formatPercentage(data.summary.lines),
         coverageClass: this.getCoverageClass(data.summary.lines)
       }
     ];
 
-    const files = Object.entries(data.files).map(([filename, coverage]) => ({
-      filename,
-      summary: {
-        lines: coverage.summary.lines.toFixed(1),
-        statements: coverage.summary.statements.toFixed(1),
-        branches: coverage.summary.branches.toFixed(1),
-        functions: coverage.summary.functions.toFixed(1)
-      },
-      ...(coverage.uncoveredLines.length > 0 && {
-        uncoveredLines: coverage.uncoveredLines.join(', ')
-      })
-    }));
+    const files = this.transformFilesData(data.files);
 
     return {
-      projectName: projectName || 'Project',
-      generatedDate: new Date().toLocaleString(),
+      ...baseData,
       metrics,
       files,
       ...(gaps.suggestions.length > 0 && { suggestions: gaps.suggestions }),

@@ -1,6 +1,6 @@
 /**
  * Claude Orchestrator
- * 
+ *
  * Manages parallel Claude processes for AI test generation:
  * - Process pool management
  * - Task queue and scheduling
@@ -8,13 +8,22 @@
  * - Error handling and retries
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { EventEmitter } from 'events';
-import { AITask, AITaskBatch, AITaskResult } from './AITaskPreparation';
-import { ChunkedAITask } from './ChunkedAITaskPreparation';
+import type { AITask, AITaskBatch, AITaskResult } from './AITaskPreparation';
+import type { ChunkedAITask } from './ChunkedAITaskPreparation';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { validateModelConfiguration } from '../utils/model-mapping';
+import { 
+  AIAuthenticationError, 
+  AITimeoutError, 
+  AIModelError, 
+  AIRateLimitError,
+  AINetworkError,
+  type AIProgressUpdate 
+} from '../types/ai-error-types';
 
 export interface ClaudeOrchestratorConfig {
   maxConcurrent?: number;
@@ -63,9 +72,9 @@ export class ClaudeOrchestrator extends EventEmitter {
       timeout: 900000, // 15 minutes (increased for complex analysis)
       outputFormat: 'json',
       verbose: false,
-      ...config
+      ...config,
     };
-    
+
     // Validate model configuration on construction
     if (this.config.model) {
       const validation = validateModelConfiguration(this.config.model);
@@ -76,18 +85,66 @@ export class ClaudeOrchestrator extends EventEmitter {
         this.config.model = validation.resolvedName!;
       }
     }
-    
+
     if (this.config.fallbackModel) {
       const validation = validateModelConfiguration(this.config.fallbackModel);
       if (!validation.valid) {
-        console.warn(`ClaudeOrchestrator fallback model: ${validation.error}. ${validation.suggestion}`);
+        console.warn(
+          `ClaudeOrchestrator fallback model: ${validation.error}. ${validation.suggestion}`
+        );
         this.config.fallbackModel = 'claude-3-haiku-20240307'; // Fallback to cheapest
       } else {
         this.config.fallbackModel = validation.resolvedName!;
       }
     }
-    
+
     this.stats = this.resetStats();
+  }
+
+  /**
+   * Validate Claude CLI authentication
+   */
+  async validateClaudeAuth(): Promise<{ authenticated: boolean; error?: string }> {
+    try {
+      // Try to check Claude CLI version (basic check if Claude CLI exists)
+      execSync('claude --version', { stdio: 'ignore' });
+      
+      // Check if Claude CLI is properly authenticated using a minimal command
+      // The 'claude config get' command will fail if not authenticated
+      const configCheck = execSync('claude config get 2>&1', { encoding: 'utf-8' });
+      
+      // If we can get config, we're authenticated
+      if (configCheck && !configCheck.includes('error') && !configCheck.includes('login')) {
+        return { authenticated: true };
+      }
+      
+      return { 
+        authenticated: false, 
+        error: 'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
+        return { 
+          authenticated: false, 
+          error: 'Claude CLI not found. Please ensure Claude Code is installed and available in PATH.'
+        };
+      }
+      
+      if (errorMessage.includes('login') || errorMessage.includes('authenticate')) {
+        return { 
+          authenticated: false, 
+          error: 'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.'
+        };
+      }
+      
+      // Generic error
+      return { 
+        authenticated: false, 
+        error: `Failed to check Claude CLI authentication: ${errorMessage}`
+      };
+    }
   }
 
   /**
@@ -97,15 +154,36 @@ export class ClaudeOrchestrator extends EventEmitter {
     if (this.isRunning) {
       throw new Error('Orchestrator is already running');
     }
+    
+    // Emit progress for authentication check
+    this.emit('progress', {
+      taskId: 'auth-check',
+      phase: 'authenticating',
+      progress: 0,
+      message: 'Validating Claude CLI authentication...'
+    } as AIProgressUpdate);
+    
+    // Validate Claude CLI authentication before starting
+    const authStatus = await this.validateClaudeAuth();
+    if (!authStatus.authenticated) {
+      throw new AIAuthenticationError(authStatus.error || 'Authentication failed');
+    }
+    
+    this.emit('progress', {
+      taskId: 'auth-check',
+      phase: 'authenticating',
+      progress: 100,
+      message: 'Authentication validated successfully'
+    } as AIProgressUpdate);
 
     this.isRunning = true;
     this.results = [];
     this.stats = this.resetStats();
     this.stats.totalTasks = batch.tasks.length;
-    
+
     // Initialize task queue
     this.taskQueue = [...batch.tasks];
-    
+
     // Update max concurrency from batch if specified
     const maxConcurrent = Math.min(
       batch.maxConcurrency || this.config.maxConcurrent!,
@@ -123,15 +201,15 @@ export class ClaudeOrchestrator extends EventEmitter {
 
       // Wait for all tasks to complete
       await Promise.all(promises);
-      
+
       // Handle chunked results merging
       if (this.hasChunkedTasks(batch)) {
         await this.mergeChunkedResults(batch.tasks as ChunkedAITask[]);
       }
-      
+
       this.stats.endTime = new Date();
       this.emit('batch:complete', { results: this.results, stats: this.stats });
-      
+
       return this.results;
     } finally {
       this.isRunning = false;
@@ -155,12 +233,21 @@ export class ClaudeOrchestrator extends EventEmitter {
    */
   private async processTask(task: AITask, attemptNumber = 1): Promise<void> {
     const startTime = Date.now();
-    
+
     this.emit('task:start', { task, attemptNumber });
     
+    // Emit progress update
+    this.emit('progress', {
+      taskId: task.id,
+      phase: 'preparing',
+      progress: 0,
+      message: `Processing task ${task.id} (attempt ${attemptNumber})`,
+      estimatedTimeRemaining: task.estimatedTokens * 10 // rough estimate: 10ms per token
+    } as AIProgressUpdate);
+
     try {
       const result = await this.executeClaudeProcess(task);
-      
+
       const processResult: ProcessResult = {
         taskId: task.id,
         success: true,
@@ -168,8 +255,8 @@ export class ClaudeOrchestrator extends EventEmitter {
           generatedTests: result.output,
           tokensUsed: result.tokensUsed || task.estimatedTokens,
           actualCost: result.cost || task.estimatedCost,
-          duration: Date.now() - startTime
-        }
+          duration: Date.now() - startTime,
+        },
       };
 
       // Update stats
@@ -180,13 +267,12 @@ export class ClaudeOrchestrator extends EventEmitter {
 
       // Save generated tests
       await this.saveGeneratedTests(task, processResult.result!.generatedTests);
-      
+
       this.results.push(processResult);
       this.emit('task:complete', { task, result: processResult });
-      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       // Retry logic
       if (attemptNumber < (this.config.retryAttempts || 2)) {
         this.emit('task:retry', { task, attemptNumber, error: errorMessage });
@@ -199,7 +285,7 @@ export class ClaudeOrchestrator extends EventEmitter {
       const processResult: ProcessResult = {
         taskId: task.id,
         success: false,
-        error: errorMessage
+        error: errorMessage,
       };
 
       this.stats.failedTasks++;
@@ -218,9 +304,9 @@ export class ClaudeOrchestrator extends EventEmitter {
   }> {
     return new Promise((resolve, reject) => {
       const args = [
-        '-p', task.prompt,
-        '--model', this.config.model!,
-        '--output-format', this.config.outputFormat!
+        task.prompt,
+        '--model',
+        this.config.model!,
       ];
 
       // Add fallback model if configured (helps with Max subscription limits)
@@ -229,31 +315,51 @@ export class ClaudeOrchestrator extends EventEmitter {
       }
 
       if (this.config.verbose) {
-        console.log(`Executing Claude for task ${task.id}...`);
+        console.log(`Executing Claude for task ${task.id} with model ${this.config.model}...`);
       }
+      
+      // Emit progress update for generation start
+      this.emit('progress', {
+        taskId: task.id,
+        phase: 'generating',
+        progress: 10,
+        message: `Generating tests with ${this.config.model} model...`,
+        estimatedTimeRemaining: task.estimatedTokens * 10
+      } as AIProgressUpdate);
 
       // Set up environment with extended timeouts for headless AI generation
       const claudeEnv = {
         ...process.env,
         // Only affect this specific headless Claude process, not interactive sessions
         BASH_DEFAULT_TIMEOUT_MS: String(this.config.timeout),
-        BASH_MAX_TIMEOUT_MS: String(this.config.timeout)
+        BASH_MAX_TIMEOUT_MS: String(this.config.timeout),
       };
 
       const claude = spawn('claude', args, {
         env: claudeEnv,
-        shell: false
+        shell: false,
       });
 
       let stdout = '';
       let stderr = '';
       let timeout: NodeJS.Timeout;
+      let killed = false;
 
-      // Set up timeout
+      // Set up timeout with more descriptive error
       if (this.config.timeout) {
         timeout = setTimeout(() => {
-          claude.kill('SIGTERM');
-          reject(new Error(`Process timed out after ${this.config.timeout}ms`));
+          if (!killed) {
+            killed = true;
+            claude.kill('SIGTERM');
+            const timeoutMs = this.config.timeout || 900000;
+            reject(new AITimeoutError(
+              `AI generation timed out after ${timeoutMs / 1000} seconds. ` +
+              `This may indicate: 1) Complex task requiring more time, 2) Claude CLI hanging, ` +
+              `3) Network connectivity issues. Try: reducing batch size, checking Claude Code setup, ` +
+              `or increasing timeout with --timeout flag.`,
+              timeoutMs
+            ));
+          }
         }, this.config.timeout);
       }
 
@@ -262,6 +368,14 @@ export class ClaudeOrchestrator extends EventEmitter {
 
       claude.stdout.on('data', (data) => {
         stdout += data.toString();
+        
+        // Emit progress update - we're getting data
+        this.emit('progress', {
+          taskId: task.id,
+          phase: 'generating',
+          progress: 50,
+          message: 'Receiving generated tests from Claude...'
+        } as AIProgressUpdate);
       });
 
       claude.stderr.on('data', (data) => {
@@ -269,33 +383,76 @@ export class ClaudeOrchestrator extends EventEmitter {
       });
 
       claude.on('error', (error) => {
-        clearTimeout(timeout);
-        this.activeProcesses.delete(task.id);
-        reject(new Error(`Failed to spawn Claude process: ${error.message}`));
+        if (!killed) {
+          clearTimeout(timeout);
+          this.activeProcesses.delete(task.id);
+          
+          // Provide more helpful error messages
+          if (error.message.includes('ENOENT')) {
+            reject(new AIAuthenticationError(
+              'Claude CLI not found. Please ensure Claude Code is installed and available in PATH. ' +
+              'Visit https://docs.anthropic.com/claude-code for installation instructions.'
+            ));
+          } else {
+            reject(new Error(`Failed to spawn Claude process: ${error.message}`));
+          }
+        }
       });
 
       claude.on('close', (code) => {
-        clearTimeout(timeout);
-        this.activeProcesses.delete(task.id);
+        if (!killed) {
+          clearTimeout(timeout);
+          this.activeProcesses.delete(task.id);
 
-        if (code !== 0) {
-          reject(new Error(`Claude process exited with code ${code}: ${stderr}`));
-          return;
-        }
-
-        try {
-          if (this.config.outputFormat === 'json') {
-            const result = JSON.parse(stdout);
-            resolve({
-              output: result.result || result.output || '',
-              tokensUsed: result.usage?.total_tokens,
-              cost: result.total_cost_usd
-            });
-          } else {
-            resolve({ output: stdout });
+          if (code !== 0) {
+            // Analyze stderr for common issues and use appropriate error types
+            if (stderr.includes('authentication') || stderr.includes('login')) {
+              reject(new AIAuthenticationError(
+                'Claude CLI authentication required. Please run Claude Code interactively first to authenticate. ' +
+                'Use: claude auth login'
+              ));
+            } else if (stderr.includes('rate limit') || stderr.includes('quota')) {
+              reject(new AIRateLimitError(
+                'Claude API rate limit or quota exceeded. Please try again later or use a different model. ' +
+                'Consider using --model haiku for lower-cost generation.'
+              ));
+            } else if (stderr.includes('network') || stderr.includes('connection')) {
+              reject(new AINetworkError(
+                'Network connection error while communicating with Claude API. ' +
+                'Please check your internet connection and try again.'
+              ));
+            } else {
+              reject(new Error(
+                `Claude process exited with code ${code}${stderr ? `: ${stderr}` : ''}`
+              ));
+            }
+            return;
           }
-        } catch (error) {
-          reject(new Error(`Failed to parse Claude output: ${error}`));
+
+          try {
+            // Handle both text and JSON responses
+            if (stdout.trim().startsWith('{')) {
+              const result = JSON.parse(stdout);
+              resolve({
+                output: result.result || result.output || result.content || stdout,
+                tokensUsed: result.usage?.total_tokens || result.tokens_used,
+                cost: result.total_cost_usd || result.cost,
+              });
+            } else {
+              resolve({ 
+                output: stdout.trim() || 'No output generated',
+                tokensUsed: task.estimatedTokens, // Fallback estimation
+                cost: task.estimatedCost, // Fallback estimation
+              });
+            }
+          } catch (error) {
+            // If JSON parsing fails, return text output
+            resolve({ 
+              output: stdout.trim() || 'Generated test content',
+              tokensUsed: task.estimatedTokens,
+              cost: task.estimatedCost,
+            });
+          }
         }
       });
     });
@@ -305,9 +462,7 @@ export class ClaudeOrchestrator extends EventEmitter {
    * Check if batch contains chunked tasks
    */
   private hasChunkedTasks(batch: AITaskBatch): boolean {
-    return batch.tasks.some(task => 
-      (task as ChunkedAITask).isChunked !== undefined
-    );
+    return batch.tasks.some((task) => (task as ChunkedAITask).isChunked !== undefined);
   }
 
   /**
@@ -315,10 +470,10 @@ export class ClaudeOrchestrator extends EventEmitter {
    */
   private async mergeChunkedResults(tasks: ChunkedAITask[]): Promise<void> {
     console.log('Merging chunked results...');
-    
+
     // Get successful results
     const successfulResults = new Map<string, string>();
-    this.results.forEach(result => {
+    this.results.forEach((result) => {
       if (result.success && result.result?.generatedTests) {
         successfulResults.set(result.taskId, result.result.generatedTests);
       }
@@ -326,10 +481,10 @@ export class ClaudeOrchestrator extends EventEmitter {
 
     // Merge chunked results
     const mergedResults = ClaudeOrchestrator.mergeChunkedResults(tasks, successfulResults);
-    
+
     // Write merged results to files
     for (const [sourceFile, mergedContent] of mergedResults) {
-      const task = tasks.find(t => t.sourceFile === sourceFile);
+      const task = tasks.find((t) => t.sourceFile === sourceFile);
       if (task) {
         console.log(`Writing merged results for ${sourceFile}`);
         await this.saveGeneratedTests(task, mergedContent);
@@ -355,7 +510,7 @@ export class ClaudeOrchestrator extends EventEmitter {
   private async saveGeneratedTests(task: AITask, tests: string): Promise<void> {
     const testDir = path.dirname(task.testFile);
     await fs.mkdir(testDir, { recursive: true });
-    
+
     // Check if test file already exists
     let existingContent = '';
     try {
@@ -379,15 +534,17 @@ export class ClaudeOrchestrator extends EventEmitter {
    */
   async killAll(): Promise<void> {
     const promises: Promise<void>[] = [];
-    
+
     for (const [taskId, process] of this.activeProcesses) {
-      promises.push(new Promise<void>((resolve) => {
-        process.on('close', () => {
-          this.activeProcesses.delete(taskId);
-          resolve();
-        });
-        process.kill('SIGTERM');
-      }));
+      promises.push(
+        new Promise<void>((resolve) => {
+          process.on('close', () => {
+            this.activeProcesses.delete(taskId);
+            resolve();
+          });
+          process.kill('SIGTERM');
+        })
+      );
     }
 
     await Promise.all(promises);
@@ -397,17 +554,19 @@ export class ClaudeOrchestrator extends EventEmitter {
    * Generate execution report
    */
   generateReport(): string {
-    const duration = this.stats.endTime 
+    const duration = this.stats.endTime
       ? (this.stats.endTime.getTime() - this.stats.startTime.getTime()) / 1000
       : 0;
 
-    const avgDuration = this.stats.completedTasks > 0
-      ? (this.stats.totalDuration / this.stats.completedTasks / 1000).toFixed(1)
-      : '0';
+    const avgDuration =
+      this.stats.completedTasks > 0
+        ? (this.stats.totalDuration / this.stats.completedTasks / 1000).toFixed(1)
+        : '0';
 
-    const avgCost = this.stats.completedTasks > 0
-      ? (this.stats.totalCost / this.stats.completedTasks).toFixed(4)
-      : '0';
+    const avgCost =
+      this.stats.completedTasks > 0
+        ? (this.stats.totalCost / this.stats.completedTasks).toFixed(4)
+        : '0';
 
     const report = [
       '# Claude Orchestrator Execution Report',
@@ -429,13 +588,13 @@ export class ClaudeOrchestrator extends EventEmitter {
       `- Fallback Model: ${this.config.fallbackModel || 'None'}`,
       `- Max Concurrent: ${this.config.maxConcurrent}`,
       `- Retry Attempts: ${this.config.retryAttempts}`,
-      ''
+      '',
     ];
 
     if (this.stats.failedTasks > 0) {
       report.push('## Failed Tasks');
-      const failedResults = this.results.filter(r => !r.success);
-      failedResults.forEach(result => {
+      const failedResults = this.results.filter((r) => !r.success);
+      failedResults.forEach((result) => {
         report.push(`- Task ${result.taskId}: ${result.error}`);
       });
     }
@@ -454,7 +613,7 @@ export class ClaudeOrchestrator extends EventEmitter {
       totalTokensUsed: 0,
       totalCost: 0,
       totalDuration: 0,
-      startTime: new Date()
+      startTime: new Date(),
     };
   }
 
@@ -462,6 +621,6 @@ export class ClaudeOrchestrator extends EventEmitter {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

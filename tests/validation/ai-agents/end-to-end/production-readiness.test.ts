@@ -110,7 +110,8 @@ describe('Production Readiness Validation - End-to-End', () => {
         
         expect(duration).toBeLessThan(timeout);
       } catch (error) {
-        if (error instanceof Error ? error.message : String(error).includes('timeout') || error instanceof Error ? error.message : String(error).includes('AI generation timeout')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('timeout') || errorMessage.includes('AI generation timeout')) {
           fail('🚨 CRITICAL: AI generation is still hanging - production blocker not resolved');
         }
         // Other errors might be expected (API limits, etc.) but not hanging

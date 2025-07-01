@@ -1,6 +1,6 @@
 /**
  * Cost Estimator for AI Test Generation
- * 
+ *
  * Provides accurate cost estimation and optimization for AI token usage:
  * - Token counting and estimation
  * - Cost calculation for different models
@@ -8,13 +8,13 @@
  * - Usage tracking and reporting
  */
 
-import { TestGapAnalysisResult, TestGap } from '../analyzers/TestGapAnalyzer';
-import { 
-  getModelInfo, 
-  resolveModelName, 
-  selectOptimalModel, 
+import type { TestGapAnalysisResult, TestGap } from '../analyzers/TestGapAnalyzer';
+import {
+  getModelInfo,
+  resolveModelName,
+  selectOptimalModel,
   validateModelConfiguration,
-  getModelPricing 
+  getModelPricing,
 } from '../utils/model-mapping';
 
 export interface ModelPricing {
@@ -69,11 +69,10 @@ export interface UsageReport {
 }
 
 export class CostEstimator {
-
   private static readonly TEST_OUTPUT_MULTIPLIER = {
-    simple: 1.5,    // Output is 1.5x input for simple tests
-    medium: 2.0,    // Output is 2x input for medium complexity
-    complex: 2.5    // Output is 2.5x input for complex tests
+    simple: 1.5, // Output is 1.5x input for simple tests
+    medium: 2.0, // Output is 2x input for medium complexity
+    complex: 2.5, // Output is 2.5x input for complex tests
   };
 
   private usageHistory: Array<{
@@ -98,7 +97,7 @@ export class CostEstimator {
     const byComplexity: Record<string, { count: number; cost: number }> = {
       low: { count: 0, cost: 0 },
       medium: { count: 0, cost: 0 },
-      high: { count: 0, cost: 0 }
+      high: { count: 0, cost: 0 },
     };
 
     const byModel: Record<string, { count: number; cost: number }> = {};
@@ -107,16 +106,16 @@ export class CostEstimator {
     for (const gap of report.gaps) {
       const estimate = this.estimateTaskCost(gap);
       const complexityBucket = this.getComplexityBucket(gap.complexity.overall);
-      
+
       byComplexity[complexityBucket]!.count++;
       byComplexity[complexityBucket]!.cost += estimate.estimatedCost;
-      
+
       if (!byModel[estimate.model]) {
         byModel[estimate.model] = { count: 0, cost: 0 };
       }
       byModel[estimate.model]!.count++;
       byModel[estimate.model]!.cost += estimate.estimatedCost;
-      
+
       totalCost += estimate.estimatedCost;
     }
 
@@ -126,7 +125,7 @@ export class CostEstimator {
       totalCost,
       byComplexity,
       byModel,
-      recommendations
+      recommendations,
     };
   }
 
@@ -137,12 +136,12 @@ export class CostEstimator {
     const model = this.selectOptimalModel(gap.complexity.overall);
     const tokenEstimate = this.estimateTokens(gap);
     const cost = this.calculateCost(tokenEstimate, model);
-    
+
     return {
       model,
       tokenEstimate,
       estimatedCost: cost,
-      confidence: this.getConfidenceLevel(gap)
+      confidence: this.getConfidenceLevel(gap),
     };
   }
 
@@ -156,30 +155,33 @@ export class CostEstimator {
     const sourceCodeTokens = Math.ceil(gap.complexity.linesOfCode * 2); // Rough estimate
     const existingTestTokens = gap.testFile ? 500 : 0; // Estimate if tests exist
     const contextTokens = 200; // Dependencies, scenarios, etc.
-    
+
     const inputTokens = promptOverhead + sourceCodeTokens + existingTestTokens + contextTokens;
-    
+
     // Estimate output tokens based on complexity
-    const multiplier = gap.complexity.overall <= 3 ? CostEstimator.TEST_OUTPUT_MULTIPLIER.simple :
-                      gap.complexity.overall <= 7 ? CostEstimator.TEST_OUTPUT_MULTIPLIER.medium :
-                      CostEstimator.TEST_OUTPUT_MULTIPLIER.complex;
-    
+    const multiplier =
+      gap.complexity.overall <= 3
+        ? CostEstimator.TEST_OUTPUT_MULTIPLIER.simple
+        : gap.complexity.overall <= 7
+          ? CostEstimator.TEST_OUTPUT_MULTIPLIER.medium
+          : CostEstimator.TEST_OUTPUT_MULTIPLIER.complex;
+
     const baseOutputTokens = Math.ceil(sourceCodeTokens * multiplier);
     const scenarioTokens = gap.gaps.length * 100; // ~100 tokens per test scenario
-    
+
     const outputTokens = baseOutputTokens + scenarioTokens;
     const totalTokens = inputTokens + outputTokens;
-    
+
     // Check against model limits
     const modelInfo = getModelInfo(this.defaultModel);
     const modelLimit = modelInfo?.contextWindow || 200000;
     const withinLimit = totalTokens < modelLimit * 0.8; // Keep 20% buffer
-    
+
     return {
       inputTokens,
       outputTokens,
       totalTokens,
-      withinLimit
+      withinLimit,
     };
   }
 
@@ -192,18 +194,18 @@ export class CostEstimator {
     if (!resolvedModel) {
       const validation = validateModelConfiguration(model);
       console.warn(`${validation.error}. ${validation.suggestion}`);
-      return tokens.totalTokens * 0.01 / 1000; // Fallback
+      return (tokens.totalTokens * 0.01) / 1000; // Fallback
     }
 
     const pricing = getModelPricing(resolvedModel);
     if (!pricing) {
       console.warn(`No pricing information for model: ${resolvedModel}, using default pricing`);
-      return tokens.totalTokens * 0.01 / 1000; // Fallback
+      return (tokens.totalTokens * 0.01) / 1000; // Fallback
     }
-    
+
     const inputCost = (tokens.inputTokens / 1000) * pricing.inputCostPer1K;
     const outputCost = (tokens.outputTokens / 1000) * pricing.outputCostPer1K;
-    
+
     return inputCost + outputCost;
   }
 
@@ -217,17 +219,16 @@ export class CostEstimator {
   /**
    * Optimize task allocation within budget
    */
-  optimizeForBudget(
-    report: TestGapAnalysisResult,
-    budget: number
-  ): BudgetOptimization {
+  optimizeForBudget(report: TestGapAnalysisResult, budget: number): BudgetOptimization {
     const allocations: TaskAllocation[] = [];
     let totalEstimatedCost = 0;
     let tasksIncluded = 0;
     let tasksExcluded = 0;
 
     // Sort gaps by priority (highest first)
-    const sortedGaps = [...report.gaps].sort((a, b) => this.mapPriorityToNumber(b.priority) - this.mapPriorityToNumber(a.priority));
+    const sortedGaps = [...report.gaps].sort(
+      (a, b) => this.mapPriorityToNumber(b.priority) - this.mapPriorityToNumber(a.priority)
+    );
 
     for (const gap of sortedGaps) {
       const estimate = this.estimateTaskCost(gap);
@@ -237,7 +238,7 @@ export class CostEstimator {
         model: estimate.model,
         priority: this.mapPriorityToNumber(gap.priority),
         estimatedCost: estimate.estimatedCost,
-        includeInBatch: false
+        includeInBatch: false,
       };
 
       if (totalEstimatedCost + estimate.estimatedCost <= budget) {
@@ -266,25 +267,20 @@ export class CostEstimator {
       totalEstimatedCost,
       tasksIncluded,
       tasksExcluded,
-      recommendations
+      recommendations,
     };
   }
 
   /**
    * Track actual usage
    */
-  trackUsage(
-    project: string,
-    model: string,
-    tokensUsed: number,
-    cost: number
-  ): void {
+  trackUsage(project: string, model: string, tokensUsed: number, cost: number): void {
     this.usageHistory.push({
       timestamp: new Date(),
       project,
       model,
       tokensUsed,
-      cost
+      cost,
     });
   }
 
@@ -296,11 +292,11 @@ export class CostEstimator {
     const periodMs = {
       day: 24 * 60 * 60 * 1000,
       week: 7 * 24 * 60 * 60 * 1000,
-      month: 30 * 24 * 60 * 60 * 1000
+      month: 30 * 24 * 60 * 60 * 1000,
     };
 
     const cutoff = new Date(now.getTime() - periodMs[period]);
-    const relevantUsage = this.usageHistory.filter(u => u.timestamp >= cutoff);
+    const relevantUsage = this.usageHistory.filter((u) => u.timestamp >= cutoff);
 
     const byModel: Record<string, { tokens: number; cost: number }> = {};
     const byProject: Record<string, { tokens: number; cost: number }> = {};
@@ -333,7 +329,7 @@ export class CostEstimator {
       byModel,
       byProject,
       averageTokensPerTask: taskCount > 0 ? totalTokens / taskCount : 0,
-      averageCostPerTask: taskCount > 0 ? totalCost / taskCount : 0
+      averageCostPerTask: taskCount > 0 ? totalCost / taskCount : 0,
     };
   }
 
@@ -354,12 +350,12 @@ export class CostEstimator {
     if (gap.gaps.length > 0 && gap.testFile) {
       return 'high';
     }
-    
+
     // Medium confidence for partially defined
     if (gap.gaps.length > 0 || gap.testFile) {
       return 'medium';
     }
-    
+
     // Low confidence for vague requirements
     return 'low';
   }
@@ -367,10 +363,7 @@ export class CostEstimator {
   /**
    * Generate recommendations
    */
-  private generateRecommendations(
-    report: TestGapAnalysisResult,
-    totalCost: number
-  ): string[] {
+  private generateRecommendations(report: TestGapAnalysisResult, totalCost: number): string[] {
     const recommendations: string[] = [];
 
     // Cost optimization
@@ -381,7 +374,9 @@ export class CostEstimator {
     }
 
     // Batch optimization
-    const highPriorityCount = report.gaps.filter(g => g.priority === 'critical' || g.priority === 'high').length;
+    const highPriorityCount = report.gaps.filter(
+      (g) => g.priority === 'critical' || g.priority === 'high'
+    ).length;
     if (highPriorityCount > 10) {
       recommendations.push(
         `Focus on ${highPriorityCount} high-priority files first to maximize impact`
@@ -389,7 +384,7 @@ export class CostEstimator {
     }
 
     // Complexity warnings
-    const veryComplexCount = report.gaps.filter(g => g.complexity.overall >= 9).length;
+    const veryComplexCount = report.gaps.filter((g) => g.complexity.overall >= 9).length;
     if (veryComplexCount > 0) {
       recommendations.push(
         `${veryComplexCount} files have very high complexity - consider manual review for these`
@@ -397,7 +392,7 @@ export class CostEstimator {
     }
 
     // Token limit warnings
-    const largeFiles = report.gaps.filter(g => g.complexity.linesOfCode > 500).length;
+    const largeFiles = report.gaps.filter((g) => g.complexity.linesOfCode > 500).length;
     if (largeFiles > 0) {
       recommendations.push(
         `${largeFiles} files are very large - may need to split into smaller chunks`
@@ -421,9 +416,9 @@ export class CostEstimator {
 
     if (excluded > 0) {
       const additionalBudget = allocations
-        .filter(a => !a.includeInBatch)
+        .filter((a) => !a.includeInBatch)
         .reduce((sum, a) => sum + a.estimatedCost, 0);
-      
+
       recommendations.push(
         `${excluded} tasks excluded. Need $${additionalBudget.toFixed(2)} more to include all tasks`
       );
@@ -435,11 +430,11 @@ export class CostEstimator {
       );
     }
 
-    const opusCount = allocations.filter(a => {
+    const opusCount = allocations.filter((a) => {
       const resolvedModel = resolveModelName(a.model);
       return resolvedModel === 'claude-3-opus-20240229' && a.includeInBatch;
     }).length;
-    
+
     if (opusCount > included * 0.3) {
       recommendations.push(
         `${opusCount} tasks using expensive Opus model. Consider downgrading some to Sonnet for 80% cost savings`
@@ -454,10 +449,10 @@ export class CostEstimator {
    */
   public mapPriorityToNumber(priority: any): number {
     const priorityMap: Record<string, number> = {
-      'critical': 10,
-      'high': 8,
-      'medium': 5,
-      'low': 3
+      critical: 10,
+      high: 8,
+      medium: 5,
+      low: 3,
     };
     return priorityMap[priority] || 5;
   }

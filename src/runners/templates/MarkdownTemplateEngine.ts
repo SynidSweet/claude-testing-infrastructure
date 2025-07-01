@@ -1,10 +1,9 @@
 import { CoverageData } from '../CoverageParser';
 import { AggregatedCoverageData } from '../CoverageAggregator';
 import { CoverageGapAnalysis } from '../CoverageVisualizer';
+import { BaseTemplateEngine, BaseTemplateData } from './BaseTemplateEngine';
 
-export interface MarkdownTemplateData {
-  projectName: string;
-  generatedDate: string;
+export interface MarkdownTemplateData extends BaseTemplateData {
   summary: {
     statements: string;
     branches: string;
@@ -29,8 +28,8 @@ export interface MarkdownTemplateData {
   }>;
 }
 
-export class MarkdownTemplateEngine {
-  render(data: MarkdownTemplateData): string {
+export class MarkdownTemplateEngine extends BaseTemplateEngine<MarkdownTemplateData> {
+  async render(data: MarkdownTemplateData): Promise<string> {
     const lines: string[] = [];
 
     // Header
@@ -89,14 +88,16 @@ export class MarkdownTemplateEngine {
     gaps: CoverageGapAnalysis,
     projectName?: string
   ): MarkdownTemplateData {
+    const baseData = this.createBaseTemplateData(projectName);
+    
     const files = Object.entries(data.files).map(([filename, coverage]) => ({
       filename,
-      lines: coverage.summary.lines.toFixed(1),
-      statements: coverage.summary.statements.toFixed(1),
-      branches: coverage.summary.branches.toFixed(1),
-      functions: coverage.summary.functions.toFixed(1)
+      lines: this.formatPercentage(coverage.summary.lines),
+      statements: this.formatPercentage(coverage.summary.statements),
+      branches: this.formatPercentage(coverage.summary.branches),
+      functions: this.formatPercentage(coverage.summary.functions)
     }));
-
+    
     const suggestions = gaps.suggestions.map((suggestion, index) => ({
       index: index + 1,
       target: suggestion.target,
@@ -107,13 +108,12 @@ export class MarkdownTemplateEngine {
     }));
 
     return {
-      projectName: projectName || '',
-      generatedDate: new Date().toLocaleString(),
+      ...baseData,
       summary: {
-        statements: data.summary.statements.toFixed(1),
-        branches: data.summary.branches.toFixed(1),
-        functions: data.summary.functions.toFixed(1),
-        lines: data.summary.lines.toFixed(1)
+        statements: this.formatPercentage(data.summary.statements),
+        branches: this.formatPercentage(data.summary.branches),
+        functions: this.formatPercentage(data.summary.functions),
+        lines: this.formatPercentage(data.summary.lines)
       },
       meetsThresholds: data.meetsThreshold,
       files,

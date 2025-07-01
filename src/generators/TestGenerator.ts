@@ -1,5 +1,5 @@
 import { logger } from '../utils/common-imports';
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 
 export interface TestGeneratorConfig {
   /** Target project path */
@@ -50,7 +50,7 @@ export enum TestType {
   API = 'api',
   UTILITY = 'utility',
   SERVICE = 'service',
-  HOOK = 'hook'
+  HOOK = 'hook',
 }
 
 export interface GeneratedTest {
@@ -100,7 +100,7 @@ export interface GenerationStats {
 
 /**
  * Abstract base class for all test generators
- * 
+ *
  * This class provides the common interface and utilities for generating tests
  * across different languages and frameworks. Concrete implementations should
  * extend this class and implement the abstract methods.
@@ -122,7 +122,7 @@ export abstract class TestGenerator {
     const startTime = Date.now();
     logger.info(`Starting test generation for ${this.config.projectPath}`, {
       framework: this.config.testFramework,
-      outputPath: this.config.outputPath
+      outputPath: this.config.outputPath,
     });
 
     try {
@@ -163,8 +163,11 @@ export abstract class TestGenerator {
       const stats: GenerationStats = {
         filesAnalyzed: filesToTest.length,
         testsGenerated: results.length,
-        testLinesGenerated: results.reduce((total, test) => total + test.content.split('\n').length, 0),
-        generationTime
+        testLinesGenerated: results.reduce(
+          (total, test) => total + test.content.split('\n').length,
+          0
+        ),
+        generationTime,
       };
 
       logger.info('Test generation completed', stats);
@@ -174,13 +177,12 @@ export abstract class TestGenerator {
         tests: results,
         errors,
         warnings,
-        stats
+        stats,
       };
-
     } catch (error) {
       const errorMsg = `Test generation failed: ${error instanceof Error ? error.message : String(error)}`;
       logger.error(errorMsg, { error });
-      
+
       return {
         success: false,
         tests: [],
@@ -190,8 +192,8 @@ export abstract class TestGenerator {
           filesAnalyzed: 0,
           testsGenerated: 0,
           testLinesGenerated: 0,
-          generationTime: Date.now() - startTime
-        }
+          generationTime: Date.now() - startTime,
+        },
       };
     }
   }
@@ -217,7 +219,7 @@ export abstract class TestGenerator {
   protected async validateTestGenerationRatio(filesToTest: string[]): Promise<void> {
     const config = this.config as any;
     const skipValidation = config.skipValidation || (this as any).options?.skipValidation;
-    
+
     if (skipValidation) {
       logger.debug('Skipping test generation validation due to --force flag');
       return;
@@ -226,7 +228,7 @@ export abstract class TestGenerator {
     // Count total source files in the project for ratio calculation
     const sourceFileCount = await this.countSourceFiles();
     const testFileCount = filesToTest.length;
-    
+
     if (sourceFileCount === 0) {
       logger.warn('No source files found in project for ratio validation');
       return;
@@ -234,9 +236,11 @@ export abstract class TestGenerator {
 
     const ratio = testFileCount / sourceFileCount;
     const maxRatio = 10; // Allow up to 10x more tests than source files
-    
-    logger.debug(`Test generation ratio check: ${testFileCount} tests for ${sourceFileCount} source files (ratio: ${ratio.toFixed(2)}x)`);
-    
+
+    logger.debug(
+      `Test generation ratio check: ${testFileCount} tests for ${sourceFileCount} source files (ratio: ${ratio.toFixed(2)}x)`
+    );
+
     if (ratio > maxRatio) {
       const message = [
         `⚠️  WARNING: Test generation would create ${testFileCount} test files for ${sourceFileCount} source files`,
@@ -248,13 +252,13 @@ export abstract class TestGenerator {
         `   • Use --force to bypass this check`,
         `   • Consider using --only-logical for targeted test generation`,
         ``,
-        `   To proceed anyway, add the --force flag to your command.`
+        `   To proceed anyway, add the --force flag to your command.`,
       ].join('\n');
-      
+
       console.log(`\n${message}\n`);
       throw new Error('Test generation ratio exceeds maximum recommended threshold');
     }
-    
+
     if (ratio > 5) {
       const warning = `Generating ${testFileCount} tests for ${sourceFileCount} source files (${ratio.toFixed(1)}x ratio). Consider reviewing patterns.`;
       logger.warn(warning);
@@ -266,8 +270,8 @@ export abstract class TestGenerator {
    */
   private async countSourceFiles(): Promise<number> {
     const { fg, path } = await import('../utils/common-imports');
-    
-    const patterns = ['**/*.{js,ts,jsx,tsx,py,java,cs,go,rb,php}'].map(pattern => 
+
+    const patterns = ['**/*.{js,ts,jsx,tsx,py,java,cs,go,rb,php}'].map((pattern) =>
       path.join(this.config.projectPath, pattern)
     );
 
@@ -283,16 +287,16 @@ export abstract class TestGenerator {
       '**/*.spec.*',
       '**/vendor/**',
       '**/target/**',
-      '**/.git/**'
+      '**/.git/**',
     ];
 
     try {
       const sourceFiles = await fg(patterns, {
         ignore: excludePatterns,
         absolute: true,
-        onlyFiles: true
+        onlyFiles: true,
       });
-      
+
       return sourceFiles.length;
     } catch (error) {
       logger.warn('Failed to count source files for validation', { error });
@@ -365,12 +369,12 @@ export abstract class TestGenerator {
     const defaults: Required<NamingConventions> = {
       testFileSuffix: '.test',
       testDirectory: '__tests__',
-      mockFileSuffix: '.mock'
+      mockFileSuffix: '.mock',
     };
 
     return {
       ...defaults,
-      ...this.config.options.namingConventions
+      ...this.config.options.namingConventions,
     };
   }
 
@@ -379,14 +383,14 @@ export abstract class TestGenerator {
    */
   protected getTestFilePath(sourcePath: string, testType?: TestType, language?: string): string {
     const ext = this.getTestFileExtension(language);
-    
+
     // Get relative path from project root
     const relativePath = sourcePath.replace(this.config.projectPath, '').replace(/^\//, '');
-    
+
     // Remove original extension and add test suffix
     const pathWithoutExt = relativePath.replace(/\.[^/.]+$/, '');
     const typePrefix = testType ? `.${testType}` : '';
-    
+
     return `${this.config.outputPath}/${pathWithoutExt}${typePrefix}${ext}`;
   }
 
