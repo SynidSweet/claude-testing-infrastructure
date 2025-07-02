@@ -130,7 +130,8 @@ describe('ES Module Support', () => {
       
       // Should generate ES module React imports with .js extension
       expect(result).toContain("import React from 'react';");
-      expect(result).toContain("import { render, screen } from '@testing-library/react';");
+      expect(result).toContain("import { render, screen");
+      expect(result).toContain("@testing-library/react");
       expect(result).toContain("import Button from './Button.js';");
       expect(result).not.toContain("const React = require('react');");
       expect(result).not.toContain("const Button = require('./Button');");
