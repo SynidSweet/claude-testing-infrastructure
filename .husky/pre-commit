@@ -1,0 +1,12 @@
+#!/bin/sh
+# Pre-commit hook for comprehensive local testing
+# This ensures all tests (including AI validation) run before commits
+
+echo "🔍 Running pre-commit quality gates..."
+echo "This includes comprehensive local testing with AI validation."
+echo "For faster development iteration, consider using 'git commit --no-verify' occasionally,"
+echo "but ensure to run full tests before pushing to remote."
+echo ""
+
+# Run comprehensive quality checks and tests
+npm run precommit
