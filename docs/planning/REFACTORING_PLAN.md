@@ -45,7 +45,7 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 ## 📋 Pending Implementation Tasks (High Priority)
 
 ### **Critical CI/CD Maintenance (Immediate)**
-5. **Fix AI Validation Tests and CI/CD Documentation** - 🟡 Moderate (3-4 hours / 2 sessions)
+5. **Fix Remaining GitHub Actions Validation Failures** - 🟡 Moderate (2-3 hours / 2 sessions)
 
 ### **Investigation & Planning Phase (Next 4-6 Weeks)**
 6. **Configuration Auto-Discovery Investigation** - 🟠 Complex (6 hours / 3 sessions)
@@ -69,7 +69,7 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 - None currently pending
 
 ### **🟡 Moderate Tasks (3-6 hours / 2-3 sessions)**
-- None currently pending
+- Fix Remaining GitHub Actions Validation Failures (2-3 hours)
 
 ### **🟠 Complex Tasks (6-8 hours / 3-4 sessions)**
 - Configuration Auto-Discovery Investigation (6 hours)
@@ -82,8 +82,129 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 - Intelligent Test Generation System Epic (40+ hours)
 
 ### **Recommended Execution Order**
-1. **Next**: Configuration Auto-Discovery Investigation (next investigation phase, 6 hours)
-2. **Later**: File Discovery Service Investigation (8 hours)
+1. **Next**: Fix Remaining GitHub Actions Validation Failures (immediate priority, 2-3 hours)
+2. **Future**: Configuration Auto-Discovery Investigation (next investigation phase, 6 hours)
+3. **Later**: File Discovery Service Investigation (8 hours)
+
+---
+
+## 📋 Task: Fix Remaining GitHub Actions Validation Failures
+
+**Status**: Pending  
+**Priority**: 🟡 Moderate  
+**Estimate**: 2-3 hours / 2 sessions  
+**Created**: 2025-07-02  
+
+### Problem Summary
+GitHub Actions CI/CD validation pipeline is failing on remaining TypeScript compilation errors and CLI compatibility issues in AI validation tests. While the major API compatibility issues were resolved, several smaller issues remain that prevent the CI/CD pipeline from passing.
+
+**Current Status**: 3/5 validation steps passing (✅ Pre-validation, ✅ Connectivity, ✅ Test Quality), but Production Readiness failing on remaining TypeScript errors.
+
+**Impact**: Prevents clean CI/CD pipeline, blocks confidence in infrastructure stability, and creates technical debt.
+
+### Success Criteria  
+- [ ] All GitHub Actions validation steps pass successfully (5/5 green checkmarks)
+- [ ] No TypeScript compilation errors in AI validation test suite
+- [ ] All CLI commands used in tests work with correct flags and options
+- [ ] Template engine constructor issues resolved
+- [ ] Test runner framework detection working correctly
+- [ ] Zero breaking changes to core infrastructure code
+
+### Detailed Implementation Steps
+
+**Phase 1: Fix Remaining TypeScript Errors** (30-45 minutes)
+- [ ] Fix `enableValidation` property issue in StructuralTestGeneratorOptions
+- [ ] Fix `generatedTest` possibly undefined errors with proper null checks
+- [ ] Fix export object type issues in test-quality-validation.test.ts (exports should be strings, not objects)
+- [ ] Add proper TypeScript types for filter callback parameters
+- [ ] Run `npm run test:ai-validation` locally to verify TypeScript compilation
+
+**Phase 2: Fix CLI Command Compatibility** (30-45 minutes)  
+- [ ] Remove `--budget` flag from CLI commands (use valid alternatives)
+- [ ] Fix "No test runner found for framework: auto" by specifying correct framework
+- [ ] Update CLI command options to match current available flags
+- [ ] Test CLI commands manually to ensure they work before using in tests
+
+**Phase 3: Fix Template Engine Issues** (45-60 minutes)
+- [ ] Fix EnhancedReactTypeScriptComponentTemplate constructor error
+- [ ] Verify enhanced template exports and imports are correct
+- [ ] Add fallback handling for template loading failures
+- [ ] Test template engine initialization independently
+
+**Phase 4: Validation & Integration** (30-45 minutes)
+- [ ] Run complete AI validation test suite locally: `npm run test:ai-validation`
+- [ ] Push changes and monitor GitHub Actions workflow
+- [ ] Verify all 5 validation steps pass (Pre-validation, Connectivity, Test Quality, AI Generation, Production Readiness)
+- [ ] Monitor for any remaining issues or flaky tests
+- [ ] Update this refactoring plan by deleting this completed task
+
+### Specific Error Analysis (from GitHub Actions logs)
+
+**TypeScript Compilation Errors:**
+```typescript
+// Error 1: enableValidation property doesn't exist
+{ enableValidation: true }  // ❌ Remove or fix
+
+// Error 2: generatedTest possibly undefined  
+generatedTest.content       // ❌ Add null check
+generatedTest?.content      // ✅ Safe access
+
+// Error 3: Wrong export object structure
+exports: [{ name: 'add', type: 'function' }]  // ❌ Objects
+exports: ['add', 'subtract']                  // ✅ Strings
+```
+
+**CLI Command Errors:**
+```bash
+# Error: Unknown --budget flag
+node dist/cli/index.js test /path --only-logical --budget 1.00  # ❌
+node dist/cli/index.js test /path --only-logical               # ✅
+
+# Error: Framework detection
+framework: 'auto'     # ❌ May not be supported
+framework: 'jest'     # ✅ Explicit framework
+```
+
+### Before/After Code Examples
+
+**TypeScript Fixes:**
+```typescript
+// BEFORE - Compilation errors
+const generatedTest = results.find(test => test.includes('utils'));
+const quality = analyzeTestQuality(generatedTest.content); // Error: possibly undefined
+
+// AFTER - Safe access  
+const generatedTest = results.find(test => test.includes('utils'));
+if (!generatedTest) throw new Error('Test not found');
+const quality = analyzeTestQuality(generatedTest.content); // Safe
+```
+
+**CLI Command Fixes:**
+```bash
+# BEFORE - Invalid flags
+node dist/cli/index.js test /path --budget 1.00
+
+# AFTER - Valid flags only  
+node dist/cli/index.js test /path --only-logical
+```
+
+### Risk Assessment
+- **Breaking changes**: None expected - only fixing test code and CLI usage
+- **Testing strategy**: Run AI validation tests after each fix, monitor GitHub Actions
+- **Rollback plan**: Individual commits can be reverted if issues arise
+- **Dependencies**: No changes to core infrastructure required
+
+### Estimated Effort
+**Total time**: 2-3 hours across 2 sessions
+**Complexity**: Moderate  
+**AI Agent suitability**: Excellent - clear, specific errors with known solutions
+
+### Documentation Requirements
+- Update any CLI command examples in documentation if flags changed
+- Document any new constraints discovered about AI validation test patterns
+- Add troubleshooting notes for future GitHub Actions maintenance
+
+---
 
 ## 🚀 Getting Started
 
