@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-07-02 | Updated by: /document command | Completed JavaScriptTestGenerator integration and real-world validation - language-specific generator system now production ready*
+*Last updated: 2025-07-02 | Updated by: /document command | Integrated centralized model mapping system and fixed framework auto-detection for reliable CI/CD pipeline*
 
 ## Architecture Summary
 
@@ -581,10 +581,10 @@ Project Analysis → Language Detection → Context Building → Generator Creat
 
 ### Core AI Components (Implemented 2025-06-28)
 
-1. **AITaskPreparation**: Intelligent task queue management and context extraction
+1. **AITaskPreparation**: Intelligent task queue management and context extraction with centralized model mapping integration
 2. **ClaudeOrchestrator**: Parallel AI process execution with concurrency control
 3. **PromptTemplates**: Framework-aware prompt generation system
-4. **CostEstimator**: Token prediction and budget optimization engine
+4. **CostEstimator**: Token prediction and budget optimization engine using unified model pricing data
 
 ### AI Generation Flow (Current Implementation)
 
@@ -596,11 +596,11 @@ Gap Analysis → Task Preparation → Prompt Generation → Claude Orchestration
 
 ### Implemented Features
 
-- **Multi-Model Support**: Claude 3 Opus, Sonnet, and Haiku with automatic selection
+- **Multi-Model Support**: Claude 3 Opus, Sonnet, and Haiku with automatic selection and centralized alias resolution
 - **Batch Processing**: Concurrent AI task execution with configurable limits
 - **Context Awareness**: Framework and test type specific prompt generation
-- **Cost Management**: Budget controls, token estimation, and usage tracking
-- **CLI Integration**: `generate-logical` and `test-ai` commands
+- **Cost Management**: Budget controls, token estimation, and usage tracking with unified model pricing
+- **CLI Integration**: `generate-logical` and `test-ai` commands with resolved model name support
 - **Event-Based Progress**: Real-time status updates during generation
 
 ## Test Execution Architecture (Phase 4 Complete)
@@ -610,7 +610,7 @@ Gap Analysis → Task Preparation → Prompt Generation → Claude Orchestration
 1. **TestRunner Base Class**: Abstract foundation with lifecycle management and error handling
 2. **JestRunner**: JavaScript/TypeScript test execution with enhanced coverage processing
 3. **PytestRunner**: Python test execution with integrated coverage analysis
-4. **TestRunnerFactory**: Automatic runner selection and framework recommendation
+4. **TestRunnerFactory**: Automatic runner selection, framework recommendation, and auto-framework resolution
 5. **Coverage Reporter System**: Comprehensive coverage analysis, aggregation, and visualization
 
 ### Test Execution Flow (Current Implementation)
@@ -623,7 +623,7 @@ Generated Tests → Runner Selection → Test Execution → Coverage Processing 
 
 ### Implemented Features
 
-- **Multi-Framework Support**: Jest for JavaScript/TypeScript, pytest for Python
+- **Multi-Framework Support**: Jest for JavaScript/TypeScript, pytest for Python with auto-framework detection
 - **Advanced Coverage Processing**: Istanbul and coverage.py format parsing with aggregation
 - **Professional Reporting**: HTML, JSON, Markdown, Text, and XML output formats
 - **Gap Analysis**: Intelligent coverage gap identification with priority scoring

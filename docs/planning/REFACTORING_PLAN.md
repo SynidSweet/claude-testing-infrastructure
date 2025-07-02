@@ -43,94 +43,56 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 
 ## 🏆 Implementation Timeline & Prioritization
 
-## 📋 Pending Implementation Tasks (High Priority)
 
-### 📋 Refactoring Task: Systematic GitHub Actions CI/CD Failure Resolution
+## 📋 Pending Implementation Tasks
+
+### 📋 Refactoring Task: Fix Test Suite to Achieve 95% Pass Rate
+
+**Status**: Pending
+**Priority**: 🟠 High
+**Estimate**: 2-3 hours
+**Started**: -
 
 #### Problem Summary
-GitHub Actions are systematically failing with AI validation test compilation errors, CLI compatibility issues, and test runner problems. The infrastructure needs a sticky task that iteratively fixes these issues until the entire CI/CD pipeline passes, ensuring continuous integration reliability.
+Test suite is currently at 87% pass rate (322/371 tests passing). Multiple test failures in ModuleSystemAnalyzer, configuration integration tests, and AI validation tests are preventing the 95% target. The original CI/CD task description was outdated - the mentioned issues (enableValidation, --budget flag, template errors) don't exist in the codebase.
 
 #### Success Criteria
-- [ ] All GitHub Actions workflows pass on push to main branch
-- [ ] AI validation tests compile without TypeScript errors
-- [ ] CLI commands work correctly in CI environment
-- [ ] Test runner properly detects and executes tests
-- [ ] No "unknown option" CLI errors in automated testing
-- [ ] Template engine constructor errors resolved
-- [ ] Implement automated push-test-fix cycle until green
+- [ ] ModuleSystemAnalyzer tests fixed (mock ordering issues)
+- [ ] Configuration integration tests passing
+- [ ] AI validation tests handled gracefully when Claude CLI unavailable
+- [ ] Test suite achieves 95%+ pass rate (355+ out of 371)
+- [ ] All non-AI tests passing reliably
 
 #### Detailed Implementation Steps
 
-**Phase 1: Immediate Error Resolution** (15-20 minutes)
-- [ ] Create feature branch: `git checkout -b fix/ci-cd-systematic-failures`
-- [ ] Fix TypeScript compilation errors in AI validation tests:
-  - Remove `enableValidation` property usage in test files
-  - Add null checks for `generatedTest` objects
-  - Correct export object structures in `TemplateContext`
-- [ ] Fix CLI compatibility issues:
-  - Remove all `--budget` flag usage from validation tests
-  - Replace `fail()` with `throw new Error()` statements
-- [ ] Fix template engine constructor errors:
-  - Resolve `EnhancedReactTypeScriptComponentTemplate` constructor issue
-  - Ensure all enhanced templates export correctly
+**Phase 1: Fix ModuleSystemAnalyzer Tests** (45 minutes)
+- [ ] Fix mock ordering for file content analysis tests
+- [ ] Ensure project analysis correctly detects module types from file content
+- [ ] Fix error handling test expectations
+- [ ] Run `npm test tests/generators/javascript/ModuleSystemAnalyzer.test.ts`
 
-**Phase 2: Test Runner Framework Detection** (10-15 minutes)
-- [ ] Fix "No test runner found for framework: auto" error
-- [ ] Ensure proper framework detection in validation projects
-- [ ] Verify test file discovery works in CI environment
-- [ ] Run tests locally to confirm fixes before pushing
+**Phase 2: Fix Configuration Integration Tests** (30 minutes)
+- [ ] Review failing configuration validation tests
+- [ ] Fix environment variable test expectations
+- [ ] Update command integration test mocks
+- [ ] Run `npm test tests/integration/configuration/`
 
-**Phase 3: Automated Push-Test-Fix Cycle** (20-30 minutes)
-- [ ] Push changes and monitor GitHub Actions results
-- [ ] If failures occur, analyze specific error messages
-- [ ] Apply targeted fixes for each remaining issue
-- [ ] Repeat push-test cycle until all workflows pass
-- [ ] Document any systemic issues discovered
+**Phase 3: Handle AI Validation Tests** (30 minutes)
+- [ ] Add proper skip conditions for Claude CLI unavailable
+- [ ] Mock Claude CLI responses for CI environment
+- [ ] Ensure tests fail gracefully without blocking CI
+- [ ] Run `npm test tests/validation/ai-agents/`
 
-**Phase 4: Documentation & Prevention** (5-10 minutes)
-- [ ] Update AI validation test maintenance documentation
-- [ ] Add CI/CD status monitoring guidelines
-- [ ] Create preventive measures for future API changes
-- [ ] Commit final working state with descriptive messages
-
-#### Before/After Code Structure
-```
-BEFORE:
-tests/validation/ai-agents/generation-quality/test-quality-validation.test.ts
-- enableValidation: true (TypeScript error)
-- generatedTest.content (possible undefined)
-- { name: 'add', type: 'function' } as exports (wrong type)
-
-CLI commands using --budget flag (unknown option)
-Template engine constructor failures
-
-AFTER:
-tests/validation/ai-agents/generation-quality/test-quality-validation.test.ts
-- Removed enableValidation property usage
-- Added null checks: generatedTest?.content
-- Fixed export types to match TemplateContext interface
-
-CLI commands without --budget flag
-Working template engine constructors
-All GitHub Actions workflows passing
-```
-
-#### Risk Assessment
-- **Breaking changes**: None expected - only fixing test compatibility
-- **Testing strategy**: Monitor GitHub Actions results after each push
-- **Rollback plan**: `git checkout main && git branch -D fix/ci-cd-systematic-failures`
+**Phase 4: Fix Remaining Test Failures** (30 minutes)
+- [ ] Fix AsyncPatternDetector test issues
+- [ ] Review and fix generated test fixtures
+- [ ] Address any remaining test failures
+- [ ] Run full test suite: `npm test`
 
 #### Estimated Effort
-**Total time**: 45-75 minutes (may require multiple iterations)
-**Complexity**: Moderate (systematic debugging required)
-**AI Agent suitability**: Well-suited - clear error messages and iterative fixes
-
-#### Push-Test-Fix Strategy
-1. **Initial fix push** - Address all known TypeScript/CLI errors
-2. **Monitor workflow** - Watch GitHub Actions for new failures
-3. **Targeted fixes** - Address specific errors that emerge
-4. **Repeat cycle** - Until all workflows show green status
-5. **Final validation** - Ensure stable CI/CD state
+**Total time**: 2-3 hours
+**Complexity**: Moderate
+**AI Agent suitability**: Well-suited for AI agent execution
 
 ---
 
