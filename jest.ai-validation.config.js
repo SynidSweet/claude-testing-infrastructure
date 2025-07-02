@@ -107,8 +107,8 @@ module.exports = {
   // Test sequencer for proper test ordering
   testSequencer: '<rootDir>/tests/validation/testSequencer.js',
 
-  // Retry configuration for flaky AI tests
-  retryTimes: 2,
+  // Note: Jest 29 doesn't support retry configuration built-in
+  // Retries would need to be implemented at the test level if needed
   
   // Custom test environment variables
   testEnvironmentOptions: {
