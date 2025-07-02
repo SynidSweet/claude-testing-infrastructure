@@ -51,8 +51,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Temporarily disable cache to fix lock file detection issue
-          # cache: 'npm'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -105,8 +104,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Temporarily disable cache to fix lock file detection issue
-          # cache: 'npm'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -150,8 +148,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Temporarily disable cache to fix lock file detection issue
-          # cache: 'npm'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -202,8 +199,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Temporarily disable cache to fix lock file detection issue
-          # cache: 'npm'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -277,8 +273,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Temporarily disable cache to fix lock file detection issue
-          # cache: 'npm'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
