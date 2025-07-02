@@ -31,8 +31,23 @@ describe('Test Quality Validation - Critical Issues', () => {
   let analyzer: ProjectAnalyzer;
 
   beforeAll(async () => {
-    generator = new StructuralTestGenerator();
-    analyzer = new ProjectAnalyzer();
+    analyzer = new ProjectAnalyzer(testProjectPath);
+    const projectAnalysis = await analyzer.analyzeProject();
+    
+    generator = new StructuralTestGenerator(
+      { 
+        projectPath: testProjectPath,
+        outputPath: path.join(testProjectPath, '.claude-testing'),
+        testFramework: 'jest',
+        options: {},
+        patterns: {
+          include: ['**/*.{js,jsx,ts,tsx}'], 
+          exclude: ['**/*.test.*', '**/*.spec.*']
+        }
+      },
+      projectAnalysis,
+      { enableValidation: true }
+    );
     
     // Ensure test project exists
     try {
@@ -44,11 +59,9 @@ describe('Test Quality Validation - Critical Issues', () => {
 
   describe('🚨 Critical Issue: Generated Test Quality', () => {
     test('should generate meaningful assertions, not just TODOs', async () => {
-      const testFilePath = path.join(testProjectPath, 'src/utils.js');
-      const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
-      
-      const generatedTest = await generator.generateTest(testFilePath, projectAnalysis);
-      const quality = analyzeTestQuality(generatedTest);
+      const generationResult = await generator.generateAllTests();
+      const generatedTest = generationResult.tests[0]; // Get first test for analysis
+      const quality = analyzeTestQuality(generatedTest.content);
       
       console.log('Test Quality Metrics:', quality);
       
@@ -63,28 +76,29 @@ describe('Test Quality Validation - Critical Issues', () => {
     });
 
     test('should generate comprehensive tests for React components', async () => {
-      const componentPath = path.join(testProjectPath, 'src/App.jsx');
-      const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
+      const generationResult = await generator.generateAllTests();
+      const generatedTest = generationResult.tests.find(test => test.sourcePath.includes('App.jsx'));
+      expect(generatedTest).toBeDefined();
       
-      const generatedTest = await generator.generateTest(componentPath, projectAnalysis);
-      const quality = analyzeTestQuality(generatedTest);
+      const testContent = generatedTest!.content;
+      const quality = analyzeTestQuality(testContent);
       
       // React-specific requirements
-      expect(generatedTest).toContain('@testing-library/react');
-      expect(generatedTest).toContain('render');
-      expect(generatedTest).toContain('screen');
+      expect(testContent).toContain('@testing-library/react');
+      expect(testContent).toContain('render');
+      expect(testContent).toContain('screen');
       expect(quality.assertionCount).toBeGreaterThan(2); // More than basic existence
       expect(quality.qualityScore).toBeGreaterThan(0.7); // Higher bar for components
     });
 
     test('should generate tests with proper import paths for ES modules', async () => {
-      const testFilePath = path.join(testProjectPath, 'src/utils.js');
-      const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
+      const generationResult = await generator.generateAllTests();
+      const generatedTest = generationResult.tests.find(test => test.sourcePath.includes('utils.js'));
+      expect(generatedTest).toBeDefined();
       
-      const generatedTest = await generator.generateTest(testFilePath, projectAnalysis);
-      
+      const testContent = generatedTest!.content;
       // Check for correct ES module imports
-      const importLines = generatedTest.split('\n').filter(line => line.trim().startsWith('import'));
+      const importLines = testContent.split('\n').filter(line => line.trim().startsWith('import'));
       
       importLines.forEach(importLine => {
         if (importLine.includes('./') || importLine.includes('../')) {
@@ -96,42 +110,44 @@ describe('Test Quality Validation - Critical Issues', () => {
     });
 
     test('should generate executable tests without syntax errors', async () => {
-      const testFilePath = path.join(testProjectPath, 'src/utils.js');
-      const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
+      const generationResult = await generator.generateAllTests();
+      const generatedTest = generationResult.tests.find(test => test.sourcePath.includes('utils.js'));
+      expect(generatedTest).toBeDefined();
       
-      const generatedTest = await generator.generateTest(testFilePath, projectAnalysis);
+      const testContent = generatedTest!.content;
       
       // Basic syntax validation
-      expect(generatedTest).toContain('describe(');
-      expect(generatedTest).toContain('test(');
-      expect(generatedTest).toContain('expect(');
+      expect(testContent).toContain('describe(');
+      expect(testContent).toContain('test(');
+      expect(testContent).toContain('expect(');
       
       // Should not contain template errors
-      expect(generatedTest).not.toContain('{{');
-      expect(generatedTest).not.toContain('}}');
-      expect(generatedTest).not.toContain('undefined');
+      expect(testContent).not.toContain('{{');
+      expect(testContent).not.toContain('}}');
+      expect(testContent).not.toContain('undefined');
       
       // Count brackets for basic syntax validation
-      const openBraces = (generatedTest.match(/{/g) || []).length;
-      const closeBraces = (generatedTest.match(/}/g) || []).length;
+      const openBraces = (testContent.match(/{/g) || []).length;
+      const closeBraces = (testContent.match(/}/g) || []).length;
       expect(openBraces).toBe(closeBraces);
       
-      const openParens = (generatedTest.match(/\(/g) || []).length;
-      const closeParens = (generatedTest.match(/\)/g) || []).length;
+      const openParens = (testContent.match(/\(/g) || []).length;
+      const closeParens = (testContent.match(/\)/g) || []).length;
       expect(openParens).toBe(closeParens);
     });
   });
 
   describe('Test Content Analysis', () => {
     test('should prefer meaningful assertions over existence checks', async () => {
-      const testFilePath = path.join(testProjectPath, 'src/utils.js');
-      const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
+      const generationResult = await generator.generateAllTests();
+      const generatedTest = generationResult.tests.find(test => test.sourcePath.includes('utils.js'));
+      expect(generatedTest).toBeDefined();
       
-      const generatedTest = await generator.generateTest(testFilePath, projectAnalysis);
+      const testContent = generatedTest!.content;
       
       // Count meaningful vs basic assertions
-      const existenceChecks = (generatedTest.match(/toBeDefined\(\)/g) || []).length;
-      const totalExpects = (generatedTest.match(/expect\(/g) || []).length;
+      const existenceChecks = (testContent.match(/toBeDefined\(\)/g) || []).length;
+      const totalExpects = (testContent.match(/expect\(/g) || []).length;
       const meaningfulAssertions = totalExpects - existenceChecks;
       
       expect(meaningfulAssertions).toBeGreaterThan(existenceChecks);
@@ -139,10 +155,7 @@ describe('Test Quality Validation - Critical Issues', () => {
     });
 
     test('should include edge case testing for functions', async () => {
-      const testFilePath = path.join(testProjectPath, 'src/utils.js');
-      const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
-      
-      const generatedTest = await generator.generateTest(testFilePath, projectAnalysis);
+      const generationResult = await generator.generateAllTests();
       
       // Look for edge case patterns
       const edgeCasePatterns = [
@@ -155,8 +168,12 @@ describe('Test Quality Validation - Critical Issues', () => {
         /edge case/i
       ];
       
+      const generatedTest = generationResult.tests.find(test => test.sourcePath.includes('utils.js'));
+      expect(generatedTest).toBeDefined();
+      
+      const testContent = generatedTest!.content;
       const edgeCaseCount = edgeCasePatterns.reduce((count, pattern) => {
-        return count + (generatedTest.match(pattern) || []).length;
+        return count + (testContent.match(pattern) || []).length;
       }, 0);
       
       expect(edgeCaseCount).toBeGreaterThan(0);
@@ -164,22 +181,23 @@ describe('Test Quality Validation - Critical Issues', () => {
     });
 
     test('should validate test structure and organization', async () => {
-      const testFilePath = path.join(testProjectPath, 'src/utils.js');
-      const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
+      const generationResult = await generator.generateAllTests();
+      const generatedTest = generationResult.tests.find(test => test.sourcePath.includes('utils.js'));
+      expect(generatedTest).toBeDefined();
       
-      const generatedTest = await generator.generateTest(testFilePath, projectAnalysis);
+      const testContent = generatedTest!.content;
       
       // Validate proper test structure
-      const describeBlocks = (generatedTest.match(/describe\(/g) || []).length;
-      const testBlocks = (generatedTest.match(/test\(/g) || []).length;
+      const describeBlocks = (testContent.match(/describe\(/g) || []).length;
+      const testBlocks = (testContent.match(/test\(/g) || []).length;
       
       expect(describeBlocks).toBeGreaterThan(0);
       expect(testBlocks).toBeGreaterThan(0);
       expect(testBlocks).toBeGreaterThan(describeBlocks); // More tests than describe blocks
       
       // Check for proper async handling if needed
-      if (generatedTest.includes('async')) {
-        expect(generatedTest).toContain('await');
+      if (testContent.includes('async')) {
+        expect(testContent).toContain('await');
       }
     });
   });
@@ -189,7 +207,7 @@ describe('Test Quality Validation - Critical Issues', () => {
       const templateEngine = new TestTemplateEngine();
       
       // Test JavaScript function template
-      const jsTemplate = templateEngine.generateTestContent({
+      const jsTemplate = templateEngine.generateTest({
         filePath: 'utils.js',
         exports: [{ name: 'add', type: 'function' }],
         language: 'javascript',
@@ -201,7 +219,7 @@ describe('Test Quality Validation - Critical Issues', () => {
       expect(jsTemplate).not.toContain('TODO'); // Should not rely on TODOs
       
       // Test React component template
-      const reactTemplate = templateEngine.generateTestContent({
+      const reactTemplate = templateEngine.generateTest({
         filePath: 'App.jsx',
         exports: [{ name: 'App', type: 'component' }],
         language: 'javascript',
@@ -216,7 +234,7 @@ describe('Test Quality Validation - Critical Issues', () => {
     test('should handle complex export patterns', async () => {
       const templateEngine = new TestTemplateEngine();
       
-      const complexTemplate = templateEngine.generateTestContent({
+      const complexTemplate = templateEngine.generateTest({
         filePath: 'complex.js',
         exports: [
           { name: 'default', type: 'function' },
@@ -248,13 +266,14 @@ describe('Test Quality Validation - Critical Issues', () => {
       
       const qualityResults = [];
       
+      const generationResult = await generator.generateAllTests();
+      
       for (const file of testFiles) {
-        const filePath = path.join(testProjectPath, file);
-        const projectAnalysis = await analyzer.analyzeProject(testProjectPath);
-        const generatedTest = await generator.generateTest(filePath, projectAnalysis);
-        const quality = analyzeTestQuality(generatedTest);
-        
-        qualityResults.push({ file, quality });
+        const generatedTest = generationResult.tests.find(test => test.sourcePath.includes(file));
+        if (generatedTest) {
+          const quality = analyzeTestQuality(generatedTest.content);
+          qualityResults.push({ file, quality });
+        }
       }
       
       // Production standards

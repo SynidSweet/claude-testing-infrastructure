@@ -169,6 +169,64 @@ node dist/cli/index.js incremental /path/to/project # Smart updates based on Git
 - **📖 Reference**: [`/docs/reference/`](./docs/reference/) - Command reference and API specifications
 - **📖 Testing**: [`/docs/testing/`](./docs/testing/) - Testing frameworks and validation systems
 
+## 🔧 CI/CD Maintenance
+
+### AI Validation Test Maintenance
+
+The infrastructure includes comprehensive AI validation tests (`tests/validation/ai-agents/`) that ensure core functionality works correctly. These tests require periodic maintenance when APIs change.
+
+#### When to Update AI Validation Tests
+
+AI validation tests must be updated when:
+- Core API interfaces change (constructor parameters, method signatures)
+- New required fields are added to interfaces
+- Method names are changed or deprecated
+- Type definitions are modified
+
+#### Maintenance Process
+
+1. **Identify API Changes**: When core infrastructure APIs change, check if validation tests need updates
+2. **Update Test API Usage**: Fix constructor calls, method names, and interface usage in validation test files
+3. **Maintain Test Intent**: Keep the same test coverage and validation goals while updating to current APIs
+4. **Verify GitHub Actions**: Ensure CI/CD pipeline completes successfully after changes
+
+#### Key Validation Test Files
+
+- `tests/validation/ai-agents/connectivity/claude-cli-integration.test.ts` - Claude CLI integration and timeout handling
+- `tests/validation/ai-agents/generation-quality/test-quality-validation.test.ts` - Test quality metrics and assertions
+- `tests/validation/ai-agents/end-to-end/production-readiness.test.ts` - Complete workflow validation
+
+#### Troubleshooting Common Issues
+
+**TypeScript Compilation Errors:**
+- Check constructor parameters match current interface requirements
+- Verify method names haven't changed
+- Update interface field names and types
+- Ensure all required fields are provided
+
+**GitHub Actions Failures:**
+- Run `npm run test:ai-validation` locally to reproduce issues
+- Check for missing required parameters in API calls
+- Verify all test dependencies are correctly imported
+- Update Jest configuration if needed
+
+#### Maintenance Example
+
+See refactoring task "Fix AI Validation Tests and CI/CD Documentation" (2025-07-02) for a complete example of updating validation tests when APIs change. This task updated:
+- ClaudeOrchestrator constructor to require config object
+- FrameworkInfo interface structure changes
+- AITaskBatch required fields (id, totalEstimatedTokens, totalEstimatedCost, maxConcurrency)
+- TestGenerator API changes (generateTest → generateAllTests)
+- ProjectAnalyzer constructor requirements
+
+#### Responsibility
+
+AI validation test maintenance is part of core infrastructure development. When making API changes:
+1. **Check impact** on validation tests before committing
+2. **Update tests** as part of the same pull request
+3. **Verify CI/CD** passes before merging
+4. **Document changes** if they affect maintenance process
+
 ---
 
 **Version**: 2.0.0 | **Architecture**: Decoupled-only | **AI**: Claude-powered | **Status**: Production Ready

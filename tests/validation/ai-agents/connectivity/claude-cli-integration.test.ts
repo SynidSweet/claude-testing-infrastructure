@@ -21,7 +21,11 @@ describe('Claude CLI Integration - Critical Issues', () => {
   let orchestrator: ClaudeOrchestrator;
 
   beforeAll(async () => {
-    orchestrator = new ClaudeOrchestrator();
+    orchestrator = new ClaudeOrchestrator({
+      maxConcurrent: 2,
+      model: 'sonnet',
+      timeout: 900000
+    });
     
     // Ensure test project exists
     try {
@@ -61,10 +65,10 @@ describe('Claude CLI Integration - Critical Issues', () => {
                 dependencies: [],
                 missingScenarios: ['Basic render test'],
                 frameworkInfo: {
-                  name: 'react',
-                  version: '18.0.0',
-                  testRunner: 'jest',
-                  testFilePattern: '*.test.{js,jsx}'
+                  language: 'javascript',
+                  testFramework: 'jest',
+                  moduleType: 'esm',
+                  hasTypeScript: false
                 }
               }
             }]
@@ -88,7 +92,13 @@ describe('Claude CLI Integration - Critical Issues', () => {
     }, 16 * 60 * 1000); // 16 minute Jest timeout
 
     test('should handle empty task list gracefully', async () => {
-      const result = await orchestrator.processBatch({ tasks: [] });
+      const result = await orchestrator.processBatch({ 
+        id: 'empty-batch',
+        tasks: [],
+        totalEstimatedTokens: 0,
+        totalEstimatedCost: 0,
+        maxConcurrency: 1
+      });
       expect(result).toEqual([]);
     });
 
@@ -97,15 +107,32 @@ describe('Claude CLI Integration - Critical Issues', () => {
       
       try {
         await orchestrator.processBatch({
+          id: 'invalid-batch',
+          totalEstimatedTokens: 50,
+          totalEstimatedCost: 0.0005,
+          maxConcurrency: 1,
           tasks: [{
             id: 'invalid-task',
-            filePath: '/nonexistent/file.js',
-            content: 'invalid content',
-            language: 'javascript',
-            framework: 'react',
-            priority: 'low',
+            sourceFile: '/nonexistent/file.js',
+            testFile: '/nonexistent/file.test.js',
+            priority: 1,
+            complexity: 1,
             estimatedTokens: 50,
-            prompt: 'Generate tests for invalid file'
+            estimatedCost: 0.0005,
+            status: 'pending',
+            prompt: 'Test prompt',
+            context: {
+              sourceCode: 'invalid content',
+              existingTests: '',
+              dependencies: [],
+              missingScenarios: [],
+              frameworkInfo: {
+                language: 'javascript',
+                testFramework: 'jest',
+                moduleType: 'commonjs',
+                hasTypeScript: false
+              }
+            }
           }]
         });
       } catch (error) {
