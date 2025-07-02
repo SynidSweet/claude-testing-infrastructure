@@ -61,8 +61,14 @@ jobs:
 
       - name: Verify CLI availability
         run: |
-          node dist/cli/index.js --version
-          echo "CLI_VERSION=$(node dist/cli/index.js --version)" >> $GITHUB_ENV
+          echo "Testing CLI availability..."
+          CLI_OUTPUT=$(node dist/cli/index.js --version)
+          echo "CLI output: $CLI_OUTPUT"
+          
+          # Extract just the version number (last line)
+          CLI_VERSION=$(echo "$CLI_OUTPUT" | tail -n 1)
+          echo "CLI_VERSION=$CLI_VERSION" >> $GITHUB_ENV
+          echo "✅ CLI version: $CLI_VERSION"
 
       - name: Check conditions
         id: check-conditions
