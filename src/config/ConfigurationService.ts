@@ -493,10 +493,10 @@ export class ConfigurationService {
       return;
     }
     
-    // For nested paths, convert path segments to camelCase
+    // For nested paths, keep first segment lowercase, make others camelCase
     const camelPath = path.map((segment, index) => {
-      if (index === 0) return segment;
-      return segment.charAt(0).toUpperCase() + segment.slice(1);
+      if (index === 0) return segment.toLowerCase();
+      return segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase();
     }).filter(seg => seg !== ''); // Remove empty segments
     
     if (camelPath.length === 0) return;
@@ -534,6 +534,31 @@ export class ConfigurationService {
       if (!obj.features) obj.features = {};
       obj.features.mocks = value;
       delete obj.features.mocking;
+    }
+    
+    // Map FEATURES_INTEGRATION_TESTS to features.integrationTests
+    if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
+      if (!obj.features) obj.features = {};
+      obj.features.integrationTests = value;
+      // Clean up incorrectly parsed nested structure
+      if (obj.features.Integration) {
+        delete obj.features.Integration;
+      }
+    }
+    
+    // Map COVERAGE_THRESHOLDS_GLOBAL_* to coverage.thresholds.global.*
+    if (upperPath.startsWith('COVERAGE_THRESHOLDS_GLOBAL_')) {
+      const thresholdType = path[path.length - 1]; // Get the last segment (e.g., 'functions')
+      if (thresholdType) {
+        if (!obj.coverage) obj.coverage = {};
+        if (!obj.coverage.thresholds) obj.coverage.thresholds = {};
+        if (!obj.coverage.thresholds.global) obj.coverage.thresholds.global = {};
+        obj.coverage.thresholds.global[thresholdType.toLowerCase()] = value;
+        // Clean up incorrectly parsed nested structure
+        if (obj.coverage.Thresholds) {
+          delete obj.coverage.Thresholds;
+        }
+      }
     }
     
     // Map OUTPUT_FORMAT to output.format AND formats array
@@ -724,12 +749,7 @@ export class ConfigurationService {
       if (thresholds) {
         config.coverage = {
           thresholds: {
-            global: {
-              statements: thresholds.statements || 80,
-              branches: thresholds.branches || 80,
-              functions: thresholds.functions || 80,
-              lines: thresholds.lines || 80
-            }
+            global: thresholds  // Only set the properties that were explicitly provided
           },
           ...(config.coverage || {})
         };

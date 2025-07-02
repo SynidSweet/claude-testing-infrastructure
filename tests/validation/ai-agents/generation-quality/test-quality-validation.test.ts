@@ -12,6 +12,7 @@ import fs from 'fs/promises';
 import { StructuralTestGenerator } from '../../../../src/generators/StructuralTestGenerator';
 import { ProjectAnalyzer } from '../../../../src/analyzers/ProjectAnalyzer';
 import { TestTemplateEngine } from '../../../../src/generators/templates/TestTemplateEngine';
+import { TestType } from '../../../../src/generators/TestGenerator';
 
 interface TestQualityMetrics {
   totalLines: number;
@@ -46,7 +47,7 @@ describe('Test Quality Validation - Critical Issues', () => {
         }
       },
       projectAnalysis,
-      { enableValidation: true }
+      { dryRun: false }
     );
     
     // Ensure test project exists
@@ -61,6 +62,9 @@ describe('Test Quality Validation - Critical Issues', () => {
     test('should generate meaningful assertions, not just TODOs', async () => {
       const generationResult = await generator.generateAllTests();
       const generatedTest = generationResult.tests[0]; // Get first test for analysis
+      if (!generatedTest) {
+        throw new Error('No tests were generated');
+      }
       const quality = analyzeTestQuality(generatedTest.content);
       
       console.log('Test Quality Metrics:', quality);
@@ -208,10 +212,17 @@ describe('Test Quality Validation - Critical Issues', () => {
       
       // Test JavaScript function template
       const jsTemplate = templateEngine.generateTest({
-        filePath: 'utils.js',
-        exports: [{ name: 'add', type: 'function' }],
+        moduleName: 'utils',
+        modulePath: './utils.js',
+        imports: [],
+        exports: ['add'],
+        hasDefaultExport: false,
+        testType: TestType.UNIT,
+        framework: 'jest',
         language: 'javascript',
-        framework: 'node'
+        isAsync: false,
+        isComponent: false,
+        dependencies: []
       });
       
       expect(jsTemplate).toContain('describe');
@@ -220,10 +231,17 @@ describe('Test Quality Validation - Critical Issues', () => {
       
       // Test React component template
       const reactTemplate = templateEngine.generateTest({
-        filePath: 'App.jsx',
-        exports: [{ name: 'App', type: 'component' }],
+        moduleName: 'App',
+        modulePath: './App.jsx',
+        imports: [],
+        exports: ['App'],
+        hasDefaultExport: true,
+        testType: TestType.COMPONENT,
+        framework: 'react',
         language: 'javascript',
-        framework: 'react'
+        isAsync: false,
+        isComponent: true,
+        dependencies: []
       });
       
       expect(reactTemplate).toContain('@testing-library/react');
@@ -235,15 +253,22 @@ describe('Test Quality Validation - Critical Issues', () => {
       const templateEngine = new TestTemplateEngine();
       
       const complexTemplate = templateEngine.generateTest({
-        filePath: 'complex.js',
+        moduleName: 'complex',
+        modulePath: './complex.js',
+        imports: [],
         exports: [
-          { name: 'default', type: 'function' },
-          { name: 'namedFunction', type: 'function' },
-          { name: 'CONFIG', type: 'object' },
-          { name: 'MyClass', type: 'class' }
+          'default',
+          'namedFunction',
+          'CONFIG',
+          'MyClass'
         ],
+        hasDefaultExport: true,
+        testType: TestType.UNIT,
+        framework: 'jest',
         language: 'javascript',
-        framework: 'node'
+        isAsync: false,
+        isComponent: false,
+        dependencies: []
       });
       
       // Should handle all export types

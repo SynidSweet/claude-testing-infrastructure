@@ -185,7 +185,7 @@ describe('Claude CLI Integration - Critical Issues', () => {
         expect(stdout).toContain('claude');
         console.log('✅ Claude CLI version:', stdout.trim());
       } catch (error) {
-        fail('Claude CLI is not available or not in PATH');
+        throw new Error('Claude CLI is not available or not in PATH');
       }
     });
 
@@ -227,7 +227,7 @@ describe('Claude CLI Integration - Critical Issues', () => {
             setTimeout(() => reject(new Error('Custom timeout')), shortTimeout)
           )
         ]);
-        fail('Should have timed out');
+        throw new Error('Should have timed out');
       } catch (error) {
         const duration = Date.now() - startTime;
         expect((error as Error).message).toBe('Custom timeout');
@@ -264,7 +264,7 @@ describe('Claude CLI Integration - Critical Issues', () => {
 
       try {
         await rateLimitedRequest();
-        fail('Should have thrown rate limit error');
+        throw new Error('Should have thrown rate limit error');
       } catch (error) {
         expect((error as Error).message).toContain('Rate limit');
         // In real implementation, this should trigger retry logic
@@ -279,7 +279,7 @@ describe('Claude CLI Integration - Critical Issues', () => {
 
       try {
         await networkFailure();
-        fail('Should have thrown network error');
+        throw new Error('Should have thrown network error');
       } catch (error) {
         expect((error as Error).message).toContain('Network error');
         // In real implementation, this should trigger retry logic

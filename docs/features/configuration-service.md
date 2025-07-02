@@ -2,7 +2,7 @@
 
 *Centralized configuration management for the Claude Testing Infrastructure*
 
-*Last updated: 2025-07-02 | Enhanced environment variable support with comprehensive nested object mapping*
+*Last updated: 2025-07-02 | Fixed critical environment variable parsing bugs and CLI threshold handling*
 
 ## Overview
 
@@ -165,6 +165,74 @@ npm test -- tests/integration/configuration/env-vars.test.ts
 npm test -- tests/integration/configuration/env-vars.test.ts --testNamePattern="nested"
 npm test -- tests/integration/configuration/env-vars.test.ts --testNamePattern="boolean"
 ```
+
+## Critical Bug Fixes ✅ RESOLVED (2025-07-02)
+
+### Environment Variable Parsing Issues
+
+#### Issue 1: Incorrect Nested Object Structure
+**Problem**: `CLAUDE_TESTING_FEATURES_INTEGRATION_TESTS=true` was creating:
+```json
+"features": {
+  "Integration": {
+    "Tests": true
+  }
+}
+```
+
+**Fix**: Added special case mapping in `handleEnvMappingSpecialCases()`:
+```typescript
+if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
+  if (!obj.features) obj.features = {};
+  obj.features.integrationTests = value;
+  // Clean up incorrectly parsed nested structure
+  if (obj.features.Integration) {
+    delete obj.features.Integration;
+  }
+}
+```
+
+#### Issue 2: Coverage Threshold Mapping
+**Problem**: `CLAUDE_TESTING_COVERAGE_THRESHOLDS_GLOBAL_FUNCTIONS=85` wasn't mapping to `coverage.thresholds.global.functions`.
+
+**Fix**: Added pattern-based special case handling:
+```typescript
+if (upperPath.startsWith('COVERAGE_THRESHOLDS_GLOBAL_')) {
+  const thresholdType = path[path.length - 1];
+  if (thresholdType) {
+    if (!obj.coverage) obj.coverage = {};
+    if (!obj.coverage.thresholds) obj.coverage.thresholds = {};
+    if (!obj.coverage.thresholds.global) obj.coverage.thresholds.global = {};
+    obj.coverage.thresholds.global[thresholdType.toLowerCase()] = value;
+  }
+}
+```
+
+#### Issue 3: CLI Threshold Override Behavior
+**Problem**: CLI threshold arguments like `--threshold "lines:90"` were overriding all project config values with defaults.
+
+**Fix**: Modified CLI threshold mapping to only set explicitly provided values:
+```typescript
+// Before (caused overrides)
+global: {
+  statements: thresholds.statements || 80,  // Default overwrote project config
+  branches: thresholds.branches || 80,
+  functions: thresholds.functions || 80,
+  lines: thresholds.lines || 80
+}
+
+// After (preserves project config)
+global: thresholds  // Only set the properties that were explicitly provided
+```
+
+### Configuration Precedence Validation
+
+All configuration precedence tests now pass:
+- ✅ Full precedence chain: CLI > env > custom > project > user > defaults
+- ✅ Partial configuration merging from multiple sources
+- ✅ Deep merge behavior for nested objects
+- ✅ Array merging with proper override behavior
+- ✅ Source tracking and override detection
 
 ## Configuration Debugging ✅ NEW
 

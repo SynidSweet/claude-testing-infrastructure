@@ -134,7 +134,6 @@ export class TestTemplateEngine {
       
       // Enhanced TypeScript templates
       this.registerTemplate(new enhancedTemplates.EnhancedTypeScriptTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedReactTypeScriptComponentTemplate());
       
     } catch (error) {
       // Fallback to basic templates if enhanced templates fail to load

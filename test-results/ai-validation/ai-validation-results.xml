@@ -1,53 +1,186 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="AI Agent Validation Tests" tests="22" failures="10" errors="0" time="27.838">
-  <testsuite name="Claude CLI Integration - Critical Issues" errors="0" failures="4" skipped="0" timestamp="2025-07-02T15:28:17" time="18.325" tests="15">
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should complete AI generation without hanging (15 minute timeout)" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should complete AI generation without hanging (15 minute timeout)" time="1.541">
-      <failure>AIAuthenticationError: Failed to check Claude CLI authentication: Error: Command failed: claude config get 2&gt;&amp;1
-    at ClaudeOrchestrator.processBatch (/code/personal/claude-testing/src/ai/ClaudeOrchestrator.ts:168:13)
-    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/connectivity/claude-cli-integration.test.ts:46:24)</failure>
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle empty task list gracefully" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle empty task list gracefully" time="1.607">
-      <failure>AIAuthenticationError: Failed to check Claude CLI authentication: Error: Command failed: claude config get 2&gt;&amp;1
-    at ClaudeOrchestrator.processBatch (/code/personal/claude-testing/src/ai/ClaudeOrchestrator.ts:168:13)
-    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/connectivity/claude-cli-integration.test.ts:95:22)</failure>
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle invalid file paths without hanging" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle invalid file paths without hanging" time="1.703">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize sonnet model alias" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize sonnet model alias" time="0.003">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize haiku model alias" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize haiku model alias" time="0.002">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize opus model alias" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize opus model alias" time="0.003">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should use model aliases in cost estimation" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should use model aliases in cost estimation" time="0.001">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should provide accurate cost calculations" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should provide accurate cost calculations" time="0.001">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have Claude CLI available" name="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have Claude CLI available" time="0.791">
-      <failure>ReferenceError: fail is not defined
-    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/connectivity/claude-cli-integration.test.ts:188:9)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have valid Claude CLI configuration" name="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have valid Claude CLI configuration" time="0.759">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should be able to make test API call" name="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should be able to make test API call" time="2.38">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues Timeout Handling should respect custom timeout configurations" name="Claude CLI Integration - Critical Issues Timeout Handling should respect custom timeout configurations" time="5.005">
-    </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues Timeout Handling should handle process termination gracefully" name="Claude CLI Integration - Critical Issues Timeout Handling should handle process termination gracefully" time="1.659">
-      <failure>Error: expect(received).toBe(expected) // Object.is equality
+<testsuites name="AI Agent Validation Tests" tests="32" failures="31" errors="0" time="90.843">
+  <testsuite name="Claude CLI Integration - Critical Issues" errors="0" failures="15" skipped="0" timestamp="2025-07-02T16:26:29" time="24.477" tests="15">
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should complete AI generation without hanging (15 minute timeout)" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should complete AI generation without hanging (15 minute timeout)" time="0.084">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
 
-Expected: &quot;AbortError&quot;
-Received: &quot;AIAuthenticationError&quot;
-    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/connectivity/claude-cli-integration.test.ts:253:39)</failure>
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
     </testcase>
-    <testcase classname="Claude CLI Integration - Critical Issues Error Recovery should handle API rate limiting gracefully" name="Claude CLI Integration - Critical Issues Error Recovery should handle API rate limiting gracefully" time="0.001">
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle empty task list gracefully" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle empty task list gracefully" time="0.001">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle invalid file paths without hanging" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: AI Generation Hanging should handle invalid file paths without hanging" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize sonnet model alias" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize sonnet model alias" time="0.001">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize haiku model alias" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize haiku model alias" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize opus model alias" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should recognize opus model alias" time="0.001">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should use model aliases in cost estimation" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should use model aliases in cost estimation" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should provide accurate cost calculations" name="Claude CLI Integration - Critical Issues 🚨 Critical Issue: Model Recognition should provide accurate cost calculations" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have Claude CLI available" name="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have Claude CLI available" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have valid Claude CLI configuration" name="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should have valid Claude CLI configuration" time="0.001">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should be able to make test API call" name="Claude CLI Integration - Critical Issues Claude CLI Availability and Authentication should be able to make test API call" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues Timeout Handling should respect custom timeout configurations" name="Claude CLI Integration - Critical Issues Timeout Handling should respect custom timeout configurations" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues Timeout Handling should handle process termination gracefully" name="Claude CLI Integration - Critical Issues Timeout Handling should handle process termination gracefully" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Claude CLI Integration - Critical Issues Error Recovery should handle API rate limiting gracefully" name="Claude CLI Integration - Critical Issues Error Recovery should handle API rate limiting gracefully" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
     </testcase>
     <testcase classname="Claude CLI Integration - Critical Issues Error Recovery should handle network interruptions" name="Claude CLI Integration - Critical Issues Error Recovery should handle network interruptions" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
     </testcase>
   </testsuite>
-  <testsuite name="Production Readiness Validation - End-to-End" errors="0" failures="6" skipped="0" timestamp="2025-07-02T15:28:36" time="9.007" tests="7">
-    <testcase classname="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should complete full analyze → test → run workflow" name="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should complete full analyze → test → run workflow" time="1.503">
+  <testsuite name="Test Quality Validation - Critical Issues" errors="0" failures="10" skipped="0" timestamp="2025-07-02T16:26:53" time="17.445" tests="10">
+    <testcase classname="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate meaningful assertions, not just TODOs" name="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate meaningful assertions, not just TODOs" time="0.001">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate comprehensive tests for React components" name="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate comprehensive tests for React components" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate tests with proper import paths for ES modules" name="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate tests with proper import paths for ES modules" time="0.001">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate executable tests without syntax errors" name="Test Quality Validation - Critical Issues 🚨 Critical Issue: Generated Test Quality should generate executable tests without syntax errors" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues Test Content Analysis should prefer meaningful assertions over existence checks" name="Test Quality Validation - Critical Issues Test Content Analysis should prefer meaningful assertions over existence checks" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues Test Content Analysis should include edge case testing for functions" name="Test Quality Validation - Critical Issues Test Content Analysis should include edge case testing for functions" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues Test Content Analysis should validate test structure and organization" name="Test Quality Validation - Critical Issues Test Content Analysis should validate test structure and organization" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues Template Engine Quality should generate appropriate templates for different file types" name="Test Quality Validation - Critical Issues Template Engine Quality should generate appropriate templates for different file types" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues Template Engine Quality should handle complex export patterns" name="Test Quality Validation - Critical Issues Template Engine Quality should handle complex export patterns" time="0">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+    <testcase classname="Test Quality Validation - Critical Issues Production Quality Standards should meet minimum quality thresholds for production" name="Test Quality Validation - Critical Issues Production Quality Standards should meet minimum quality thresholds for production" time="0.001">
+      <failure>Error: CLI not available or not built: Command failed: node dist/cli/index.js --version
+
+    at Object.validateCLIAvailability (/code/personal/claude-testing/tests/validation/setup.js:113:13)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/setup.js:254:5)</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Production Readiness Validation - End-to-End" errors="0" failures="6" skipped="0" timestamp="2025-07-02T16:27:11" time="46.759" tests="7">
+    <testcase classname="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should complete full analyze → test → run workflow" name="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should complete full analyze → test → run workflow" time="9.027">
       <failure>Error: expect(received).toBe(expected) // Object.is equality
 
 Expected: true
@@ -55,65 +188,14 @@ Received: false
     at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/end-to-end/production-readiness.test.ts:46:52)
     at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
     </testcase>
-    <testcase classname="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should generate executable tests without manual fixes" name="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should generate executable tests without manual fixes" time="0.492">
-      <failure>Error: expect(received).not.toContain(expected) // indexOf
-
-Expected substring: not &quot;Error&quot;
-Received string:        &quot;- Analyzing project...
-✔ Project analysis complete
-- Loading configuration...
-✔ Configuration loaded
-- Generating structural tests...
-Enhanced templates failed to load, using basic templates: TypeError: enhancedTemplates.EnhancedReactTypeScriptComponentTemplate is not a constructor
-    at TestTemplateEngine.registerEnhancedTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:105:35)
-    at TestTemplateEngine.registerDefaultTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:89:14)
-    at new TestTemplateEngine (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:11:14)
-    at StructuralTestGenerator.generateTestFileContent (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:214:32)
-    at StructuralTestGenerator.generateStructuralTestForFile (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:139:44)
-    at async StructuralTestGenerator.generateAllTests (/code/personal/claude-testing/dist/generators/TestGenerator.js:106:40)
-    at async testCommand (/code/personal/claude-testing/dist/cli/commands/test.js:125:28)
-Enhanced templates failed to load, using basic templates: TypeError: enhancedTemplates.EnhancedReactTypeScriptComponentTemplate is not a constructor
-    at TestTemplateEngine.registerEnhancedTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:105:35)
-    at TestTemplateEngine.registerDefaultTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:89:14)
-    at new TestTemplateEngine (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:11:14)
-    at StructuralTestGenerator.generateTestFileContent (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:214:32)
-    at StructuralTestGenerator.generateStructuralTestForFile (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:139:44)
-    at async StructuralTestGenerator.generateAllTests (/code/personal/claude-testing/dist/generators/TestGenerator.js:106:40)
-    at async testCommand (/code/personal/claude-testing/dist/cli/commands/test.js:125:28)
-Enhanced templates failed to load, using basic templates: TypeError: enhancedTemplates.EnhancedReactTypeScriptComponentTemplate is not a constructor
-    at TestTemplateEngine.registerEnhancedTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:105:35)
-    at TestTemplateEngine.registerDefaultTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:89:14)
-    at new TestTemplateEngine (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:11:14)
-    at StructuralTestGenerator.generateTestFileContent (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:214:32)
-    at StructuralTestGenerator.generateStructuralTestForFile (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:139:44)
-    at async StructuralTestGenerator.generateAllTests (/code/personal/claude-testing/dist/generators/TestGenerator.js:106:40)
-    at async testCommand (/code/personal/claude-testing/dist/cli/commands/test.js:125:28)
-Enhanced templates failed to load, using basic templates: TypeError: enhancedTemplates.EnhancedReactTypeScriptComponentTemplate is not a constructor
-    at TestTemplateEngine.registerEnhancedTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:105:35)
-    at TestTemplateEngine.registerDefaultTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:89:14)
-    at new TestTemplateEngine (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:11:14)
-    at StructuralTestGenerator.generateTestFileContent (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:214:32)
-    at StructuralTestGenerator.generateStructuralTestForFile (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:139:44)
-    at async StructuralTestGenerator.generateAllTests (/code/personal/claude-testing/dist/generators/TestGenerator.js:106:40)
-    at async testCommand (/code/personal/claude-testing/dist/cli/commands/test.js:125:28)
-Enhanced templates failed to load, using basic templates: TypeError: enhancedTemplates.EnhancedReactTypeScriptComponentTemplate is not a constructor
-    at TestTemplateEngine.registerEnhancedTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:105:35)
-    at TestTemplateEngine.registerDefaultTemplates (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:89:14)
-    at new TestTemplateEngine (/code/personal/claude-testing/dist/generators/templates/TestTemplateEngine.js:11:14)
-    at StructuralTestGenerator.generateTestFileContent (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:214:32)
-    at StructuralTestGenerator.generateStructuralTestForFile (/code/personal/claude-testing/dist/generators/StructuralTestGenerator.js:139:44)
-    at async StructuralTestGenerator.generateAllTests (/code/personal/claude-testing/dist/generators/TestGenerator.js:106:40)
-    at async testCommand (/code/personal/claude-testing/dist/cli/commands/test.js:125:28)
-✔ Structural tests generated successfully
-- Writing test files...
-✔ Test files written successfully
-&quot;
-    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/end-to-end/production-readiness.test.ts:66:43)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should generate executable tests without manual fixes" name="Production Readiness Validation - End-to-End 🎯 Complete Workflow Validation should generate executable tests without manual fixes" time="7.841">
+      <failure>Error: ENOENT: no such file or directory, scandir &apos;/code/personal/claude-testing/tests/fixtures/validation-projects/react-es-modules/.claude-testing/tests&apos;
+    at readdirRecursive (node:internal/fs/promises:870:7)
+    at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/end-to-end/production-readiness.test.ts:70:25)</failure>
     </testcase>
-    <testcase classname="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify AI generation no longer hangs" name="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify AI generation no longer hangs" time="0.399">
+    <testcase classname="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify AI generation no longer hangs" name="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify AI generation no longer hangs" time="13.733">
     </testcase>
-    <testcase classname="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify model recognition works for all aliases" name="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify model recognition works for all aliases" time="1.708">
+    <testcase classname="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify model recognition works for all aliases" name="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify model recognition works for all aliases" time="1.842">
       <failure>Error: expect(received).toBe(expected) // Object.is equality
 
 Expected: 3
@@ -121,12 +203,12 @@ Received: 0
     at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/end-to-end/production-readiness.test.ts:155:38)
     at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
     </testcase>
-    <testcase classname="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify import path issues are resolved" name="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify import path issues are resolved" time="0.522">
+    <testcase classname="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify import path issues are resolved" name="Production Readiness Validation - End-to-End 🚨 Critical Issues Resolution Validation should verify import path issues are resolved" time="0.484">
       <failure>Error: ENOENT: no such file or directory, scandir &apos;/code/personal/claude-testing/tests/fixtures/validation-projects/react-es-modules/.claude-testing/tests&apos;
     at readdirRecursive (node:internal/fs/promises:870:7)
     at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/end-to-end/production-readiness.test.ts:166:25)</failure>
     </testcase>
-    <testcase classname="Production Readiness Validation - End-to-End 📊 Production Quality Metrics should meet production readiness criteria" name="Production Readiness Validation - End-to-End 📊 Production Quality Metrics should meet production readiness criteria" time="2.147">
+    <testcase classname="Production Readiness Validation - End-to-End 📊 Production Quality Metrics should meet production readiness criteria" name="Production Readiness Validation - End-to-End 📊 Production Quality Metrics should meet production readiness criteria" time="1.98">
       <failure>Error: expect(received).toBeGreaterThan(expected)
 
 Expected: &gt; 0.7
@@ -134,7 +216,7 @@ Received:   0
     at Object.&lt;anonymous&gt; (/code/personal/claude-testing/tests/validation/ai-agents/end-to-end/production-readiness.test.ts:210:40)
     at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
     </testcase>
-    <testcase classname="Production Readiness Validation - End-to-End 🔄 Regression Prevention should prevent regression of resolved issues" name="Production Readiness Validation - End-to-End 🔄 Regression Prevention should prevent regression of resolved issues" time="1.501">
+    <testcase classname="Production Readiness Validation - End-to-End 🔄 Regression Prevention should prevent regression of resolved issues" name="Production Readiness Validation - End-to-End 🔄 Regression Prevention should prevent regression of resolved issues" time="1.469">
       <failure>Error: expect(received).toBe(expected) // Object.is equality
 
 Expected: true

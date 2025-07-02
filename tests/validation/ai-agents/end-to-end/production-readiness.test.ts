@@ -96,7 +96,7 @@ describe('Production Readiness Validation - End-to-End', () => {
       try {
         // Test AI generation with timeout
         await Promise.race([
-          execAsync(`${CLI_COMMAND} test ${testProjectPath} --only-logical --budget 1.00`, {
+          execAsync(`${CLI_COMMAND} test ${testProjectPath} --only-logical`, {
             cwd: path.resolve('.'),
             timeout: timeout - 1000 // Slightly less than our timeout
           }),
@@ -112,7 +112,7 @@ describe('Production Readiness Validation - End-to-End', () => {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         if (errorMessage.includes('timeout') || errorMessage.includes('AI generation timeout')) {
-          fail('🚨 CRITICAL: AI generation is still hanging - production blocker not resolved');
+          throw new Error('🚨 CRITICAL: AI generation is still hanging - production blocker not resolved');
         }
         // Other errors might be expected (API limits, etc.) but not hanging
         console.log(`⚠️ AI generation failed but didn't hang: ${error instanceof Error ? error.message : String(error)}`);

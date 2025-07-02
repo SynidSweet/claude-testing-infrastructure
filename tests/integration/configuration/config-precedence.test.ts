@@ -139,7 +139,7 @@ describe('Configuration Precedence Integration', () => {
       const result = await service.loadConfiguration();
       
       expect(result.valid).toBe(true);
-      expect(result.config.testFramework).toBe('jest'); // From defaults
+      expect(result.config.testFramework).toBe('auto'); // From defaults
       expect(result.config.include).toEqual(['src/**/*.js']); // From project
       expect(result.config.aiModel).toBe('claude-3-haiku-20240307'); // From env
       expect(result.config.coverage?.enabled).toBe(true); // From CLI

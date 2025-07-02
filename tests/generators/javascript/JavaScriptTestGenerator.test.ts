@@ -4,7 +4,6 @@ import type { TestGeneratorConfig } from '../../../src/generators/TestGenerator'
 import { TestType } from '../../../src/generators/TestGenerator';
 import type { LanguageContext } from '../../../src/generators/base/BaseTestGenerator';
 import { fs } from '../../../src/utils/common-imports';
-import fg from 'fast-glob';
 
 // Mock dependencies
 jest.mock('../../../src/utils/common-imports', () => ({
@@ -28,6 +27,16 @@ jest.mock('fast-glob', () => {
   // Support both default export and named export patterns
   (mockFg as any).default = mockFg;
   return mockFg;
+});
+
+// Mock dynamic import for fast-glob to return our mock
+const mockFg = jest.fn();
+(mockFg as any).default = mockFg;
+jest.doMock('fast-glob', () => {
+  return {
+    default: mockFg,
+    __esModule: true,
+  };
 });
 
 describe('JavaScriptTestGenerator', () => {
@@ -142,12 +151,12 @@ describe('JavaScriptTestGenerator', () => {
         '/test/project/src/api/routes.js',
       ];
 
-      (fg as unknown as jest.Mock).mockResolvedValue(mockFiles);
+      mockFg.mockResolvedValue(mockFiles);
 
       const files = await (generator as any).getFilesToTest();
 
       expect(files).toEqual(mockFiles);
-      expect(fg).toHaveBeenCalledWith(
+      expect(mockFg).toHaveBeenCalledWith(
         expect.arrayContaining([
           '/test/project/**/*.js',
           '/test/project/**/*.jsx',
@@ -179,11 +188,11 @@ describe('JavaScriptTestGenerator', () => {
       );
 
       const mockFiles = ['/test/project/src/index.ts'];
-      (fg as unknown as jest.Mock).mockResolvedValue(mockFiles);
+      mockFg.mockResolvedValue(mockFiles);
 
       await (tsGenerator as any).getFilesToTest();
 
-      expect(fg).toHaveBeenCalledWith(
+      expect(mockFg).toHaveBeenCalledWith(
         expect.arrayContaining([
           '/test/project/**/*.js',
           '/test/project/**/*.jsx',
@@ -480,7 +489,7 @@ describe('JavaScriptTestGenerator', () => {
     });
 
     it('should handle glob errors gracefully', async () => {
-      (fg as unknown as jest.Mock).mockRejectedValue(new Error('Glob pattern error'));
+      mockFg.mockRejectedValue(new Error('Glob pattern error'));
 
       await expect((generator as any).getFilesToTest()).rejects.toThrow('Glob pattern error');
     });
