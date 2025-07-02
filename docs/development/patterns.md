@@ -1,6 +1,6 @@
 # Development Patterns
 
-*Last updated: 2025-06-29 | Updated by: /document command | Orchestrator pattern documentation added*
+*Last updated: 2025-07-01 | Updated by: /document command | Configuration patterns and error message enhancement patterns added*
 
 ## Overview
 
@@ -293,6 +293,103 @@ async function handleIncrementalCommand(projectPath: string, options: any) {
 - `/src/cli/commands/incremental.ts` - CLI command handler refactoring
 - `/src/cli/commands/analyze.ts` - Console display method refactoring
 - `/src/generators/StructuralTestGenerator.ts` - Setup content generation refactoring
+
+## Configuration Access Pattern ✅ NEW
+
+### Overview
+Standardized pattern for accessing global CLI options in command implementations. Addresses the challenge that Commander.js commands don't directly receive parent (global) options.
+
+### Problem Solved
+CLI commands need access to global flags like `--show-config-sources`, but Commander.js doesn't pass parent options to child commands automatically.
+
+### Solution Architecture
+```typescript
+// Command signature with parent access
+export async function commandFunction(
+  projectPath: string, 
+  options: CommandOptions = {}, 
+  command?: any  // Commander.js command object
+): Promise<void> {
+  // Access global options from parent command
+  const globalOptions = command?.parent?.opts() || {};
+  const showConfigSources = globalOptions.showConfigSources || false;
+  
+  // Use global options in configuration loading
+  const config = await loadConfiguration(projectPath, analysis, options, showConfigSources);
+}
+
+// CLI registration with command object passing
+.action((projectPath, options, command) => commandFunction(projectPath, options, command))
+```
+
+### Implementation Pattern
+1. **Add optional command parameter** to command functions
+2. **Extract global options** from `command?.parent?.opts()`
+3. **Pass to configuration loading** or other global-aware functions
+4. **Register action with command object** in CLI setup
+
+### Files Using This Pattern
+- `/src/cli/commands/test.ts` - Test command with config debugging
+- `/src/cli/commands/analyze.ts` - Analysis command with config display
+- `/src/cli/commands/run.ts` - Run command with config debugging
+- `/src/cli/index.ts` - CLI registration with command object passing
+
+## Enhanced Error Messages Pattern ✅ NEW
+
+### Overview
+Structured approach to providing helpful, contextual error messages with suggestions and examples rather than bare error strings.
+
+### Problem Solved
+Basic validation error messages like "Invalid testFramework: xyz" don't help users understand what went wrong or how to fix it.
+
+### Solution Architecture
+```typescript
+// Enhanced error message structure
+interface ConfigErrorDetails {
+  field: string;
+  value: any;
+  message: string;
+  suggestion?: string;
+  example?: string;
+  documentation?: string;
+}
+
+// Formatter for consistent error display
+class ConfigErrorFormatter {
+  static formatError(details: ConfigErrorDetails): string {
+    // Formats with context, suggestions, examples, and links
+  }
+  
+  static readonly templates = {
+    invalidEnum: (field, value, validOptions) => ({ ... }),
+    outOfRange: (field, value, min, max) => ({ ... }),
+    unknownField: (field, value, similarFields) => ({ ... })
+  };
+}
+```
+
+### Enhanced Error Output
+```bash
+# Before: Basic error
+testFramework: Invalid value: xyz. Valid options: jest, vitest, pytest
+
+# After: Enhanced error with context
+testFramework: Invalid value. Must be one of: jest, vitest, pytest, mocha, jasmine, auto
+  Current value: xyz
+  → Choose from: jest, vitest, pytest, mocha, jasmine, auto
+  Example: "jest"
+```
+
+### Implementation Guidelines
+1. **Use structured error objects** instead of plain strings
+2. **Provide contextual suggestions** based on the specific error
+3. **Include practical examples** for correct usage
+4. **Add documentation links** for complex configuration
+5. **Use similar field detection** for typo correction
+
+### Files Using This Pattern
+- `/src/utils/config-error-messages.ts` - Error message formatting system
+- `/src/utils/config-validation.ts` - Enhanced validation with helpful errors
 
 ## Future Patterns to Document
 

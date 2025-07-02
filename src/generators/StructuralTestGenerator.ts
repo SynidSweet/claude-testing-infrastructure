@@ -11,6 +11,8 @@ import { MCPMessageHandlingTemplate } from './templates/MCPMessageHandlingTempla
 import { MCPTransportTemplate } from './templates/MCPTransportTemplate';
 import { MCPChaosTemplate } from './templates/MCPChaosTemplate';
 import { isMCPProjectAnalysis } from '../types/mcp-types';
+import type { FileDiscoveryService } from '../types/file-discovery-types';
+import { FileDiscoveryType } from '../types/file-discovery-types';
 
 export interface StructuralTestGeneratorOptions {
   /** Patterns for files to include in test generation */
@@ -46,7 +48,8 @@ export class StructuralTestGenerator extends TestGenerator {
   constructor(
     config: TestGeneratorConfig,
     analysis: ProjectAnalysis,
-    options: StructuralTestGeneratorOptions = {}
+    options: StructuralTestGeneratorOptions = {},
+    private fileDiscovery?: FileDiscoveryService
   ) {
     super(config, analysis);
     
@@ -78,7 +81,50 @@ export class StructuralTestGenerator extends TestGenerator {
   }
 
   protected async getFilesToTest(): Promise<string[]> {
-    logger.info('Scanning for files to test', {
+    // Use FileDiscoveryService if available, otherwise fall back to direct implementation
+    if (this.fileDiscovery) {
+      return this.getFilesToTestViaService();
+    } else {
+      return this.getFilesToTestDirect();
+    }
+  }
+
+  private async getFilesToTestViaService(): Promise<string[]> {
+    logger.info('Scanning for files to test via FileDiscoveryService');
+
+    const result = await this.fileDiscovery!.findFiles({
+      baseDir: this.config.projectPath,
+      type: FileDiscoveryType.TEST_GENERATION,
+      languages: this.getDetectedLanguages(),
+      absolute: true,
+      useCache: true
+    });
+
+    logger.debug(`FileDiscoveryService found ${result.files.length} files`, {
+      fromCache: result.fromCache,
+      duration: result.duration,
+      stats: result.stats
+    });
+
+    // Apply existing test filtering if configured
+    if (this.options.skipExistingTests) {
+      const filesWithoutTests: string[] = [];
+      
+      for (const file of result.files) {
+        const hasExistingTest = await this.hasExistingTest(file);
+        if (!hasExistingTest) {
+          filesWithoutTests.push(file);
+        }
+      }
+      
+      return filesWithoutTests;
+    }
+
+    return result.files;
+  }
+
+  private async getFilesToTestDirect(): Promise<string[]> {
+    logger.info('Scanning for files to test via direct implementation', {
       includePatterns: this.options.includePatterns,
       excludePatterns: this.options.excludePatterns,
     });
@@ -121,6 +167,10 @@ export class StructuralTestGenerator extends TestGenerator {
     }
 
     return filteredFiles;
+  }
+
+  private getDetectedLanguages(): string[] {
+    return this.analysis.languages.map(lang => lang.name);
   }
 
   protected async generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null> {
@@ -238,9 +288,11 @@ export class StructuralTestGenerator extends TestGenerator {
       dependencies: analysis.dependencies,
     };
 
-    // Add modulePath only for Python files
+    // Add modulePath for JavaScript/TypeScript/Python files
     if (analysis.language === 'python') {
       context.modulePath = this.getPythonModulePath(filePath);
+    } else if (analysis.language === 'javascript' || analysis.language === 'typescript') {
+      context.modulePath = this.getJavaScriptModulePath(filePath, analysis.testType);
     }
 
     // Add module system information for JavaScript/TypeScript files
@@ -259,6 +311,22 @@ export class StructuralTestGenerator extends TestGenerator {
     const modulePath = relativePath.replace(/\.py$/, '').split(path.sep).join('.');
 
     return modulePath;
+  }
+
+  private getJavaScriptModulePath(filePath: string, testType?: TestType): string {
+    // Calculate the relative path from the test file location to the source file
+    const testPath = this.getTestFilePath(filePath, testType);
+    const relativePath = path.relative(path.dirname(testPath), filePath);
+    
+    // Convert to forward slashes for import statements
+    const normalizedPath = relativePath.split(path.sep).join('/');
+    
+    // Ensure the path starts with ./ or ../
+    if (!normalizedPath.startsWith('./') && !normalizedPath.startsWith('../')) {
+      return './' + normalizedPath;
+    }
+    
+    return normalizedPath;
   }
 
   private async generateMockFileForDependencies(

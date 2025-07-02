@@ -1,4 +1,6 @@
 import { fs, path, fg, logger } from '../utils/common-imports';
+import type { FileDiscoveryService } from '../types/file-discovery-types';
+import { FileDiscoveryType } from '../types/file-discovery-types';
 
 export interface ProjectAnalysis {
   projectPath: string;
@@ -112,7 +114,10 @@ export interface MCPPrompt {
 export class ProjectAnalyzer {
   private projectPath: string;
 
-  constructor(projectPath: string) {
+  constructor(
+    projectPath: string,
+    private fileDiscovery?: FileDiscoveryService
+  ) {
     this.projectPath = path.resolve(projectPath);
   }
 
@@ -732,6 +737,27 @@ export class ProjectAnalyzer {
     ignore: string[] = [],
     options: any = {}
   ): Promise<string[]> {
+    // Use FileDiscoveryService if available, otherwise fall back to direct implementation
+    if (this.fileDiscovery) {
+      try {
+        const result = await this.fileDiscovery.findFiles({
+          baseDir: this.projectPath,
+          include: patterns,
+          exclude: ignore,
+          type: FileDiscoveryType.CUSTOM,
+          absolute: options.absolute,
+          includeDirectories: options.onlyFiles === false,
+          useCache: true
+        });
+
+        return result.files;
+      } catch (error) {
+        logger.debug('Error using FileDiscoveryService, falling back to direct implementation:', error);
+        // Fall through to direct implementation
+      }
+    }
+
+    // Direct implementation fallback
     try {
       return await fg(patterns, {
         cwd: this.projectPath,

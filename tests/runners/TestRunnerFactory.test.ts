@@ -4,6 +4,10 @@ import { PytestRunner } from '../../src/runners/PytestRunner';
 import { TestRunnerConfig } from '../../src/runners/TestRunner';
 import { createMockProjectAnalysis, createMockFramework, createMockLanguage, createMockTestingSetup } from '../helpers/mockData';
 
+// Mock FileDiscoveryService and ConfigurationService
+jest.mock('../../src/services/FileDiscoveryService');
+jest.mock('../../src/config/ConfigurationService');
+
 describe('TestRunnerFactory', () => {
   const mockConfig: TestRunnerConfig = {
     projectPath: '/test/project',
@@ -124,21 +128,4 @@ describe('TestRunnerFactory', () => {
     });
   });
 
-  describe('registerRunner', () => {
-    it('should register new test runner', () => {
-      // Mock runner class
-      class CustomTestRunner extends JestRunner {
-        supports(framework: string): boolean {
-          return framework === 'custom';
-        }
-      }
-
-      TestRunnerFactory.registerRunner(CustomTestRunner);
-      
-      // Should be able to create runner for custom framework
-      const customConfig = { ...mockConfig, framework: 'custom' };
-      const runner = TestRunnerFactory.createRunner(customConfig, mockAnalysis);
-      expect(runner).toBeInstanceOf(CustomTestRunner);
-    });
-  });
 });

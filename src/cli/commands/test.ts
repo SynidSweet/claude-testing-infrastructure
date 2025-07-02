@@ -1,11 +1,15 @@
 import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
+import { ConfigurationService } from '../../config/ConfigurationService';
 import { ProjectAnalyzer, StructuralTestGenerator, TestGeneratorConfig, TestGapAnalyzer } from '../../utils/analyzer-imports';
 import { handleAnalysisOperation, handleValidation, formatErrorMessage } from '../../utils/error-handling';
+import { displayConfigurationSources } from '../../utils/config-display';
 import { 
   ChunkedAITaskPreparation,
   ClaudeOrchestrator,
   CostEstimator
 } from '../../ai';
+import { ProgressReporter } from '../../utils/ProgressReporter';
+import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 
 interface TestOptions {
   config?: string;
@@ -14,13 +18,19 @@ interface TestOptions {
   coverage?: boolean;
   update?: boolean;
   force?: boolean;
+  maxRatio?: number;
   verbose?: boolean;
   enableChunking?: boolean;
   chunkSize?: number;
   dryRun?: boolean;
+  parent?: any; // Parent command for accessing global options
 }
 
-export async function testCommand(projectPath: string, options: TestOptions = {}): Promise<void> {
+export async function testCommand(projectPath: string, options: TestOptions = {}, command?: any): Promise<void> {
+  // Access global options from parent command
+  const globalOptions = command?.parent?.opts() || {};
+  const showConfigSources = globalOptions.showConfigSources || false;
+  
   let spinner = ora('Analyzing project...').start();
   
   try {
@@ -55,7 +65,10 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
     
     const analysis = await handleAnalysisOperation(
       async () => {
-        const analyzer = new ProjectAnalyzer(projectPath);
+        const configService = new ConfigurationService({ projectPath });
+        await configService.loadConfiguration();
+        const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+        const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
         return await analyzer.analyzeProject();
       },
       'project analysis for test generation',
@@ -74,7 +87,7 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
     
     // Step 3: Load configuration (with defaults)
     spinner = ora('Loading configuration...').start();
-    const config = await loadConfiguration(projectPath, analysis, options);
+    const config = await loadConfiguration(projectPath, analysis, options, showConfigSources);
     spinner.succeed('Configuration loaded');
     
     if (options.verbose) {
@@ -83,11 +96,14 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
       console.log(chalk.gray(`  • Test framework: ${config.testFramework}`));
       console.log(chalk.gray(`  • Generate mocks: ${config.options.generateMocks}`));
       console.log(chalk.gray(`  • Include setup/teardown: ${config.options.includeSetupTeardown}`));
+      console.log(chalk.gray(`  • Include patterns: ${JSON.stringify(config.patterns?.include || [])}`));
+      console.log(chalk.gray(`  • Exclude patterns: ${JSON.stringify(config.patterns?.exclude || [])}`));
     }
     
     // Step 4: Generate tests
     if (!options.onlyLogical) {
-      spinner = ora('Generating structural tests...').start();
+      // Stop the analysis spinner before starting test generation
+      spinner.stop();
       
       if (options.verbose) {
         console.log(chalk.gray(`\n🏗️  Test Generation Settings:`));
@@ -96,18 +112,29 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
         console.log(chalk.gray(`  • Skip existing tests: ${!options.update}`));
       }
       
-      const generator = new StructuralTestGenerator(config, analysis, {
+      const generatorOptions: any = {
         generateMocks: true,
         generateSetup: true,
         skipExistingTests: !options.update,
         skipValidation: !!options.force,
         dryRun: !!options.dryRun
-      });
+      };
+      
+      if (options.maxRatio !== undefined) {
+        generatorOptions.maxRatio = options.maxRatio;
+      }
+      
+      const configService = new ConfigurationService({ projectPath });
+      const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+      const generator = new StructuralTestGenerator(config, analysis, generatorOptions, fileDiscovery);
+      
+      // Set up progress reporting
+      const progressReporter = new ProgressReporter(options.verbose || false);
+      generator.setProgressReporter(progressReporter);
       
       const result = await generator.generateAllTests();
       
       if (!result.success) {
-        spinner.fail('Test generation failed');
         console.log(chalk.red('\n❌ Test generation failed:\n'));
         result.errors.forEach(error => {
           console.log(chalk.red(`  • ${error}`));
@@ -123,15 +150,15 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
       
       // Step 5: Write generated tests to filesystem or show dry-run preview
       if (options.dryRun) {
-        spinner.succeed('Test generation preview completed');
         await showDryRunPreview(result.tests, config, options.verbose);
       } else {
         if (options.verbose) {
           console.log(chalk.gray(`\n💾 Writing ${result.tests.length} test files to filesystem...`));
         }
         
+        spinner = ora('Writing test files...').start();
         await writeGeneratedTests(result.tests, options.verbose);
-        spinner.succeed('Structural tests generated');
+        spinner.succeed('Test files written successfully');
       }
       
       // Display results
@@ -204,7 +231,8 @@ export async function testCommand(projectPath: string, options: TestOptions = {}
 async function loadConfiguration(
   projectPath: string, 
   analysis: any, 
-  options: TestOptions
+  options: TestOptions,
+  showConfigSources: boolean = false
 ): Promise<TestGeneratorConfig> {
   // Create default output path
   const outputPath = path.join(projectPath, '.claude-testing');
@@ -214,18 +242,84 @@ async function loadConfiguration(
     await fs.mkdir(outputPath, { recursive: true });
   }
   
-  // Determine test framework
-  let testFramework = 'jest'; // default
-  
-  if (analysis.testingSetup.testFrameworks.length > 0) {
-    testFramework = analysis.testingSetup.testFrameworks[0];
-  } else if (analysis.frameworks.some((f: any) => f.name === 'react')) {
-    testFramework = 'jest';
-  } else if (analysis.languages.some((l: any) => l.name === 'python')) {
-    testFramework = 'pytest';
+  // Load configuration using ConfigurationService
+  let fullConfig;
+  try {
+    const configService = new ConfigurationService({
+      projectPath,
+      ...(options.config && { customConfigPath: options.config }),
+      includeEnvVars: true,
+      includeUserConfig: true,
+      cliArgs: {
+        verbose: options.verbose,
+        dryRun: options.dryRun,
+        coverage: options.coverage,
+        force: options.force,
+        maxRatio: options.maxRatio,
+        enableChunking: options.enableChunking,
+        chunkSize: options.chunkSize
+      }
+    });
+    
+    const configResult = await configService.loadConfiguration();
+    
+    // Display configuration sources if requested
+    if (showConfigSources) {
+      displayConfigurationSources(configResult);
+    }
+    
+    if (!configResult.valid) {
+      logger.warn('Configuration validation failed, using resolved configuration', { 
+        errors: configResult.errors,
+        warnings: configResult.warnings
+      });
+    }
+    
+    fullConfig = configResult.config;
+    logger.debug('Configuration loaded via ConfigurationService', { 
+      sourcesLoaded: configResult.summary.sourcesLoaded,
+      sourcesWithErrors: configResult.summary.sourcesWithErrors,
+      maxRatio: fullConfig.generation.maxTestToSourceRatio
+    });
+  } catch (error) {
+    logger.warn('Failed to load configuration service, using defaults', { error });
+    const { DEFAULT_CONFIG } = await import('../../types/config');
+    fullConfig = DEFAULT_CONFIG;
   }
   
-  const config: TestGeneratorConfig = {
+  // Override config file if provided
+  if (options.config) {
+    try {
+      const configContent = await fs.readFile(options.config, 'utf-8');
+      const customConfig = JSON.parse(configContent);
+      
+      // Merge custom configuration
+      Object.assign(fullConfig, customConfig);
+      logger.debug('Custom configuration loaded', { config: options.config });
+    } catch (error) {
+      logger.warn('Failed to load custom configuration, using defaults', { 
+        config: options.config, 
+        error 
+      });
+    }
+  }
+  
+  // Determine test framework
+  let testFramework = fullConfig.testFramework || 'jest'; // default
+  
+  if (testFramework === 'auto') {
+    if (analysis.testingSetup.testFrameworks.length > 0) {
+      testFramework = analysis.testingSetup.testFrameworks[0];
+    } else if (analysis.frameworks.some((f: any) => f.name === 'react')) {
+      testFramework = 'jest';
+    } else if (analysis.languages.some((l: any) => l.name === 'python')) {
+      testFramework = 'pytest';
+    } else {
+      testFramework = 'jest';
+    }
+  }
+  
+  const config: TestGeneratorConfig & { generation?: any; maxRatio?: number } = {
     projectPath,
     outputPath,
     testFramework,
@@ -234,24 +328,19 @@ async function loadConfiguration(
       includeSetupTeardown: true,
       generateTestData: false,
       addCoverage: options.coverage || false
-    }
+    },
+    // Include patterns from configuration
+    patterns: {
+      include: fullConfig.include,
+      exclude: fullConfig.exclude
+    },
+    // Include full configuration for validation
+    generation: fullConfig.generation
   };
   
-  // Load custom configuration if provided
-  if (options.config) {
-    try {
-      const configContent = await fs.readFile(options.config, 'utf-8');
-      const customConfig = JSON.parse(configContent);
-      
-      // Merge custom configuration
-      Object.assign(config, customConfig);
-      logger.debug('Custom configuration loaded', { config: options.config });
-    } catch (error) {
-      logger.warn('Failed to load custom configuration, using defaults', { 
-        config: options.config, 
-        error 
-      });
-    }
+  // Add maxRatio only if it's defined to avoid TypeScript strict checking issues
+  if (options.maxRatio !== undefined) {
+    config.maxRatio = options.maxRatio;
   }
   
   return config;

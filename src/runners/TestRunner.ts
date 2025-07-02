@@ -304,6 +304,6 @@ export abstract class TestRunner {
    * Get working directory for test execution
    */
   protected getWorkingDirectory(): string {
-    return this.config.projectPath;
+    return this.config.testPath;
   }
 }

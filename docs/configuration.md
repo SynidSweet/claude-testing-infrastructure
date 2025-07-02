@@ -2,6 +2,12 @@
 
 *Complete reference for .claude-testing.config.json configuration files*
 
+*Last updated: 2025-07-01 | FileDiscoveryService configuration integration complete - pattern customization and performance monitoring added*
+
+## 🔄 Implementation Status
+
+**ConfigurationService Phase 1 & 2 Complete + FileDiscoveryService Integration** (as of 2025-07-01): The core `ConfigurationService` has been implemented with centralized loading pipeline, source management, and comprehensive testing. **FileDiscovery Integration Complete**: Added `getFileDiscoveryConfig()` method enabling user configuration of file discovery patterns, cache behavior, and performance monitoring through .claude-testing.config.json. See [`/docs/planning/file-discovery-implementation-plan.md`](./planning/file-discovery-implementation-plan.md) for remaining implementation tasks.
+
 ## Overview
 
 The Claude Testing Infrastructure uses `.claude-testing.config.json` files to customize test generation behavior for individual projects. This file should be placed in the root directory of your target project (not in the claude-testing infrastructure directory).
@@ -31,6 +37,20 @@ The Claude Testing Infrastructure uses `.claude-testing.config.json` files to cu
   },
   "ai": {
     "maxCost": 5.00
+  },
+  "fileDiscovery": {
+    "cache": {
+      "enabled": true,
+      "ttl": 300000
+    },
+    "patterns": {
+      "testGeneration": {
+        "additionalExcludes": ["**/legacy/**"]
+      }
+    },
+    "performance": {
+      "enableStats": true
+    }
   }
 }
 ```
@@ -114,10 +134,11 @@ File patterns to include for test generation.
   - `["app/**/*.py", "models/**/*.py"]`
 
 #### `exclude` (string[])
-File patterns to exclude from test generation.
+File patterns to exclude from test generation. ✅ **FIXED (2025-07-01)**: Exclude patterns now work correctly and are properly applied during test generation.
 
 - **Default**: `["**/*.test.*", "**/*.spec.*", "**/node_modules/**", "**/.git/**", "**/dist/**", "**/build/**", "**/__pycache__/**", "**/coverage/**", "**/.claude-testing/**"]`
 - **Common additions**: `["**/vendor/**", "**/tmp/**", "**/*.d.ts"]`
+- **Pattern Support**: Uses fast-glob patterns with proper validation and debugging
 
 #### `testFramework` (string)
 Test framework to use for test generation.
@@ -738,6 +759,225 @@ New format:
 - `framework` renamed to `testFramework`
 - `ai.model` now uses specific model identifiers
 - Added required `generation.maxTestToSourceRatio` validation
+
+## Configuration Sources
+
+The Claude Testing Infrastructure loads configuration from multiple sources in the following precedence order (highest to lowest):
+
+1. **CLI Arguments** - Command-line flags override all other settings
+2. **Environment Variables** - For CI/CD and containerized environments
+3. **Project Configuration** - `.claude-testing.config.json` in target project
+4. **User Configuration** - Global user preferences
+5. **Default Configuration** - Built-in defaults
+
+### Environment Variables
+
+All configuration options can be set via environment variables using the `CLAUDE_TESTING_` prefix. This is particularly useful for CI/CD environments.
+
+#### Environment Variable Reference
+
+| Configuration Path | Environment Variable | Type | Example |
+|-------------------|---------------------|------|---------|
+| `aiModel` | `CLAUDE_TESTING_AI_MODEL` | string | `claude-3-5-sonnet-20241022` |
+| `testFramework` | `CLAUDE_TESTING_TEST_FRAMEWORK` | string | `jest` |
+| `include` | `CLAUDE_TESTING_INCLUDE` | comma-separated | `src/**/*.js,lib/**/*.js` |
+| `exclude` | `CLAUDE_TESTING_EXCLUDE` | comma-separated | `**/*.test.*,**/node_modules/**` |
+| `features.coverage` | `CLAUDE_TESTING_COVERAGE` | boolean | `true` |
+| `features.edgeCases` | `CLAUDE_TESTING_EDGE_CASES` | boolean | `true` |
+| `features.integrationTests` | `CLAUDE_TESTING_INTEGRATION_TESTS` | boolean | `true` |
+| `features.unitTests` | `CLAUDE_TESTING_UNIT_TESTS` | boolean | `true` |
+| `features.mocks` | `CLAUDE_TESTING_MOCKS` | boolean | `false` |
+| `features.aiGeneration` | `CLAUDE_TESTING_AI_GENERATION` | boolean | `true` |
+| `features.incremental` | `CLAUDE_TESTING_INCREMENTAL` | boolean | `true` |
+| `features.watch` | `CLAUDE_TESTING_WATCH` | boolean | `false` |
+| `generation.maxTestsPerFile` | `CLAUDE_TESTING_MAX_TESTS_PER_FILE` | integer | `50` |
+| `generation.maxTestToSourceRatio` | `CLAUDE_TESTING_MAX_TEST_TO_SOURCE_RATIO` | float | `10.0` |
+| `coverage.enabled` | `CLAUDE_TESTING_COVERAGE_ENABLED` | boolean | `true` |
+| `coverage.threshold` | `CLAUDE_TESTING_COVERAGE_THRESHOLD` | integer | `80` |
+| `ai.batchSize` | `CLAUDE_TESTING_AI_BATCH_SIZE` | integer | `20` |
+| `ai.maxConcurrency` | `CLAUDE_TESTING_AI_MAX_CONCURRENCY` | integer | `5` |
+| `ai.maxCost` | `CLAUDE_TESTING_AI_MAX_COST` | float | `10.00` |
+| `ai.timeout` | `CLAUDE_TESTING_AI_TIMEOUT` | integer | `900000` |
+| `ai.temperature` | `CLAUDE_TESTING_AI_TEMPERATURE` | float | `0.3` |
+| `output.logLevel` | `CLAUDE_TESTING_LOG_LEVEL` | string | `info` |
+| `output.formats` | `CLAUDE_TESTING_OUTPUT_FORMATS` | comma-separated | `console,json` |
+| `output.outputDir` | `CLAUDE_TESTING_OUTPUT_DIR` | string | `.claude-testing` |
+
+#### CI/CD Examples
+
+**GitHub Actions:**
+```yaml
+env:
+  CLAUDE_TESTING_AI_MODEL: claude-3-5-sonnet-20241022
+  CLAUDE_TESTING_COVERAGE: true
+  CLAUDE_TESTING_COVERAGE_THRESHOLD: 85
+  CLAUDE_TESTING_MAX_TEST_TO_SOURCE_RATIO: 5.0
+  CLAUDE_TESTING_LOG_LEVEL: debug
+```
+
+**GitLab CI:**
+```yaml
+variables:
+  CLAUDE_TESTING_TEST_FRAMEWORK: pytest
+  CLAUDE_TESTING_COVERAGE_ENABLED: "true"
+  CLAUDE_TESTING_OUTPUT_FORMATS: "junit,json"
+  CLAUDE_TESTING_AI_MAX_COST: "2.50"
+```
+
+**Docker:**
+```dockerfile
+ENV CLAUDE_TESTING_AI_MODEL=claude-3-5-sonnet-20241022
+ENV CLAUDE_TESTING_COVERAGE=true
+ENV CLAUDE_TESTING_LOG_LEVEL=info
+ENV CLAUDE_TESTING_OUTPUT_DIR=/test-results
+```
+
+**Shell Script:**
+```bash
+export CLAUDE_TESTING_TEST_FRAMEWORK=jest
+export CLAUDE_TESTING_COVERAGE=true
+export CLAUDE_TESTING_COVERAGE_THRESHOLD=90
+export CLAUDE_TESTING_INCLUDE="src/**/*.ts,lib/**/*.ts"
+export CLAUDE_TESTING_EXCLUDE="**/*.test.*,**/node_modules/**"
+
+node dist/cli/index.js test /path/to/project
+```
+
+### User Configuration
+
+Global user preferences can be stored in the following locations (first found is used):
+
+1. `~/.claude-testing.config.json`
+2. `~/.config/claude-testing/config.json`
+3. `~/.claude-testing/config.json`
+
+#### User Configuration Example
+
+Create `~/.claude-testing.config.json`:
+
+```json
+{
+  "aiModel": "claude-3-5-sonnet-20241022",
+  "features": {
+    "coverage": true,
+    "edgeCases": true,
+    "aiGeneration": true
+  },
+  "ai": {
+    "maxCost": 5.00,
+    "temperature": 0.3
+  },
+  "output": {
+    "logLevel": "info",
+    "formats": ["console", "json"]
+  }
+}
+```
+
+This configuration will be used for all projects unless overridden by project-specific configuration or environment variables.
+
+### Configuration Precedence Example
+
+Given the following configurations:
+
+**User Config** (`~/.claude-testing.config.json`):
+```json
+{
+  "aiModel": "claude-3-opus-20240229",
+  "coverage": { "enabled": true }
+}
+```
+
+**Project Config** (`.claude-testing.config.json`):
+```json
+{
+  "testFramework": "jest",
+  "coverage": { "enabled": false }
+}
+```
+
+**Environment Variable**:
+```bash
+export CLAUDE_TESTING_COVERAGE_ENABLED=true
+```
+
+**CLI Command**:
+```bash
+node dist/cli/index.js test /project --ai-model sonnet
+```
+
+**Result**: The effective configuration will be:
+- `aiModel`: "claude-3-5-sonnet-20241022" (from CLI mapping)
+- `testFramework`: "jest" (from project config)
+- `coverage.enabled`: true (from environment variable)
+
+### File Discovery Configuration ✅ NEW
+
+Configure file discovery behavior, pattern overrides, and performance monitoring:
+
+```json
+{
+  "fileDiscovery": {
+    "cache": {
+      "enabled": true,
+      "ttl": 300000,
+      "maxSize": 1000
+    },
+    "patterns": {
+      "projectAnalysis": {
+        "additionalExcludes": ["**/build/**", "**/custom-ignore/**"],
+        "additionalIncludes": ["special/**/*.ts"]
+      },
+      "testGeneration": {
+        "replaceExcludes": ["**/only-exclude-this/**"]
+      },
+      "testExecution": {
+        "additionalExcludes": ["**/slow-tests/**"]
+      }
+    },
+    "performance": {
+      "enableStats": true,
+      "logSlowOperations": true,
+      "slowThresholdMs": 1000
+    }
+  }
+}
+```
+
+#### Cache Configuration
+- **enabled**: Enable/disable file discovery caching (default: true)
+- **ttl**: Cache time-to-live in milliseconds (default: 300000 = 5 minutes)
+- **maxSize**: Maximum cache entries (default: 1000)
+
+#### Pattern Override Types
+- **additionalExcludes**: Add patterns to default excludes
+- **additionalIncludes**: Add patterns to default includes
+- **replaceExcludes**: Replace default exclude patterns entirely
+- **replaceIncludes**: Replace default include patterns entirely
+
+#### Discovery Types
+- **projectAnalysis**: Patterns for project structure analysis
+- **testGeneration**: Patterns for finding files to generate tests for
+- **testExecution**: Patterns for finding existing test files
+- **custom**: User-defined pattern operations
+
+#### Performance Monitoring
+- **enableStats**: Log detailed file discovery statistics (default: false)
+- **logSlowOperations**: Warn about slow discovery operations (default: true)
+- **slowThresholdMs**: Threshold for "slow" operations in milliseconds (default: 1000)
+
+### Debugging Configuration
+
+To see which configuration sources are being used:
+
+```bash
+# Enable debug logging
+export CLAUDE_TESTING_LOG_LEVEL=debug
+node dist/cli/index.js test /project
+
+# Or use CLI flag (when implemented)
+node dist/cli/index.js test /project --show-config-sources
+```
 
 ---
 

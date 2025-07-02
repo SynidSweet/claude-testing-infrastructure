@@ -55,51 +55,6 @@ export class HtmlTemplateEngine extends BaseTemplateEngine<HtmlTemplateData> {
     return this.renderTemplate(template, data);
   }
 
-  private renderTemplate(template: string, data: any): string {
-    // Simple template engine - replace {{variable}} patterns
-    let result = template;
-
-    // Handle simple variables
-    result = result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-      return data[key] !== undefined ? String(data[key]) : match;
-    });
-
-    // Handle conditionals {{#if variable}}...{{/if}}
-    result = result.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_match, key, content) => {
-      return data[key] ? content : '';
-    });
-
-    // Handle loops {{#each array}}...{{/each}}
-    result = result.replace(/\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (_match, key, content) => {
-      const array = data[key];
-      if (!Array.isArray(array)) return '';
-      
-      return array.map(item => {
-        let itemContent = content;
-        // Replace nested variables
-        itemContent = itemContent.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (m: string, path: string) => {
-          const value = this.getNestedValue(item, path);
-          return value !== undefined ? String(value) : m;
-        });
-        return itemContent;
-      }).join('');
-    });
-
-    return result;
-  }
-
-  private getNestedValue(obj: any, path: string): any {
-    const parts = path.split('.');
-    let current = obj;
-    for (const part of parts) {
-      if (current && typeof current === 'object' && part in current) {
-        current = current[part];
-      } else {
-        return undefined;
-      }
-    }
-    return current;
-  }
 
 
   prepareTemplateData(
@@ -132,14 +87,21 @@ export class HtmlTemplateEngine extends BaseTemplateEngine<HtmlTemplateData> {
       }
     ];
 
-    const files = this.transformFilesData(data.files);
-
     return {
       ...baseData,
       metrics,
-      files,
-      ...(gaps.suggestions.length > 0 && { suggestions: gaps.suggestions }),
-      ...(data.uncoveredAreas.length > 0 && { uncoveredAreas: data.uncoveredAreas })
+      files: this.transformFilesData(data.files, 'formatted').map(file => ({
+        filename: file.filename,
+        summary: {
+          lines: file.summary.lines as string,
+          statements: file.summary.statements as string,
+          branches: file.summary.branches as string,
+          functions: file.summary.functions as string
+        },
+        ...(file.uncoveredLines && { uncoveredLines: file.uncoveredLines })
+      })),
+      ...(gaps.suggestions.length > 0 && { suggestions: this.transformSuggestionsData(gaps.suggestions) }),
+      ...(data.uncoveredAreas.length > 0 && { uncoveredAreas: this.transformUncoveredAreasData(data.uncoveredAreas) })
     };
   }
 }

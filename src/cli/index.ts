@@ -13,6 +13,10 @@ import { generateLogicalCommand } from './commands/generate-logical';
 import { generateLogicalBatchCommand } from './commands/generate-logical-batch';
 import { testAICommand } from './commands/test-ai';
 import { createIncrementalCommand } from './commands/incremental';
+import { initializeLanguageSpecificGenerators } from '../generators/registerLanguageGenerators';
+
+// Initialize language-specific generators
+initializeLanguageSpecificGenerators();
 
 const program = new Command();
 
@@ -22,6 +26,7 @@ program
   .version(version)
   .option('-d, --debug', 'Enable debug logging')
   .option('-q, --quiet', 'Suppress non-essential output')
+  .option('--show-config-sources', 'Show configuration sources and resolved values')
   .hook('preAction', (thisCommand) => {
     const options = thisCommand.opts();
     if (options.debug) {
@@ -36,11 +41,12 @@ program
   .command('analyze')
   .description('Analyze a project and generate test recommendations')
   .argument('<path>', 'Path to the project to analyze')
+  .option('-c, --config <path>', 'Path to configuration file')
   .option('-o, --output <path>', 'Output path for analysis results')
   .option('--format <format>', 'Output format (json|markdown|console)', 'console')
   .option('-v, --verbose', 'Show detailed analysis information')
   .option('--validate-config', 'Validate .claude-testing.config.json configuration')
-  .action(analyzeCommand);
+  .action((projectPath, options, command) => analyzeCommand(projectPath, options, command));
 
 // Test command
 program
@@ -54,11 +60,12 @@ program
   .option('--coverage', 'Generate coverage report')
   .option('--update', 'Update existing tests based on changes')
   .option('--force', 'Skip validation checks (e.g., test-to-source ratio)')
+  .option('--max-ratio <number>', 'Override maximum test-to-source file ratio (default: 10)', parseFloat)
   .option('--enable-chunking', 'Enable file chunking for large files (default: true)')
   .option('--chunk-size <size>', 'Maximum tokens per chunk (default: 3500)', parseInt)
   .option('--dry-run', 'Preview test generation without creating files')
   .option('-v, --verbose', 'Show detailed test generation information')
-  .action(testCommand);
+  .action((projectPath, options, command) => testCommand(projectPath, options, command));
 
 // Run command
 program
@@ -75,7 +82,7 @@ program
     'Coverage threshold (e.g., "80" or "statements:80,branches:70")'
   )
   .option('-v, --verbose', 'Show detailed test execution information')
-  .action(runCommand);
+  .action((projectPath, options, command) => runCommand(projectPath, options, command));
 
 // Add the watch command
 program.addCommand(watchCommand);

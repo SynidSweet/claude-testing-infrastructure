@@ -2,6 +2,9 @@ import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 import { TestRunnerFactory, TestRunnerConfig } from '../../runners';
 import { handleValidation, formatErrorMessage } from '../../utils/error-handling';
+import { ConfigurationService } from '../../config/ConfigurationService';
+import { displayConfigurationSources } from '../../utils/config-display';
+import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 
 interface RunOptions {
   config?: string;
@@ -11,9 +14,13 @@ interface RunOptions {
   reporter?: string;
   junit?: boolean;
   threshold?: string;
+  verbose?: boolean;
 }
 
-export async function runCommand(projectPath: string, options: RunOptions = {}): Promise<void> {
+export async function runCommand(projectPath: string, options: RunOptions = {}, command?: any): Promise<void> {
+  // Access global options from parent command
+  const globalOptions = command?.parent?.opts() || {};
+  const showConfigSources = globalOptions.showConfigSources || false;
   let spinner = ora('Analyzing project...').start();
   
   try {
@@ -32,7 +39,10 @@ export async function runCommand(projectPath: string, options: RunOptions = {}):
     );
     
     // Step 2: Analyze project
-    const analyzer = new ProjectAnalyzer(projectPath);
+    const configService = new ConfigurationService({ projectPath });
+    await configService.loadConfiguration();
+    const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+    const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
     const analysis = await analyzer.analyzeProject();
     
     spinner.succeed('Project analysis complete');
@@ -52,12 +62,12 @@ export async function runCommand(projectPath: string, options: RunOptions = {}):
     
     // Step 4: Load configuration
     spinner = ora('Loading test configuration...').start();
-    const config = await loadRunnerConfiguration(projectPath, testPath, analysis, options);
+    const config = await loadRunnerConfiguration(projectPath, testPath, analysis, options, showConfigSources);
     spinner.succeed('Configuration loaded');
     
     // Step 5: Create and validate test runner
     spinner = ora('Initializing test runner...').start();
-    const runner = TestRunnerFactory.createRunner(config, analysis);
+    const runner = TestRunnerFactory.createRunner(config, analysis, fileDiscovery);
     spinner.succeed(`Test runner ready (${config.framework})`);
     
     // Step 6: Execute tests
@@ -92,7 +102,8 @@ async function loadRunnerConfiguration(
   projectPath: string,
   testPath: string,
   analysis: any,
-  options: RunOptions
+  options: RunOptions,
+  showConfigSources: boolean = false
 ): Promise<TestRunnerConfig> {
   // Determine test framework
   let framework = options.framework;
@@ -137,21 +148,57 @@ async function loadRunnerConfiguration(
     }
   }
   
-  // Load custom configuration if provided
-  if (options.config) {
-    try {
-      const configContent = await fs.readFile(options.config, 'utf-8');
-      const customConfig = JSON.parse(configContent);
+  // Load configuration using ConfigurationService
+  try {
+    const configService = new ConfigurationService({
+      projectPath,
+      ...(options.config && { customConfigPath: options.config }),
+      includeEnvVars: true,
+      includeUserConfig: true,
+      cliArgs: {
+        framework: options.framework,
+        coverage: options.coverage,
+        watch: options.watch,
+        reporter: options.reporter,
+        junit: options.junit,
+        threshold: options.threshold
+      }
+    });
+    
+    const configResult = await configService.loadConfiguration();
+    
+    // Display configuration sources if requested
+    if (showConfigSources) {
+      displayConfigurationSources(configResult);
+    }
+    
+    if (configResult.valid) {
+      // Apply relevant configuration to runner config
+      const fullConfig = configResult.config;
       
-      // Merge custom configuration
-      Object.assign(config, customConfig);
-      logger.debug('Custom configuration loaded', { config: options.config });
-    } catch (error) {
-      logger.warn('Failed to load custom configuration, using defaults', { 
-        config: options.config, 
-        error 
+      // Override framework if specified in config and not in CLI options
+      if (!options.framework && fullConfig.testFramework) {
+        config.framework = fullConfig.testFramework;
+      }
+      
+      // Apply output configuration
+      if (fullConfig.output) {
+        if (fullConfig.output.formats && fullConfig.output.formats.length > 0 && config.reporter) {
+          config.reporter.console = fullConfig.output.formats[0] as any;
+        }
+      }
+      
+      logger.debug('Configuration applied via ConfigurationService', {
+        sourcesLoaded: configResult.summary.sourcesLoaded,
+        framework: config.framework
+      });
+    } else {
+      logger.warn('Configuration validation failed, using defaults', { 
+        errors: configResult.errors 
       });
     }
+  } catch (error) {
+    logger.warn('Failed to load configuration service, using defaults', { error });
   }
   
   return config;

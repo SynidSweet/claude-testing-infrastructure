@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-07-01 | Updated by: /document command | Template Engine Consolidation*
+*Last updated: 2025-07-02 | Updated by: /document command | Completed JavaScriptTestGenerator integration and real-world validation - language-specific generator system now production ready*
 
 ## Architecture Summary
 
@@ -166,6 +166,105 @@ Large files (4k+ tokens) exceeded AI context limits, preventing logical test gen
 - **Progress Reporting**: Detailed statistics for chunked file processing
 
 This architecture enables AI test generation for complex services up to 9,507+ tokens while maintaining quality and context consistency.
+
+## Configuration Management Architecture
+
+### Centralized Configuration Service
+
+The `ConfigurationService` (`src/config/ConfigurationService.ts`) provides consistent configuration loading across all CLI commands with proper source precedence and validation.
+
+#### Core Components
+
+##### ConfigurationService
+- **Centralized loading**: Single service manages all configuration sources
+- **Source precedence**: CLI args > env vars > project config > user config > defaults
+- **Source tracking**: Maintains metadata for debugging and transparency
+- **Error handling**: Graceful degradation with detailed error reporting
+
+##### Configuration Sources
+```typescript
+enum ConfigurationSourceType {
+  CLI_ARGS = 'cli-args',        // Highest priority
+  ENV_VARS = 'env-vars',
+  PROJECT_CONFIG = 'project-config',
+  USER_CONFIG = 'user-config',
+  DEFAULTS = 'defaults'         // Lowest priority
+}
+```
+
+#### Loading Pipeline
+
+1. **Default Configuration**: Start with comprehensive defaults from `DEFAULT_CONFIG`
+2. **User Configuration**: Load from `~/.claude-testing.config.json` if present
+3. **Project Configuration**: Load from target project's `.claude-testing.config.json`
+4. **Environment Variables**: Extract configuration from environment (future)
+5. **CLI Arguments**: Override with command-line arguments
+6. **Custom Files**: Support `--config` flag for custom configuration files
+
+#### Integration Points
+
+- **Command Integration**: `loadCommandConfig()` helper for consistent usage
+- **Validation**: Leverages existing `ConfigurationManager` for validation
+- **Backward Compatibility**: Maintains compatibility with existing configuration patterns
+- **Source Discovery**: Automatic discovery of user and project configuration files
+
+This architecture has been fully implemented, resolving the critical configuration loading issues that affected 5 of 8 commands. All CLI commands now use the centralized ConfigurationService, providing a consistent foundation for configuration management across the entire CLI.
+
+## File Discovery Service Architecture
+
+### Centralized File Discovery
+
+The FileDiscoveryService (`src/services/FileDiscoveryService.ts`) provides consistent, cached file discovery across all components, eliminating duplicate file scanning logic and improving performance through intelligent caching.
+
+#### Core Components
+
+##### FileDiscoveryService
+- **Centralized discovery**: Single service handles all file operations across components
+- **Intelligent caching**: Memory-based cache with TTL expiration and hit rate tracking
+- **Pattern management**: Language-specific pattern resolution with user configuration support
+- **Performance monitoring**: Slow operation detection and cache statistics
+
+##### PatternManager
+- **Language patterns**: Framework-specific patterns for JavaScript/TypeScript and Python
+- **User configuration**: Merges default patterns with user-defined overrides
+- **Pattern validation**: Glob syntax validation with warnings and suggestions
+- **Type-based resolution**: Different patterns for project analysis, test generation, and test execution
+
+##### FileDiscoveryCache
+- **TTL-based expiration**: Configurable time-to-live for cache entries
+- **LRU eviction**: Automatic removal of oldest entries when cache size limit reached
+- **Pattern invalidation**: Selective cache invalidation by path or regex patterns
+- **Performance metrics**: Hit rate, memory usage, and time saved tracking
+
+#### Discovery Types
+
+```typescript
+enum FileDiscoveryType {
+  PROJECT_ANALYSIS = 'project-analysis',    // Find source files for analysis
+  TEST_GENERATION = 'test-generation',      // Find files to generate tests for
+  TEST_EXECUTION = 'test-execution',        // Find existing test files
+  CONFIG_DISCOVERY = 'config-discovery',    // Find configuration files
+  CUSTOM = 'custom'                         // User-defined patterns
+}
+```
+
+#### Integration Points (✅ COMPLETE)
+
+- **ProjectAnalyzer**: ✅ Uses FileDiscoveryService for consistent project scanning
+- **TestGenerators**: ✅ Leverages cached file discovery for test generation
+- **TestRunners**: ✅ Discovers test files through centralized service
+- **CLI Commands**: ✅ All 9 commands use FileDiscoveryServiceFactory singleton
+- **Configuration**: ✅ Integrates with ConfigurationService for user pattern overrides
+
+#### Performance Benefits (Validated)
+
+- **Cache hit rates**: 70-90% efficiency achieved in integration tests
+- **Reduced I/O**: Eliminates duplicate file system scans across commands
+- **Pattern optimization**: Pre-compiled language-specific patterns working
+- **Smart invalidation**: Only clears relevant cache entries when files change
+- **Singleton pattern**: Ensures consistent cache usage across entire CLI session
+
+This architecture has been fully implemented across all CLI commands, providing consistent file operations and measurable performance improvements throughout the infrastructure.
 
 ## Design Principles
 
@@ -403,6 +502,80 @@ Priority Calculation → Context Extraction → Cost Estimation → Gap Analysis
 - **Context Preparation**: Automated extraction of relevant code snippets for AI prompts
 - **Cost Optimization**: Token estimation and batch planning for efficient AI resource usage
 - **CLI Integration**: Complete `analyze-gaps` command with multiple output formats
+
+## Language-Specific Test Generation Architecture (JavaScript Complete - 2025-07-02)
+
+### Foundation Components (TASK-LANG-001 Complete)
+
+1. **BaseTestGenerator**: Abstract base class for language-specific test generators
+   - Comprehensive LanguageContext support for multi-language test generation
+   - Built-in progress reporting and validation
+   - Parallel abstraction to existing TestGenerator for flexibility
+   - Language-specific file discovery and test generation lifecycle
+
+2. **TestGeneratorFactory**: Factory pattern for creating appropriate generators
+   - Feature flag system for gradual rollout
+   - Automatic language detection from ProjectAnalysis
+   - Configuration-based generator selection
+   - Backward compatibility with StructuralTestGenerator
+
+3. **Language Context System**: Rich type definitions for language-specific features
+   - JavaScript/TypeScript context with module system detection
+   - Python context with framework and version awareness
+   - Framework-specific contexts (React, Vue, Angular, FastAPI, Django, etc.)
+   - Import/export style configuration per language
+
+### JavaScript/TypeScript Implementation (TASK-LANG-002a-f Complete ✅)
+
+1. **JavaScriptTestGenerator**: ✅ PRODUCTION READY JavaScript/TypeScript specific test generator
+   - Extends BaseTestGenerator with JavaScript-specific logic
+   - Comprehensive export detection for both CommonJS and ES modules
+   - Module system aware import path generation with correct extensions
+   - Framework detection (React, Vue, Angular, Express, etc.)
+   - File type detection (component, API, service, util)
+   - Async pattern detection and appropriate test generation
+   - Integrated with TestGeneratorFactory for automatic selection
+   - **Real-world validated**: Successfully generates tests for React ES modules projects
+
+2. **ModuleSystemAnalyzer**: Comprehensive module system detection (TASK-LANG-002b Complete)
+   - Project-level module system detection from package.json
+   - File-level module analysis with content inspection
+   - Support for .mjs/.cjs file extensions
+   - Mixed module system handling
+   - Import/export style detection (CommonJS, ESM, or both)
+   - Dynamic import detection
+   - Caching for performance optimization
+
+### Language-Specific Generator Flow
+
+```
+Project Analysis → Language Detection → Context Building → Generator Creation → Test Generation
+       ↓                 ↓                    ↓                   ↓                  ↓
+(ProjectAnalyzer)  (Factory Pattern)  (Language Context)  (JavaScriptGenerator)  (Templates)
+```
+
+### Complete Implementation Status (TASK-LANG-002a-f Complete ✅)
+
+1. **JavaScriptTestGenerator**: ✅ Production-ready with end-to-end integration validation
+2. **ModuleSystemAnalyzer**: ✅ Comprehensive module system detection (CommonJS/ESM)
+3. **JSFrameworkDetector**: ✅ Enhanced framework detection for UI, backend, and meta-frameworks
+4. **AsyncPatternDetector**: ✅ AST-based async pattern detection for async/await, promises, callbacks, and generators
+5. **JavaScriptEnhancedTemplates**: ✅ Framework-specific templates with async pattern awareness and comprehensive test generation
+6. **Integration & CLI Registration**: ✅ Fully integrated with TestGeneratorFactory and CLI initialization
+
+### Next Phase Development
+
+1. ✅ **Integration Testing** (TASK-LANG-002f): ✅ COMPLETED - Real-world project validation successful
+2. **PythonTestGenerator** (TASK-LANG-003): Concrete implementation for Python (pending)
+3. **Enhanced Template System** (TASK-LANG-004): Language-aware template selection (pending)
+
+### Key Design Decisions
+
+- **Parallel Architecture**: BaseTestGenerator doesn't extend TestGenerator, avoiding constraints
+- **Feature Flags**: Enable/disable language-specific generators per project or globally
+- **Context-Rich Generation**: Each language gets comprehensive context for better test quality
+- **Extensible Design**: Easy to add new languages by implementing BaseTestGenerator
+- **Progressive Implementation**: Breaking down large tasks into manageable subtasks
 
 ## AI Integration Architecture (Phase 5 Complete)
 

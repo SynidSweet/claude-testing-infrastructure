@@ -11,6 +11,7 @@ node dist/cli/index.js analyze <path> --format json   # JSON output for integrat
 node dist/cli/index.js analyze <path> --format markdown --output report.md # Generate markdown report
 node dist/cli/index.js analyze <path> --output analysis.txt # Save console output to file ✅ FIXED
 node dist/cli/index.js analyze <path> --format json --output analysis.json # Save JSON to file
+node dist/cli/index.js analyze <path> --config custom-config.json # Use custom configuration file ✅ NEW
 node dist/cli/index.js analyze <path> --validate-config # Validate .claude-testing.config.json
 
 # Test Generation ✅ IMPLEMENTED
@@ -37,12 +38,13 @@ node dist/cli/index.js run <path> --coverage          # Generate coverage report
 node dist/cli/index.js run <path> --watch             # Run in watch mode
 node dist/cli/index.js run <path> --junit             # Generate JUnit XML reports
 node dist/cli/index.js run <path> --threshold "80"    # Set coverage threshold
+node dist/cli/index.js run <path> --config config.json # Use custom configuration file
 node dist/cli/index.js run <path> --threshold "statements:85,branches:80" # Detailed thresholds
-node dist/cli/index.js run <path> --config config.json # Use custom configuration
 
 # Test Gap Analysis ✅ IMPLEMENTED (Phase 5.2)
 node dist/cli/index.js analyze-gaps <path>            # Analyze test gaps with enhanced reporting
 node dist/cli/index.js gaps <path>                    # Alias for analyze-gaps
+node dist/cli/index.js analyze-gaps <path> --config config.json         # Use custom configuration ✅ NEW
 node dist/cli/index.js analyze-gaps <path> --format markdown --output report.md # Markdown report
 node dist/cli/index.js analyze-gaps <path> --format json --output gaps.json     # JSON schema output
 node dist/cli/index.js analyze-gaps <path> --include-details                    # Detailed gap breakdown

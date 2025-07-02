@@ -22,6 +22,8 @@ import {
   BatchedLogicalTestGenerator
 } from '../../ai';
 import { logger } from '../../utils/logger';
+import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
+import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 
 export const generateLogicalCommand = new Command()
   .name('generate-logical')
@@ -51,6 +53,31 @@ export const generateLogicalCommand = new Command()
         throw new Error(`Not a directory: ${absoluteProjectPath}`);
       }
 
+      // Load configuration using ConfigurationService
+      spinner.text = 'Loading configuration...';
+      const configResult = await loadCommandConfig(absoluteProjectPath, {
+        cliArgs: {
+          verbose: options.verbose,
+          aiModel: options.model,
+          dryRun: options.dryRun
+        }
+      });
+      
+      if (!configResult.valid) {
+        logger.warn('Configuration validation warnings', { 
+          warnings: configResult.warnings 
+        });
+      }
+      
+      const config = configResult.config;
+      
+      // Apply configuration to logger
+      if (options.verbose || config.output?.logLevel === 'debug' || config.output?.logLevel === 'verbose') {
+        logger.level = 'debug';
+      } else if (config.output?.logLevel) {
+        logger.level = config.output.logLevel as any;
+      }
+
       // Step 1: Get or generate gap analysis
       spinner.text = 'Loading gap analysis...';
       let gapReport;
@@ -62,18 +89,25 @@ export const generateLogicalCommand = new Command()
       } else {
         // Generate new gap analysis
         spinner.text = 'Analyzing project structure...';
-        const projectAnalyzer = new ProjectAnalyzer(absoluteProjectPath);
+        const configService = new ConfigurationService({ projectPath: absoluteProjectPath });
+        await configService.loadConfiguration();
+        const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+        const projectAnalyzer = new ProjectAnalyzer(absoluteProjectPath, fileDiscovery);
         const projectAnalysis = await projectAnalyzer.analyzeProject();
         
         spinner.text = 'Generating structural tests...';
         const testConfig: TestGeneratorConfig = {
           projectPath: absoluteProjectPath,
           outputPath: path.join(absoluteProjectPath, '.claude-testing'),
-          testFramework: projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest',
-          options: {}
+          testFramework: config.testFramework || (projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest'),
+          options: {},
+          patterns: {
+            include: config.include,
+            exclude: config.exclude
+          }
         };
         
-        const structuralGenerator = new StructuralTestGenerator(testConfig, projectAnalysis);
+        const structuralGenerator = new StructuralTestGenerator(testConfig, projectAnalysis, {}, fileDiscovery);
         const generationResult = await structuralGenerator.generateAllTests();
         
         spinner.text = 'Analyzing test gaps...';
@@ -92,9 +126,9 @@ export const generateLogicalCommand = new Command()
       // Step 2: Prepare AI tasks
       spinner.start('Preparing AI tasks...');
       const taskPrep = new AITaskPreparation({
-        model: options.model, // Use alias directly
-        maxConcurrentTasks: parseInt(options.concurrent) || 3,
-        minComplexityForAI: parseInt(options.minComplexity) || 5
+        model: options.model || config.aiModel || 'sonnet', // Use CLI arg, then config, then default
+        maxConcurrentTasks: parseInt(options.concurrent || '3'),
+        minComplexityForAI: parseInt(options.minComplexity || '5')
       });
 
       let batch = await taskPrep.prepareTasks(gapReport);

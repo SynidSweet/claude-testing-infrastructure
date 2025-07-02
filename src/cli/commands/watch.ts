@@ -14,6 +14,8 @@ import { FileWatcher, FileChangeEvent } from '../../utils/FileWatcher';
 import { FileChangeDebouncer, DebouncedEvent } from '../../utils/Debouncer';
 import { IncrementalGenerator } from '../../state/IncrementalGenerator';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
+import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
+import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 
 interface WatchOptions {
   /** Debounce delay for file changes in milliseconds */
@@ -82,13 +84,36 @@ export const watchCommand = new Command('watch')
         throw new Error(`Project path does not exist: ${resolvedPath}`);
       }
 
-      if (options.verbose) {
+      // Load configuration using ConfigurationService
+      spinner.text = 'Loading configuration...';
+      const configResult = await loadCommandConfig(resolvedPath, {
+        cliArgs: {
+          verbose: options.verbose,
+          watch: true
+        }
+      });
+      
+      if (!configResult.valid) {
+        logger.warn('Configuration validation warnings', { 
+          warnings: configResult.warnings
+        });
+      }
+      
+      const config = configResult.config;
+      
+      // Apply configuration to options
+      if (config.output?.logLevel && options.verbose) {
         logger.level = 'debug';
+      } else if (config.output?.logLevel) {
+        logger.level = config.output.logLevel as any;
       }
 
       // Initialize project analysis (for future enhancements)
       spinner.text = 'Analyzing project structure...';
-      const projectAnalyzer = new ProjectAnalyzer(resolvedPath);
+      const configService = new ConfigurationService({ projectPath: resolvedPath });
+      await configService.loadConfiguration();
+      const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+      const projectAnalyzer = new ProjectAnalyzer(resolvedPath, fileDiscovery);
       await projectAnalyzer.analyzeProject();
       
       // Initialize incremental generator if test generation is enabled
@@ -104,20 +129,28 @@ export const watchCommand = new Command('watch')
         verbose: options.verbose || false
       };
       
+      // Use configuration for include/exclude patterns
       if (options.include) {
         watcherConfig.includePatterns = options.include;
+      } else if (config.include) {
+        watcherConfig.includePatterns = config.include;
       }
       
       if (options.exclude) {
         watcherConfig.ignorePatterns = options.exclude;
+      } else if (config.exclude) {
+        watcherConfig.ignorePatterns = config.exclude;
       }
       
       fileWatcher = new FileWatcher(watcherConfig);
 
       // Set up debouncer for file changes
       const debounceDelay = parseInt(options.debounce || '500');
+      // Check if watch configuration has a debounce setting
+      const configDebounce = config.watch?.debounceMs || debounceDelay;
+      
       debouncer = new FileChangeDebouncer({
-        delay: debounceDelay,
+        delay: options.debounce ? debounceDelay : configDebounce,
         maxBatchSize: 10,
         maxWaitTime: 3000,
         groupBy: 'extension', // Group by file type for better batching

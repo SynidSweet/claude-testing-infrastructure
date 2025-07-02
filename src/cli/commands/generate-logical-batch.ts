@@ -20,6 +20,7 @@ import {
 } from '../../ai';
 import { BatchedLogicalTestGenerator, type BatchConfig } from '../../ai/BatchedLogicalTestGenerator';
 import { logger } from '../../utils/logger';
+import { loadCommandConfig } from '../../config/ConfigurationService';
 
 export const generateLogicalBatchCommand = new Command()
   .name('generate-logical-batch')
@@ -51,17 +52,42 @@ export const generateLogicalBatchCommand = new Command()
         throw new Error(`Not a directory: ${absoluteProjectPath}`);
       }
 
-      // Parse and validate options
-      const batchSize = parseInt(options.batchSize);
+      // Load configuration using ConfigurationService
+      spinner.text = 'Loading configuration...';
+      const configResult = await loadCommandConfig(absoluteProjectPath, {
+        cliArgs: {
+          verbose: options.verbose,
+          aiModel: options.model,
+          dryRun: options.dryRun
+        }
+      });
+      
+      if (!configResult.valid) {
+        logger.warn('Configuration validation warnings', { 
+          warnings: configResult.warnings 
+        });
+      }
+      
+      const config = configResult.config;
+      
+      // Apply configuration to logger
+      if (options.verbose || config.output?.logLevel === 'debug' || config.output?.logLevel === 'verbose') {
+        logger.level = 'debug';
+      } else if (config.output?.logLevel) {
+        logger.level = config.output.logLevel as any;
+      }
+
+      // Parse and validate options with config defaults
+      const batchSize = parseInt(options.batchSize || '10');
       if (isNaN(batchSize) || batchSize < 1 || batchSize > 50) {
         throw new Error('Batch size must be a number between 1 and 50');
       }
 
-      // Initialize components
+      // Initialize components with configuration
       const taskPrep = new AITaskPreparation({
-        model: options.model,
-        maxConcurrentTasks: parseInt(options.concurrent) || 3,
-        minComplexityForAI: parseInt(options.minComplexity) || 5
+        model: options.model || config.aiModel || 'sonnet',
+        maxConcurrentTasks: parseInt(options.concurrent || '3'),
+        minComplexityForAI: parseInt(options.minComplexity || '5')
       });
 
       const batchGenerator = new BatchedLogicalTestGenerator(batchSize, taskPrep);

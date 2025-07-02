@@ -16,6 +16,9 @@
 ### Core Analysis & Generation
 - **ProjectAnalyzer** (`src/analyzers/ProjectAnalyzer.ts`): Language/framework detection with 8+ framework support
 - **TestGenerator** (`src/generators/TestGenerator.ts`): Abstract base class for test generation with lifecycle management and configurable file count validation  
+- **BaseTestGenerator** (`src/generators/base/BaseTestGenerator.ts`): Abstract base class for language-specific test generators with comprehensive language context support
+- **TestGeneratorFactory** (`src/generators/TestGeneratorFactory.ts`): Factory pattern for creating appropriate test generators based on language detection and feature flags
+- **JavaScriptTestGenerator** (`src/generators/javascript/JavaScriptTestGenerator.ts`): JavaScript/TypeScript specific test generator with module system detection, export analysis, and framework-aware test generation
 - **StructuralTestGenerator** (`src/generators/StructuralTestGenerator.ts`): Intelligent structural test scaffolding and analysis with dry-run support, ratio validation, and working exclude pattern integration
 - **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Framework-specific template system
 
@@ -52,6 +55,8 @@
   - Type checking and function behavior testing
   - Async function handling and error scenarios
   - Object property testing and input validation
+  - **ES Module Support**: Proper ES module import syntax when `moduleSystem: 'esm'` specified
+  - **React Component Testing**: Full React testing templates with JSX for ES modules, basic structural tests for CommonJS
 - **Mixed Project Support**: Comprehensive test fixtures for projects using multiple languages and module systems
 
 ## Data Models & Entities

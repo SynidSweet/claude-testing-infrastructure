@@ -42,7 +42,8 @@ export function createMockProjectAnalysis(overrides: Partial<ProjectAnalysis> = 
     moduleSystem: {
       type: 'commonjs',
       hasPackageJsonType: false,
-      confidence: 0.8
+      confidence: 0.8,
+      fileExtensionPattern: 'js'
     }
   };
 

@@ -89,35 +89,34 @@ export class MarkdownTemplateEngine extends BaseTemplateEngine<MarkdownTemplateD
     projectName?: string
   ): MarkdownTemplateData {
     const baseData = this.createBaseTemplateData(projectName);
-    
-    const files = Object.entries(data.files).map(([filename, coverage]) => ({
-      filename,
-      lines: this.formatPercentage(coverage.summary.lines),
-      statements: this.formatPercentage(coverage.summary.statements),
-      branches: this.formatPercentage(coverage.summary.branches),
-      functions: this.formatPercentage(coverage.summary.functions)
-    }));
-    
-    const suggestions = gaps.suggestions.map((suggestion, index) => ({
-      index: index + 1,
-      target: suggestion.target,
-      file: suggestion.file,
-      description: suggestion.description,
-      priority: suggestion.priority,
-      effort: suggestion.effort
-    }));
+    const summary = this.transformSummaryData(data.summary);
+    const files = this.transformFilesData(data.files);
+    const suggestions = this.transformSuggestionsData(gaps.suggestions);
 
     return {
       ...baseData,
       summary: {
-        statements: this.formatPercentage(data.summary.statements),
-        branches: this.formatPercentage(data.summary.branches),
-        functions: this.formatPercentage(data.summary.functions),
-        lines: this.formatPercentage(data.summary.lines)
+        statements: summary.statements as string,
+        branches: summary.branches as string,
+        functions: summary.functions as string,
+        lines: summary.lines as string
       },
       meetsThresholds: data.meetsThreshold,
-      files,
-      suggestions
+      files: files.map(file => ({
+        filename: file.filename,
+        lines: file.summary.lines as string,
+        statements: file.summary.statements as string,
+        branches: file.summary.branches as string,
+        functions: file.summary.functions as string
+      })),
+      suggestions: suggestions.map(suggestion => ({
+        index: suggestion.index!,
+        target: suggestion.target,
+        file: suggestion.file,
+        description: suggestion.description,
+        priority: suggestion.priority,
+        effort: suggestion.effort
+      }))
     };
   }
 }

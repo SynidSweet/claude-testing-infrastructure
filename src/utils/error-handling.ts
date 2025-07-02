@@ -105,13 +105,22 @@ export async function handleAnalysisOperation<T>(
   try {
     return await operation();
   } catch (error) {
-    const context: Record<string, unknown> = { originalError: error };
+    // Capture error details more effectively
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    const context: Record<string, unknown> = { 
+      originalError: error,
+      errorMessage,
+      errorStack
+    };
     if (projectPath) {
       context.projectPath = projectPath;
     }
 
     logger.error(`Analysis operation failed: ${description}`, context);
-    throw new AnalysisError(`Failed ${description}`, context);
+    // Include the actual error message in the thrown error
+    const fullMessage = `Failed ${description}: ${errorMessage}`;
+    throw new AnalysisError(fullMessage, context);
   }
 }
 
@@ -221,6 +230,12 @@ export function getErrorContext(error: unknown): Record<string, unknown> {
  */
 export function formatErrorMessage(error: unknown): string {
   if (isClaudeTestingError(error)) {
+    // Check if we have the original error message in context
+    const errorMessage = error.context.errorMessage as string;
+    if (errorMessage && errorMessage !== error.message) {
+      return errorMessage;
+    }
+    
     const contextInfo =
       Object.keys(error.context).length > 0 ? ` (${Object.keys(error.context).join(', ')})` : '';
     return `${error.message}${contextInfo}`;

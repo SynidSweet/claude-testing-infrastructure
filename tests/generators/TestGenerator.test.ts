@@ -64,7 +64,8 @@ describe('TestGenerator', () => {
       moduleSystem: {
         type: 'commonjs',
         hasPackageJsonType: false,
-        confidence: 0.8
+        confidence: 0.8,
+        fileExtensionPattern: 'js'
       }
     };
 

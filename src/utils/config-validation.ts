@@ -14,6 +14,7 @@ import type {
   OutputFormat,
 } from '../types/config';
 import { DEFAULT_CONFIG, TestType } from '../types/config';
+import { ConfigErrorFormatter, findSimilarFields } from './config-error-messages';
 
 /**
  * Configuration loader and validator
@@ -183,9 +184,14 @@ export class ConfigurationManager {
         'auto',
       ];
       if (!validFrameworks.includes(userConfig.testFramework)) {
-        errors.push(
-          `Invalid testFramework: ${userConfig.testFramework}. Valid options: ${validFrameworks.join(', ')}`
+        const error = ConfigErrorFormatter.formatError(
+          ConfigErrorFormatter.templates.invalidEnum(
+            'testFramework',
+            userConfig.testFramework,
+            validFrameworks
+          )
         );
+        errors.push(error);
       } else {
         mergedConfig.testFramework = userConfig.testFramework;
         if (userConfig.testFramework !== 'auto') {
@@ -210,9 +216,28 @@ export class ConfigurationManager {
         'claude-3-haiku-20240307',
       ];
       if (!validModels.includes(userConfig.aiModel)) {
-        errors.push(
-          `Invalid aiModel: ${userConfig.aiModel}. Valid options: ${validModels.join(', ')}`
-        );
+        // Check if it's a common alias that needs to be mapped
+        const modelAliases: Record<string, string> = {
+          'sonnet': 'claude-3-5-sonnet-20241022',
+          'opus': 'claude-3-opus-20240229',
+          'haiku': 'claude-3-haiku-20240307',
+          'claude-3-sonnet': 'claude-3-5-sonnet-20241022'
+        };
+        
+        const suggestion = modelAliases[userConfig.aiModel.toLowerCase()] 
+          ? `Use '${modelAliases[userConfig.aiModel.toLowerCase()]}' or configure model aliases`
+          : undefined;
+        
+        const errorDetails: import('./config-error-messages').ConfigErrorDetails = {
+          field: 'aiModel',
+          value: userConfig.aiModel,
+          message: `Invalid AI model identifier. Valid options: ${validModels.join(', ')}`,
+          suggestion,
+          example: 'claude-3-5-sonnet-20241022',
+          documentation: 'https://docs.anthropic.com/claude-testing/ai-models'
+        };
+        const error = ConfigErrorFormatter.formatError(errorDetails);
+        errors.push(error);
       } else {
         mergedConfig.aiModel = userConfig.aiModel;
         if (userConfig.aiModel === 'claude-3-opus-20240229') {
@@ -245,17 +270,35 @@ export class ConfigurationManager {
         'aiGeneration',
         'incremental',
         'watch',
+        'logicalTests',
+        'structuralTests',
       ];
 
       for (const [key, value] of Object.entries(userConfig.features)) {
         if (booleanFeatures.includes(key)) {
           if (typeof value !== 'boolean') {
-            errors.push(`features.${key} must be a boolean`);
+            const error = ConfigErrorFormatter.formatError(
+              ConfigErrorFormatter.templates.invalidType(
+                `features.${key}`,
+                value,
+                'boolean',
+                typeof value
+              )
+            );
+            errors.push(error);
           } else {
             (mergedConfig.features as any)[key] = value;
           }
         } else {
-          errors.push(`Unknown feature flag: ${key}`);
+          const similarFields = findSimilarFields(key, booleanFeatures);
+          const error = ConfigErrorFormatter.formatError(
+            ConfigErrorFormatter.templates.unknownField(
+              `features.${key}`,
+              value,
+              similarFields.map(f => `features.${f}`)
+            )
+          );
+          errors.push(error);
         }
       }
     }
@@ -269,7 +312,15 @@ export class ConfigurationManager {
   ): void {
     if (userConfig.generation !== undefined) {
       if (typeof userConfig.generation !== 'object' || userConfig.generation === null) {
-        errors.push('generation must be an object');
+        const error = ConfigErrorFormatter.formatError(
+          ConfigErrorFormatter.templates.invalidType(
+            'generation',
+            userConfig.generation,
+            'object',
+            userConfig.generation === null ? 'null' : typeof userConfig.generation
+          )
+        );
+        errors.push(error);
         return;
       }
 
@@ -280,7 +331,15 @@ export class ConfigurationManager {
           userConfig.generation.maxTestsPerFile < 1 ||
           userConfig.generation.maxTestsPerFile > 1000
         ) {
-          errors.push('generation.maxTestsPerFile must be an integer between 1 and 1000');
+          const error = ConfigErrorFormatter.formatError(
+            ConfigErrorFormatter.templates.outOfRange(
+              'generation.maxTestsPerFile',
+              userConfig.generation.maxTestsPerFile,
+              1,
+              1000
+            )
+          );
+          errors.push(error);
         } else {
           mergedConfig.generation.maxTestsPerFile = userConfig.generation.maxTestsPerFile;
           if (userConfig.generation.maxTestsPerFile > 100) {
@@ -296,7 +355,15 @@ export class ConfigurationManager {
           userConfig.generation.maxTestToSourceRatio < 1 ||
           userConfig.generation.maxTestToSourceRatio > 100
         ) {
-          errors.push('generation.maxTestToSourceRatio must be an integer between 1 and 100');
+          const error = ConfigErrorFormatter.formatError(
+            ConfigErrorFormatter.templates.outOfRange(
+              'generation.maxTestToSourceRatio',
+              userConfig.generation.maxTestToSourceRatio,
+              1,
+              100
+            )
+          );
+          errors.push(error);
         } else {
           mergedConfig.generation.maxTestToSourceRatio = userConfig.generation.maxTestToSourceRatio;
           if (userConfig.generation.maxTestToSourceRatio > 20) {
@@ -507,6 +574,15 @@ export class ConfigurationManager {
           mergedConfig.incremental.maxFilesPerUpdate = userConfig.incremental.maxFilesPerUpdate;
         }
       }
+
+      // Validate showStats
+      if (userConfig.incremental.showStats !== undefined) {
+        if (typeof userConfig.incremental.showStats !== 'boolean') {
+          errors.push('incremental.showStats must be a boolean');
+        } else {
+          mergedConfig.incremental.showStats = userConfig.incremental.showStats;
+        }
+      }
     }
   }
 
@@ -645,27 +721,70 @@ export class ConfigurationManager {
           }
         }
       }
+
+      // Validate file
+      if (userConfig.output.file !== undefined) {
+        if (typeof userConfig.output.file !== 'string') {
+          errors.push('output.file must be a string');
+        } else {
+          mergedConfig.output.file = userConfig.output.file;
+        }
+      }
     }
   }
 
   private performCrossValidation(
     config: ClaudeTestingConfig,
-    _errors: string[],
+    errors: string[],
     warnings: string[]
   ): void {
+    // Check if unit tests and integration tests are both disabled
+    if (!config.features.unitTests && !config.features.integrationTests) {
+      const error = ConfigErrorFormatter.formatError({
+        field: 'features',
+        value: { unitTests: false, integrationTests: false },
+        message: 'Both unit tests and integration tests are disabled',
+        suggestion: 'Enable at least one test type',
+        example: '"features": { "unitTests": true, "integrationTests": true }'
+      });
+      errors.push(error);
+    }
     // Check if AI features are enabled but AI generation is disabled
     if (!config.features.aiGeneration && (config.features.edgeCases || config.ai.enabled)) {
-      warnings.push('AI features are configured but aiGeneration is disabled');
+      const warning = ConfigErrorFormatter.formatError(
+        ConfigErrorFormatter.templates.conflictingValues(
+          'features.aiGeneration',
+          false,
+          'features.edgeCases or ai.enabled',
+          true
+        )
+      );
+      warnings.push(warning);
     }
 
     // Check if watch mode is enabled without incremental
     if (config.features.watch && !config.features.incremental) {
-      warnings.push('Watch mode is enabled but incremental testing is disabled');
+      const warning = ConfigErrorFormatter.formatError({
+        field: 'features.watch',
+        value: true,
+        message: 'Watch mode requires incremental testing to be effective',
+        suggestion: "Enable 'features.incremental' for optimal watch mode performance",
+        example: '"features": { "watch": true, "incremental": true }'
+      });
+      warnings.push(warning);
     }
 
     // Check if coverage is disabled but coverage options are set
     if (!config.features.coverage && config.coverage.enabled) {
-      warnings.push('Coverage features are disabled but coverage is enabled');
+      const warning = ConfigErrorFormatter.formatError(
+        ConfigErrorFormatter.templates.conflictingValues(
+          'features.coverage',
+          false,
+          'coverage.enabled',
+          true
+        )
+      );
+      warnings.push(warning);
     }
 
     // Validate include/exclude patterns don't conflict
@@ -675,7 +794,14 @@ export class ConfigurationManager {
     const hasPython = config.include.some((pattern) => pattern.includes('.py'));
 
     if (hasJavaScript && hasPython && config.testFramework !== 'auto') {
-      warnings.push('Mixed language project detected. Consider using testFramework: "auto"');
+      const warning = ConfigErrorFormatter.formatError({
+        field: 'testFramework',
+        value: config.testFramework,
+        message: 'Mixed language project detected (JavaScript and Python)',
+        suggestion: 'Use "auto" for automatic framework detection in multi-language projects',
+        example: '"testFramework": "auto"'
+      });
+      warnings.push(warning);
     }
   }
 }

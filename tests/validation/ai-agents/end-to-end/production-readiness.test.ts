@@ -126,7 +126,7 @@ describe('Production Readiness Validation - End-to-End', () => {
       for (const model of models) {
         try {
           const result = await execAsync(
-            `${CLI_COMMAND} analyze-gaps ${testProjectPath} --model ${model} --dry-run`,
+            `${CLI_COMMAND} generate-logical ${testProjectPath} --model ${model} --dry-run`,
             { cwd: path.resolve('.'), timeout: 30000 }
           );
           
@@ -230,7 +230,7 @@ describe('Production Readiness Validation - End-to-End', () => {
           test: async () => {
             const startTime = Date.now();
             try {
-              await execAsync(`${CLI_COMMAND} analyze-gaps ${testProjectPath} --dry-run`, {
+              await execAsync(`${CLI_COMMAND} generate-logical ${testProjectPath} --dry-run`, {
                 cwd: path.resolve('.'),
                 timeout: 60000
               });
@@ -244,7 +244,7 @@ describe('Production Readiness Validation - End-to-End', () => {
           name: 'Model Recognition',
           test: async () => {
             try {
-              const result = await execAsync(`${CLI_COMMAND} analyze-gaps ${testProjectPath} --model sonnet --dry-run`, {
+              const result = await execAsync(`${CLI_COMMAND} generate-logical ${testProjectPath} --model sonnet --dry-run`, {
                 cwd: path.resolve('.'),
                 timeout: 30000
               });
@@ -358,7 +358,7 @@ async function runProductionValidation(projectPath: string): Promise<ProductionR
     // Test AI generation (without hanging)
     const aiStart = Date.now();
     try {
-      await execAsync(`${CLI_COMMAND} analyze-gaps ${projectPath} --dry-run`, {
+      await execAsync(`${CLI_COMMAND} generate-logical ${projectPath} --dry-run`, {
         cwd: path.resolve('.'),
         timeout: 120000
       });
@@ -369,7 +369,7 @@ async function runProductionValidation(projectPath: string): Promise<ProductionR
     
     // Test model recognition
     try {
-      const modelTest = await execAsync(`${CLI_COMMAND} analyze-gaps ${projectPath} --model sonnet --dry-run`, {
+      const modelTest = await execAsync(`${CLI_COMMAND} generate-logical ${projectPath} --model sonnet --dry-run`, {
         cwd: path.resolve('.'),
         timeout: 30000
       });

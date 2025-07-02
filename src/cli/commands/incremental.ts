@@ -5,6 +5,7 @@
 import { Command } from 'commander';
 import { IncrementalGenerator, ChangeDetector, HistoryManager } from '../../state';
 import { logger } from '../../utils/common-imports';
+import { loadCommandConfig } from '../../config/ConfigurationService';
 
 export function createIncrementalCommand(): Command {
   const command = new Command('incremental');
@@ -36,6 +37,28 @@ export function createIncrementalCommand(): Command {
 }
 
 async function handleIncrementalCommand(projectPath: string, options: any): Promise<void> {
+  // Load configuration using ConfigurationService
+  const configResult = await loadCommandConfig(projectPath, {
+    cliArgs: {
+      verbose: options.verbose,
+      dryRun: options.dryRun,
+      force: options.force
+    }
+  });
+  
+  if (!configResult.valid) {
+    logger.warn('Configuration validation warnings', { 
+      warnings: configResult.warnings 
+    });
+  }
+  
+  const config = configResult.config;
+  
+  // Apply configuration to logger
+  if (config.output?.logLevel) {
+    logger.level = config.output.logLevel as any;
+  }
+
   const incrementalGenerator = new IncrementalGenerator(projectPath);
   const changeDetector = new ChangeDetector(projectPath);
   const historyManager = new HistoryManager(projectPath);
@@ -53,12 +76,13 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
   // Perform incremental generation
   console.log('🔄 Starting incremental test generation...');
   
+  // Use configuration values as defaults
   const result = await incrementalGenerator.generateIncremental({
     forceRegenerate: options.force,
-    skipAI: options.skipAi,
+    skipAI: options.skipAi || !config.features?.aiGeneration,
     dryRun: options.dryRun,
-    maxConcurrency: parseInt(options.maxConcurrency, 10),
-    costLimit: parseFloat(options.costLimit)
+    maxConcurrency: parseInt(options.maxConcurrency || '3', 10),
+    costLimit: parseFloat(options.costLimit || (config.incremental?.costLimit || config.ai?.maxCost || '5.0').toString())
   });
 
   // Display and record results

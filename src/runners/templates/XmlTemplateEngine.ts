@@ -73,32 +73,23 @@ export class XmlTemplateEngine extends BaseTemplateEngine<XmlTemplateData> {
 
   prepareTemplateData(data: CoverageData | AggregatedCoverageData): XmlTemplateData {
     const baseData = this.createBaseTemplateData();
-    
-    const files = Object.entries(data.files).map(([path, coverage]) => ({
-      path,
-      summary: {
-        statements: coverage.summary.statements,
-        branches: coverage.summary.branches,
-        functions: coverage.summary.functions,
-        lines: coverage.summary.lines
-      },
-      uncoveredLines: coverage.uncoveredLines.join(',')
-    }));
+    const files = this.transformFilesData(data.files, 'raw');
+    const uncoveredAreas = this.transformUncoveredAreasData(data.uncoveredAreas);
 
     return {
       ...baseData,
       summary: data.summary,
-      files,
-      uncoveredAreas: data.uncoveredAreas
+      files: files.map(file => ({
+        path: file.path!,
+        summary: {
+          statements: file.summary.statements as number,
+          branches: file.summary.branches as number,
+          functions: file.summary.functions as number,
+          lines: file.summary.lines as number
+        },
+        uncoveredLines: file.uncoveredLines || ''
+      })),
+      uncoveredAreas
     };
-  }
-
-  private escapeXml(str: string): string {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
   }
 }

@@ -1,12 +1,12 @@
 import { spawn } from 'child_process';
-import { promises as fs } from 'fs';
-import path from 'path';
 import type { TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
 import { TestRunner } from './TestRunner';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
 import type { CoverageReporter } from './CoverageReporter';
 import { CoverageReporterFactory } from './CoverageReporter';
+import type { FileDiscoveryService } from '../types/file-discovery-types';
+import { FileDiscoveryType } from '../types/file-discovery-types';
 
 /**
  * Jest test runner implementation
@@ -14,7 +14,7 @@ import { CoverageReporterFactory } from './CoverageReporter';
 export class JestRunner extends TestRunner {
   private coverageReporter?: CoverageReporter;
 
-  constructor(config: TestRunnerConfig, analysis: ProjectAnalysis) {
+  constructor(config: TestRunnerConfig, analysis: ProjectAnalysis, private fileDiscovery: FileDiscoveryService) {
     super(config, analysis);
 
     // Initialize coverage reporter if coverage is enabled
@@ -41,15 +41,13 @@ export class JestRunner extends TestRunner {
 
   protected async hasTests(): Promise<boolean> {
     try {
-      // Check if test directory exists and has test files
-      const testStats = await fs.stat(this.config.testPath);
-      if (!testStats.isDirectory()) {
-        return false;
-      }
-
-      // Look for test files in the test directory
-      const files = await this.findTestFiles(this.config.testPath);
-      return files.length > 0;
+      const result = await this.fileDiscovery.findFiles({
+        baseDir: this.config.testPath,
+        type: FileDiscoveryType.TEST_EXECUTION,
+        useCache: true
+      });
+      
+      return result.files.length > 0;
     } catch {
       return false;
     }
@@ -110,11 +108,9 @@ export class JestRunner extends TestRunner {
   protected getRunCommand(): { command: string; args: string[] } {
     const args: string[] = ['jest']; // Add jest as first arg for npx
 
-    // Base configuration - Configure Jest to find generated .js test files
-    args.push('--testPathPattern', this.config.testPath);
-    args.push('--testMatch', '**/*.test.{js,ts,jsx,tsx}'); // Include .js test files
-    args.push('--roots', this.config.testPath); // Set root to test directory
-    args.push('--transform', '{}'); // Disable transforms for .js files (treat as CommonJS)
+    // Generate Jest configuration based on module system
+    const jestConfig = this.generateJestConfig();
+    args.push('--config', JSON.stringify(jestConfig));
     args.push('--passWithNoTests');
     args.push('--json'); // Get JSON output for parsing
 
@@ -375,48 +371,59 @@ export class JestRunner extends TestRunner {
     };
   }
 
+  private generateJestConfig(): any {
+    const moduleSystem = this.analysis.moduleSystem;
+    
+    // Base configuration
+    const config: any = {
+      testEnvironment: 'node',
+      testMatch: ['**/*.test.{js,ts,jsx,tsx}'],
+      passWithNoTests: true,
+      setupFilesAfterEnv: ['<rootDir>/setupTests.js']
+    };
+
+    // Configure for ES modules
+    if (moduleSystem.type === 'esm') {
+      config.preset = 'ts-jest/presets/default-esm';
+      config.extensionsToTreatAsEsm = ['.ts'];
+      config.moduleNameMapper = {
+        '^(\\.{1,2}/.*)\\.js$': '$1'
+      };
+      config.transform = {
+        '^.+\\.tsx?$': ['ts-jest', { useESM: true }]
+      };
+    } else {
+      // CommonJS configuration
+      config.transform = {};
+    }
+
+    // Add coverage configuration if enabled
+    if (this.config.coverage?.enabled) {
+      config.collectCoverage = true;
+      
+      if (this.config.coverage.outputDir) {
+        config.coverageDirectory = this.config.coverage.outputDir;
+      }
+      
+      if (this.config.coverage.reporters) {
+        config.coverageReporters = this.config.coverage.reporters;
+      }
+      
+      if (this.config.coverage.thresholds) {
+        config.coverageThreshold = {
+          global: this.config.coverage.thresholds
+        };
+      }
+    }
+
+    return config;
+  }
+
   private findJestExecutable(): string {
     // For now, default to npx jest which should work in most cases
     return 'npx';
   }
 
-  private async findTestFiles(directory: string): Promise<string[]> {
-    const testFiles: string[] = [];
-
-    try {
-      const entries = await fs.readdir(directory, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(directory, entry.name);
-
-        if (entry.isDirectory()) {
-          // Recursively search subdirectories
-          const subFiles = await this.findTestFiles(fullPath);
-          testFiles.push(...subFiles);
-        } else if (entry.isFile()) {
-          // Check if file matches test patterns
-          if (this.isTestFile(entry.name)) {
-            testFiles.push(fullPath);
-          }
-        }
-      }
-    } catch (error) {
-      logger.warn('Error reading test directory', { directory, error });
-    }
-
-    return testFiles;
-  }
-
-  private isTestFile(filename: string): boolean {
-    // Jest test file patterns
-    const testPatterns = [
-      /\.test\.(js|jsx|ts|tsx)$/,
-      /\.spec\.(js|jsx|ts|tsx)$/,
-      /__tests__\/.*\.(js|jsx|ts|tsx)$/,
-    ];
-
-    return testPatterns.some((pattern) => pattern.test(filename));
-  }
 
   private extractUncoveredLinesFromReport(coverageData: any): Record<string, number[]> {
     const uncoveredLines: Record<string, number[]> = {};

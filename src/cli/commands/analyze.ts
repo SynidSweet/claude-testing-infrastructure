@@ -1,24 +1,40 @@
-import { chalk, ora, logger, loadAndValidateConfig } from '../../utils/common-imports';
+import { chalk, ora, logger } from '../../utils/common-imports';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
+import { ConfigurationService } from '../../config/ConfigurationService';
+import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 import { handleAnalysisOperation, handleFileOperation, formatErrorMessage } from '../../utils/error-handling';
+import { displayConfigurationSources } from '../../utils/config-display';
 
 interface AnalyzeOptions {
   output?: string;
   format?: 'json' | 'markdown' | 'console';
   verbose?: boolean;
   validateConfig?: boolean;
+  config?: string;
 }
 
-export async function analyzeCommand(projectPath: string, options: AnalyzeOptions = {}): Promise<void> {
+export async function analyzeCommand(projectPath: string, options: AnalyzeOptions = {}, command?: any): Promise<void> {
+  // Access global options from parent command
+  const globalOptions = command?.parent?.opts() || {};
+  const showConfigSources = globalOptions.showConfigSources || false;
   const spinner = ora('Analyzing project...').start();
   
   try {
     logger.info(`Starting analysis of project: ${projectPath}`);
     
-    // Validate configuration if requested
+    // Load and validate configuration if requested
     if (options.validateConfig) {
-      spinner.text = 'Validating configuration...';
-      const configResult = await loadAndValidateConfig(projectPath);
+      spinner.text = 'Loading and validating configuration...';
+      
+      const configService = new ConfigurationService({
+        projectPath,
+        ...(options.config && { customConfigPath: options.config }),
+        includeEnvVars: true,
+        includeUserConfig: true,
+        cliArgs: options
+      });
+      
+      const configResult = await configService.loadConfiguration();
       
       spinner.stop();
       console.log(chalk.blue('\n📋 Configuration Validation Results'));
@@ -47,8 +63,38 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
         process.exit(1);
       }
       
+      // Show configuration sources
+      console.log(chalk.blue('\n📂 Configuration Sources:'));
+      configResult.sources.forEach(source => {
+        const status = source.loaded ? '✓' : '✗';
+        const path = source.path ? ` (${source.path})` : '';
+        console.log(`  ${status} ${source.type}${path}`);
+        if (source.errors.length > 0) {
+          source.errors.forEach(error => {
+            console.log(chalk.red(`    • ${error}`));
+          });
+        }
+      });
+      
       console.log(chalk.blue('\n📊 Resolved Configuration:'));
       console.log(JSON.stringify(configResult.config, null, 2));
+      console.log('');
+    } else if (showConfigSources) {
+      // Show config sources even when not validating
+      spinner.text = 'Loading configuration...';
+      
+      const configService = new ConfigurationService({
+        projectPath,
+        ...(options.config && { customConfigPath: options.config }),
+        includeEnvVars: true,
+        includeUserConfig: true,
+        cliArgs: options
+      });
+      
+      const configResult = await configService.loadConfiguration();
+      spinner.stop();
+      
+      displayConfigurationSources(configResult);
       console.log('');
       
       spinner.start('Analyzing project...');
@@ -56,7 +102,23 @@ export async function analyzeCommand(projectPath: string, options: AnalyzeOption
     
     const analysis = await handleAnalysisOperation(
       async () => {
-        const analyzer = new ProjectAnalyzer(projectPath);
+        // Create or get existing configuration service
+        const configService = new ConfigurationService({
+          projectPath,
+          ...(options.config && { customConfigPath: options.config }),
+          includeEnvVars: true,
+          includeUserConfig: true,
+          cliArgs: options
+        });
+        
+        // Load configuration before creating FileDiscoveryService
+        await configService.loadConfiguration();
+        
+        // Create FileDiscoveryService instance
+        const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+        
+        // Create analyzer with FileDiscoveryService
+        const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
         return await analyzer.analyzeProject();
       },
       'project analysis',

@@ -18,6 +18,7 @@
   - Template system needs better error recovery
   - Discovery engine can be optimized for large codebases
   - Configuration merging logic needs refactoring
+  - **File discovery inconsistencies (2025-07-01)**: 5 different implementations with mixed performance, inconsistent exclude patterns, no caching. See `/docs/planning/file-discovery-investigation-report.md`
 - **Fixed issues (2025-01-27)**:
   - All module imports corrected to use proper destructuring
   - ConfigManager usage fixed to pass config path parameter

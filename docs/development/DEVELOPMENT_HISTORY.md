@@ -1,8 +1,73 @@
 # Development History - Claude Testing Infrastructure
 
-*Extracted from PROJECT_CONTEXT.md during migration cleanup on 2025-06-30*
+*Last updated: 2025-07-02 | Updated by: /document command | Added enhanced JavaScript-specific templates implementation*
 
 ## Recent Updates Log
+
+### 2025-07-02: Enhanced JavaScript-Specific Templates Implementation Complete
+- **ENHANCED TEMPLATES COMPLETED** - TASK-LANG-002e completed: comprehensive JavaScript-specific templates with async pattern awareness and framework-specific test generation
+- **6 TEMPLATE CLASSES**: Created JavaScriptEnhancedTemplates.ts (1,700+ lines) with EnhancedJestJavaScriptTemplate, EnhancedReactComponentTemplate, EnhancedVueComponentTemplate, EnhancedAngularComponentTemplate, EnhancedTypeScriptTemplate, and EnhancedReactTypeScriptComponentTemplate
+- **ASYNC PATTERN INTEGRATION**: Templates leverage AsyncPatternDetector results to generate pattern-specific tests for async/await, promises, callbacks, and generators
+- **FRAMEWORK INTELLIGENCE**: React templates use Testing Library with accessibility testing, Vue templates use Vue Test Utils with lifecycle testing, Angular templates use TestBed with dependency injection
+- **MODULE SYSTEM AWARENESS**: Smart import generation for ESM (with .js extensions) and CommonJS with proper relative path handling
+- **TYPESCRIPT ENHANCEMENT**: Advanced type safety validation, interface testing, and compilation integrity checks
+- **TEMPLATE REGISTRATION**: Automated registration with graceful fallback to basic templates if enhanced templates fail to load
+- **COMPREHENSIVE TESTING**: All templates validated for correct generation and proper async pattern integration
+- **JAVASCRIPT GENERATOR PROGRESS**: Advanced JavaScript generator implementation from 67% to 83% complete (5/6 subtasks done)
+
+### 2025-07-02: AsyncPatternDetector Implementation Complete
+- **ASYNC PATTERN DETECTION IMPLEMENTED** - TASK-LANG-002d completed: comprehensive async pattern detection for JavaScript/TypeScript test generation
+- **AST-BASED ANALYSIS**: Created AsyncPatternDetector (`src/generators/javascript/analyzers/AsyncPatternDetector.ts`) using Babel parser for precise pattern detection
+- **PATTERN SUPPORT**: Detects async/await, Promise-based patterns (.then, .catch, Promise.all), error-first callbacks, and generator functions with confidence scoring
+- **JAVASCRIPT GENERATOR INTEGRATION**: Enhanced JavaScriptTestGenerator to use AsyncPatternDetector for pattern-aware test generation
+- **SMART TEST GENERATION**: Tests now generate pattern-specific code - Promise tests check `toBeInstanceOf(Promise)`, callback tests use `done` parameter, async tests include error handling
+- **ROBUST FALLBACK**: Includes regex-based detection when AST parsing fails on malformed code
+- **TYPESCRIPT SUPPORT**: Full TypeScript async pattern detection with proper type analysis
+- **COMPREHENSIVE TESTING**: Created test suite validating all async patterns and integration scenarios
+- **LANGUAGE-SPECIFIC PROGRESS**: Advanced JavaScript generator implementation from 50% to 67% complete (4/6 subtasks done)
+
+### 2025-07-01: Project Analysis Core Failure Resolved
+- **CRITICAL CLI COMMAND FIX** - TASK-TESTFIX-002 completed: resolved project analysis failure affecting `analyze`, `test`, and `run` commands  
+- **CONFIGURATION LOADING FIX**: Added missing `await configService.loadConfiguration()` calls before FileDiscoveryService creation in CLI commands
+- **ERROR HANDLING ENHANCEMENT**: Improved `handleAnalysisOperation()` to capture and display actual error messages instead of empty objects
+- **PRODUCTION VALIDATION RESTORED**: All test fixtures (react-es-modules, mixed-complex, mixed-minimal) now working correctly
+- **CORE INFRASTRUCTURE VALIDATED**: 168/168 core tests passing, ProjectAnalyzer and StructuralTestGenerator fully functional
+- **ROOT CAUSE**: FileDiscoveryService constructor requires loaded configuration; CLI commands were creating services before calling `loadConfiguration()`
+
+### 2025-07-01: FileDiscoveryService Core Infrastructure Implemented
+- **CENTRALIZED FILE DISCOVERY IMPLEMENTED** - TASK-1 of FileDiscoveryService implementation completed: comprehensive file discovery service with caching and pattern management
+- **CORE INFRASTRUCTURE**: Created FileDiscoveryService (`src/services/FileDiscoveryService.ts`) providing centralized file operations, PatternManager (`src/services/PatternManager.ts`) with language-specific pattern resolution, FileDiscoveryCache (`src/services/FileDiscoveryCache.ts`) with TTL and statistics tracking
+- **TYPE SYSTEM**: Comprehensive type definitions in `src/types/file-discovery-types.ts` covering 15+ interfaces for consistent file discovery operations
+- **PATTERN MANAGEMENT**: Advanced glob pattern system supporting JavaScript/TypeScript and Python with framework-specific patterns, user configuration overrides, and pattern validation with warnings
+- **CACHING SYSTEM**: Memory-based cache with TTL expiration, LRU eviction, pattern-based invalidation, and performance statistics (70-90% hit rates expected)
+- **INTEGRATION READY**: Designed for integration with ProjectAnalyzer, TestGenerator, and TestRunner components - next tasks: configuration integration and component migration
+- **COMPREHENSIVE TESTING**: 60+ test cases covering pattern resolution, cache behavior, service integration, and configuration loading
+- **DOCUMENTATION**: Added feature documentation at `/docs/features/file-discovery-service.md` and architecture section in overview
+
+### 2025-07-01: Import Path Generation Fixed for ES Modules  
+- **CRITICAL IMPORT PATH BUG FIXED** - TASK-TESTFIX-002 completed: test templates now calculate correct relative paths from `.claude-testing/tests/` structure to source files
+- **MULTI-MODULE SYSTEM SUPPORT**: Enhanced template engine supports ES modules, CommonJS, and mixed projects with proper import statement generation
+- **EXTENSION PRESERVATION**: Fixed extension handling to preserve .jsx/.tsx extensions instead of incorrectly adding .js to them
+- **RELATIVE PATH CALCULATION**: Added `getJavaScriptModulePath()` method in StructuralTestGenerator to calculate correct `../../../../src/` relative paths
+- **TEMPLATE UPDATES**: Updated all JavaScript/TypeScript templates (Jest, React, TypeScript) to use calculated `modulePath` instead of hardcoded relative paths
+- **PRODUCTION READINESS**: Generated tests are now immediately executable without manual import path fixes - resolves core infrastructure issue
+- **VALIDATION IMPROVEMENTS**: Fixed production readiness tests to use correct `generate-logical --model` command instead of non-existent `analyze-gaps --model`
+
+### 2025-07-01: Configuration System Investigation Complete
+- **CONFIGURATION INVESTIGATION COMPLETE** - Comprehensive analysis of configuration loading issues across CLI commands
+- **CRITICAL ISSUE IDENTIFIED**: 5 of 8 CLI commands not loading user configuration files properly - only `test` command fully implements configuration loading
+- **ROOT CAUSE**: No centralized ConfigurationService exists - each command implements its own ad-hoc configuration logic (or doesn't)
+- **INVESTIGATION DELIVERABLES**: Created comprehensive investigation report at `/docs/planning/configuration-investigation-report.md`, designed ConfigurationService architecture with proper source precedence (CLI > env > project > user > defaults), created 4 implementation tasks for phased development
+- **IMPLEMENTATION PLAN**: TASK-CONFIG-001 (Create ConfigurationService Core - 6 hours), TASK-CONFIG-002 (Command Integration - 8 hours), TASK-CONFIG-003 (Environment & User Config - 3 hours), TASK-CONFIG-004 (Validation & Testing - 4 hours)
+- **IMPACT**: Once implemented, will ensure consistent configuration behavior across all commands, respect user preferences, and enable CI/CD configuration via environment variables
+
+### 2025-07-01: Critical Test Generation Path Resolution Fixes
+- **CRITICAL PATH RESOLUTION BUGS FIXED** - Resolved production-blocking test generation failures preventing validation tests from executing
+- **PATH RESOLUTION**: Fixed `getTestFilePath()` method using proper `path.relative()` instead of string replacement, corrected directory structure generation from `.claude-testing/code/personal/...` to `.claude-testing/tests/src/`
+- **JEST CONFIGURATION**: Enhanced TestRunner working directory to use `testPath` instead of `projectPath`, added Jest configuration isolation to prevent project config conflicts, implemented node environment to avoid jsdom dependency issues
+- **TEMPLATE SYSTEM**: Simplified React component templates to remove external dependencies (`@testing-library/react`), converted to CommonJS `require()` statements for compatibility, created 100% executable basic structural tests
+- **VALIDATION IMPROVEMENTS**: Production readiness tests now show significant improvement (AI generation timeouts resolved, test quality score 100%, execution workflow operational)
+- **IMPACT**: Core test generation workflow now functional - tests generate correct directory structure, execute successfully through Jest, and validation pipeline operational
 
 ### 2025-06-30: Critical AI Integration Fixes
 - **CLAUDE CLI INTEGRATION CRITICAL FIXES COMPLETED** - Resolved critical user-reported issues causing AI logical test generation to hang indefinitely
@@ -28,6 +93,14 @@
 - **USER FEEDBACK VERIFICATION AND GITHUB DEPLOYMENT COMPLETED** - Conducted comprehensive verification of all critical user feedback issues from pilot testing session
 - **VERIFICATION RESULTS**: AI model configuration fixes (sonnet/haiku aliases working), Claude CLI integration improvements (15-minute timeouts, proper error handling), Jest ES module support (comprehensive generation with proper syntax), File chunking system (9,507+ tokens handled), CLI UX polish (clean --version/--help output)
 - **DEPLOYMENT**: Successfully pushed production-ready v2.0 infrastructure to GitHub with all critical fixes
+
+### 2025-07-01: Exclude Pattern Fix Implementation
+- **EXCLUDE PATTERN FIX COMPLETED** - Resolved critical configuration integration issue where exclude patterns from `.claude-testing.config.json` were not being applied during test generation
+- **PROBLEM RESOLVED**: Configuration patterns were loaded but not passed to StructuralTestGenerator, causing node_modules and vendor directories to be incorrectly included in test generation
+- **TECHNICAL SOLUTION**: Modified CLI command to properly populate `patterns` field in TestGeneratorConfig, updated StructuralTestGenerator constructor to use configuration patterns with proper fallback chain, optimized fast-glob usage with `cwd` option for better pattern matching
+- **VALIDATION ADDED**: Implemented comprehensive pattern validation with logging, enhanced verbose CLI output to display include/exclude patterns, added debugging capabilities for pattern troubleshooting
+- **TESTING**: Comprehensive manual testing with default patterns, custom configuration, empty excludes, and complex project structures - all scenarios validated successfully
+- **IMPACT**: Exclude patterns now work correctly, preventing unnecessary test generation for vendor directories while respecting user-defined patterns, significantly improving performance and user experience
 
 ### 2025-06-30: Discriminated Union Types Enhancement
 - **DISCRIMINATED UNION TYPES ENHANCEMENT COMPLETED** - Successfully implemented comprehensive discriminated union types system to improve type safety and AI comprehension

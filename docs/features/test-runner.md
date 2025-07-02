@@ -1,6 +1,6 @@
 # TestRunner System
 
-*Last updated: 2025-06-28 | Implementation complete | Test execution fixes deployed*
+*Last updated: 2025-07-01 | Updated by: /document command | ES module support documentation added*
 
 ## Overview
 
@@ -33,12 +33,20 @@ The TestRunner System provides a framework-agnostic test execution engine that c
 
 ### Framework Support
 
-#### Jest Runner
+#### Jest Runner ✅ ENHANCED
+- **Fixed Working Directory** - Uses test directory (`.claude-testing`) as execution root instead of project root
+- **Isolated Configuration** - Overrides project Jest config to prevent conflicts
+- **Node Environment** - Uses `node` environment to avoid jsdom dependency issues
 - **Enhanced Configuration** - Includes `.js` test files in testMatch patterns and proper root directory mapping
-- **CommonJS Compatibility** - Generated tests use require() statements compatible with Node.js
+- **ES Module Support** - Automatic detection and configuration for ES module projects:
+  - Detects `"type": "module"` in package.json
+  - Configures `ts-jest/presets/default-esm` for TypeScript ES modules
+  - Sets `extensionsToTreatAsEsm: ['.ts']` for proper module handling
+  - Adds `moduleNameMapper` for `.js` extension resolution
+  - Configures transform with `useESM: true` option
+- **Dual Module System** - Supports both CommonJS and ES modules with appropriate import syntax
 - **JSON Output Parsing** - Structured test result extraction
 - **Coverage Integration** - Istanbul coverage with HTML/JSON reports
-- **React Support** - Component testing with proper setup
 - **Watch Mode** - Continuous testing during development
 - **JUnit XML** - CI/CD integration reports
 

@@ -3,31 +3,43 @@ import { JestRunner } from './JestRunner';
 import { PytestRunner } from './PytestRunner';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
+import type { FileDiscoveryService } from '../types/file-discovery-types';
+import { FileDiscoveryServiceFactory } from '../services/FileDiscoveryServiceFactory';
+import { ConfigurationService } from '../config/ConfigurationService';
 
 /**
  * Factory for creating appropriate test runners based on framework
  */
 export class TestRunnerFactory {
-  private static runners: (new (
-    config: TestRunnerConfig,
-    analysis: ProjectAnalysis
-  ) => TestRunner)[] = [JestRunner, PytestRunner];
-
   /**
    * Create a test runner for the specified framework
    */
-  static createRunner(config: TestRunnerConfig, analysis: ProjectAnalysis): TestRunner {
+  static createRunner(
+    config: TestRunnerConfig, 
+    analysis: ProjectAnalysis, 
+    fileDiscovery?: FileDiscoveryService
+  ): TestRunner {
     logger.debug(`Creating test runner for framework: ${config.framework}`);
 
-    for (const RunnerClass of this.runners) {
-      const instance = new RunnerClass(config, analysis);
-      if (instance.supports(config.framework)) {
-        logger.info(`Using ${RunnerClass.name} for framework: ${config.framework}`);
-        return instance;
-      }
+    // Create FileDiscoveryService if not provided
+    if (!fileDiscovery) {
+      const configService = new ConfigurationService({ projectPath: config.projectPath });
+      fileDiscovery = FileDiscoveryServiceFactory.create(configService);
     }
 
-    throw new Error(`No test runner found for framework: ${config.framework}`);
+    // Create instance based on framework
+    let instance: TestRunner;
+    
+    if (config.framework === 'jest') {
+      instance = new JestRunner(config, analysis, fileDiscovery);
+    } else if (config.framework === 'pytest') {
+      instance = new PytestRunner(config, analysis, fileDiscovery);
+    } else {
+      throw new Error(`No test runner found for framework: ${config.framework}`);
+    }
+
+    logger.info(`Using ${instance.constructor.name} for framework: ${config.framework}`);
+    return instance;
   }
 
   /**
@@ -86,13 +98,4 @@ export class TestRunnerFactory {
     return 'jest';
   }
 
-  /**
-   * Register a new test runner
-   */
-  static registerRunner(
-    runnerClass: new (config: TestRunnerConfig, analysis: ProjectAnalysis) => TestRunner
-  ): void {
-    this.runners.push(runnerClass);
-    logger.debug(`Registered new test runner: ${runnerClass.name}`);
-  }
 }

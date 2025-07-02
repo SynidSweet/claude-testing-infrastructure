@@ -74,23 +74,25 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
   /**
    * Transform coverage files data to consistent format
    */
-  protected transformFilesData(files: Record<string, any>): Array<{
+  protected transformFilesData(files: Record<string, any>, format: 'formatted' | 'raw' = 'formatted'): Array<{
     filename: string;
+    path?: string;
     summary: {
-      lines: string;
-      statements: string;
-      branches: string;
-      functions: string;
+      lines: string | number;
+      statements: string | number;
+      branches: string | number;
+      functions: string | number;
     };
     uncoveredLines?: string;
   }> {
     return Object.entries(files).map(([filename, coverage]) => ({
       filename,
+      path: filename, // Also provide as path for compatibility
       summary: {
-        lines: this.formatPercentage(coverage.summary.lines),
-        statements: this.formatPercentage(coverage.summary.statements),
-        branches: this.formatPercentage(coverage.summary.branches),
-        functions: this.formatPercentage(coverage.summary.functions)
+        lines: format === 'formatted' ? this.formatPercentage(coverage.summary.lines) : coverage.summary.lines,
+        statements: format === 'formatted' ? this.formatPercentage(coverage.summary.statements) : coverage.summary.statements,
+        branches: format === 'formatted' ? this.formatPercentage(coverage.summary.branches) : coverage.summary.branches,
+        functions: format === 'formatted' ? this.formatPercentage(coverage.summary.functions) : coverage.summary.functions
       },
       ...(coverage.uncoveredLines?.length > 0 && {
         uncoveredLines: Array.isArray(coverage.uncoveredLines) 
@@ -119,5 +121,102 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
       priority: suggestion.priority,
       effort: suggestion.effort
     }));
+  }
+
+  /**
+   * Transform coverage summary to common format
+   */
+  protected transformSummaryData(summary: any, format: 'formatted' | 'raw' = 'formatted'): {
+    statements: string | number;
+    branches: string | number;
+    functions: string | number;
+    lines: string | number;
+  } {
+    return {
+      statements: format === 'formatted' ? this.formatPercentage(summary.statements) : summary.statements,
+      branches: format === 'formatted' ? this.formatPercentage(summary.branches) : summary.branches,
+      functions: format === 'formatted' ? this.formatPercentage(summary.functions) : summary.functions,
+      lines: format === 'formatted' ? this.formatPercentage(summary.lines) : summary.lines
+    };
+  }
+
+  /**
+   * Transform uncovered areas data to consistent format
+   */
+  protected transformUncoveredAreasData(uncoveredAreas: any[]): Array<{
+    type: string;
+    file: string;
+    line: number;
+    description: string;
+  }> {
+    return uncoveredAreas.map(area => ({
+      type: area.type,
+      file: area.file,
+      line: area.line,
+      description: area.description
+    }));
+  }
+
+  /**
+   * Escape XML special characters
+   */
+  protected escapeXml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /**
+   * Common template rendering with variable substitution
+   */
+  protected renderTemplate(template: string, data: any): string {
+    let result = template;
+
+    // Handle simple variables
+    result = result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+      return data[key] !== undefined ? String(data[key]) : match;
+    });
+
+    // Handle conditionals {{#if variable}}...{{/if}}
+    result = result.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_match, key, content) => {
+      return data[key] ? content : '';
+    });
+
+    // Handle loops {{#each array}}...{{/each}}
+    result = result.replace(/\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (_match, key, content) => {
+      const array = data[key];
+      if (!Array.isArray(array)) return '';
+      
+      return array.map(item => {
+        let itemContent = content;
+        // Replace nested variables
+        itemContent = itemContent.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (m: string, path: string) => {
+          const value = this.getNestedValue(item, path);
+          return value !== undefined ? String(value) : m;
+        });
+        return itemContent;
+      }).join('');
+    });
+
+    return result;
+  }
+
+  /**
+   * Get nested object value by path
+   */
+  private getNestedValue(obj: any, path: string): any {
+    const parts = path.split('.');
+    let current = obj;
+    for (const part of parts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        return undefined;
+      }
+    }
+    return current;
   }
 }

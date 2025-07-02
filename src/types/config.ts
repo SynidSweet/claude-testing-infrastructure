@@ -5,6 +5,8 @@
  * files in target projects. All options are documented with JSDoc for IDE support.
  */
 
+import type { FileDiscoveryConfig } from './file-discovery-types';
+
 /**
  * Main configuration interface for .claude-testing.config.json
  * This matches the example configuration shown in AI_AGENT_GUIDE.md
@@ -42,6 +44,21 @@ export interface ClaudeTestingConfig {
 
   /** Output and reporting configuration */
   output: OutputOptions;
+
+  /** File discovery service configuration */
+  fileDiscovery?: FileDiscoveryConfig;
+
+  /** Legacy AI options (for compatibility) */
+  aiOptions?: Partial<AIOptions>;
+
+  /** Dry run mode - don't execute, just show what would be done */
+  dryRun?: boolean;
+
+  /** Cost limit for AI operations */
+  costLimit?: number;
+
+  /** Custom prompts for AI generation */
+  customPrompts?: Record<string, string>;
 }
 
 /**
@@ -114,6 +131,18 @@ export interface FeatureFlags {
    * @default false
    */
   watch?: boolean;
+
+  /**
+   * Enable logical test generation (AI-powered tests)
+   * @default true
+   */
+  logicalTests?: boolean;
+
+  /**
+   * Enable structural test generation (template-based tests)
+   * @default true
+   */
+  structuralTests?: boolean;
 }
 
 /**
@@ -151,6 +180,24 @@ export interface GenerationOptions {
    * Custom test types to generate
    */
   testTypes?: TestType[];
+
+  /**
+   * Maximum number of retry attempts for failed generation
+   * @default 3
+   */
+  maxRetries?: number;
+
+  /**
+   * Timeout for test generation operations in milliseconds
+   * @default 60000
+   */
+  timeoutMs?: number;
+
+  /**
+   * Batch size for processing multiple files
+   * @default 10
+   */
+  batchSize?: number;
 }
 
 /**
@@ -223,6 +270,12 @@ export interface CoverageOptions {
    * @default true
    */
   includeUntested?: boolean;
+
+  /**
+   * Coverage reporters to use
+   * @default ["text", "json"]
+   */
+  reporters?: string[];
 }
 
 /**
@@ -298,6 +351,12 @@ export interface IncrementalOptions {
    * Baseline management options
    */
   baseline?: BaselineOptions;
+
+  /**
+   * Show statistics after incremental update
+   * @default false
+   */
+  showStats?: boolean;
 }
 
 /**
@@ -420,6 +479,14 @@ export interface AIOptions {
   temperature?: number;
 
   /**
+   * Maximum tokens per AI request
+   * @default 4096
+   * @minimum 256
+   * @maximum 8192
+   */
+  maxTokens?: number;
+
+  /**
    * Custom prompts for specific scenarios
    */
   customPrompts?: Record<string, string>;
@@ -458,6 +525,30 @@ export interface OutputOptions {
    * @default true
    */
   includeTimestamps?: boolean;
+
+  /**
+   * Enable verbose output
+   * @default false
+   */
+  verbose?: boolean;
+
+  /**
+   * Output format
+   * @default "console"
+   */
+  format?: OutputFormat;
+
+  /**
+   * Enable colored output
+   * @default true
+   */
+  colors?: boolean;
+
+  /**
+   * Output file path for results
+   * @example "analysis.json", "report.md"
+   */
+  file?: string;
 }
 
 /**
@@ -498,6 +589,8 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     aiGeneration: true,
     incremental: true,
     watch: false,
+    logicalTests: true,
+    structuralTests: true,
   },
   generation: {
     maxTestsPerFile: 50,
@@ -509,6 +602,9 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     },
     templates: {},
     testTypes: [TestType.UNIT, TestType.INTEGRATION],
+    maxRetries: 3,
+    timeoutMs: 60000,
+    batchSize: 10,
   },
   coverage: {
     enabled: true,
@@ -524,6 +620,7 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     formats: ['html', 'json'],
     outputDir: 'coverage-reports',
     includeUntested: true,
+    reporters: ['text', 'json'],
   },
   incremental: {
     enabled: true,
@@ -538,6 +635,7 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
       autoCreate: true,
       retentionDays: 30,
     },
+    showStats: false,
   },
   watch: {
     enabled: false,
@@ -560,7 +658,35 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     outputDir: '.claude-testing',
     preserveFiles: true,
     includeTimestamps: true,
+    verbose: false,
+    format: 'console',
+    colors: true,
   },
+  fileDiscovery: {
+    cache: {
+      enabled: true,
+      ttl: 300000, // 5 minutes
+      maxSize: 1000,
+    },
+    patterns: {},
+    performance: {
+      enableStats: false,
+      logSlowOperations: true,
+      slowThresholdMs: 1000,
+    },
+  },
+  aiOptions: {
+    enabled: true,
+    model: 'claude-3-5-sonnet-20241022',
+    maxCost: 10.0,
+    timeout: 900000,
+    temperature: 0.3,
+    maxTokens: 4096,
+    customPrompts: {},
+  },
+  dryRun: false,
+  costLimit: 10.0,
+  customPrompts: {},
 };
 
 /**
@@ -579,6 +705,8 @@ export interface PartialClaudeTestingConfig {
   watch?: Partial<WatchOptions>;
   ai?: Partial<AIOptions>;
   output?: Partial<OutputOptions>;
+  fileDiscovery?: Partial<FileDiscoveryConfig>;
+  costLimit?: number;
 }
 
 /**

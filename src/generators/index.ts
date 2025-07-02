@@ -20,6 +20,24 @@ export {
 // Export concrete implementations
 export { StructuralTestGenerator, StructuralTestGeneratorOptions } from './StructuralTestGenerator';
 
+// Export base abstractions for language-specific generators
+export { 
+  BaseTestGenerator,
+  LanguageContext,
+  LanguageFeatures,
+  ImportStyle,
+  TestingPattern,
+  SourceFileAnalysis,
+  ExportedItem,
+  ImportStatement
+} from './base/BaseTestGenerator';
+
+// Export factory for creating generators
+export { TestGeneratorFactory } from './TestGeneratorFactory';
+
+// Export context types for language-specific generators
+export * from './types/contexts';
+
 // Export template engine
 export { TestTemplateEngine, Template, TemplateContext } from './templates/TestTemplateEngine';
 

@@ -1,5 +1,4 @@
 import { spawn } from 'child_process';
-import { promises as fs } from 'fs';
 import path from 'path';
 import type { TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
 import { TestRunner } from './TestRunner';
@@ -7,6 +6,8 @@ import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
 import type { CoverageReporter } from './CoverageReporter';
 import { CoverageReporterFactory } from './CoverageReporter';
+import type { FileDiscoveryService } from '../types/file-discovery-types';
+import { FileDiscoveryType } from '../types/file-discovery-types';
 
 /**
  * Pytest test runner implementation
@@ -14,7 +15,7 @@ import { CoverageReporterFactory } from './CoverageReporter';
 export class PytestRunner extends TestRunner {
   private coverageReporter?: CoverageReporter;
 
-  constructor(config: TestRunnerConfig, analysis: ProjectAnalysis) {
+  constructor(config: TestRunnerConfig, analysis: ProjectAnalysis, private fileDiscovery: FileDiscoveryService) {
     super(config, analysis);
 
     // Initialize coverage reporter if coverage is enabled
@@ -41,15 +42,14 @@ export class PytestRunner extends TestRunner {
 
   protected async hasTests(): Promise<boolean> {
     try {
-      // Check if test directory exists and has test files
-      const testStats = await fs.stat(this.config.testPath);
-      if (!testStats.isDirectory()) {
-        return false;
-      }
-
-      // Look for test files in the test directory
-      const files = await this.findTestFiles(this.config.testPath);
-      return files.length > 0;
+      const result = await this.fileDiscovery.findFiles({
+        baseDir: this.config.testPath,
+        type: FileDiscoveryType.TEST_EXECUTION,
+        languages: ['python'],
+        useCache: true
+      });
+      
+      return result.files.length > 0;
     } catch {
       return false;
     }
@@ -278,39 +278,6 @@ export class PytestRunner extends TestRunner {
     return result;
   }
 
-  private async findTestFiles(directory: string): Promise<string[]> {
-    const testFiles: string[] = [];
-
-    try {
-      const entries = await fs.readdir(directory, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(directory, entry.name);
-
-        if (entry.isDirectory()) {
-          // Recursively search subdirectories
-          const subFiles = await this.findTestFiles(fullPath);
-          testFiles.push(...subFiles);
-        } else if (entry.isFile()) {
-          // Check if file matches test patterns
-          if (this.isTestFile(entry.name)) {
-            testFiles.push(fullPath);
-          }
-        }
-      }
-    } catch (error) {
-      logger.warn('Error reading test directory', { directory, error });
-    }
-
-    return testFiles;
-  }
-
-  private isTestFile(filename: string): boolean {
-    // Pytest test file patterns
-    const testPatterns = [/^test_.*\.py$/, /.*_test\.py$/, /test\.py$/];
-
-    return testPatterns.some((pattern) => pattern.test(filename));
-  }
 
   protected getEnvironment(): Record<string, string> {
     return {

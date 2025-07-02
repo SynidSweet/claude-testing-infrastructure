@@ -1,5 +1,6 @@
-import { logger } from '../utils/common-imports';
+import { logger, path } from '../utils/common-imports';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import { ProgressReporter } from '../utils/ProgressReporter';
 
 export interface TestGeneratorConfig {
   /** Target project path */
@@ -108,11 +109,19 @@ export interface GenerationStats {
 export abstract class TestGenerator {
   protected config: TestGeneratorConfig;
   protected analysis: ProjectAnalysis;
+  protected progressReporter?: ProgressReporter;
 
   constructor(config: TestGeneratorConfig, analysis: ProjectAnalysis) {
     this.config = config;
     this.analysis = analysis;
     this.validateConfig();
+  }
+
+  /**
+   * Set a progress reporter for tracking generation progress
+   */
+  setProgressReporter(reporter: ProgressReporter): void {
+    this.progressReporter = reporter;
   }
 
   /**
@@ -136,13 +145,30 @@ export abstract class TestGenerator {
       // Validate test-to-source ratio before generation
       await this.validateTestGenerationRatio(filesToTest);
 
+      // Start progress reporting if reporter is available
+      if (this.progressReporter) {
+        this.progressReporter.start(filesToTest.length, 'Generating structural tests...');
+      }
+
       // Generate tests for each file
       const results: GeneratedTest[] = [];
       const errors: string[] = [];
       const warnings: string[] = [];
 
-      for (const filePath of filesToTest) {
+      for (let i = 0; i < filesToTest.length; i++) {
+        const filePath = filesToTest[i];
+        
+        if (!filePath) {
+          logger.warn(`Skipping undefined file path at index ${i}`);
+          continue;
+        }
+        
         try {
+          // Update progress
+          if (this.progressReporter) {
+            this.progressReporter.updateProgress(i + 1, filePath);
+          }
+          
           const testResult = await this.generateStructuralTestForFile(filePath);
           if (testResult) {
             results.push(testResult);
@@ -151,6 +177,11 @@ export abstract class TestGenerator {
           const errorMsg = `Failed to generate test for ${filePath}: ${error instanceof Error ? error.message : String(error)}`;
           logger.error(errorMsg, { error });
           errors.push(errorMsg);
+          
+          // Report error to progress reporter
+          if (this.progressReporter) {
+            this.progressReporter.reportError(error instanceof Error ? error : errorMsg, filePath);
+          }
         }
       }
 
@@ -172,6 +203,12 @@ export abstract class TestGenerator {
 
       logger.info('Test generation completed', stats);
 
+      // Complete progress reporting
+      if (this.progressReporter) {
+        this.progressReporter.complete(errors.length === 0, 
+          errors.length === 0 ? 'Structural tests generated successfully' : 'Test generation completed with errors');
+      }
+
       return {
         success: errors.length === 0,
         tests: results,
@@ -182,6 +219,11 @@ export abstract class TestGenerator {
     } catch (error) {
       const errorMsg = `Test generation failed: ${error instanceof Error ? error.message : String(error)}`;
       logger.error(errorMsg, { error });
+
+      // Report failure to progress reporter
+      if (this.progressReporter) {
+        this.progressReporter.complete(false, errorMsg);
+      }
 
       return {
         success: false,
@@ -235,32 +277,51 @@ export abstract class TestGenerator {
     }
 
     const ratio = testFileCount / sourceFileCount;
-    const maxRatio = 10; // Allow up to 10x more tests than source files
+    
+    // Use configured threshold or CLI override, with fallback to default
+    const maxRatio = config.maxRatio || 
+                     config.generation?.maxTestToSourceRatio || 
+                     (this as any).options?.maxRatio || 
+                     10; // Default fallback
 
     logger.debug(
-      `Test generation ratio check: ${testFileCount} tests for ${sourceFileCount} source files (ratio: ${ratio.toFixed(2)}x)`
+      `Test generation ratio check: ${testFileCount} tests for ${sourceFileCount} source files (ratio: ${ratio.toFixed(2)}x, max: ${maxRatio}x)`
     );
 
     if (ratio > maxRatio) {
       const message = [
         `⚠️  WARNING: Test generation would create ${testFileCount} test files for ${sourceFileCount} source files`,
-        `   This is a ${ratio.toFixed(1)}x ratio, which exceeds the recommended ${maxRatio}x maximum.`,
+        `   This is a ${ratio.toFixed(1)}x ratio, which exceeds the configured ${maxRatio}x maximum.`,
         `   This may create an unmaintainable test suite.`,
         ``,
+        `   File breakdown:`,
+        `   • Source files detected: ${sourceFileCount}`,
+        `   • Test files to generate: ${testFileCount}`,
+        `   • Current ratio: ${ratio.toFixed(2)}x (max: ${maxRatio}x)`,
+        ``,
         `   Options:`,
-        `   • Review your include/exclude patterns`,
+        `   • Review your include/exclude patterns in .claude-testing.config.json`,
+        `   • Adjust maxTestToSourceRatio in your configuration`,
         `   • Use --force to bypass this check`,
+        `   • Use --max-ratio <number> to override the threshold`,
         `   • Consider using --only-logical for targeted test generation`,
         ``,
         `   To proceed anyway, add the --force flag to your command.`,
       ].join('\n');
 
       console.log(`\n${message}\n`);
-      throw new Error('Test generation ratio exceeds maximum recommended threshold');
+      throw new Error('Test generation ratio exceeds configured maximum threshold');
     }
 
-    if (ratio > 5) {
-      const warning = `Generating ${testFileCount} tests for ${sourceFileCount} source files (${ratio.toFixed(1)}x ratio). Consider reviewing patterns.`;
+    // Warn at 75% of the threshold
+    const warningThreshold = Math.max(3, Math.floor(maxRatio * 0.75));
+    if (ratio > warningThreshold) {
+      const warning = [
+        `⚠️  High test-to-source ratio detected:`,
+        `   Generating ${testFileCount} tests for ${sourceFileCount} source files (${ratio.toFixed(1)}x ratio).`,
+        `   This approaches the ${maxRatio}x limit. Consider reviewing your patterns.`
+      ].join('\n');
+      console.log(`\n${warning}\n`);
       logger.warn(warning);
     }
   }
@@ -384,14 +445,14 @@ export abstract class TestGenerator {
   protected getTestFilePath(sourcePath: string, testType?: TestType, language?: string): string {
     const ext = this.getTestFileExtension(language);
 
-    // Get relative path from project root
-    const relativePath = sourcePath.replace(this.config.projectPath, '').replace(/^\//, '');
+    // Get relative path from project root using proper path operations
+    const relativePath = path.relative(this.config.projectPath, sourcePath);
 
     // Remove original extension and add test suffix
     const pathWithoutExt = relativePath.replace(/\.[^/.]+$/, '');
     const typePrefix = testType ? `.${testType}` : '';
 
-    return `${this.config.outputPath}/${pathWithoutExt}${typePrefix}${ext}`;
+    return path.join(this.config.outputPath, `${pathWithoutExt}${typePrefix}${ext}`);
   }
 
   /**

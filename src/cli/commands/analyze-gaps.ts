@@ -2,6 +2,8 @@ import { fs, path, logger } from '../../utils/common-imports';
 import { Command } from 'commander';
 import { ProjectAnalyzer, TestGapAnalyzer, GapReportGenerator, StructuralTestGenerator, TestGeneratorConfig } from '../../utils/analyzer-imports';
 import type { ReportOptions } from '../../analyzers/GapReportGenerator';
+import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
+import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 
 interface AnalyzeGapsOptions {
   config?: string;
@@ -30,15 +32,6 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
     const startTime = Date.now();
     
     try {
-      if (options.verbose) {
-        logger.level = 'debug';
-      }
-
-      logger.info('Starting test gap analysis', {
-        projectPath,
-        options
-      });
-
       // Resolve and validate project path
       const resolvedProjectPath = path.resolve(projectPath);
       
@@ -49,20 +42,57 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         process.exit(1);
       }
 
+      // Load configuration using ConfigurationService
+      const configResult = await loadCommandConfig(resolvedProjectPath, {
+        customConfigPath: options.config,
+        cliArgs: {
+          verbose: options.verbose,
+          format: options.format,
+          threshold: options.threshold
+        }
+      });
+      
+      if (!configResult.valid) {
+        logger.warn('Configuration validation warnings', { 
+          warnings: configResult.warnings 
+        });
+      }
+      
+      const config = configResult.config;
+      
+      // Apply configuration to logger
+      if (options.verbose || config.output?.logLevel === 'debug' || config.output?.logLevel === 'verbose') {
+        logger.level = 'debug';
+      } else if (config.output?.logLevel) {
+        logger.level = config.output.logLevel as any;
+      }
+
+      logger.info('Starting test gap analysis', {
+        projectPath,
+        options
+      });
+
       // Step 1: Analyze the project
       logger.info('Analyzing project structure and generating structural tests');
-      const projectAnalyzer = new ProjectAnalyzer(resolvedProjectPath);
+      const configService = new ConfigurationService({ projectPath: resolvedProjectPath });
+      await configService.loadConfiguration();
+      const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+      const projectAnalyzer = new ProjectAnalyzer(resolvedProjectPath, fileDiscovery);
       const projectAnalysis = await projectAnalyzer.analyzeProject();
 
       // Step 2: Generate structural tests (to analyze gaps against)
-      const config: TestGeneratorConfig = {
+      const testGenConfig: TestGeneratorConfig = {
         projectPath: resolvedProjectPath,
         outputPath: path.join(resolvedProjectPath, '.claude-testing'),
-        testFramework: projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest',
-        options: {}
+        testFramework: config.testFramework || (projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest'),
+        options: {},
+        patterns: {
+          include: config.include,
+          exclude: config.exclude
+        }
       };
 
-      const testGenerator = new StructuralTestGenerator(config, projectAnalysis);
+      const testGenerator = new StructuralTestGenerator(testGenConfig, projectAnalysis, {}, fileDiscovery);
       const generationResult = await testGenerator.generateAllTests();
 
       if (!generationResult.success) {
@@ -78,7 +108,9 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
       });
 
       const gapAnalyzer = new TestGapAnalyzer(projectAnalysis, {
-        complexityThreshold: parseInt(String(options.threshold || '3'), 10)
+        complexityThreshold: options.threshold 
+          ? parseInt(String(options.threshold), 10) 
+          : 3 // Default complexity threshold
       });
 
       const gapAnalysis = await gapAnalyzer.analyzeTestGaps(generationResult);

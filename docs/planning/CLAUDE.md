@@ -2,7 +2,7 @@
 
 *Quick navigation for AI agents working with planning documents and task management*
 
-*Last updated: 2025-06-30 | Sixth Autonomous Development Session Validation*
+*Last updated: 2025-07-01 | File Discovery Service Investigation completed - architecture and implementation plan ready*
 
 ## 🎯 Purpose
 
@@ -16,14 +16,22 @@ This guide helps AI agents understand how to work with planning documents, track
 - **FUTURE_WORK.md** - Long-term improvements and ideas
 - **roadmap.md** - Project vision and milestones
 
+### Investigation Reports
+- **file-discovery-investigation-report.md** - Phase 1 analysis results (2025-07-01)
+- **file-discovery-architecture-design.md** - Phase 2 architecture specification (2025-07-01)
+- **file-discovery-implementation-plan.md** - Phase 3 implementation roadmap (2025-07-01)
+
 ### Document Hierarchy
 ```
 planning/
-├── REFACTORING_PLAN.md    # Prioritized improvements
-├── ACTIVE_TASKS.md        # Current work
-├── FUTURE_WORK.md         # Backlog items
-├── roadmap.md             # Strategic direction
-└── archive/               # Completed plans
+├── REFACTORING_PLAN.md                    # Prioritized improvements
+├── ACTIVE_TASKS.md                        # Current work
+├── FUTURE_WORK.md                         # Backlog items
+├── roadmap.md                             # Strategic direction
+├── file-discovery-investigation-report.md # Investigation Phase 1 results
+├── file-discovery-architecture-design.md  # Investigation Phase 2 architecture  
+├── file-discovery-implementation-plan.md  # Investigation Phase 3 implementation
+└── archive/                               # Completed plans
 ```
 
 ## 📝 Working with Tasks

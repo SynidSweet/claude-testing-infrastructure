@@ -1,0 +1,25 @@
+{
+  "name": "mixed-minimal-validation",
+  "version": "1.0.0",
+  "description": "Minimal test project combining Python and JavaScript for Claude Testing Infrastructure validation",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.js",
+    "test": "jest",
+    "test:python": "python -m pytest",
+    "test:js": "jest --testPathPattern=.*\\.js$",
+    "test:all": "npm run test:js && npm run test:python"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "jest-environment-node": "^29.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/*.test.js"],
+    "transform": {}
+  }
+}
