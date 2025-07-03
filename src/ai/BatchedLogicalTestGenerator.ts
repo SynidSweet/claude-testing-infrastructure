@@ -114,7 +114,11 @@ export class BatchedLogicalTestGenerator {
       model: config.model,
       fallbackModel: config.model === 'opus' ? 'sonnet' : 'haiku',
       timeout: config.timeout,
-      verbose: false
+      verbose: false,
+      gracefulDegradation: true,
+      exponentialBackoff: true,
+      circuitBreakerEnabled: true,
+      maxRetryDelay: 30000
     });
 
     const startTime = Date.now();

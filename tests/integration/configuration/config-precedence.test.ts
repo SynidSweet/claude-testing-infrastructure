@@ -38,7 +38,7 @@ describe('Configuration Precedence Integration', () => {
       await fs.mkdir(userConfigDir, { recursive: true });
       const userConfig = {
         testFramework: 'mocha',
-        aiModel: 'claude-3-sonnet-20240229',
+        aiModel: 'claude-3-5-sonnet-20241022',
         features: {
           coverage: false
         }

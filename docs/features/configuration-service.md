@@ -2,7 +2,7 @@
 
 *Centralized configuration management for the Claude Testing Infrastructure*
 
-*Last updated: 2025-07-02 | Fixed critical environment variable parsing bugs and CLI threshold handling*
+*Last updated: 2025-07-03 | Fixed all configuration integration tests including threshold validation*
 
 ## Overview
 
@@ -36,14 +36,25 @@ Configuration sources are loaded and merged in order of precedence (highest to l
 - **Performance Monitoring**: Enables/disables file discovery statistics and slow operation logging via `fileDiscovery.performance` settings
 - **Custom files**: Supports `--config` flag for arbitrary configuration files
 
-### Environment Variable Support ✅ ENHANCED (2025-07-02)
+### Environment Variable Support ✅ FULLY FIXED (2025-07-03)
 - **Prefix**: All environment variables use `CLAUDE_TESTING_` prefix
 - **Advanced Mapping**: Comprehensive nested object mapping with proper camelCase conversion
 - **Root-Level Properties**: Direct mapping for `testFramework`, `aiModel`, `costLimit`, `dryRun`
 - **Nested Objects**: Automatic creation of nested structures (e.g., `CLAUDE_TESTING_FEATURES_COVERAGE` → `features.coverage`)
 - **Type Parsing**: Smart type conversion for booleans (`true/false/1/0/yes/no`), numbers (int/float), and arrays (comma-separated)
 - **Special Cases**: Handles complex mappings like `OUTPUT_FORMAT` → both `output.format` and `output.formats`
-- **CI/CD Ready**: Full support for containerized and CI/CD environments with comprehensive precedence
+- **Empty String Handling**: ✅ FIXED - Empty strings now properly handled for array fields
+- **Warning Collection**: ✅ FIXED - Warnings from all configuration sources now properly aggregated
+- **Legacy Support**: ✅ ADDED - Support for `aiOptions` field for backwards compatibility
+- **All Tests Passing**: ✅ FIXED - Environment variables now properly override defaults (13/13 tests passing)
+
+### Threshold Validation ✅ ADDED (2025-07-03)
+- **Format Validation**: CLI threshold arguments are validated for correct format
+- **Valid Formats**: `"80"` (applies to all) or `"statements:85,lines:90"` (specific types)
+- **Type Validation**: Only accepts `statements`, `branches`, `functions`, `lines`
+- **Range Validation**: Values must be between 0-100
+- **Error Handling**: Invalid formats add errors to CLI source, preventing invalid configurations
+- **Implementation**: `parseThresholds()` method returns both parsed thresholds and validation errors
 
 ### New Configuration Properties ✅ ADDED (2025-07-01)
 The following properties were added to support complete CLI argument mapping:

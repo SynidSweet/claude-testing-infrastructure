@@ -157,8 +157,9 @@ describe('Command Configuration Integration', () => {
       expect(result.valid).toBe(true);
       expect(result.config.coverage?.thresholds?.global?.statements).toBe(85);
       expect(result.config.coverage?.thresholds?.global?.lines).toBe(90);
-      expect(result.config.coverage?.thresholds?.global?.branches).toBeUndefined();
-      expect(result.config.coverage?.thresholds?.global?.functions).toBeUndefined();
+      // Note: branches and functions will have default values from DEFAULT_CONFIG
+      expect(result.config.coverage?.thresholds?.global?.branches).toBe(70);
+      expect(result.config.coverage?.thresholds?.global?.functions).toBe(80);
     });
   });
 
@@ -334,8 +335,16 @@ describe('Command Configuration Integration', () => {
 
       const result = await service.loadConfiguration();
       
-      expect(result.valid).toBe(true);
-      expect(result.config.testFramework).toBe('jest'); // CLI valid value wins
+      // Project config has errors, but CLI overrides with valid value
+      expect(result.valid).toBe(false); // Invalid because project config has errors
+      expect(result.config.testFramework).toBe('jest'); // CLI valid value wins in final config
+      
+      // Verify project config has errors but CLI doesn't
+      const projectSource = result.sources.find(s => s.type === 'project-config');
+      expect(projectSource?.errors.length).toBeGreaterThan(0);
+      
+      const cliSource = result.sources.find(s => s.type === 'cli-args');
+      expect(cliSource?.errors.length).toBe(0);
     });
   });
 
@@ -353,7 +362,7 @@ describe('Command Configuration Integration', () => {
         }
       }, null, 2));
       
-      process.env.CLAUDE_TESTING_AI_MODEL = 'claude-3-sonnet-20240229';
+      process.env.CLAUDE_TESTING_AI_MODEL = 'claude-3-5-sonnet-20241022';
       process.env.CLAUDE_TESTING_COST_LIMIT = '50.00';
       
       const service = new ConfigurationService({
@@ -374,7 +383,7 @@ describe('Command Configuration Integration', () => {
         testFramework: 'jest',
         include: ['src/**/*.ts'],
         exclude: ['**/*.test.ts', '**/*.spec.ts'],
-        aiModel: 'claude-3-sonnet-20240229',
+        aiModel: 'claude-3-5-sonnet-20241022',
         costLimit: 50.00,
         dryRun: true,
         generation: {

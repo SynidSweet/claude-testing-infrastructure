@@ -102,119 +102,9 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 
 
 
-#### 📋 Moderate Task: Fix Environment Variables Test Suite
-**Status**: In Progress
-**Priority**: 🟡 High  
-**Estimate**: 3-4 hours / 2 sessions
-**Started**: 2025-07-03
 
-##### Problem Summary
-Environment variables test suite (env-vars.test.ts) is failing, indicating issues with configuration loading in test environments.
 
-##### Success Criteria
-- [x] All environment variable tests pass consistently
-- [x] Environment variable isolation working in tests
-- [x] Configuration loading reliable in test environment
-- [x] No regression in environment variable functionality
 
-##### Detailed Implementation Steps
-**Phase 1: Analysis and Debugging** (90-120 minutes) - COMPLETED
-- [x] Analyze failing environment variable tests in detail
-- [x] Identify configuration loading issues in test environment
-- [x] Debug environment variable isolation problems
-- [x] Document root causes and fix strategy
-
-**Phase 2: Implementation and Testing** (90-120 minutes) - COMPLETED
-- [x] Fix configuration loading for test environment
-- [x] Ensure proper environment variable isolation between tests
-- [x] Verify all env-vars.test.ts tests pass
-- [x] Test edge cases and error conditions
-
-##### Dependencies
-Configuration system understanding, test environment setup
-
-##### Estimated Effort
-**Total time**: 3-4 hours (2 sessions recommended)
-**Complexity**: Moderate
-**AI Agent suitability**: Good for AI agent execution with configuration system context
-
----
-
-#### 📋 Moderate Task: Fix Configuration Validation Test Suite
-**Status**: Pending
-**Priority**: 🟡 High  
-**Estimate**: 3-4 hours / 2 sessions
-**Started**: -
-
-##### Problem Summary
-Configuration validation test suite (validation.test.ts) is failing, indicating mismatches between validation logic and test expectations.
-
-##### Success Criteria
-- [ ] All configuration validation tests pass consistently
-- [ ] Validation logic matches test fixtures and expectations
-- [ ] Error handling for invalid configurations working properly
-- [ ] No regression in configuration validation functionality
-
-##### Detailed Implementation Steps
-**Phase 1: Validation Logic Analysis** (90-120 minutes)
-- [ ] Debug configuration validation test failures
-- [ ] Analyze mismatches between validation logic and test fixtures
-- [ ] Identify gaps in validation error handling
-- [ ] Document validation logic corrections needed
-
-**Phase 2: Fix and Verify** (90-120 minutes)
-- [ ] Fix validation logic to match test expectations
-- [ ] Update test fixtures if validation logic is correct
-- [ ] Ensure comprehensive error handling for invalid configurations
-- [ ] Verify all validation.test.ts tests pass
-
-##### Dependencies
-Environment variables test fixes, configuration system analysis
-
-##### Estimated Effort
-**Total time**: 3-4 hours (2 sessions recommended)
-**Complexity**: Moderate
-**AI Agent suitability**: Good for AI agent execution
-
----
-
-#### 📋 Moderate Task: Improve Claude CLI Integration Reliability
-**Status**: Pending
-**Priority**: 🟡 High  
-**Estimate**: 4-5 hours / 2 sessions
-**Started**: -
-
-##### Problem Summary
-Claude CLI integration experiencing timeouts and reliability issues, affecting AI-powered test generation.
-
-##### Success Criteria
-- [ ] Claude CLI integration operates reliably without timeouts
-- [ ] Retry logic implemented for transient failures
-- [ ] Graceful degradation when Claude CLI unavailable
-- [ ] AI integration tests pass consistently
-
-##### Detailed Implementation Steps
-**Phase 1: Reliability Analysis** (120-150 minutes)
-- [ ] Analyze current Claude CLI integration timeout patterns
-- [ ] Identify sources of reliability issues
-- [ ] Research retry and timeout strategies
-- [ ] Design graceful degradation approach
-
-**Phase 2: Implementation** (120-150 minutes)
-- [ ] Add configurable timeout handling for Claude CLI calls
-- [ ] Implement retry logic for transient failures
-- [ ] Add graceful degradation when Claude CLI unavailable
-- [ ] Update AI integration tests for reliability
-
-##### Dependencies
-None (independent infrastructure improvement)
-
-##### Estimated Effort
-**Total time**: 4-5 hours (2 sessions recommended)
-**Complexity**: Moderate
-**AI Agent suitability**: Good for AI agent execution
-
----
 
 #### 📋 Moderate Task: Create Production Validation Report System
 **Status**: Pending
@@ -293,10 +183,10 @@ Production validation system, test suite fixes
 ---
 
 #### 📋 Complex Task: Fix AI Generation Hanging Issues
-**Status**: Pending
+**Status**: In Progress
 **Priority**: 🟠 Critical  
 **Estimate**: 8-12 hours across multiple sessions
-**Started**: -
+**Started**: 2025-07-03
 
 ##### Problem Summary
 Core AI test generation experiencing hanging and timeout problems, making the primary value proposition non-operational.
@@ -310,19 +200,59 @@ Core AI test generation experiencing hanging and timeout problems, making the pr
 ##### Task Structure
 - Parent Task: Systematic AI reliability improvement
 - Initial Subtasks:
-  - [ ] Break down AI generation timeout investigation and root cause analysis
+  - [x] Break down AI generation timeout investigation and root cause analysis
   - [ ] Analyze Claude CLI process management patterns and failure modes
 
-##### Required Preparation
-- [ ] 🔍 Investigation: Root cause analysis of AI hanging behavior (3-4 hours)
-- [ ] 📋 Documentation: Current AI integration architecture and failure patterns (1 hour)
-- [ ] 🧪 Testing: AI integration test framework improvements (2 hours)
-- [ ] 🗂️ Planning: Failover and retry strategy design (2 hours)
+##### Investigation Findings
+Based on code analysis and test review:
+1. **Current Implementation**: ClaudeOrchestrator has timeout (15min), retry logic, circuit breaker
+2. **Hanging Root Causes**: Claude CLI subprocess can hang indefinitely waiting for API responses
+3. **Existing Safeguards**: SIGTERM/SIGKILL handling, progress monitoring, graceful degradation
+4. **Test Coverage**: Comprehensive tests exist but some edge cases may not be covered
 
-##### Proposed Breakdown
-1. **Phase 1**: Debug and diagnose hanging behavior patterns
-2. **Phase 2**: Implement timeout and recovery mechanisms  
-3. **Phase 3**: Add monitoring and reliability features
+##### Detailed Implementation Subtasks
+
+**Phase 1: Enhanced Process Management** (2-3 hours)
+- [x] TASK-AI-001: Add heartbeat monitoring for Claude CLI subprocess (COMPLETED 2025-07-03)
+  - Enhanced existing heartbeat implementation with better heuristics
+  - Added progress marker detection for AI output
+  - Implemented stdin wait detection to avoid killing waiting processes
+  - Created detailed process health metrics and analysis
+- [x] TASK-AI-002: Implement preemptive timeout warnings (COMPLETED 2025-07-03)
+  - Added progressive warnings at 50%, 75%, 90% of timeout
+  - Implemented detailed state logging before timeout
+  - Added subprocess resource usage metrics capture
+  - Created comprehensive test coverage for warning events
+
+**Phase 2: Improved Error Detection** (2-3 hours)
+- [x] TASK-AI-003: Enhanced stderr parsing for early failure detection (COMPLETED - 2025-07-03)
+  - Parse Claude CLI error patterns in real-time
+  - Detect authentication issues immediately
+  - Identify network connectivity problems early
+- [ ] TASK-AI-004: Add subprocess resource monitoring
+  - Track memory usage of Claude CLI process
+  - Monitor CPU usage patterns
+  - Detect zombie processes
+
+**Phase 3: Recovery and Resilience** (2-3 hours)
+- [ ] TASK-AI-005: Implement task checkpointing
+  - Save partial progress for long-running tasks
+  - Enable resume from last checkpoint
+  - Prevent complete task loss on timeout
+- [ ] TASK-AI-006: Add intelligent retry strategies
+  - Implement adaptive timeout increases
+  - Add context-aware retry decisions
+  - Create failure pattern recognition
+
+**Phase 4: Monitoring and Diagnostics** (2-3 hours)
+- [ ] TASK-AI-007: Create detailed execution logs
+  - Add structured logging for all AI operations
+  - Include timing metrics at each stage
+  - Create diagnostic report generation
+- [ ] TASK-AI-008: Implement telemetry collection
+  - Track success/failure rates
+  - Monitor average execution times
+  - Identify problematic patterns
 
 ##### Dependencies
 Claude CLI integration reliability improvements
@@ -341,6 +271,8 @@ Claude CLI integration reliability improvements
 The breakdown subtask will decompose this further into specific implementation tasks
 
 ---
+
+
 
 #### 📋 Complex Task: Comprehensive Test Suite Stabilization
 **Status**: Pending
@@ -392,53 +324,6 @@ The breakdown subtask will decompose this further into specific test fix impleme
 
 ---
 
-**Status**: Pending
-**Priority**: 🟠 High
-**Estimate**: 2-3 hours
-**Started**: -
-
-#### Problem Summary
-Test suite is currently at 87% pass rate (322/371 tests passing). Multiple test failures in ModuleSystemAnalyzer, configuration integration tests, and AI validation tests are preventing the 95% target. The original CI/CD task description was outdated - the mentioned issues (enableValidation, --budget flag, template errors) don't exist in the codebase.
-
-#### Success Criteria
-- [ ] ModuleSystemAnalyzer tests fixed (mock ordering issues)
-- [ ] Configuration integration tests passing
-- [ ] AI validation tests handled gracefully when Claude CLI unavailable
-- [ ] Test suite achieves 95%+ pass rate (355+ out of 371)
-- [ ] All non-AI tests passing reliably
-
-#### Detailed Implementation Steps
-
-**Phase 1: Fix ModuleSystemAnalyzer Tests** (45 minutes)
-- [ ] Fix mock ordering for file content analysis tests
-- [ ] Ensure project analysis correctly detects module types from file content
-- [ ] Fix error handling test expectations
-- [ ] Run `npm test tests/generators/javascript/ModuleSystemAnalyzer.test.ts`
-
-**Phase 2: Fix Configuration Integration Tests** (30 minutes)
-- [ ] Review failing configuration validation tests
-- [ ] Fix environment variable test expectations
-- [ ] Update command integration test mocks
-- [ ] Run `npm test tests/integration/configuration/`
-
-**Phase 3: Handle AI Validation Tests** (30 minutes)
-- [ ] Add proper skip conditions for Claude CLI unavailable
-- [ ] Mock Claude CLI responses for CI environment
-- [ ] Ensure tests fail gracefully without blocking CI
-- [ ] Run `npm test tests/validation/ai-agents/`
-
-**Phase 4: Fix Remaining Test Failures** (30 minutes)
-- [ ] Fix AsyncPatternDetector test issues
-- [ ] Review and fix generated test fixtures
-- [ ] Address any remaining test failures
-- [ ] Run full test suite: `npm test`
-
-#### Estimated Effort
-**Total time**: 2-3 hours
-**Complexity**: Moderate
-**AI Agent suitability**: Well-suited for AI agent execution
-
----
 
 ### **Investigation & Planning Phase (Next 4-6 Weeks)**
 6. **Configuration Auto-Discovery Investigation** - 🟠 Complex (6 hours / 3 sessions)

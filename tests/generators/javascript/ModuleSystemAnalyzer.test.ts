@@ -13,10 +13,13 @@ jest.mock('../../../src/utils/common-imports', () => ({
   path: require('path'),
 }));
 
-// Mock fast-glob
-jest.mock('fast-glob', () => ({
-  default: jest.fn(),
-}));
+// Set up manual mock for fast-glob
+jest.mock('fast-glob', () => {
+  const mockFg = jest.fn();
+  // Support both default export and named export patterns
+  (mockFg as any).default = mockFg;
+  return mockFg;
+});
 
 describe('ModuleSystemAnalyzer', () => {
   const mockProjectPath = '/test/project';
@@ -26,7 +29,7 @@ describe('ModuleSystemAnalyzer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset the fast-glob mock
-    fastGlobMock = require('fast-glob').default;
+    fastGlobMock = require('fast-glob');
   });
 
   describe('analyzeProject', () => {
@@ -77,24 +80,24 @@ describe('ModuleSystemAnalyzer', () => {
     it('should analyze files when no type field in package.json', async () => {
       const analyzer = new ModuleSystemAnalyzer({ projectPath: mockProjectPath });
       
-      // Mock package.json without type field
+      // Mock package.json without type field (first readFile call)
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify({
         name: 'test-project',
         dependencies: {}
       }));
 
-      // Mock finding source files
+      // Mock finding source files (first glob call for analyzeProjectFromFiles)
       fastGlobMock.mockResolvedValueOnce([
         '/test/project/src/index.js',
         '/test/project/src/utils.js',
       ]);
 
-      // Mock file contents - ESM syntax (these will be read after glob finds files)
+      // Mock file contents - ESM syntax (subsequent readFile calls for each source file)
       mockFs.readFile
         .mockResolvedValueOnce('import express from "express";\nexport default app;')
         .mockResolvedValueOnce('export function util() { return true; }');
 
-      // Mock finding source files again for detectFileExtensionPattern
+      // Mock finding source files again for detectFileExtensionPattern (second glob call)
       fastGlobMock.mockResolvedValueOnce([
         '/test/project/src/index.js',
         '/test/project/src/utils.js',
@@ -105,6 +108,7 @@ describe('ModuleSystemAnalyzer', () => {
       expect(result.type).toBe('esm');
       expect(result.hasPackageJsonType).toBe(false);
       expect(result.confidence).toBeGreaterThan(0.7);
+      expect(result.fileExtensionPattern).toBe('js');
     });
 
     it('should detect mixed module systems', async () => {

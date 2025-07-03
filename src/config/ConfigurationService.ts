@@ -93,6 +93,7 @@ export class ConfigurationService {
   private sources: ConfigurationSource[] = [];
   private loadedConfig: ClaudeTestingConfig | null = null;
   private loadResult: ConfigurationLoadResult | null = null;
+  private thresholdParseError: string | undefined;
 
   constructor(options: ConfigurationServiceOptions) {
     this.options = {
@@ -244,13 +245,17 @@ export class ConfigurationService {
         const configContent = await fs.readFile(configPath, 'utf8');
         const userConfig = JSON.parse(configContent);
         
+        // Validate the user configuration to get errors and warnings
+        const manager = new ConfigurationManager(this.options.projectPath);
+        const validationResult = manager.validateConfiguration(userConfig);
+        
         const source: ConfigurationSource = {
           type: ConfigurationSourceType.USER_CONFIG,
           data: userConfig,
           path: configPath,
           loaded: true,
-          errors: [],
-          warnings: [],
+          errors: validationResult.errors,
+          warnings: validationResult.warnings,
           loadedAt: new Date(),
         };
         
@@ -333,11 +338,18 @@ export class ConfigurationService {
     
     const cliConfig = this.mapCliArgsToConfig(this.options.cliArgs);
     
+    // Extract threshold error if present
+    const errors: string[] = [];
+    if (this.thresholdParseError) {
+      errors.push(this.thresholdParseError);
+      this.thresholdParseError = undefined;
+    }
+    
     const source: ConfigurationSource = {
       type: ConfigurationSourceType.CLI_ARGS,
       data: cliConfig,
       loaded: Object.keys(cliConfig).length > 0,
-      errors: [],
+      errors,
       warnings: [],
       loadedAt: new Date(),
     };
@@ -358,13 +370,17 @@ export class ConfigurationService {
       const configContent = await fs.readFile(this.options.customConfigPath, 'utf8');
       const customConfig = JSON.parse(configContent);
       
+      // Validate the custom configuration to get errors and warnings
+      const manager = new ConfigurationManager(this.options.projectPath);
+      const validationResult = manager.validateConfiguration(customConfig);
+      
       const source: ConfigurationSource = {
         type: ConfigurationSourceType.CUSTOM_FILE,
         data: customConfig,
         path: this.options.customConfigPath,
         loaded: true,
-        errors: [],
-        warnings: [],
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
         loadedAt: new Date(),
       };
       
@@ -901,6 +917,20 @@ export class ConfigurationService {
       };
     }
     
+    if (cliArgs.batchSize !== undefined) {
+      config.generation = {
+        batchSize: cliArgs.batchSize,
+        ...(config.generation || {})
+      };
+    }
+    
+    if (cliArgs.maxRetries !== undefined) {
+      config.generation = {
+        maxRetries: cliArgs.maxRetries,
+        ...(config.generation || {})
+      };
+    }
+    
     // Features configuration based on test generation flags
     if (cliArgs.onlyStructural !== undefined) {
       config.features = {
@@ -933,24 +963,39 @@ export class ConfigurationService {
     }
     
     if (cliArgs.threshold) {
-      const thresholds = this.parseThresholds(cliArgs.threshold);
-      if (thresholds) {
+      const parseResult = this.parseThresholds(cliArgs.threshold);
+      if (parseResult.thresholds) {
         config.coverage = {
           thresholds: {
-            global: thresholds  // Only set the properties that were explicitly provided
+            global: parseResult.thresholds  // Only set the properties that were explicitly provided
           },
           ...(config.coverage || {})
         };
       }
+      // Store error to be handled in loadCliConfiguration
+      this.thresholdParseError = parseResult.error;
     }
     
-    // Note: junit and reporter are handled at the command level
-    // They don't map directly to the main config schema
+    // Map reporter CLI argument to coverage.reporters
+    if (cliArgs.reporter) {
+      const reporters = Array.isArray(cliArgs.reporter) ? cliArgs.reporter : [cliArgs.reporter];
+      config.coverage = {
+        reporters,
+        ...(config.coverage || {})
+      };
+    }
     
     // Watch mode
     if (cliArgs.watch !== undefined) {
       config.watch = {
         enabled: cliArgs.watch,
+        ...(config.watch || {})
+      };
+    }
+    
+    if (cliArgs.debounce !== undefined) {
+      config.watch = {
+        debounceMs: cliArgs.debounce,
         ...(config.watch || {})
       };
     }
@@ -974,44 +1019,73 @@ export class ConfigurationService {
       config.costLimit = cliArgs.costLimit;
     }
     
+    if (cliArgs.dryRun !== undefined) {
+      config.dryRun = cliArgs.dryRun;
+    }
+    
     return config;
   }
   
-  private parseThresholds(thresholdString: string): { statements?: number; branches?: number; functions?: number; lines?: number } | undefined {
+  private parseThresholds(thresholdString: string): { thresholds?: { statements?: number; branches?: number; functions?: number; lines?: number }; error?: string } {
     try {
+      const validTypes = ['statements', 'branches', 'functions', 'lines'];
+      
       // Parse threshold string like "80" or "statements:80,branches:70"
       if (thresholdString.includes(':')) {
         const thresholds: any = {};
         const parts = thresholdString.split(',');
         
-        for (const part of parts) {
-          const [type, value] = part.split(':');
-          if (type && value) {
-            const numValue = parseInt(value);
-            if (!isNaN(numValue)) {
-              thresholds[type.trim()] = numValue;
-            }
-          }
+        // Check for invalid format (multiple colons)
+        if (thresholdString.split(':').length - 1 > parts.length) {
+          return { error: `Invalid threshold format: '${thresholdString}'. Expected format: 'type:value' or 'type1:value1,type2:value2'` };
         }
         
-        return thresholds;
+        for (const part of parts) {
+          const colonCount = (part.match(/:/g) || []).length;
+          if (colonCount !== 1) {
+            return { error: `Invalid threshold format: '${thresholdString}'. Each part must have exactly one colon.` };
+          }
+          
+          const [type, value] = part.split(':');
+          const trimmedType = type?.trim();
+          
+          if (!trimmedType || !value) {
+            return { error: `Invalid threshold format: '${thresholdString}'. Expected format: 'type:value'` };
+          }
+          
+          if (!validTypes.includes(trimmedType)) {
+            return { error: `Invalid threshold type: '${trimmedType}'. Valid types: ${validTypes.join(', ')}` };
+          }
+          
+          const numValue = parseInt(value.trim());
+          if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+            return { error: `Invalid threshold value: '${value}'. Must be a number between 0 and 100.` };
+          }
+          
+          thresholds[trimmedType] = numValue;
+        }
+        
+        return { thresholds };
       } else {
         // Single threshold applies to all
         const value = parseInt(thresholdString);
-        if (!isNaN(value)) {
-          return {
+        if (isNaN(value) || value < 0 || value > 100) {
+          return { error: `Invalid threshold value: '${thresholdString}'. Must be a number between 0 and 100.` };
+        }
+        
+        return {
+          thresholds: {
             statements: value,
             branches: value,
             functions: value,
             lines: value
-          };
-        }
+          }
+        };
       }
     } catch (error) {
       logger.warn('Failed to parse threshold string', { thresholdString, error });
+      return { error: `Failed to parse threshold: ${error}` };
     }
-    
-    return undefined;
   }
 
   private mergeConfigurations(): ConfigValidationResult {
@@ -1029,11 +1103,26 @@ export class ConfigurationService {
       allWarnings.push(...source.warnings);
     }
     
-    logger.debug('Final merged configuration', { mergedConfig });
+    logger.debug('Final merged configuration before validation', { mergedConfig });
     
     // Validate the final merged configuration
     const manager = new ConfigurationManager(this.options.projectPath);
-    const validationResult = manager.validateConfiguration(mergedConfig);
+    
+    // Check if we have a complete config (all required fields present)
+    const hasAllFields = ['include', 'exclude', 'testFramework', 'aiModel', 'features', 
+                          'generation', 'coverage', 'incremental', 'watch', 'ai', 'output']
+                          .every(field => field in mergedConfig);
+    
+    let validationResult: ConfigValidationResult;
+    if (hasAllFields && mergedConfig.aiModel && mergedConfig.testFramework) {
+      // Use the validation-only method for complete configs
+      validationResult = manager.validateCompleteConfiguration(mergedConfig as ClaudeTestingConfig);
+    } else {
+      // Use the normal validation that merges with defaults
+      validationResult = manager.validateConfiguration(mergedConfig);
+    }
+    
+    logger.debug('After validation:', { hasAllFields });
     
     return {
       valid: validationResult.valid && allErrors.length === 0,

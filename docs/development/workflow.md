@@ -470,9 +470,22 @@ npm run validation:report > validation-results.md
    cat /path/to/project/.claude-testing/jest.config.js
    ```
 
+5. **"jest-environment-jsdom cannot be found"**
+   ```bash
+   # This is a known issue for React projects
+   # Jest 28+ requires explicit installation of jest-environment-jsdom
+   # The infrastructure generates tests that may require this dependency
+   
+   # Temporary workaround for testing:
+   cd /path/to/project/.claude-testing
+   npm install --save-dev jest-environment-jsdom
+   
+   # This is tracked as a known limitation for React test generation
+   ```
+
 ### CI/CD Troubleshooting
 
-5. **"AI tests running in CI when they shouldn't"**
+6. **"AI tests running in CI when they shouldn't"**
    ```bash
    # Verify CI environment detection
    CI=true node -e "
@@ -484,7 +497,7 @@ npm run validation:report > validation-results.md
    CI=true npm test -- --listTests | grep -c "ai-agents" || echo "AI tests correctly skipped"
    ```
 
-6. **"Pre-commit hook not running"**
+7. **"Pre-commit hook not running"**
    ```bash
    # Check hook exists and is executable
    ls -la .husky/pre-commit
@@ -497,7 +510,7 @@ npm run validation:report > validation-results.md
    git commit --no-verify -m "emergency fix"
    ```
 
-7. **"GitHub Actions failing on lint"**
+8. **"GitHub Actions failing on lint"**
    ```bash
    # Fix lint issues locally first
    npm run lint:fix
@@ -507,7 +520,7 @@ npm run validation:report > validation-results.md
    npm run quality:check
    ```
 
-8. **"CI tests passing but local tests failing"**
+9. **"CI tests passing but local tests failing"**
    ```bash
    # Ensure local environment matches CI
    CI=true npm test  # Simulate CI locally
@@ -516,7 +529,7 @@ npm run validation:report > validation-results.md
    npm test  # Full local suite
    ```
 
-9. **"Environment detection not working"**
+10. **"Environment detection not working"**
    ```bash
    # Debug environment detection
    node -e "
