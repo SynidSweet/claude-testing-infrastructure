@@ -74,6 +74,21 @@ node dist/cli/index.js run /path/to/project --coverage --threshold "statements:8
 
 # Generate JUnit reports for CI/CD
 node dist/cli/index.js run /path/to/project --junit --coverage
+
+# Production readiness validation
+npm run validation:production
+```
+
+### Production Validation
+```bash
+# Comprehensive production readiness check
+npm run validation:production
+
+# Direct script execution
+node scripts/production-readiness-check.js
+
+# Check exit code for automation
+npm run validation:production && echo "Production ready" || echo "Needs fixes"
 ```
 
 ## Development Environment Setup
@@ -516,6 +531,78 @@ npm run validation:report > validation-results.md
    console.log('Cache reset');
    "
    ```
+
+## Pre-commit Hooks and CI/CD Workflow
+
+### Local Development with Pre-commit Hooks
+
+The project uses Husky for git hooks to ensure code quality before commits:
+
+```bash
+# Pre-commit hook automatically runs:
+- npm run build       # Ensure TypeScript compiles
+- npm test           # Run test suite  
+- npm run lint       # Check code style (if configured)
+
+# To skip hooks in emergency (use sparingly):
+git commit --no-verify -m "Emergency fix"
+```
+
+### CI/CD Pipeline Structure
+
+```yaml
+# .github/workflows/main.yml runs:
+1. Checkout code
+2. Setup Node.js  
+3. Install dependencies
+4. Run build
+5. Run tests
+6. Run linting
+7. Generate coverage reports
+```
+
+### Production Validation
+
+Before deployment, run comprehensive validation:
+
+```bash
+# Full production readiness check
+npm run validation:production
+
+# Individual validation steps:
+npm run build                    # Build validation
+npm test                        # Test suite validation  
+node dist/cli/index.js --version # CLI validation
+```
+
+### Troubleshooting CI/CD Issues
+
+#### Pre-commit Hook Failures
+```bash
+# Reset hooks if corrupted
+rm -rf .husky
+npm run prepare  # Reinstalls hooks
+
+# Debug specific failures
+npm run build    # Check TypeScript errors
+npm test -- --verbose  # Detailed test output
+```
+
+#### GitHub Actions Failures
+1. Check Actions tab for specific error
+2. Run failing command locally
+3. Common issues:
+   - Node version mismatch
+   - Missing environment variables
+   - Timeout in AI tests
+
+### Best Practices
+
+1. **Always commit buildable code** - Pre-commit hooks enforce this
+2. **Fix test failures immediately** - Don't push broken tests
+3. **Update snapshots carefully** - Review before committing
+4. **Monitor CI status** - Address failures quickly
+5. **Use production validation** - Before major releases
 
 ## See Also
 - 📖 **Development Conventions**: [`./conventions.md`](./conventions.md)

@@ -1,6 +1,6 @@
 # Project Context & AI Agent Guide
 
-*Last updated: 2025-07-02 | Updated by: /document command | Fixed ModuleSystemAnalyzer test failures - improved mock sequencing and module detection logic*
+*Last updated: 2025-07-03 | Updated by: /document command | Fixed configuration test logging issues, completed all simple refactoring tasks*
 
 ## 🎯 Project Overview
 
@@ -37,6 +37,8 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 5. **Incremental Updates**: `node dist/cli/index.js incremental /path/to/project` - Smart test updates based on Git changes
 6. **Batched AI Generation**: `node dist/cli/index.js generate-logical-batch /path/to/project` - Configurable batch processing for large projects
 7. **Watch Mode**: `node dist/cli/index.js watch /path/to/project` - Real-time file monitoring with automatic incremental test generation
+8. **Process Monitoring**: `node dist/cli/index.js monitor` - Monitor system processes for resource usage and testing-related activity
+9. **Production Validation**: `npm run validation:production` - Comprehensive production readiness assessment with quality gates
 
 ### Key Feature Modules
 - **FileDiscoveryService** (`src/services/FileDiscoveryService.ts`): ✅ INTEGRATED - Centralized file discovery with caching (70%+ hit rate), pattern management, and language-specific filtering for consistent file operations across all components
@@ -61,7 +63,8 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 - **FileChunker** (`src/utils/file-chunking.ts`): Intelligent file chunking for large files exceeding AI token limits
 - **ClaudeOrchestrator** (`src/ai/ClaudeOrchestrator.ts`): Enhanced Claude CLI management with authentication validation, typed errors, and progress tracking
 - **BatchedLogicalTestGenerator** (`src/ai/BatchedLogicalTestGenerator.ts`): Configurable batch processing for large-scale AI test generation
-- **ConfigurationService** (`src/config/ConfigurationService.ts`): Centralized configuration loading with source precedence, environment variables, and user configuration support
+- **ConfigurationService** (`src/config/ConfigurationService.ts`): Centralized configuration loading with source precedence, environment variables, user configuration support, and fixed warnings collection (resolved critical aggregation bug)
+- **ProcessMonitor** (`src/utils/ProcessMonitor.ts`): ✅ NEW - Cross-platform process monitoring utility for detecting high-resource test processes, system resource debugging, and orphaned process identification with regex-based testing framework filtering
 
 ## 🔌 Integrations & External Dependencies
 
@@ -100,13 +103,18 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 - **Progress reporting**: `src/utils/ProgressReporter.ts` - Real-time progress tracking for test generation
 - **Test execution**: `src/runners/TestRunner.ts` - Framework-agnostic test running with FileDiscoveryService integration
 - **Test runner factory**: `src/runners/TestRunnerFactory.ts` - Creates test runners with automatic FileDiscoveryService provisioning
-- **AI integration**: `src/ai/ClaudeOrchestrator.ts` - Enhanced Claude CLI process management
+- **AI integration**: `src/ai/ClaudeOrchestrator.ts` - Enhanced Claude CLI process management with crash prevention
+- **Shell command sanitizer**: `src/utils/ShellCommandSanitizer.ts` - Pattern detection for problematic shell commands
+- **Process monitoring**: `src/utils/ProcessMonitor.ts` - Cross-platform process detection and resource monitoring utilities
 - **Configuration system**: `src/config/ConfigurationService.ts` - Centralized configuration service with source management
 - **Configuration types**: `src/types/config.ts` - Complete TypeScript interfaces for .claude-testing.config.json and FileDiscoveryConfig
 - **Configuration validation**: `src/utils/config-validation.ts` - Configuration loading and validation with enhanced error messages
 - **Configuration debugging**: `src/utils/config-display.ts` - Configuration source visualization tools
 - **Enhanced error messages**: `src/utils/config-error-messages.ts` - Contextual error formatting system
 - **Type system**: `src/types/` - Comprehensive discriminated union types including AI-specific error types
+- **Pre-commit hooks**: `.husky/pre-commit` - Automated git hooks for build validation and quality gates
+- **Production validation**: `scripts/production-readiness-check.js` - Automated production readiness validation with quality gates
+- **Scripts directory**: `scripts/` - Utility scripts for validation, deployment, and maintenance tasks
 
 ### Documentation Locations
 - **AI agent navigation hub**: `/docs/CLAUDE.md` - Central navigation for all AI agent documentation
@@ -120,7 +128,13 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 ## 🎯 Current Status & Priorities
 
 ### Current Status
-**PRODUCTION READY** (2025-07-02): Core functionality fully validated with all critical issues resolved. **Infrastructure tests**: 284/291 core tests passing (98% success rate). **CI/CD fixes**: Resolved systematic GitHub Actions failures including model recognition, framework auto-detection, and template engine compatibility. **Pipeline**: All major blocking issues addressed for reliable continuous integration.
+**PRODUCTION VALIDATION READY** (2025-07-03): Production readiness validation infrastructure complete with automated quality gates. **Test Status**: 386/414 tests passing (93.2% success rate). **Completed**: All simple refactoring tasks resolved - fixed configuration test logging issues. **Current priority**: Moderate complexity production blockers (5 tasks) and complex tasks (2 tasks) remain for achieving >98% test pass rate required for production deployment.
+
+### Recent Updates
+- **2025-07-03**: Fixed configuration test logging issues - cleaned test output by converting logger.info to logger.debug in ConfigurationService and config-validation, completed all simple refactoring tasks
+- **2025-07-02**: Added production readiness validation infrastructure - created automated quality gates script, established scripts directory structure with comprehensive validation covering build, CLI, test suite, core commands, documentation, and AI integration
+- **2025-07-02**: Implemented process monitoring and cleanup system - added ProcessMonitor utility for cross-platform resource detection, enhanced watch mode with optional process monitoring, added comprehensive troubleshooting documentation for resource issues
+- **2025-07-02**: Implemented defensive shell command patterns - added ShellCommandSanitizer utility to prevent Claude CLI crashes, enhanced error recovery with signal code detection, updated troubleshooting docs
 
 📖 **See active tasks**: [`/docs/planning/ACTIVE_TASKS.md`](./docs/planning/ACTIVE_TASKS.md)  
 📖 **See future work**: [`/docs/planning/FUTURE_WORK.md`](./docs/planning/FUTURE_WORK.md)
@@ -136,6 +150,7 @@ node dist/cli/index.js test /path/to/project --dry-run  # Preview test generatio
 node dist/cli/index.js test /path/to/project        # Generate comprehensive tests
 node dist/cli/index.js run /path/to/project --coverage  # Execute with coverage
 node dist/cli/index.js incremental /path/to/project # Smart updates based on Git changes
+node dist/cli/index.js monitor --testing-only       # Monitor system processes for debugging
 ```
 
 ## 💡 AI Agent Guidelines
@@ -151,7 +166,7 @@ node dist/cli/index.js incremental /path/to/project # Smart updates based on Git
 - **Primary entry point**: [`AI_AGENT_GUIDE.md`](./AI_AGENT_GUIDE.md) - Protected, stable AI agent guide
 - **Documentation navigation**: [`/docs/CLAUDE.md`](./docs/CLAUDE.md) - Central hub for all AI agent documentation
 - **Architecture**: Language Adapter Pattern with decoupled external testing
-- **Core commands**: `analyze → test → run → generate-logical → incremental → watch` workflow
+- **Core commands**: `analyze → test → run → generate-logical → incremental → watch → monitor` workflow
 - **Key constraint**: Never modify target projects, all tests external
 
 ## 📋 Documentation Structure Reference

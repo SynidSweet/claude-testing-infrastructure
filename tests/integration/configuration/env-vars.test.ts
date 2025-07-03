@@ -41,11 +41,6 @@ describe('Environment Variable Configuration Integration', () => {
 
       const result = await service.loadConfiguration();
       
-      if (!result.valid) {
-        console.log('Configuration errors:', result.errors);
-        console.log('Configuration sources:', result.sources.map(s => ({ type: s.type, errors: s.errors, warnings: s.warnings })));
-      }
-      
       expect(result.valid).toBe(true);
       expect(result.config.testFramework).toBe('pytest');
       expect(result.config.aiModel).toBe('claude-3-haiku-20240307');

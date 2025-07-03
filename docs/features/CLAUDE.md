@@ -2,7 +2,7 @@
 
 *Quick navigation for AI agents working with specific features and components*
 
-*Last updated: 2025-07-02 | Updated by: /document command | Enhanced ConfigurationService environment variable support*
+*Last updated: 2025-07-02 | Updated by: /document command | Added process monitoring and resource debugging capabilities*
 
 ## 🎯 Purpose
 
@@ -90,6 +90,14 @@ This guide helps AI agents understand and work with individual features of the C
 - `src/generators/templates/MCP*.ts` - 5 specialized test templates
 - `src/types/mcp-types.ts` - MCP-specific type definitions
 **Features**: Protocol compliance, tool integration, message handling, transport validation, chaos testing
+
+### Process Monitoring ✅ NEW
+**Purpose**: Cross-platform process detection and resource debugging for testing workflows  
+**Key Files**:
+- `src/utils/ProcessMonitor.ts` - Core process detection utility
+- `src/cli/commands/monitor.ts` - Dedicated CLI command
+- `tests/utils/ProcessMonitor.test.ts` - Comprehensive test coverage
+**Features**: High-resource process detection, testing framework recognition, cross-platform compatibility, watch mode integration
 
 ## 📦 Working with Features
 
@@ -367,6 +375,13 @@ class FeatureRepository {
 - Report: `ProgressReporter` ✅ NEW
 - Track: Real-time file processing
 - Display: ETA and completion stats
+
+### Process Monitoring ✅ NEW
+- Monitor: `ProcessMonitor.detectHighResourceProcesses()`
+- Filter: `ProcessMonitor.getTestingProcesses()`
+- Display: `ProcessMonitor.formatProcessInfo()`
+- CLI: `node dist/cli/index.js monitor`
+- Integration: Watch mode `--monitor-processes`
 
 ---
 

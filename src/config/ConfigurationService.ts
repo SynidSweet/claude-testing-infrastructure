@@ -146,7 +146,7 @@ export class ConfigurationService {
 
     this.loadedConfig = this.loadResult.config;
 
-    logger.info(`Configuration loaded successfully from ${this.loadResult.summary.sourcesLoaded} sources`);
+    logger.debug(`Configuration loaded successfully from ${this.loadResult.summary.sourcesLoaded} sources`);
     if (this.loadResult.summary.sourcesWithErrors > 0) {
       logger.warn(`${this.loadResult.summary.sourcesWithErrors} sources had errors`);
     }
@@ -308,14 +308,14 @@ export class ConfigurationService {
   }
 
   private async loadEnvironmentConfiguration(): Promise<void> {
-    const envConfig = this.extractEnvConfig();
+    const { config: envConfig, warnings } = this.extractEnvConfig();
     
     const source: ConfigurationSource = {
       type: ConfigurationSourceType.ENV_VARS,
       data: envConfig,
       loaded: Object.keys(envConfig).length > 0,
       errors: [],
-      warnings: [],
+      warnings: warnings,
       loadedAt: new Date(),
     };
     
@@ -396,8 +396,9 @@ export class ConfigurationService {
     ];
   }
 
-  private extractEnvConfig(): PartialClaudeTestingConfig {
+  private extractEnvConfig(): { config: PartialClaudeTestingConfig, warnings: string[] } {
     const config: PartialClaudeTestingConfig = {};
+    const warnings: string[] = [];
     
     // Environment variable prefix
     const prefix = 'CLAUDE_TESTING_';
@@ -417,55 +418,90 @@ export class ConfigurationService {
     
     // Process each environment variable
     for (const { key, value } of envVars) {
-      if (!value || value === '') continue; // Skip empty values
+      // Skip only null/undefined values, not empty strings (empty strings have meaning)
+      if (value === null || value === undefined) continue;
       
       // Convert underscore-separated path to object path
       const path = key.toLowerCase().split('_');
-      this.setNestedValue(config, path, this.parseEnvValue(value));
+      // Check if this is an array field before parsing
+      const isArrayField = this.isArrayField(key);
+      const { value: parsedValue, warning } = this.parseEnvValue(value, isArrayField, key);
+      
+      if (warning) {
+        warnings.push(warning);
+      }
+      
+      // Pass the parsed value with the original key for special case handling
+      this.setNestedValue(config, path, parsedValue, key);
     }
     
-    return config;
+    return { config, warnings };
+  }
+  
+  /**
+   * Check if a field should be treated as an array
+   */
+  private isArrayField(key: string): boolean {
+    const arrayFields = ['INCLUDE', 'EXCLUDE', 'COVERAGE_REPORTERS', 'OUTPUT_FORMATS'];
+    return arrayFields.some(field => key === field || key.endsWith(`_${field}`));
   }
   
   /**
    * Parse environment variable value to appropriate type
    */
-  private parseEnvValue(value: string): any {
-    // Empty string = undefined
-    if (value === '') return undefined;
+  private parseEnvValue(value: string, isArrayField: boolean = false, key?: string): { value: any, warning?: string } {
+    // Handle array fields specially
+    if (isArrayField) {
+      if (value === '') return { value: [] }; // Empty string = empty array for array fields
+      return { value: value.split(',').map(v => v.trim()).filter(v => v !== '') };
+    }
+    
+    // Empty string = undefined for non-array fields
+    if (value === '') return { value: undefined };
     
     // Boolean values
     const lowerValue = value.toLowerCase();
-    if (lowerValue === 'true' || lowerValue === '1' || lowerValue === 'yes') return true;
-    if (lowerValue === 'false' || lowerValue === '0' || lowerValue === 'no') return false;
+    if (lowerValue === 'true' || lowerValue === '1' || lowerValue === 'yes') return { value: true };
+    if (lowerValue === 'false' || lowerValue === '0' || lowerValue === 'no') return { value: false };
     
-    // Numeric values
+    // Numeric values - check if it looks like a number
     if (/^-?\d+$/.test(value)) {
       const num = parseInt(value, 10);
-      if (!isNaN(num)) return num;
+      if (!isNaN(num)) return { value: num };
     }
     if (/^-?\d*\.?\d+$/.test(value)) {
       const num = parseFloat(value);
-      if (!isNaN(num)) return num;
+      if (!isNaN(num)) return { value: num };
+    }
+    
+    // Check if this was supposed to be numeric but failed
+    if (key && (key.includes('RETRIES') || key.includes('TIMEOUT') || key.includes('TOKENS') || 
+                key.includes('TEMPERATURE') || key.includes('RATIO') || key.includes('SIZE') ||
+                key.includes('LIMIT') || key.includes('THRESHOLDS'))) {
+      // This should have been numeric but wasn't
+      return { 
+        value: value, // Keep as string
+        warning: `Environment variable CLAUDE_TESTING_${key}: Invalid numeric value "${value}"`
+      };
     }
     
     // Array values (comma-separated)
     if (value.includes(',')) {
-      return value.split(',').map(v => v.trim()).filter(v => v !== '');
+      return { value: value.split(',').map(v => v.trim()).filter(v => v !== '') };
     }
     
     // String value
-    return value;
+    return { value: value };
   }
   
   /**
    * Set a nested value in an object using a path array
    */
-  private setNestedValue(obj: any, path: string[], value: any): void {
+  private setNestedValue(obj: any, path: string[], value: any, originalKey?: string): void {
     if (path.length === 0) return;
     
     // Handle special root-level mappings first
-    const upperPath = path.join('_').toUpperCase();
+    const upperPath = originalKey || path.join('_').toUpperCase();
     
     // Direct root-level mappings
     if (upperPath === 'TEST_FRAMEWORK') {
@@ -484,6 +520,31 @@ export class ConfigurationService {
       obj.dryRun = value;
       return;
     }
+    if (upperPath === 'INCLUDE') {
+      obj.include = value;
+      return;
+    }
+    if (upperPath === 'EXCLUDE') {
+      obj.exclude = value;
+      return;
+    }
+    
+    // Handle CUSTOM_PROMPTS fields
+    if (upperPath.startsWith('CUSTOM_PROMPTS_')) {
+      if (!obj.customPrompts) obj.customPrompts = {};
+      const promptKey = upperPath.substring('CUSTOM_PROMPTS_'.length);
+      
+      // Handle empty strings for custom prompts
+      if (value === '') {
+        // Don't set undefined prompts
+        return;
+      }
+      
+      if (promptKey === 'TEST_GENERATION') {
+        obj.customPrompts.testGeneration = value;
+        return;
+      }
+    }
     
     // OUTPUT_FORMAT needs special handling - set both format and formats
     if (upperPath === 'OUTPUT_FORMAT') {
@@ -493,7 +554,128 @@ export class ConfigurationService {
       return;
     }
     
-    // For nested paths, keep first segment lowercase, make others camelCase
+    // Map FEATURES_COVERAGE to features.coverage
+    if (upperPath === 'FEATURES_COVERAGE') {
+      if (!obj.features) obj.features = {};
+      obj.features.coverage = value;
+      return;
+    }
+    
+    // Map FEATURES_EDGE_CASES to features.edgeCases
+    if (upperPath === 'FEATURES_EDGE_CASES') {
+      if (!obj.features) obj.features = {};
+      obj.features.edgeCases = value;
+      return;
+    }
+    
+    // Map FEATURES_INTEGRATION_TESTS to features.integrationTests
+    if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
+      if (!obj.features) obj.features = {};
+      obj.features.integrationTests = value;
+      return;
+    }
+    
+    // Map FEATURES_MOCKING to features.mocks
+    if (upperPath === 'FEATURES_MOCKING') {
+      if (!obj.features) obj.features = {};
+      obj.features.mocks = value;
+      return;
+    }
+    
+    // Map OUTPUT_VERBOSE to output.verbose
+    if (upperPath === 'OUTPUT_VERBOSE') {
+      if (!obj.output) obj.output = {};
+      obj.output.verbose = value;
+      if (value === true) {
+        obj.output.logLevel = 'verbose';
+      }
+      return;
+    }
+    
+    // Map OUTPUT_LOG_LEVEL to output.logLevel
+    if (upperPath === 'OUTPUT_LOG_LEVEL') {
+      if (!obj.output) obj.output = {};
+      obj.output.logLevel = value;
+      return;
+    }
+    
+    // Map OUTPUT_COLORS to output.colors
+    if (upperPath === 'OUTPUT_COLORS') {
+      if (!obj.output) obj.output = {};
+      obj.output.colors = value;
+      return;
+    }
+    
+    // Map COVERAGE_ENABLED to coverage.enabled
+    if (upperPath === 'COVERAGE_ENABLED') {
+      if (!obj.coverage) obj.coverage = {};
+      obj.coverage.enabled = value;
+      return;
+    }
+    
+    // Map COVERAGE_REPORTERS to coverage.reporters
+    if (upperPath === 'COVERAGE_REPORTERS') {
+      if (!obj.coverage) obj.coverage = {};
+      obj.coverage.reporters = value;
+      return;
+    }
+    
+    // Handle COVERAGE_THRESHOLDS_GLOBAL fields
+    if (upperPath.startsWith('COVERAGE_THRESHOLDS_GLOBAL_')) {
+      if (!obj.coverage) obj.coverage = {};
+      if (!obj.coverage.thresholds) obj.coverage.thresholds = {};
+      if (!obj.coverage.thresholds.global) obj.coverage.thresholds.global = {};
+      
+      const thresholdKey = upperPath.substring('COVERAGE_THRESHOLDS_GLOBAL_'.length).toLowerCase();
+      obj.coverage.thresholds.global[thresholdKey] = value;
+      return;
+    }
+    
+    // Handle special mappings for AI_OPTIONS fields
+    if (upperPath.startsWith('AI_OPTIONS_')) {
+      if (!obj.aiOptions) obj.aiOptions = {};
+      const aiOptionKey = upperPath.substring('AI_OPTIONS_'.length);
+      
+      if (aiOptionKey === 'MAX_TOKENS') {
+        obj.aiOptions.maxTokens = value;
+        return;
+      }
+      if (aiOptionKey === 'TEMPERATURE') {
+        obj.aiOptions.temperature = value;
+        return;
+      }
+      if (aiOptionKey === 'MAX_COST') {
+        obj.aiOptions.maxCost = value;
+        return;
+      }
+    }
+    
+    // Handle special mappings for GENERATION fields
+    if (upperPath.startsWith('GENERATION_')) {
+      if (!obj.generation) obj.generation = {};
+      const generationKey = upperPath.substring('GENERATION_'.length);
+      
+      if (generationKey === 'MAX_RETRIES') {
+        obj.generation.maxRetries = value;
+        return;
+      }
+      if (generationKey === 'TIMEOUT_MS') {
+        obj.generation.timeoutMs = value;
+        return;
+      }
+      if (generationKey === 'MAX_TEST_TO_SOURCE_RATIO') {
+        obj.generation.maxTestToSourceRatio = value;
+        return;
+      }
+      if (generationKey === 'BATCH_SIZE') {
+        obj.generation.batchSize = value;
+        return;
+      }
+    }
+    
+    // For nested paths, convert to appropriate case
+    // Keep configuration object keys lowercase (coverage.thresholds.global)
+    // Use camelCase only for property names within objects
     const camelPath = path.map((segment, index) => {
       if (index === 0) return segment.toLowerCase();
       return segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase();
@@ -671,11 +853,17 @@ export class ConfigurationService {
     }
     
     // Output configuration
-    if (cliArgs.verbose || cliArgs.debug) {
-      config.output = { 
-        logLevel: cliArgs.debug ? 'debug' : 'verbose',
-        ...(config.output || {})
-      };
+    if (cliArgs.verbose !== undefined) {
+      if (!config.output) config.output = {};
+      config.output.verbose = cliArgs.verbose;
+      if (cliArgs.verbose) {
+        config.output.logLevel = 'verbose';
+      }
+    }
+    
+    if (cliArgs.debug !== undefined) {
+      if (!config.output) config.output = {};
+      config.output.logLevel = 'debug';
     }
     
     if (cliArgs.quiet) {
@@ -838,6 +1026,7 @@ export class ConfigurationService {
         mergedConfig = this.deepMerge(mergedConfig, source.data);
       }
       allErrors.push(...source.errors);
+      allWarnings.push(...source.warnings);
     }
     
     logger.debug('Final merged configuration', { mergedConfig });
@@ -858,10 +1047,14 @@ export class ConfigurationService {
     const result = { ...target };
     
     for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        result[key] = this.deepMerge(result[key] || {}, source[key]);
-      } else {
-        result[key] = source[key];
+      if (source[key] !== undefined) { // Include null and false values
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+          // For objects, recursively merge
+          result[key] = this.deepMerge(result[key] || {}, source[key]);
+        } else {
+          // For primitives and arrays, override completely
+          result[key] = source[key];
+        }
       }
     }
     

@@ -45,7 +45,7 @@ export class ConfigurationManager {
 
       const configContent = await fs.readFile(this.configPath, 'utf8');
       userConfig = JSON.parse(configContent);
-      logger.info(`Loaded configuration from: ${this.configPath}`);
+      logger.debug(`Loaded configuration from: ${this.configPath}`);
     } catch (error) {
       if (configExists) {
         // File exists but couldn't be parsed
@@ -57,7 +57,7 @@ export class ConfigurationManager {
         };
       } else {
         // File doesn't exist - use defaults
-        logger.info('No configuration file found, using defaults');
+        logger.debug('No configuration file found, using defaults');
       }
     }
 
@@ -92,6 +92,23 @@ export class ConfigurationManager {
       this.validateAndMergeAI(userConfig, mergedConfig, errors, warnings);
       this.validateAndMergeOutput(userConfig, mergedConfig, errors, warnings);
 
+      // Validate legacy aiOptions - merge with existing if present
+      if (userConfig.aiOptions !== undefined) {
+        if (!mergedConfig.aiOptions) {
+          mergedConfig.aiOptions = {};
+        }
+        // Merge user aiOptions with defaults
+        Object.assign(mergedConfig.aiOptions, userConfig.aiOptions);
+        this.validateLegacyAIOptions(userConfig.aiOptions, mergedConfig, errors, warnings);
+      }
+      
+      // Handle root-level fields
+      if (userConfig.costLimit !== undefined) {
+        mergedConfig.costLimit = userConfig.costLimit;
+      }
+      if (userConfig.dryRun !== undefined) {
+        mergedConfig.dryRun = userConfig.dryRun;
+      }
       // Cross-validation checks
       this.performCrossValidation(mergedConfig, errors, warnings);
     } catch (error) {
@@ -351,15 +368,16 @@ export class ConfigurationManager {
       // Validate maxTestToSourceRatio
       if (userConfig.generation.maxTestToSourceRatio !== undefined) {
         if (
-          !Number.isInteger(userConfig.generation.maxTestToSourceRatio) ||
-          userConfig.generation.maxTestToSourceRatio < 1 ||
+          typeof userConfig.generation.maxTestToSourceRatio !== 'number' ||
+          isNaN(userConfig.generation.maxTestToSourceRatio) ||
+          userConfig.generation.maxTestToSourceRatio < 0.1 ||
           userConfig.generation.maxTestToSourceRatio > 100
         ) {
           const error = ConfigErrorFormatter.formatError(
             ConfigErrorFormatter.templates.outOfRange(
               'generation.maxTestToSourceRatio',
               userConfig.generation.maxTestToSourceRatio,
-              1,
+              0.1,
               100
             )
           );
@@ -489,6 +507,24 @@ export class ConfigurationManager {
           errors,
           warnings
         );
+      }
+      
+      // Validate reporters
+      if (userConfig.coverage.reporters !== undefined) {
+        if (!Array.isArray(userConfig.coverage.reporters)) {
+          errors.push('coverage.reporters must be an array');
+        } else {
+          // Just assign reporters directly, no specific validation
+          mergedConfig.coverage.reporters = userConfig.coverage.reporters;
+        }
+      }
+      
+      // Other coverage fields
+      if (userConfig.coverage.outputDir !== undefined) {
+        mergedConfig.coverage.outputDir = userConfig.coverage.outputDir;
+      }
+      if (userConfig.coverage.includeUntested !== undefined) {
+        mergedConfig.coverage.includeUntested = userConfig.coverage.includeUntested;
       }
     }
   }
@@ -730,6 +766,40 @@ export class ConfigurationManager {
           mergedConfig.output.file = userConfig.output.file;
         }
       }
+    }
+  }
+
+  private validateLegacyAIOptions(
+    aiOptions: any,
+    mergedConfig: ClaudeTestingConfig,
+    errors: string[],
+    _warnings: string[]
+  ): void {
+    if (typeof aiOptions !== 'object' || aiOptions === null) {
+      errors.push('aiOptions must be an object');
+      return;
+    }
+
+    // Validate fields that exist in AIOptions
+    if (aiOptions.maxTokens !== undefined) {
+      if (
+        !Number.isInteger(aiOptions.maxTokens) ||
+        aiOptions.maxTokens < 256 ||
+        aiOptions.maxTokens > 8192
+      ) {
+        errors.push('aiOptions.maxTokens must be an integer between 256 and 8192');
+      }
+    }
+
+    // Map other fields to their proper locations
+    if (aiOptions.model !== undefined) {
+      mergedConfig.aiModel = aiOptions.model;
+    }
+    if (aiOptions.maxCost !== undefined) {
+      mergedConfig.ai.maxCost = aiOptions.maxCost;
+    }
+    if (aiOptions.temperature !== undefined) {
+      mergedConfig.ai.temperature = aiOptions.temperature;
     }
   }
 
