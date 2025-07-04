@@ -743,9 +743,29 @@ global.console = {
   private generateReactConfig(hasReact: boolean): string {
     if (!hasReact) return '';
 
-    return `// React testing configuration (basic setup)
-// Note: Advanced React testing requires @testing-library/react
-// For now, using basic Jest setup
+    return `// React testing configuration
+// Import jest-dom for additional matchers
+// Note: This assumes @testing-library/jest-dom is installed
+try {
+  require('@testing-library/jest-dom');
+} catch (e) {
+  // @testing-library/jest-dom not available - using basic matchers
+}
+
+// Mock window.matchMedia for responsive components
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
 `;
   }
 

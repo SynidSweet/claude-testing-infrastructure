@@ -16,6 +16,7 @@
     "test:ai-quick": "jest --config jest.ai-validation.config.js --testNamePattern='Critical'",
     "validation:report": "node scripts/generate-validation-report.js",
     "validation:production": "node scripts/production-readiness-check.js",
+    "validation:deployment": "node scripts/production-deployment-checklist.js",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write 'src/**/*.{ts,js,json}'",

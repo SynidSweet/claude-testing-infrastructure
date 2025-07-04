@@ -13,6 +13,7 @@ import { generateLogicalCommand } from './commands/generate-logical';
 import { generateLogicalBatchCommand } from './commands/generate-logical-batch';
 import { testAICommand } from './commands/test-ai';
 import { createIncrementalCommand } from './commands/incremental';
+import { createInitConfigCommand } from './commands/init-config';
 import { initializeLanguageSpecificGenerators } from '../generators/registerLanguageGenerators';
 
 // Initialize language-specific generators
@@ -102,6 +103,9 @@ program.addCommand(testAICommand);
 // Add the incremental command
 program.addCommand(createIncrementalCommand());
 
+// Add the init-config command
+program.addCommand(createInitConfigCommand());
+
 // Error handling
 program.exitOverride();
 
@@ -120,6 +124,7 @@ try {
     console.log('  generate-logical - Generate logical tests using AI');
     console.log('  generate-logical-batch - Generate logical tests in configurable batches');
     console.log('  incremental     - Perform incremental test generation');
+    console.log('  init-config     - Initialize configuration with templates');
     console.log('\nRun claude-testing --help for more information');
   } else if (error.code === 'commander.help' || error.code === 'commander.helpDisplayed') {
     // Help was displayed, exit normally

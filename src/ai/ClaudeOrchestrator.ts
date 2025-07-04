@@ -23,9 +23,11 @@ import {
   AINetworkError,
   type AIProgressUpdate 
 } from '../types/ai-error-types';
-import { withRetry, CircuitBreaker } from '../utils/retry-helper';
+import { withRetry, CircuitBreaker, FailurePatternDetector, type TaskRetryContext } from '../utils/retry-helper';
 import { logger } from '../utils/logger';
 import { createStderrParser, type ParsedError } from '../utils/stderr-parser';
+import { ProcessMonitor, type ProcessHealthMetrics, type ProcessResourceUsage } from '../utils/ProcessMonitor';
+import { TaskCheckpointManager } from '../state/TaskCheckpointManager';
 
 export interface ClaudeOrchestratorConfig {
   maxConcurrent?: number;
@@ -40,6 +42,8 @@ export interface ClaudeOrchestratorConfig {
   exponentialBackoff?: boolean;
   circuitBreakerEnabled?: boolean;
   maxRetryDelay?: number;
+  checkpointingEnabled?: boolean;
+  projectPath?: string;
 }
 
 export interface ProcessResult {
@@ -70,10 +74,8 @@ interface ProcessHeartbeat {
   timeoutProgress?: NodeJS.Timeout;
   warningThresholds?: Set<number>;
   startTime?: Date;
-  resourceUsage?: {
-    cpu?: number;
-    memory?: number;
-  };
+  resourceUsage?: ProcessResourceUsage;
+  healthMetrics?: ProcessHealthMetrics;
   lastStdinCheck?: Date;
   isWaitingForInput?: boolean;
   consecutiveSlowChecks?: number;
@@ -96,6 +98,11 @@ export class ClaudeOrchestrator extends EventEmitter {
   private isGracefullyDegraded = false;
   private readonly HEARTBEAT_INTERVAL = 30000; // 30 seconds
   private readonly DEAD_PROCESS_THRESHOLD = 120000; // 2 minutes of no activity
+  private processMonitor: ProcessMonitor;
+  private checkpointManager?: TaskCheckpointManager;
+  private activeCheckpoints = new Map<string, string>(); // taskId -> checkpointId
+  private failurePatternDetector = new FailurePatternDetector();
+  private taskMetrics = new Map<string, { successTime: number; complexity: 'low' | 'medium' | 'high' }>(); // Task performance tracking
 
   constructor(private config: ClaudeOrchestratorConfig = {}) {
     super();
@@ -112,8 +119,14 @@ export class ClaudeOrchestrator extends EventEmitter {
       exponentialBackoff: true,
       circuitBreakerEnabled: true,
       maxRetryDelay: 30000, // 30 seconds max retry delay
+      checkpointingEnabled: true,
       ...config,
     };
+
+    // Initialize checkpoint manager if enabled and project path provided
+    if (this.config.checkpointingEnabled && this.config.projectPath) {
+      this.checkpointManager = new TaskCheckpointManager(this.config.projectPath);
+    }
 
     // Validate model configuration on construction
     if (this.config.model) {
@@ -139,6 +152,15 @@ export class ClaudeOrchestrator extends EventEmitter {
     }
 
     this.stats = this.resetStats();
+
+    // Initialize process monitor
+    this.processMonitor = new ProcessMonitor({
+      cpuThreshold: 85,
+      memoryThreshold: 85,
+      checkInterval: this.HEARTBEAT_INTERVAL,
+      maxHistory: 50,
+      zombieDetection: true,
+    });
 
     // Initialize circuit breaker if enabled
     if (this.config.circuitBreakerEnabled) {
@@ -215,16 +237,21 @@ export class ClaudeOrchestrator extends EventEmitter {
       progressHistory: [],
     };
 
+    // Start process monitoring if we have a valid PID
+    if (process.pid) {
+      this.processMonitor.startMonitoring(process.pid);
+    }
+
     // Set up periodic heartbeat checks
     const intervalFn = () => {
       this.checkProcessHealth(taskId);
     };
     heartbeat.checkInterval = setInterval(intervalFn, this.HEARTBEAT_INTERVAL);
-    
-    // Run initial check immediately
-    intervalFn();
 
     this.processHeartbeats.set(taskId, heartbeat);
+    
+    // Run initial check immediately (after heartbeat is stored)
+    intervalFn();
   }
 
   /**
@@ -233,6 +260,11 @@ export class ClaudeOrchestrator extends EventEmitter {
   private stopHeartbeatMonitoring(taskId: string): void {
     const heartbeat = this.processHeartbeats.get(taskId);
     if (heartbeat) {
+      // Stop process monitoring if we have a valid PID
+      if (heartbeat.process.pid) {
+        this.processMonitor.stopMonitoring(heartbeat.process.pid);
+      }
+
       if (heartbeat.checkInterval) {
         clearInterval(heartbeat.checkInterval);
       }
@@ -309,36 +341,12 @@ export class ClaudeOrchestrator extends EventEmitter {
   }
 
   /**
-   * Capture resource usage for a process
+   * Capture resource usage for a process using ProcessMonitor
    */
-  private captureResourceUsage(pid?: number): { cpu?: number; memory?: number } | undefined {
+  private captureResourceUsage(pid?: number): ProcessResourceUsage | undefined {
     if (!pid) return undefined;
     
-    try {
-      // Try to get basic process info using ps command (cross-platform with some differences)
-      const psOutput = execSync(`ps -p ${pid} -o %cpu,%mem 2>/dev/null || echo ""`, { 
-        encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      }).trim();
-      
-      if (psOutput) {
-        const lines = psOutput.split('\n');
-        if (lines.length > 1 && lines[1]) {
-          const stats = lines[1].trim().split(/\s+/);
-          if (stats.length >= 2 && stats[0] && stats[1]) {
-            return {
-              cpu: parseFloat(stats[0]) || 0,
-              memory: parseFloat(stats[1]) || 0,
-            };
-          }
-        }
-      }
-    } catch (error) {
-      // Process might have ended or ps command not available
-      logger.debug(`Failed to capture resource usage for PID ${pid}: ${error}`);
-    }
-    
-    return undefined;
+    return this.processMonitor.getResourceUsage(pid) || undefined;
   }
 
   /**
@@ -351,8 +359,55 @@ export class ClaudeOrchestrator extends EventEmitter {
     const timeSinceLastActivity = Date.now() - heartbeat.lastActivity.getTime();
     const timeSinceStart = Date.now() - (heartbeat.startTime?.getTime() || Date.now());
     
+    // Get health metrics from ProcessMonitor if available
+    let healthMetrics: ProcessHealthMetrics | undefined;
+    if (heartbeat.process.pid) {
+      healthMetrics = this.processMonitor.getHealthMetrics(heartbeat.process.pid);
+      heartbeat.healthMetrics = healthMetrics;
+      if (healthMetrics.resourceUsage) {
+        heartbeat.resourceUsage = healthMetrics.resourceUsage;
+      }
+    }
+    
     // Enhanced heuristics for determining process health
     const processMetrics = this.analyzeProcessHealth(heartbeat, timeSinceLastActivity, timeSinceStart);
+    
+    // Check for zombie processes
+    if (healthMetrics?.isZombie) {
+      logger.error(`Process ${taskId} is a zombie process`);
+      
+      this.emit('process:zombie', {
+        taskId,
+        lastActivity: heartbeat.lastActivity,
+        bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
+        timeSinceLastActivity,
+        healthMetrics,
+        resourceUsage: heartbeat.resourceUsage,
+      });
+
+      // Kill zombie process and stop monitoring
+      if (heartbeat.process && !heartbeat.process.killed) {
+        logger.warn(`Attempting to kill zombie process ${taskId}`);
+        heartbeat.process.kill('SIGKILL'); // Use SIGKILL directly for zombies
+      }
+      this.stopHeartbeatMonitoring(taskId);
+      return;
+    }
+    
+    // Check for high resource usage
+    if (healthMetrics?.isHighResource) {
+      logger.warn(`Process ${taskId} high resource usage: ${healthMetrics.warnings.join(', ')}`);
+      
+      this.emit('process:high-resource', {
+        taskId,
+        lastActivity: heartbeat.lastActivity,
+        bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
+        timeSinceLastActivity,
+        healthMetrics,
+        resourceUsage: heartbeat.resourceUsage,
+        recommendations: healthMetrics.recommendations,
+      });
+    }
     
     // Check if process might be waiting for input
     if (this.checkForInputWait(heartbeat, timeSinceLastActivity)) {
@@ -363,6 +418,8 @@ export class ClaudeOrchestrator extends EventEmitter {
         lastActivity: heartbeat.lastActivity,
         bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
         timeSinceLastActivity,
+        healthMetrics,
+        resourceUsage: heartbeat.resourceUsage,
       });
       
       // Don't kill processes that might be waiting for input yet
@@ -373,7 +430,7 @@ export class ClaudeOrchestrator extends EventEmitter {
     if (processMetrics.isDead) {
       logger.warn(`Process ${taskId} appears to be dead - ${processMetrics.reason}`);
       
-      // Emit warning event
+      // Emit warning event with enhanced metrics
       this.emit('process:dead', {
         taskId,
         lastActivity: heartbeat.lastActivity,
@@ -381,6 +438,8 @@ export class ClaudeOrchestrator extends EventEmitter {
         timeSinceLastActivity,
         reason: processMetrics.reason,
         metrics: processMetrics,
+        healthMetrics,
+        resourceUsage: heartbeat.resourceUsage,
       });
 
       // Try to kill the process if it's still running
@@ -410,6 +469,8 @@ export class ClaudeOrchestrator extends EventEmitter {
         consecutiveSlowChecks: heartbeat.consecutiveSlowChecks,
         reason: processMetrics.reason,
         metrics: processMetrics,
+        healthMetrics,
+        resourceUsage: heartbeat.resourceUsage,
       });
     }
   }
@@ -489,10 +550,28 @@ export class ClaudeOrchestrator extends EventEmitter {
     
     // Check if the last output might indicate waiting for input
     const recentHistory = heartbeat.progressHistory?.slice(-5) || [];
-    const hasRecentSmallOutput = recentHistory.some(entry => entry.bytes < 50);
     
-    // If we've had only small outputs recently, might be prompts
-    if (hasRecentSmallOutput && heartbeat.stdoutBytes < 1000) {
+    // Look for actual input prompt patterns, not progress markers
+    const hasInputPrompt = recentHistory.some(entry => {
+      if (!entry.marker || entry.bytes > 20) return false; // Input prompts are very short
+      
+      const text = entry.marker.toLowerCase();
+      // Common input prompt patterns
+      const inputPatterns = [
+        />\s*$/,           // "> "
+        /:\s*$/,           // ": "
+        /\?\s*$/,          // "? "
+        /enter\s*$/,       // "enter"
+        /input\s*$/,       // "input"
+        /password\s*$/,    // "password"
+        /continue\s*$/,    // "continue"
+      ];
+      
+      return inputPatterns.some(pattern => pattern.test(text));
+    });
+    
+    // Only flag as waiting for input if we detect actual prompt patterns
+    if (hasInputPrompt && heartbeat.stdoutBytes < 1000) {
       heartbeat.isWaitingForInput = true;
       heartbeat.lastStdinCheck = new Date();
       return true;
@@ -588,6 +667,9 @@ export class ClaudeOrchestrator extends EventEmitter {
     for (const taskId of this.processHeartbeats.keys()) {
       this.stopHeartbeatMonitoring(taskId);
     }
+    
+    // Stop all process monitoring
+    this.processMonitor.stopAll();
   }
 
   /**
@@ -603,6 +685,47 @@ export class ClaudeOrchestrator extends EventEmitter {
   }
 
   /**
+   * Assess task complexity based on context
+   */
+  private assessTaskComplexity(task: AITask): 'low' | 'medium' | 'high' {
+    const { estimatedTokens } = task;
+    const sourceFile = task.sourceFile;
+    
+    // Simple heuristics for complexity assessment
+    if (estimatedTokens > 8000) return 'high';
+    if (estimatedTokens > 4000) return 'medium';
+    
+    // Check file type indicators
+    if (sourceFile.includes('test') || sourceFile.includes('spec')) return 'low';
+    if (sourceFile.includes('component') || sourceFile.includes('service')) return 'medium';
+    if (sourceFile.includes('controller') || sourceFile.includes('api')) return 'high';
+    
+    return estimatedTokens > 2000 ? 'medium' : 'low';
+  }
+
+  /**
+   * Create task retry context for intelligent retry strategies
+   */
+  private createTaskRetryContext(task: AITask): TaskRetryContext {
+    const complexity = this.assessTaskComplexity(task);
+    const existingMetrics = this.taskMetrics.get(task.id);
+    
+    const context: TaskRetryContext = {
+      taskId: task.id,
+      estimatedTokens: task.estimatedTokens,
+      complexity,
+      previousAttempts: 0,
+      previousFailures: [],
+    };
+    
+    if (existingMetrics?.successTime !== undefined) {
+      context.averageSuccessTime = existingMetrics.successTime;
+    }
+    
+    return context;
+  }
+
+  /**
    * Process a single task
    */
   private async processTask(task: AITask): Promise<void> {
@@ -610,29 +733,66 @@ export class ClaudeOrchestrator extends EventEmitter {
 
     this.emit('task:start', { task });
     
-    // Emit progress update
-    this.emit('progress', {
-      taskId: task.id,
-      phase: 'preparing',
-      progress: 0,
-      message: `Processing task ${task.id}`,
-      estimatedTimeRemaining: task.estimatedTokens * 10 // rough estimate: 10ms per token
-    } as AIProgressUpdate);
+    // Check for existing checkpoint and potentially resume
+    let checkpointId: string | undefined;
+    let shouldResume = false;
+    
+    if (this.checkpointManager) {
+      const resumeInfo = await this.checkpointManager.canResume(task);
+      if (resumeInfo.canResume && resumeInfo.checkpointId) {
+        shouldResume = true;
+        checkpointId = resumeInfo.checkpointId;
+        
+        this.emit('progress', {
+          taskId: task.id,
+          phase: 'preparing',
+          progress: resumeInfo.lastProgress || 0,
+          message: `Resuming task ${task.id} from checkpoint (${resumeInfo.lastProgress}% complete)`,
+          estimatedTimeRemaining: task.estimatedTokens * 10 * ((100 - (resumeInfo.lastProgress || 0)) / 100)
+        } as AIProgressUpdate);
+        
+        logger.info(`Resuming task ${task.id} from checkpoint ${checkpointId}`);
+      } else {
+        // Create new checkpoint
+        checkpointId = await this.checkpointManager.createCheckpoint(task, 'preparing');
+        this.activeCheckpoints.set(task.id, checkpointId);
+        
+        this.emit('progress', {
+          taskId: task.id,
+          phase: 'preparing',
+          progress: 0,
+          message: `Processing task ${task.id} (checkpoint created)`,
+          estimatedTimeRemaining: task.estimatedTokens * 10
+        } as AIProgressUpdate);
+      }
+    } else {
+      // No checkpointing - emit normal progress
+      this.emit('progress', {
+        taskId: task.id,
+        phase: 'preparing',
+        progress: 0,
+        message: `Processing task ${task.id}`,
+        estimatedTimeRemaining: task.estimatedTokens * 10
+      } as AIProgressUpdate);
+    }
 
     // Handle graceful degradation
     if (this.isGracefullyDegraded) {
-      await this.handleDegradedTask(task, startTime);
+      await this.handleDegradedTask(task, startTime, checkpointId);
       return;
     }
 
-    // Use retry helper with exponential backoff
+    // Create intelligent retry context
+    const retryContext = this.createTaskRetryContext(task);
+    
+    // Use intelligent retry helper with adaptive strategies
     const retryResult = await withRetry(
       async () => {
         // Use circuit breaker if enabled
         if (this.circuitBreaker) {
-          return await this.circuitBreaker.execute(() => this.executeClaudeProcess(task));
+          return await this.circuitBreaker.execute(() => this.executeClaudeProcess(task, shouldResume, checkpointId));
         } else {
-          return await this.executeClaudeProcess(task);
+          return await this.executeClaudeProcess(task, shouldResume, checkpointId);
         }
       },
       {
@@ -642,20 +802,30 @@ export class ClaudeOrchestrator extends EventEmitter {
         backoffFactor: 2,
         jitter: true,
         retryableErrors: [AITimeoutError, AINetworkError, AIRateLimitError],
+        adaptiveTimeout: true,
+        contextAware: true,
+        taskContext: retryContext,
+        failurePatterns: this.failurePatternDetector,
         onRetry: (error, attempt, delay) => {
+          logger.info(`Intelligent retry for task ${task.id}: attempt ${attempt + 1}, ` +
+                     `delay ${delay}ms, complexity ${retryContext.complexity}, ` +
+                     `pattern ${this.failurePatternDetector.getRecommendedStrategy(error).strategy}`);
+          
           this.emit('task:retry', { 
             task, 
             attemptNumber: attempt, 
             error: error.message,
-            nextRetryIn: delay 
+            nextRetryIn: delay,
+            complexity: retryContext.complexity,
+            strategy: this.failurePatternDetector.getRecommendedStrategy(error).strategy
           });
           
-          // Update progress
+          // Update progress with intelligent retry info
           this.emit('progress', {
             taskId: task.id,
             phase: 'preparing',
             progress: 0,
-            message: `Retrying task ${task.id} (attempt ${attempt + 1}) after ${delay}ms`,
+            message: `Intelligent retry: ${retryContext.complexity} complexity task, attempt ${attempt + 1} in ${delay}ms`,
             estimatedTimeRemaining: task.estimatedTokens * 10
           } as AIProgressUpdate);
         }
@@ -673,6 +843,28 @@ export class ClaudeOrchestrator extends EventEmitter {
           duration: Date.now() - startTime,
         },
       };
+
+      // Complete checkpoint if enabled
+      if (checkpointId && this.checkpointManager) {
+        await this.checkpointManager.completeCheckpoint(checkpointId, processResult.result!);
+        this.activeCheckpoints.delete(task.id);
+      }
+
+      // Track successful task metrics for future intelligent retry decisions
+      this.taskMetrics.set(task.id, {
+        successTime: processResult.result!.duration,
+        complexity: retryContext.complexity,
+      });
+      
+      // Update average success time for this complexity level
+      const similarTasks = Array.from(this.taskMetrics.values()).filter(
+        metric => metric.complexity === retryContext.complexity
+      );
+      const avgSuccessTime = similarTasks.reduce((sum, metric) => sum + metric.successTime, 0) / similarTasks.length;
+      retryContext.averageSuccessTime = avgSuccessTime;
+
+      logger.debug(`Task ${task.id} completed successfully: duration=${processResult.result!.duration}ms, ` +
+                  `complexity=${retryContext.complexity}, avgForComplexity=${Math.round(avgSuccessTime)}ms`);
 
       // Update stats
       this.stats.completedTasks++;
@@ -693,6 +885,12 @@ export class ClaudeOrchestrator extends EventEmitter {
         error: retryResult.error?.message || 'Unknown error',
       };
 
+      // Fail checkpoint if enabled
+      if (checkpointId && this.checkpointManager) {
+        await this.checkpointManager.failCheckpoint(checkpointId, processResult.error!);
+        this.activeCheckpoints.delete(task.id);
+      }
+
       this.stats.failedTasks++;
       this.results.push(processResult);
       this.emit('task:failed', { task, error: processResult.error });
@@ -702,7 +900,7 @@ export class ClaudeOrchestrator extends EventEmitter {
   /**
    * Handle task in degraded mode (no Claude CLI available)
    */
-  private async handleDegradedTask(task: AITask, startTime: number): Promise<void> {
+  private async handleDegradedTask(task: AITask, startTime: number, checkpointId?: string): Promise<void> {
     logger.info(`Processing task ${task.id} in degraded mode`);
     
     // Generate placeholder tests based on task context
@@ -718,6 +916,12 @@ export class ClaudeOrchestrator extends EventEmitter {
         duration: Date.now() - startTime,
       },
     };
+
+    // Complete checkpoint if enabled (even for degraded mode)
+    if (checkpointId && this.checkpointManager) {
+      await this.checkpointManager.completeCheckpoint(checkpointId, processResult.result!);
+      this.activeCheckpoints.delete(task.id);
+    }
 
     // Update stats
     this.stats.completedTasks++;
@@ -835,14 +1039,40 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
   /**
    * Execute Claude process for a task
    */
-  private executeClaudeProcess(task: AITask): Promise<{
+  private executeClaudeProcess(task: AITask, shouldResume: boolean = false, checkpointId?: string): Promise<{
     output: string;
     tokensUsed?: number;
     cost?: number;
   }> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      let promptToUse = task.prompt;
+      let estimatedTokens = task.estimatedTokens;
+
+      // Handle resume from checkpoint
+      if (shouldResume && checkpointId && this.checkpointManager) {
+        try {
+          const resumeInfo = await this.checkpointManager.resumeFromCheckpoint(checkpointId);
+          promptToUse = resumeInfo.resumePrompt;
+          estimatedTokens = resumeInfo.estimatedRemainingTokens;
+          
+          // Update progress to show resuming
+          this.emit('progress', {
+            taskId: task.id,
+            phase: 'generating',
+            progress: resumeInfo.checkpoint.progress,
+            message: `Resuming generation from ${resumeInfo.checkpoint.progress}%...`,
+            estimatedTimeRemaining: estimatedTokens * 10
+          } as AIProgressUpdate);
+          
+          logger.info(`Resuming task ${task.id} with ${estimatedTokens} estimated remaining tokens`);
+        } catch (error) {
+          logger.warn(`Failed to resume from checkpoint ${checkpointId}, starting fresh:`, error);
+          // Continue with original prompt if resume fails
+        }
+      }
+
       const args = [
-        task.prompt,
+        promptToUse,
         '--model',
         this.config.model!,
       ];
@@ -981,6 +1211,24 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
         
         // Update heartbeat activity with data content
         this.updateProcessActivity(task.id, bytes, true, dataStr);
+        
+        // Update checkpoint with partial progress
+        if (checkpointId && this.checkpointManager) {
+          const progress = Math.min(50 + (stdout.length / estimatedTokens) * 40, 90); // Scale 50-90%
+          this.checkpointManager.updateCheckpoint(checkpointId, {
+            phase: 'generating',
+            progress,
+            partialResult: {
+              generatedContent: stdout,
+              tokensUsed: Math.floor(stdout.length / 4), // Rough token estimate
+              estimatedCost: task.estimatedCost * (progress / 100),
+            },
+            state: {
+              outputBytes: stdout.length,
+              elapsedTime: Date.now() - (Date.now() - (this.processHeartbeats.get(task.id)?.startTime?.getTime() || Date.now())),
+            },
+          });
+        }
         
         // Emit progress update - we're getting data
         this.emit('progress', {
@@ -1160,9 +1408,19 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
     }
 
     if (existingContent) {
-      // Append logical tests to existing file
-      const updatedContent = `${existingContent}\n\n// AI-Generated Logical Tests\n${tests}`;
-      await fs.writeFile(task.testFile, updatedContent, 'utf-8');
+      // Check if AI-generated tests already exist
+      const aiGeneratedMarker = '// AI-Generated Logical Tests';
+      if (existingContent.includes(aiGeneratedMarker)) {
+        // Replace existing AI-generated section
+        const markerIndex = existingContent.indexOf(aiGeneratedMarker);
+        const beforeMarker = existingContent.substring(0, markerIndex).trim();
+        const updatedContent = `${beforeMarker}\n\n${aiGeneratedMarker}\n${tests}`;
+        await fs.writeFile(task.testFile, updatedContent, 'utf-8');
+      } else {
+        // Append logical tests to existing file
+        const updatedContent = `${existingContent}\n\n// AI-Generated Logical Tests\n${tests}`;
+        await fs.writeFile(task.testFile, updatedContent, 'utf-8');
+      }
     } else {
       // Create new file with generated tests
       await fs.writeFile(task.testFile, tests, 'utf-8');
@@ -1216,6 +1474,65 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
   }
 
   /**
+   * Get system-wide zombie processes  
+   */
+  getZombieProcesses(): ProcessResourceUsage[] {
+    return this.processMonitor.detectZombieProcesses();
+  }
+
+  /**
+   * Get process monitoring status
+   */
+  getProcessMonitoringStatus(): {
+    activeProcesses: number[];
+    totalHistory: number;
+    zombieProcesses: ProcessResourceUsage[];
+  } {
+    const status = this.processMonitor.getMonitoringStatus();
+    const zombies = this.getZombieProcesses();
+    
+    return {
+      ...status,
+      zombieProcesses: zombies,
+    };
+  }
+
+  /**
+   * Get intelligent retry statistics
+   */
+  getRetryStatistics(): {
+    failurePatterns: Map<string, any>;
+    taskMetrics: { complexity: string; count: number; avgSuccessTime: number }[];
+    totalTasksWithMetrics: number;
+  } {
+    const patterns = this.failurePatternDetector.getPatternStats();
+    
+    // Aggregate task metrics by complexity
+    const complexityGroups = new Map<string, { times: number[]; count: number }>();
+    
+    for (const metric of this.taskMetrics.values()) {
+      if (!complexityGroups.has(metric.complexity)) {
+        complexityGroups.set(metric.complexity, { times: [], count: 0 });
+      }
+      const group = complexityGroups.get(metric.complexity)!;
+      group.times.push(metric.successTime);
+      group.count++;
+    }
+    
+    const taskMetrics = Array.from(complexityGroups.entries()).map(([complexity, data]) => ({
+      complexity,
+      count: data.count,
+      avgSuccessTime: data.times.reduce((sum, time) => sum + time, 0) / data.times.length,
+    }));
+    
+    return {
+      failurePatterns: patterns,
+      taskMetrics,
+      totalTasksWithMetrics: this.taskMetrics.size,
+    };
+  }
+
+  /**
    * Generate execution report
    */
   generateReport(): string {
@@ -1234,6 +1551,8 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
         : '0';
 
     const reliabilityStatus = this.getReliabilityStatus();
+    const processMonitoringStatus = this.getProcessMonitoringStatus();
+    const retryStats = this.getRetryStatistics();
     
     const report = [
       '# Claude Orchestrator Execution Report',
@@ -1251,10 +1570,40 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       `- Success Rate: ${(reliabilityStatus.successRate * 100).toFixed(1)}%`,
       `- Circuit Breaker: ${reliabilityStatus.circuitBreakerState || 'Disabled'}`,
       '',
+      '## Process Monitoring',
+      `- Monitored Processes: ${processMonitoringStatus.activeProcesses.length}`,
+      `- Total History Entries: ${processMonitoringStatus.totalHistory}`,
+      `- Zombie Processes Detected: ${processMonitoringStatus.zombieProcesses.length}`,
+      ...(processMonitoringStatus.zombieProcesses.length > 0 ? [
+        '',
+        '### Zombie Processes',
+        ...processMonitoringStatus.zombieProcesses.map(zombie => 
+          `- PID ${zombie.pid}: ${zombie.command || 'unknown'} (Parent: ${zombie.ppid || 'unknown'})`
+        )
+      ] : []),
+      '',
       '## Resource Usage',
       `- Total Tokens: ${this.stats.totalTokensUsed.toLocaleString()}`,
       `- Total Cost: $${this.stats.totalCost.toFixed(2)}`,
       `- Average Cost per Task: $${avgCost}`,
+      '',
+      '## Intelligent Retry Statistics',
+      `- Tasks with Metrics: ${retryStats.totalTasksWithMetrics}`,
+      `- Failure Patterns Learned: ${retryStats.failurePatterns.size}`,
+      ...(retryStats.taskMetrics.length > 0 ? [
+        '',
+        '### Task Complexity Performance',
+        ...retryStats.taskMetrics.map(metric => 
+          `- ${metric.complexity.toUpperCase()}: ${metric.count} tasks, avg ${(metric.avgSuccessTime / 1000).toFixed(1)}s`
+        )
+      ] : []),
+      ...(retryStats.failurePatterns.size > 0 ? [
+        '',
+        '### Learned Failure Patterns',
+        ...Array.from(retryStats.failurePatterns.entries()).map(([pattern, data]) => 
+          `- ${pattern}: ${data.count} occurrences, last seen ${data.lastSeen.toISOString().split('T')[0]}`
+        )
+      ] : []),
       '',
       '## Configuration',
       `- Model: ${this.config.model}`,
@@ -1263,6 +1612,7 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       `- Retry Attempts: ${this.config.retryAttempts}`,
       `- Exponential Backoff: ${this.config.exponentialBackoff ? 'Enabled' : 'Disabled'}`,
       `- Graceful Degradation: ${this.config.gracefulDegradation ? 'Enabled' : 'Disabled'}`,
+      `- Intelligent Retry: Enabled (Adaptive timeout, Context-aware decisions, Pattern learning)`,
       '',
     ];
 

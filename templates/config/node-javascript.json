@@ -1,0 +1,90 @@
+{
+  "include": [
+    "src/**/*.js",
+    "lib/**/*.js",
+    "routes/**/*.js",
+    "middleware/**/*.js",
+    "utils/**/*.js"
+  ],
+  "exclude": [
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**"
+  ],
+  "testFramework": "jest",
+  "aiModel": "claude-3-5-sonnet-20241022", 
+  "features": {
+    "coverage": true,
+    "edgeCases": true,
+    "integrationTests": true,
+    "unitTests": true,
+    "mocks": true,
+    "testData": false,
+    "aiGeneration": true,
+    "incremental": true
+  },
+  "generation": {
+    "maxTestsPerFile": 15,
+    "maxTestToSourceRatio": 2,
+    "naming": {
+      "testFileSuffix": ".test",
+      "testDirectory": "__tests__",
+      "mockFileSuffix": ".mock"
+    },
+    "testTypes": ["unit", "integration", "api"]
+  },
+  "coverage": {
+    "enabled": true,
+    "thresholds": {
+      "global": {
+        "lines": 85,
+        "functions": 80,
+        "branches": 75,
+        "statements": 85
+      }
+    },
+    "formats": ["html", "json", "text"],
+    "outputDir": "coverage"
+  },
+  "incremental": {
+    "enabled": true,
+    "gitHooks": true,
+    "baselineBranch": "main"
+  },
+  "watch": {
+    "enabled": true,
+    "ignore": ["**/node_modules/**", "**/logs/**", "**/tmp/**"]
+  },
+  "ai": {
+    "maxCost": 2.00,
+    "batchSize": 8,
+    "timeout": 240
+  },
+  "output": {
+    "verbose": true,
+    "progress": true,
+    "colors": true,
+    "format": "console"
+  },
+  "fileDiscovery": {
+    "cache": {
+      "enabled": true,
+      "ttl": 600000
+    },
+    "patterns": {
+      "testGeneration": {
+        "additionalExcludes": [
+          "**/migrations/**",
+          "**/seeds/**",
+          "**/config/**"
+        ]
+      }
+    },
+    "performance": {
+      "enableStats": false
+    }
+  }
+}

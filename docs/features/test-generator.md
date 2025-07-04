@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-07-02 | Updated by: /document command | Fixed critical JavaScript test generator test file detection bug*
+*Last updated: 2025-07-04 | Updated by: /document command | Enhanced class detection and React testing configuration*
 
 ## Overview
 
@@ -86,6 +86,12 @@ Concrete implementation that creates structural test scaffolding:
 ### 4. TestTemplateEngine (`src/generators/templates/TestTemplateEngine.ts`)
 
 Framework-specific template system with intelligent fallback and comprehensive assertion generation:
+
+**Enhanced Features (2025-07-04)**:
+- **Class Detection**: Intelligent detection of class constructors vs regular functions
+- **Proper Instantiation**: Automatically uses `new` keyword for classes
+- **Module Existence Fix**: Uses first export for named-export-only modules
+- **React Configuration**: Enhanced setupTests.js with jest-dom imports
 
 **Built-in Templates**:
 - **JavaScript Jest**: Enhanced unit tests with meaningful assertions, fallback validation, and type checking
@@ -452,6 +458,25 @@ engine.registerTemplate({
   generate: (context) => `// Custom Vue test for ${context.moduleName}`
 });
 ```
+
+### Class Detection and Instantiation (2025-07-04)
+
+The template engine now intelligently detects whether an export is a class or function:
+
+```typescript
+// Detection logic in generated tests
+const isClass = ${exportName}.toString().startsWith('class ') || 
+               (${exportName}.prototype && ${exportName}.prototype.constructor === ${exportName});
+
+// Proper instantiation based on type
+const result = isClass ? new ${exportName}(input) : ${exportName}(input);
+```
+
+**Key Improvements**:
+1. **Automatic Detection**: No need to manually specify if export is a class
+2. **Proper Constructor Calls**: Classes use `new`, functions called directly
+3. **Error Handling**: Graceful handling of both patterns
+4. **Cross-Module Support**: Works with ES modules and CommonJS
 
 ### Framework-Specific Generation
 ```typescript

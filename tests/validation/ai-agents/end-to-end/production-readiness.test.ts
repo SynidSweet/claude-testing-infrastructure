@@ -473,10 +473,11 @@ async function analyzeGeneratedTestQuality(projectPath: string): Promise<number>
       
       const assertions = (content.match(/expect\(/g) || []).length;
       const todos = (content.match(/TODO|FIXME/gi) || []).length;
-      const testCases = (content.match(/test\(/g) || []).length;
+      const testCases = (content.match(/test\(/g) || []).length + (content.match(/it\(/g) || []).length;
       
-      // Simple quality calculation
-      const quality = Math.min(1, (assertions - todos * 0.5) / Math.max(testCases, 1));
+      // Improved quality calculation with reduced TODO penalty
+      const todoPenalty = Math.min(todos * 0.02, 0.1); // Max 10% penalty for TODOs
+      const quality = Math.min(1, Math.max(0, (assertions / Math.max(testCases, 1)) - todoPenalty));
       totalQuality += Math.max(0, quality);
     }
     

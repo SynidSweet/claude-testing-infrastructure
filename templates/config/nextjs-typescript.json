@@ -1,0 +1,99 @@
+{
+  "include": [
+    "src/**/*.{ts,tsx}",
+    "pages/**/*.{ts,tsx}",
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "utils/**/*.{ts,tsx}"
+  ],
+  "exclude": [
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/out/**",
+    "**/build/**",
+    "**/*.d.ts",
+    "**/public/**"
+  ],
+  "testFramework": "jest",
+  "aiModel": "claude-3-5-sonnet-20241022",
+  "features": {
+    "coverage": true,
+    "edgeCases": true,
+    "integrationTests": true,
+    "unitTests": true,
+    "mocks": true,
+    "testData": true,
+    "aiGeneration": true,
+    "incremental": true
+  },
+  "generation": {
+    "maxTestsPerFile": 25,
+    "maxTestToSourceRatio": 3,
+    "naming": {
+      "testFileSuffix": ".test",
+      "testDirectory": "__tests__",
+      "mockFileSuffix": ".mock"
+    },
+    "testTypes": ["unit", "component", "integration", "api"]
+  },
+  "coverage": {
+    "enabled": true,
+    "thresholds": {
+      "global": {
+        "lines": 75,
+        "functions": 70,
+        "branches": 65,
+        "statements": 75
+      }
+    },
+    "formats": ["html", "json", "lcov"],
+    "outputDir": "coverage"
+  },
+  "incremental": {
+    "enabled": true,
+    "gitHooks": false,
+    "baselineBranch": "main"
+  },
+  "watch": {
+    "enabled": true,
+    "ignore": [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/out/**",
+      "**/public/**"
+    ]
+  },
+  "ai": {
+    "maxCost": 3.50,
+    "batchSize": 5,
+    "timeout": 300
+  },
+  "output": {
+    "verbose": false,
+    "progress": true,
+    "colors": true,
+    "format": "console"
+  },
+  "fileDiscovery": {
+    "cache": {
+      "enabled": true,
+      "ttl": 300000
+    },
+    "patterns": {
+      "testGeneration": {
+        "additionalExcludes": [
+          "**/styles/**",
+          "**/*.config.*",
+          "**/middleware.ts"
+        ]
+      }
+    },
+    "performance": {
+      "enableStats": true
+    }
+  }
+}

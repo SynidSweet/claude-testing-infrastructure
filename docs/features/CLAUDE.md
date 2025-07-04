@@ -2,7 +2,7 @@
 
 *Quick navigation for AI agents working with specific features and components*
 
-*Last updated: 2025-07-02 | Updated by: /document command | Added process monitoring and resource debugging capabilities*
+*Last updated: 2025-07-03 | Updated by: /document command | Added production validation system with CI/CD integration*
 
 ## 🎯 Purpose
 
@@ -98,6 +98,15 @@ This guide helps AI agents understand and work with individual features of the C
 - `src/cli/commands/monitor.ts` - Dedicated CLI command
 - `tests/utils/ProcessMonitor.test.ts` - Comprehensive test coverage
 **Features**: High-resource process detection, testing framework recognition, cross-platform compatibility, watch mode integration
+
+### Production Validation ✅ NEW
+**Purpose**: Comprehensive production readiness validation and deployment automation  
+**Key Files**:
+- `scripts/production-readiness-check.js` - Enhanced production readiness checker with realistic thresholds
+- `scripts/generate-validation-report.js` - Validation report generator with markdown/JSON output
+- `scripts/production-deployment-checklist.js` - Automated deployment validation checklist
+- `.github/workflows/test.yml` - CI/CD integration with production validation job
+**Features**: Quality gate validation, realistic thresholds (93% test pass rate, 85% overall score), comprehensive reporting, deployment automation
 
 ## 📦 Working with Features
 
@@ -382,6 +391,13 @@ class FeatureRepository {
 - Display: `ProcessMonitor.formatProcessInfo()`
 - CLI: `node dist/cli/index.js monitor`
 - Integration: Watch mode `--monitor-processes`
+
+### Production Validation ✅ NEW
+- Readiness: `npm run validation:production`
+- Reports: `npm run validation:report`
+- Deployment: `npm run validation:deployment`
+- Thresholds: 93% test pass rate, 85% overall score
+- CI Integration: Automatic validation with artifact generation
 
 ---
 

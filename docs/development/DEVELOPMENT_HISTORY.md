@@ -1,8 +1,17 @@
 # Development History - Claude Testing Infrastructure
 
-*Last updated: 2025-07-03 | Updated by: /document command | Added CI/CD test suite stabilization*
+*Last updated: 2025-07-04 | Updated by: /document command | Added generated test quality enhancements*
 
 ## Recent Updates Log
+
+### 2025-07-04: Generated Test Quality Enhanced
+- **TEMPLATE FIXES COMPLETED** - Fixed critical issues in test generation templates for proper test execution
+- **CLASS DETECTION ADDED**: Implemented intelligent class vs function detection using `toString().startsWith('class')` and prototype checks in both TestTemplateEngine and JavaScriptEnhancedTemplates
+- **CONSTRUCTOR CALLS FIXED**: Generated tests now properly use `new` keyword for class instantiation while calling regular functions normally
+- **MODULE EXISTENCE TESTS**: Fixed tests for named-export-only modules to use first export instead of non-existent module name variable
+- **REACT SETUP ENHANCED**: Updated setupTests.js generation with proper @testing-library/jest-dom imports and window.matchMedia mocks for responsive component testing
+- **IMPORT PATH FIXES**: Verified TypeScript extension removal (.ts/.tsx) working correctly in all templates
+- **IMPACT**: Generated tests now compile and run correctly for ES modules, CommonJS, React components, and mixed projects
 
 ### 2025-07-03: CI/CD Test Suite Stabilization Complete
 - **TEST SUITE STABILIZED** - Improved test pass rate from 87% to **96.3% (367/381 tests)**, exceeding the 95% production target
