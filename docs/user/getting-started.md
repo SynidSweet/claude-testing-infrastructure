@@ -1,6 +1,6 @@
 # Getting Started with Claude Testing Infrastructure
 
-*Last updated: 2025-06-29 | Updated by: /document command | Added configuration validation guide*
+*Last updated: 2025-07-04 | Updated by: /document command | Added init-config command for easy setup*
 
 *A comprehensive guide for end users to quickly set up testing for their projects*
 
@@ -35,7 +35,22 @@ npm install
 npm run build
 ```
 
-### Step 2: Analyze Your Project
+### Step 2: Initialize Configuration
+```bash
+# Auto-detect project type and create configuration
+node dist/cli/index.js init-config /path/to/your/project
+
+# Use a specific template (react-typescript, vue-typescript, etc.)
+node dist/cli/index.js init-config /path/to/your/project --template react-typescript
+
+# Interactive setup with customization
+node dist/cli/index.js init-config /path/to/your/project --interactive
+
+# List all available templates
+node dist/cli/index.js init-config --list
+```
+
+### Step 3: Analyze Your Project
 ```bash
 # Analyze any project (shows what we detected)
 node dist/cli/index.js analyze /path/to/your/project
@@ -50,7 +65,7 @@ node dist/cli/index.js analyze /path/to/your/project --output analysis.json --fo
 node dist/cli/index.js analyze /path/to/your/project --validate-config
 ```
 
-### Step 3: Generate Tests
+### Step 4: Generate Tests
 ```bash
 # Generate comprehensive test suite
 node dist/cli/index.js test /path/to/your/project
@@ -62,7 +77,7 @@ node dist/cli/index.js test /path/to/your/project --verbose
 node dist/cli/index.js test /path/to/your/project --only-structural
 ```
 
-### Step 4: Run Tests
+### Step 5: Run Tests
 ```bash
 # Run all generated tests
 node dist/cli/index.js run /path/to/your/project
@@ -74,7 +89,7 @@ node dist/cli/index.js run /path/to/your/project --coverage
 node dist/cli/index.js run /path/to/your/project --watch
 ```
 
-### Step 5: Analyze Test Gaps (NEW in v2.0)
+### Step 6: Analyze Test Gaps (NEW in v2.0)
 ```bash
 # Analyze gaps in test coverage with beautiful reporting
 node dist/cli/index.js analyze-gaps /path/to/your/project
@@ -86,7 +101,7 @@ node dist/cli/index.js analyze-gaps /path/to/your/project --format markdown --ou
 node dist/cli/index.js analyze-gaps /path/to/your/project --format json --output gaps.json
 ```
 
-### Step 6: AI-Powered Logical Test Generation (NEW in v2.0)
+### Step 7: AI-Powered Logical Test Generation (NEW in v2.0)
 ```bash
 # Generate intelligent logical tests using Claude Code CLI
 node dist/cli/index.js generate-logical /path/to/your/project

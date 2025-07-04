@@ -707,6 +707,9 @@ export interface PartialClaudeTestingConfig {
   output?: Partial<OutputOptions>;
   fileDiscovery?: Partial<FileDiscoveryConfig>;
   costLimit?: number;
+  dryRun?: boolean;
+  customPrompts?: Record<string, string>;
+  aiOptions?: Partial<AIOptions>;
 }
 
 /**

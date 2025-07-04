@@ -2,7 +2,7 @@
 
 *Centralized configuration management for the Claude Testing Infrastructure*
 
-*Last updated: 2025-07-02 | Enhanced environment variable support with comprehensive nested object mapping*
+*Last updated: 2025-07-03 | Fixed all configuration integration tests including threshold validation*
 
 ## Overview
 
@@ -36,14 +36,25 @@ Configuration sources are loaded and merged in order of precedence (highest to l
 - **Performance Monitoring**: Enables/disables file discovery statistics and slow operation logging via `fileDiscovery.performance` settings
 - **Custom files**: Supports `--config` flag for arbitrary configuration files
 
-### Environment Variable Support ✅ ENHANCED (2025-07-02)
+### Environment Variable Support ✅ FULLY FIXED (2025-07-03)
 - **Prefix**: All environment variables use `CLAUDE_TESTING_` prefix
 - **Advanced Mapping**: Comprehensive nested object mapping with proper camelCase conversion
 - **Root-Level Properties**: Direct mapping for `testFramework`, `aiModel`, `costLimit`, `dryRun`
 - **Nested Objects**: Automatic creation of nested structures (e.g., `CLAUDE_TESTING_FEATURES_COVERAGE` → `features.coverage`)
 - **Type Parsing**: Smart type conversion for booleans (`true/false/1/0/yes/no`), numbers (int/float), and arrays (comma-separated)
 - **Special Cases**: Handles complex mappings like `OUTPUT_FORMAT` → both `output.format` and `output.formats`
-- **CI/CD Ready**: Full support for containerized and CI/CD environments with comprehensive precedence
+- **Empty String Handling**: ✅ FIXED - Empty strings now properly handled for array fields
+- **Warning Collection**: ✅ FIXED - Warnings from all configuration sources now properly aggregated
+- **Legacy Support**: ✅ ADDED - Support for `aiOptions` field for backwards compatibility
+- **All Tests Passing**: ✅ FIXED - Environment variables now properly override defaults (13/13 tests passing)
+
+### Threshold Validation ✅ ADDED (2025-07-03)
+- **Format Validation**: CLI threshold arguments are validated for correct format
+- **Valid Formats**: `"80"` (applies to all) or `"statements:85,lines:90"` (specific types)
+- **Type Validation**: Only accepts `statements`, `branches`, `functions`, `lines`
+- **Range Validation**: Values must be between 0-100
+- **Error Handling**: Invalid formats add errors to CLI source, preventing invalid configurations
+- **Implementation**: `parseThresholds()` method returns both parsed thresholds and validation errors
 
 ### New Configuration Properties ✅ ADDED (2025-07-01)
 The following properties were added to support complete CLI argument mapping:
@@ -165,6 +176,74 @@ npm test -- tests/integration/configuration/env-vars.test.ts
 npm test -- tests/integration/configuration/env-vars.test.ts --testNamePattern="nested"
 npm test -- tests/integration/configuration/env-vars.test.ts --testNamePattern="boolean"
 ```
+
+## Critical Bug Fixes ✅ RESOLVED (2025-07-02)
+
+### Environment Variable Parsing Issues
+
+#### Issue 1: Incorrect Nested Object Structure
+**Problem**: `CLAUDE_TESTING_FEATURES_INTEGRATION_TESTS=true` was creating:
+```json
+"features": {
+  "Integration": {
+    "Tests": true
+  }
+}
+```
+
+**Fix**: Added special case mapping in `handleEnvMappingSpecialCases()`:
+```typescript
+if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
+  if (!obj.features) obj.features = {};
+  obj.features.integrationTests = value;
+  // Clean up incorrectly parsed nested structure
+  if (obj.features.Integration) {
+    delete obj.features.Integration;
+  }
+}
+```
+
+#### Issue 2: Coverage Threshold Mapping
+**Problem**: `CLAUDE_TESTING_COVERAGE_THRESHOLDS_GLOBAL_FUNCTIONS=85` wasn't mapping to `coverage.thresholds.global.functions`.
+
+**Fix**: Added pattern-based special case handling:
+```typescript
+if (upperPath.startsWith('COVERAGE_THRESHOLDS_GLOBAL_')) {
+  const thresholdType = path[path.length - 1];
+  if (thresholdType) {
+    if (!obj.coverage) obj.coverage = {};
+    if (!obj.coverage.thresholds) obj.coverage.thresholds = {};
+    if (!obj.coverage.thresholds.global) obj.coverage.thresholds.global = {};
+    obj.coverage.thresholds.global[thresholdType.toLowerCase()] = value;
+  }
+}
+```
+
+#### Issue 3: CLI Threshold Override Behavior
+**Problem**: CLI threshold arguments like `--threshold "lines:90"` were overriding all project config values with defaults.
+
+**Fix**: Modified CLI threshold mapping to only set explicitly provided values:
+```typescript
+// Before (caused overrides)
+global: {
+  statements: thresholds.statements || 80,  // Default overwrote project config
+  branches: thresholds.branches || 80,
+  functions: thresholds.functions || 80,
+  lines: thresholds.lines || 80
+}
+
+// After (preserves project config)
+global: thresholds  // Only set the properties that were explicitly provided
+```
+
+### Configuration Precedence Validation
+
+All configuration precedence tests now pass:
+- ✅ Full precedence chain: CLI > env > custom > project > user > defaults
+- ✅ Partial configuration merging from multiple sources
+- ✅ Deep merge behavior for nested objects
+- ✅ Array merging with proper override behavior
+- ✅ Source tracking and override detection
 
 ## Configuration Debugging ✅ NEW
 

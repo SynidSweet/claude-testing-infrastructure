@@ -27,15 +27,26 @@ export class TestRunnerFactory {
       fileDiscovery = FileDiscoveryServiceFactory.create(configService);
     }
 
-    // Create instance based on framework
+    // Resolve 'auto' framework to specific framework
+    let resolvedFramework = config.framework;
+    if (config.framework === 'auto') {
+      resolvedFramework = this.getRecommendedFramework(analysis);
+      logger.debug(`Auto-resolved framework from 'auto' to: ${resolvedFramework}`);
+    }
+
+    // Create instance based on resolved framework
     let instance: TestRunner;
     
-    if (config.framework === 'jest') {
-      instance = new JestRunner(config, analysis, fileDiscovery);
-    } else if (config.framework === 'pytest') {
-      instance = new PytestRunner(config, analysis, fileDiscovery);
+    if (resolvedFramework === 'jest') {
+      // Update config with resolved framework
+      const resolvedConfig = { ...config, framework: resolvedFramework };
+      instance = new JestRunner(resolvedConfig, analysis, fileDiscovery);
+    } else if (resolvedFramework === 'pytest') {
+      // Update config with resolved framework
+      const resolvedConfig = { ...config, framework: resolvedFramework };
+      instance = new PytestRunner(resolvedConfig, analysis, fileDiscovery);
     } else {
-      throw new Error(`No test runner found for framework: ${config.framework}`);
+      throw new Error(`No test runner found for framework: ${resolvedFramework}`);
     }
 
     logger.info(`Using ${instance.constructor.name} for framework: ${config.framework}`);
@@ -47,7 +58,7 @@ export class TestRunnerFactory {
    */
   static getSupportedFrameworks(): string[] {
     // Hard-coded list of supported frameworks based on our runners
-    return ['jest', 'pytest'];
+    return ['jest', 'pytest', 'auto'];
   }
 
   /**

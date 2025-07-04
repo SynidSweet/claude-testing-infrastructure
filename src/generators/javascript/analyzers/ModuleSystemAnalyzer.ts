@@ -206,9 +206,9 @@ export class ModuleSystemAnalyzer {
           const content = await fs.readFile(sourceFiles[i]!, 'utf-8');
           const analysis = this.analyzeFileContent(content);
 
-          if (analysis.importStyle === 'import' && analysis.exportStyle === 'esm') {
+          if (analysis.importStyle === 'import' || analysis.exportStyle === 'esm') {
             esmCount++;
-          } else if (analysis.importStyle === 'require' && analysis.exportStyle === 'commonjs') {
+          } else if (analysis.importStyle === 'require' || analysis.exportStyle === 'commonjs') {
             cjsCount++;
           } else if (analysis.importStyle === 'both' || analysis.exportStyle === 'both') {
             mixedCount++;

@@ -13,10 +13,13 @@ jest.mock('../../../src/utils/common-imports', () => ({
   path: require('path'),
 }));
 
-// Mock fast-glob
-jest.mock('fast-glob', () => ({
-  default: jest.fn(),
-}));
+// Set up manual mock for fast-glob
+jest.mock('fast-glob', () => {
+  const mockFg = jest.fn();
+  // Support both default export and named export patterns
+  (mockFg as any).default = mockFg;
+  return mockFg;
+});
 
 describe('ModuleSystemAnalyzer', () => {
   const mockProjectPath = '/test/project';
@@ -26,7 +29,7 @@ describe('ModuleSystemAnalyzer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset the fast-glob mock
-    fastGlobMock = require('fast-glob').default;
+    fastGlobMock = require('fast-glob');
   });
 
   describe('analyzeProject', () => {
@@ -77,34 +80,35 @@ describe('ModuleSystemAnalyzer', () => {
     it('should analyze files when no type field in package.json', async () => {
       const analyzer = new ModuleSystemAnalyzer({ projectPath: mockProjectPath });
       
-      // Mock package.json without type field
+      // Mock package.json without type field (first readFile call)
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify({
         name: 'test-project',
         dependencies: {}
       }));
 
-      // Mock finding source files
+      // Mock finding source files (first glob call for analyzeProjectFromFiles)
       fastGlobMock.mockResolvedValueOnce([
         '/test/project/src/index.js',
         '/test/project/src/utils.js',
       ]);
 
-      // Mock finding source files again for detectFileExtensionPattern
-      fastGlobMock.mockResolvedValueOnce([
-        '/test/project/src/index.js',
-        '/test/project/src/utils.js',
-      ]);
-
-      // Mock file contents - ESM syntax
+      // Mock file contents - ESM syntax (subsequent readFile calls for each source file)
       mockFs.readFile
         .mockResolvedValueOnce('import express from "express";\nexport default app;')
         .mockResolvedValueOnce('export function util() { return true; }');
+
+      // Mock finding source files again for detectFileExtensionPattern (second glob call)
+      fastGlobMock.mockResolvedValueOnce([
+        '/test/project/src/index.js',
+        '/test/project/src/utils.js',
+      ]);
 
       const result = await analyzer.analyzeProject();
 
       expect(result.type).toBe('esm');
       expect(result.hasPackageJsonType).toBe(false);
       expect(result.confidence).toBeGreaterThan(0.7);
+      expect(result.fileExtensionPattern).toBe('js');
     });
 
     it('should detect mixed module systems', async () => {
@@ -120,18 +124,18 @@ describe('ModuleSystemAnalyzer', () => {
         '/test/project/src/mixed.js',
       ]);
 
+      // Mock file contents - mixed modules (these will be read after glob finds files)
+      mockFs.readFile
+        .mockResolvedValueOnce('import foo from "foo";\nexport default foo;')
+        .mockResolvedValueOnce('const bar = require("bar");\nmodule.exports = bar;')
+        .mockResolvedValueOnce('import baz from "baz";\nconst qux = require("qux");');
+
       // Mock finding source files again for detectFileExtensionPattern
       fastGlobMock.mockResolvedValueOnce([
         '/test/project/src/esm.js',
         '/test/project/src/cjs.js',
         '/test/project/src/mixed.js',
       ]);
-
-      // Mock file contents - mixed modules
-      mockFs.readFile
-        .mockResolvedValueOnce('import foo from "foo";\nexport default foo;')
-        .mockResolvedValueOnce('const bar = require("bar");\nmodule.exports = bar;')
-        .mockResolvedValueOnce('import baz from "baz";\nconst qux = require("qux");');
 
       const result = await analyzer.analyzeProject();
 
@@ -182,14 +186,13 @@ describe('ModuleSystemAnalyzer', () => {
     it('should analyze file content for module patterns', async () => {
       const analyzer = new ModuleSystemAnalyzer({ projectPath: mockProjectPath });
       
-      // Mock project without type
+      // Mock project without type (for analyzeProject call)
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify({ name: 'test' }));
       
-      // Mock finding files for project analysis (twice - once for module detection, once for extension)
-      fastGlobMock.mockResolvedValueOnce([]);
+      // Mock finding files for project analysis - empty array means early return, no detectFileExtensionPattern call
       fastGlobMock.mockResolvedValueOnce([]);
       
-      // Mock file content with ESM syntax
+      // Mock file content with ESM syntax (for analyzeFile specific file read)
       mockFs.readFile.mockResolvedValueOnce(`import React from 'react';
 import { useState } from 'react';
 
@@ -209,10 +212,13 @@ export const helper = () => true;`);
     it('should detect dynamic imports', async () => {
       const analyzer = new ModuleSystemAnalyzer({ projectPath: mockProjectPath });
       
+      // Mock project without type (for analyzeProject call)
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify({}));
-      fastGlobMock.mockResolvedValueOnce([]);
+      
+      // Mock finding files for project analysis - empty array means early return, no detectFileExtensionPattern call
       fastGlobMock.mockResolvedValueOnce([]);
       
+      // Mock file content with dynamic import (for analyzeFile specific file read)
       mockFs.readFile.mockResolvedValueOnce(`async function loadModule() {
   const module = await import('./dynamic-module');
   return module;
@@ -226,10 +232,13 @@ export const helper = () => true;`);
     it('should handle mixed import/export styles', async () => {
       const analyzer = new ModuleSystemAnalyzer({ projectPath: mockProjectPath });
       
+      // Mock project without type (for analyzeProject call)
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify({}));
-      fastGlobMock.mockResolvedValueOnce([]);
+      
+      // Mock finding files for project analysis - empty array means early return, no detectFileExtensionPattern call
       fastGlobMock.mockResolvedValueOnce([]);
       
+      // Mock file content with mixed imports/exports (for analyzeFile specific file read)
       mockFs.readFile.mockResolvedValueOnce(`import foo from 'foo';
 const bar = require('bar');
 
@@ -355,13 +364,19 @@ module.exports.bar = bar;`);
     it('should handle file content read errors gracefully', async () => {
       const analyzer = new ModuleSystemAnalyzer({ projectPath: mockProjectPath });
       
-      // First call for package.json
+      // Mock project without type (for analyzeProject call)
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify({}));
-      // For detectFileExtensionPattern calls
-      fastGlobMock.mockResolvedValueOnce([]);
+      
+      // Mock finding files for project analysis - will read files, but we'll make those fail
+      fastGlobMock.mockResolvedValueOnce(['/test/project/src/sample.js']);
+      
+      // Mock file read failure during project analysis
+      mockFs.readFile.mockRejectedValueOnce(new Error('EACCES'));
+      
+      // Mock finding files again for detectFileExtensionPattern
       fastGlobMock.mockResolvedValueOnce([]);
       
-      // Reject when trying to read file content
+      // Reject when trying to read file content (for analyzeFile specific file read)
       mockFs.readFile.mockRejectedValueOnce(new Error('EACCES'));
 
       const result = await analyzer.analyzeFile('/test/project/src/error.js');
@@ -380,10 +395,13 @@ module.exports.bar = bar;`);
         checkFileExtension: false 
       });
       
+      // Mock project with explicit type (for analyzeProject call)
       mockFs.readFile.mockResolvedValueOnce(JSON.stringify({ type: 'commonjs' }));
+      
+      // Mock finding files for detectFileExtensionPattern call
       fastGlobMock.mockResolvedValueOnce([]);
       
-      // Mock file content with ESM syntax to ensure type comes from content, not extension
+      // Mock file content with ESM syntax (for analyzeFile specific file read)
       mockFs.readFile.mockResolvedValueOnce('import foo from "foo";\nexport default foo;');
 
       const result = await analyzer.analyzeFile('/test/project/src/module.mjs');

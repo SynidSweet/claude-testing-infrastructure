@@ -1,0 +1,91 @@
+{
+  "include": [
+    "src/**/*.{ts,vue}",
+    "components/**/*.{ts,vue}",
+    "composables/**/*.ts",
+    "stores/**/*.ts",
+    "utils/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/*.d.ts"
+  ],
+  "testFramework": "vitest",
+  "aiModel": "claude-3-5-sonnet-20241022",
+  "features": {
+    "coverage": true,
+    "edgeCases": true,
+    "integrationTests": true,
+    "unitTests": true,
+    "mocks": true,
+    "testData": true,
+    "aiGeneration": true,
+    "incremental": true
+  },
+  "generation": {
+    "maxTestsPerFile": 18,
+    "maxTestToSourceRatio": 2.5,
+    "naming": {
+      "testFileSuffix": ".spec",
+      "testDirectory": "__tests__",
+      "mockFileSuffix": ".mock"
+    },
+    "testTypes": ["unit", "component", "integration"]
+  },
+  "coverage": {
+    "enabled": true,
+    "thresholds": {
+      "global": {
+        "lines": 80,
+        "functions": 75,
+        "branches": 70,
+        "statements": 80
+      }
+    },
+    "formats": ["html", "json", "lcov"],
+    "outputDir": "coverage"
+  },
+  "incremental": {
+    "enabled": true,
+    "gitHooks": false,
+    "baselineBranch": "main"
+  },
+  "watch": {
+    "enabled": true,
+    "ignore": ["**/node_modules/**", "**/dist/**", "**/.nuxt/**"]
+  },
+  "ai": {
+    "maxCost": 2.50,
+    "batchSize": 6,
+    "timeout": 300
+  },
+  "output": {
+    "verbose": false,
+    "progress": true,
+    "colors": true,
+    "format": "console"
+  },
+  "fileDiscovery": {
+    "cache": {
+      "enabled": true,
+      "ttl": 300000
+    },
+    "patterns": {
+      "testGeneration": {
+        "additionalExcludes": [
+          "**/assets/**",
+          "**/public/**",
+          "**/*.config.*"
+        ]
+      }
+    },
+    "performance": {
+      "enableStats": true
+    }
+  }
+}

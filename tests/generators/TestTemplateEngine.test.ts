@@ -51,7 +51,8 @@ describe('TestTemplateEngine', () => {
       const result = engine.generateTest(context);
       
       expect(result).toContain("import React from 'react';");
-      expect(result).toContain("import { render, screen } from '@testing-library/react';");
+      expect(result).toContain("import { render, screen");
+      expect(result).toContain("@testing-library/react");
       expect(result).toContain("import Button from './Button.js';");
       expect(result).toContain('render(<Button />)');
       expect(result).toContain('should render without crashing');

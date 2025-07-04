@@ -134,7 +134,6 @@ export class TestTemplateEngine {
       
       // Enhanced TypeScript templates
       this.registerTemplate(new enhancedTemplates.EnhancedTypeScriptTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedReactTypeScriptComponentTemplate());
       
     } catch (error) {
       // Fallback to basic templates if enhanced templates fail to load
@@ -192,9 +191,13 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
         ];
         
         let hasValidInput = false;
+        // Check if this might be a class constructor
+        const isClass = ${exportName}.toString().startsWith('class ') || 
+                       (${exportName}.prototype && ${exportName}.prototype.constructor === ${exportName});
+        
         for (const input of testInputs) {
           try {
-            const result = ${exportName}(input);
+            const result = isClass ? new ${exportName}(input) : ${exportName}(input);
             hasValidInput = true;
             expect(result).toBeDefined();
             break; // Found an input that works
@@ -223,7 +226,10 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
         
         // Basic invocation tests
         try {
-          const result = ${exportName}();
+          // Check if this might be a class constructor
+          const isClass = ${exportName}.toString().startsWith('class ') || 
+                         (${exportName}.prototype && ${exportName}.prototype.constructor === ${exportName});
+          const result = isClass ? new ${exportName}() : ${exportName}();
           // If function succeeds without args, test return value
           expect(result).toBeDefined();
         } catch (error) {
@@ -265,7 +271,9 @@ class JestJavaScriptTemplate implements Template {
     const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
       (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
       importPath;
-    const importPathWithExtension = useESM && !relativeImportPath.endsWith('.js') && !relativeImportPath.endsWith('.jsx') && !relativeImportPath.endsWith('.ts') && !relativeImportPath.endsWith('.tsx') ? `${relativeImportPath}.js` : relativeImportPath;
+    // Remove TypeScript extensions first
+    const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
+    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
     
     if (useESM) {
       // ES Modules syntax
@@ -300,8 +308,13 @@ describe('${moduleName}', () => {
 `;
 
     // Always add module existence test
+    let moduleTestReference = moduleName;
+    if (!hasDefaultExport && exports.length > 0 && exports[0]) {
+      // For named exports only, test the first export instead of the module name
+      moduleTestReference = exports[0];
+    }
     testContent += `  it('should load the module without errors', () => {
-    expect(${moduleName}).toBeDefined();
+    expect(${moduleTestReference}).toBeDefined();
   });
 
 `;
@@ -379,7 +392,9 @@ class JestReactComponentTemplate implements Template {
     const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
       (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
       importPath;
-    const importPathWithExtension = useESM && !relativeImportPath.endsWith('.js') && !relativeImportPath.endsWith('.jsx') && !relativeImportPath.endsWith('.ts') && !relativeImportPath.endsWith('.tsx') ? `${relativeImportPath}.js` : relativeImportPath;
+    // Remove TypeScript extensions first
+    const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
+    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
 
     let importStatements = '';
     let componentImport = '';
@@ -534,7 +549,9 @@ class JestTypeScriptTemplate implements Template {
     const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
       (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
       importPath;
-    const importPathWithExtension = useESM && !relativeImportPath.endsWith('.js') && !relativeImportPath.endsWith('.jsx') && !relativeImportPath.endsWith('.ts') && !relativeImportPath.endsWith('.tsx') ? `${relativeImportPath}.js` : relativeImportPath;
+    // Remove TypeScript extensions first
+    const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
+    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
     
     let importStatement = '';
     if (useESM) {
@@ -613,7 +630,9 @@ class JestReactTypeScriptTemplate implements Template {
     const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
       (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
       importPath;
-    const importPathWithExtension = useESM && !relativeImportPath.endsWith('.js') && !relativeImportPath.endsWith('.jsx') && !relativeImportPath.endsWith('.ts') && !relativeImportPath.endsWith('.tsx') ? `${relativeImportPath}.js` : relativeImportPath;
+    // Remove TypeScript extensions first
+    const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
+    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
     
     if (useESM) {
       return `import React from 'react';

@@ -1,6 +1,6 @@
 # Development Patterns
 
-*Last updated: 2025-07-01 | Updated by: /document command | Configuration patterns and error message enhancement patterns added*
+*Last updated: 2025-07-02 | Added Jest test mock sequencing patterns for asynchronous analyzer components*
 
 ## Overview
 
@@ -390,6 +390,58 @@ testFramework: Invalid value. Must be one of: jest, vitest, pytest, mocha, jasmi
 ### Files Using This Pattern
 - `/src/utils/config-error-messages.ts` - Error message formatting system
 - `/src/utils/config-validation.ts` - Enhanced validation with helpful errors
+
+## Jest Mock Sequencing Pattern ✅ NEW
+
+### Overview
+Pattern for correctly mocking asynchronous file operations and function calls in Jest tests when multiple mocks are consumed in sequence by analyzer components.
+
+### Problem Solved
+Complex analyzer classes like ModuleSystemAnalyzer make multiple asynchronous calls (fs.readFile, fast-glob) in specific sequences. Incorrect mock setup leads to mocks being consumed out of order, causing test failures where file content analysis fails silently.
+
+### Root Cause
+When `analyzeProjectFromFiles()` finds no source files (empty array), it skips calling `detectFileExtensionPattern()`, which changes the sequence of mock consumption. Tests that assume both calls happen will fail.
+
+### Solution Architecture
+```typescript
+// ❌ WRONG: Assumes detectFileExtensionPattern always called
+it('should analyze file content', async () => {
+  mockFs.readFile.mockResolvedValueOnce(JSON.stringify({})); // package.json
+  fastGlobMock.mockResolvedValueOnce([]); // findSourceFiles  
+  fastGlobMock.mockResolvedValueOnce([]); // detectFileExtensionPattern - NEVER CALLED!
+  mockFs.readFile.mockResolvedValueOnce('file content'); // analyzeFile reads 2nd glob mock!
+});
+
+// ✅ CORRECT: Match actual execution flow
+it('should analyze file content', async () => {
+  // Mock project analysis (empty files = early return, no detectFileExtensionPattern)
+  mockFs.readFile.mockResolvedValueOnce(JSON.stringify({})); // package.json
+  fastGlobMock.mockResolvedValueOnce([]); // findSourceFiles (early return)
+  
+  // Mock file content for analyzeFile
+  mockFs.readFile.mockResolvedValueOnce('file content'); // analyzeFile specific read
+});
+
+// ✅ CORRECT: When files exist, both calls happen
+it('should analyze project with files', async () => {
+  mockFs.readFile.mockResolvedValueOnce(JSON.stringify({})); // package.json
+  fastGlobMock.mockResolvedValueOnce(['file1.js', 'file2.js']); // findSourceFiles
+  mockFs.readFile.mockResolvedValueOnce('content1'); // file1 content
+  mockFs.readFile.mockResolvedValueOnce('content2'); // file2 content  
+  fastGlobMock.mockResolvedValueOnce(['file1.js', 'file2.js']); // detectFileExtensionPattern
+});
+```
+
+### Implementation Guidelines
+1. **Trace execution paths** - Understand when conditional calls are made
+2. **Match mock sequence to actual calls** - Don't assume all code paths execute
+3. **Comment mock purpose** - Explain what each mock represents
+4. **Test individual vs batch runs** - Mocks may work individually but fail in suites
+5. **Use descriptive test names** - Indicate the specific scenario being tested
+
+### Files Using This Pattern
+- `/tests/generators/javascript/ModuleSystemAnalyzer.test.ts` - Fixed mock sequencing for project and file analysis
+- `/tests/analyzers/ProjectAnalyzer.test.ts` - Similar async analysis patterns
 
 ## Future Patterns to Document
 

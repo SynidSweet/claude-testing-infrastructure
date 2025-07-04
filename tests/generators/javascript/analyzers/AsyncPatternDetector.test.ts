@@ -9,12 +9,13 @@ jest.mock('../../../../src/utils/common-imports', () => ({
     warn: jest.fn()
   },
   fs: {
-    readFile: jest.fn<Promise<string>, [string, string]>()
+    readFile: jest.fn()
   }
 }));
 
 describe('AsyncPatternDetector', () => {
   let detector: AsyncPatternDetector;
+  const mockFs = fs as jest.Mocked<typeof fs>;
 
   beforeEach(() => {
     detector = new AsyncPatternDetector();
@@ -30,7 +31,7 @@ describe('AsyncPatternDetector', () => {
             return result.json();
           }
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -51,7 +52,7 @@ describe('AsyncPatternDetector', () => {
           
           const processData = async (data) => await transform(data);
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -77,7 +78,7 @@ describe('AsyncPatternDetector', () => {
             }
           }
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -95,7 +96,7 @@ describe('AsyncPatternDetector', () => {
             });
           }
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -114,7 +115,7 @@ describe('AsyncPatternDetector', () => {
             .catch(error => console.error(error))
             .finally(() => cleanup());
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -125,6 +126,9 @@ describe('AsyncPatternDetector', () => {
       });
 
       it('should detect Promise static methods', async () => {
+        // Create detector with higher maxExamples to capture all 4 Promise methods
+        detector = new AsyncPatternDetector({ maxExamples: 5 });
+        
         const code = `
           const results = await Promise.all([
             fetch('/api/users'),
@@ -136,7 +140,7 @@ describe('AsyncPatternDetector', () => {
           const resolved = Promise.resolve(42);
           const rejected = Promise.reject(new Error('Failed'));
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -164,7 +168,7 @@ describe('AsyncPatternDetector', () => {
             processResult(result);
           });
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -187,7 +191,7 @@ describe('AsyncPatternDetector', () => {
             console.error('Error occurred:', err);
           });
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -212,7 +216,7 @@ describe('AsyncPatternDetector', () => {
             return value;
           };
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -231,7 +235,7 @@ describe('AsyncPatternDetector', () => {
             }
           }
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -269,7 +273,7 @@ describe('AsyncPatternDetector', () => {
             }
           }
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -294,7 +298,7 @@ describe('AsyncPatternDetector', () => {
             return 42;
           }
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -321,7 +325,7 @@ describe('AsyncPatternDetector', () => {
             }
           };
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.ts');
 
@@ -332,7 +336,7 @@ describe('AsyncPatternDetector', () => {
 
     describe('error handling', () => {
       it('should handle file read errors gracefully', async () => {
-        (fs.readFile as jest.Mock).mockRejectedValue(new Error('File not found'));
+        mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
         const result = await detector.analyzeFile('nonexistent.js');
 
@@ -351,7 +355,7 @@ describe('AsyncPatternDetector', () => {
           // But still has detectable patterns
           const valid = async () => await fetch('/api');
         `;
-        (fs.readFile as jest.Mock).mockResolvedValue(code);
+        mockFs.readFile.mockResolvedValue(code);
 
         const result = await detector.analyzeFile('test.js');
 
@@ -373,7 +377,7 @@ describe('AsyncPatternDetector', () => {
       };
 
       for (const [, content] of Object.entries(files)) {
-        (fs.readFile as jest.Mock).mockResolvedValueOnce(content);
+        mockFs.readFile.mockResolvedValueOnce(content);
       }
 
       const results = await detector.analyzeFiles(Object.keys(files));
@@ -432,7 +436,7 @@ describe('AsyncPatternDetector', () => {
         await fetch('/api/2');
         await fetch('/api/3');
       `;
-      (fs.readFile as jest.Mock).mockResolvedValue(code);
+      mockFs.readFile.mockResolvedValue(code);
 
       const result = await detector.analyzeFile('test.js');
       const asyncPattern = result.patterns.find(p => p.type === 'async-await');
@@ -447,7 +451,7 @@ describe('AsyncPatternDetector', () => {
         // Should have lower confidence due to regex fallback
         callback(error, result);
       `;
-      (fs.readFile as jest.Mock).mockResolvedValue(code);
+      mockFs.readFile.mockResolvedValue(code);
 
       const result = await detector.analyzeFile('test.js');
       

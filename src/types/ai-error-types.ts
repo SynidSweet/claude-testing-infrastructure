@@ -71,4 +71,5 @@ export interface AIProgressUpdate {
   progress: number; // 0-100
   message: string;
   estimatedTimeRemaining?: number; // in ms
+  warning?: boolean; // Indicates this is a timeout warning update
 }

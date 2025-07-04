@@ -209,14 +209,31 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    * Check if a file is a test file
    */
   private isTestFile(filePath: string): boolean {
+    const fileName = path.basename(filePath);
     const testPatterns = [
       /\.test\.[jt]sx?$/,
       /\.spec\.[jt]sx?$/,
-      /__tests__/,
-      /tests?/,
     ];
 
-    return testPatterns.some(pattern => pattern.test(filePath));
+    // Check if the filename itself is a test file
+    if (testPatterns.some(pattern => pattern.test(fileName))) {
+      return true;
+    }
+
+    // Check if the file is in a test directory (but avoid matching project paths)
+    const pathSegments = filePath.split(path.sep);
+    const testDirPatterns = ['__tests__', 'test', 'tests'];
+    
+    // Look for actual test directories in the path, but exclude the first few segments
+    // to avoid matching project paths like "/test/project"
+    for (let i = 2; i < pathSegments.length - 1; i++) {
+      const segment = pathSegments[i];
+      if (segment && testDirPatterns.includes(segment)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**

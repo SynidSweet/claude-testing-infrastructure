@@ -136,12 +136,13 @@ export class AsyncPatternDetector {
             }
           }
         },
-        CallExpression: (path) => {
+        NewExpression: (path) => {
           // Check for Promise constructor
           if (path.node.callee.type === 'Identifier' && path.node.callee.name === 'Promise') {
             this.addPattern(patterns, 'promise', 'new Promise()');
           }
-          
+        },
+        CallExpression: (path) => {
           // Check for Promise static methods
           if (path.node.callee.type === 'MemberExpression' &&
               path.node.callee.object.type === 'Identifier' &&
@@ -186,7 +187,13 @@ export class AsyncPatternDetector {
 
         for (const pattern of callbackPatterns) {
           if (pattern.test(content)) {
-            this.addPattern(patterns, 'callback', 'callback pattern');
+            // Use lower confidence for regex-based detection
+            patterns.set('callback', {
+              type: 'callback',
+              confidence: 0.7,
+              count: 1,
+              examples: ['callback pattern']
+            });
             break;
           }
         }

@@ -10,6 +10,7 @@
  */
 
 import type { TestGap, TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
+import { getModelPricing, resolveModelName } from '../utils/model-mapping';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -61,13 +62,7 @@ export interface AITaskBatch {
 }
 
 export class AITaskPreparation {
-  private readonly MODEL_COSTS = {
-    'claude-3-opus': { input: 0.015, output: 0.075 }, // per 1K tokens
-    'claude-3-sonnet': { input: 0.003, output: 0.015 }, // per 1K tokens
-    'claude-3-haiku': { input: 0.00025, output: 0.00125 }, // per 1K tokens
-  };
-
-  private readonly DEFAULT_MODEL = 'claude-3-sonnet';
+  private readonly DEFAULT_MODEL = 'sonnet';
   private taskIdCounter = 0;
 
   constructor(
@@ -290,10 +285,18 @@ Generate comprehensive logical tests that thoroughly validate the business logic
    */
   private estimateCost(tokens: number): number {
     const model = this.config.model || this.DEFAULT_MODEL;
-    const costs = this.MODEL_COSTS[model as keyof typeof this.MODEL_COSTS];
-
-    if (!costs) {
+    
+    // Resolve model name to full identifier
+    const resolvedModelName = resolveModelName(model);
+    if (!resolvedModelName) {
       console.warn(`Unknown model: ${model}, using default costs`);
+      return (tokens * 0.01) / 1000; // Default fallback
+    }
+
+    // Get pricing from model mapping
+    const pricing = getModelPricing(resolvedModelName);
+    if (!pricing) {
+      console.warn(`No pricing found for model: ${model}, using default costs`);
       return (tokens * 0.01) / 1000; // Default fallback
     }
 
@@ -301,8 +304,8 @@ Generate comprehensive logical tests that thoroughly validate the business logic
     const inputTokens = Math.ceil(tokens * 0.7);
     const outputTokens = Math.ceil(tokens * 0.3);
 
-    const inputCost = (inputTokens / 1000) * costs.input;
-    const outputCost = (outputTokens / 1000) * costs.output;
+    const inputCost = (inputTokens / 1000) * pricing.inputCostPer1K;
+    const outputCost = (outputTokens / 1000) * pricing.outputCostPer1K;
 
     return inputCost + outputCost;
   }

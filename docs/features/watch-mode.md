@@ -1,6 +1,6 @@
 # Watch Mode
 
-*Last updated: 2025-06-28 | Feature Status: ✅ Production Ready*
+*Last updated: 2025-07-02 | Feature Status: ✅ Production Ready | Added optional process monitoring integration*
 
 ## Overview
 
@@ -41,6 +41,9 @@ node dist/cli/index.js watch /path/to/project --no-generate
 
 # Enable automatic test execution after generation
 node dist/cli/index.js watch /path/to/project --auto-run
+
+# Enable process monitoring for resource usage tracking
+node dist/cli/index.js watch /path/to/project --monitor-processes
 ```
 
 ### Command Options
@@ -154,6 +157,43 @@ Success rate: 100%
 
 Thank you for using Claude Testing Infrastructure! 🚀
 ```
+
+### Process Monitoring Integration ✅ NEW
+**Purpose**: Optional system resource monitoring during watch mode for debugging performance issues.
+
+**Usage**:
+```bash
+node dist/cli/index.js watch /path/to/project --monitor-processes
+```
+
+**Key Features**:
+- **Resource warnings** displayed in periodic statistics
+- **Testing-focused filtering** to identify relevant processes
+- **Non-intrusive monitoring** that doesn't impact watch performance
+- **Manual debugging guidance** with references to monitor command
+
+**Statistics Display**:
+```
+📊 Watch Statistics
+   Uptime: 45m 12s
+   Changes: 23 events, 8 batches
+   Generations: 8 (100% success)
+   Last activity: 2m ago
+   ⚠️  3 high-resource processes detected
+   💡 Run 'claude-testing monitor' for details
+```
+
+**Process Detection**:
+- **CPU threshold**: 30% (lower than standalone monitor for watch mode)
+- **Memory threshold**: 200MB (lower sensitivity for continuous monitoring)
+- **Testing frameworks**: Jest, pytest, mocha, and other testing processes
+- **Resource guidance**: Automatic suggestion to use dedicated monitor command
+
+**Benefits**:
+- **Early warning system** for resource issues during development
+- **Seamless integration** with existing watch mode workflow
+- **Zero performance impact** - monitoring runs asynchronously
+- **User education** about available debugging tools
 
 ## Integration Points
 

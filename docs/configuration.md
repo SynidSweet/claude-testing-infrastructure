@@ -2,7 +2,7 @@
 
 *Complete reference for .claude-testing.config.json configuration files*
 
-*Last updated: 2025-07-01 | FileDiscoveryService configuration integration complete - pattern customization and performance monitoring added*
+*Last updated: 2025-07-04 | Added init-config command and configuration templates for common frameworks*
 
 ## 🔄 Implementation Status
 
@@ -13,6 +13,34 @@
 The Claude Testing Infrastructure uses `.claude-testing.config.json` files to customize test generation behavior for individual projects. This file should be placed in the root directory of your target project (not in the claude-testing infrastructure directory).
 
 ## Quick Start
+
+### Using Configuration Templates (Recommended)
+
+The easiest way to set up configuration is using the `init-config` command with pre-built templates:
+
+```bash
+# Auto-detect project type and create config
+node dist/cli/index.js init-config /path/to/project
+
+# Use specific template
+node dist/cli/index.js init-config /path/to/project --template react-typescript
+
+# Interactive setup with customization
+node dist/cli/index.js init-config /path/to/project --interactive
+
+# List available templates
+node dist/cli/index.js init-config --list
+```
+
+Available templates:
+- `react-typescript` - React applications with TypeScript
+- `vue-typescript` - Vue.js applications with TypeScript and Vitest
+- `nextjs-typescript` - Next.js applications with API routes
+- `express-typescript` - Express.js APIs with TypeScript
+- `node-javascript` - Node.js applications with JavaScript
+- `python-django` - Django web applications with pytest
+
+See [`/templates/config/README.md`](../templates/config/README.md) for detailed template documentation.
 
 ### Minimal Configuration
 
