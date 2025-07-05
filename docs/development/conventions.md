@@ -1,6 +1,6 @@
 # Development Patterns & Conventions
 
-*Last updated: 2025-06-30 | Updated by: /document-all command | Discriminated union types patterns added*
+*Last updated: 2025-07-04 | Updated by: /document command | Added TypeScript patterns from Phase 2 - dynamic object access and exactOptionalPropertyTypes*
 
 ## Naming Conventions
 
@@ -424,6 +424,96 @@ interface AITestGenerator {
     complexity: ComplexityScore
   ): Promise<GeneratedTest[]>;
 }
+```
+
+## Code Quality Standards
+
+### TypeScript Type Safety
+- **No `any` types**: Replace with `unknown`, specific types, or generics
+- **Strict null checks**: Handle `null` and `undefined` explicitly
+- **Type assertions**: Use sparingly, prefer type guards
+- **Record types**: Use `Record<string, unknown>` for dynamic objects
+
+### ESLint Rules (Updated 2025-07-04 - Phase 2)
+- **Error threshold**: Maintain < 50 ESLint errors in codebase (Current: ~600 errors after TypeScript fixes)
+- **Warnings threshold**: Keep warnings < 100 (Current: 288 warnings, mostly nullish coalescing)
+- **Prettier integration**: ✅ All code formatted with Prettier (100+ files formatted)
+- **No console.log**: Use logger utility instead (57 console.log statements remaining)
+- **Async/await**: ✅ Remove unnecessary async from functions without await
+- **Duplicate imports**: ✅ Combine imports from same module
+- **Type assertions**: Strategic use of `(obj as any).property` for dynamic configuration objects
+- **ConfigurationService.ts**: ✅ Fully compliant - 0 TypeScript errors (was 40+)
+- **ProjectAnalyzer.ts**: Major progress - 12 errors remaining (was 50+)
+
+### Type Safety Examples
+```typescript
+// ❌ Avoid
+function processData(data: any): any {
+  return data.value;
+}
+
+// ✅ Prefer
+function processData(data: Record<string, unknown>): unknown {
+  return data.value;
+}
+
+// ✅ Even better with specific types
+interface DataPacket {
+  value: string;
+  timestamp: Date;
+}
+function processData(data: DataPacket): string {
+  return data.value;
+}
+```
+
+### Import Organization
+```typescript
+// 1. External imports first
+import { describe, it, expect } from '@jest/globals';
+import * as fs from 'fs/promises';
+
+// 2. Internal imports by layer
+import { ProjectAnalyzer } from '../analyzers/ProjectAnalyzer';
+import { logger } from '../utils/logger';
+
+// 3. Type imports last
+import type { TestResult, Coverage } from '../types';
+```
+
+### Dynamic Object Access Patterns (Added 2025-07-04 Phase 2)
+When working with dynamic configuration objects:
+
+```typescript
+// ❌ Avoid - TypeScript strict mode errors
+private setNestedValue(obj: Record<string, unknown>, path: string[], value: unknown): void {
+  obj.features.coverage = value; // Error: 'obj.features' is of type 'unknown'
+}
+
+// ✅ Use type assertions for known dynamic structures
+private setNestedValue(obj: Record<string, unknown>, path: string[], value: unknown): void {
+  (obj as any).features.coverage = value; // Controlled type assertion
+}
+
+// ✅ exactOptionalPropertyTypes compliance
+// When TypeScript has exactOptionalPropertyTypes: true, avoid explicit undefined
+interface DetectedFramework {
+  name: string;
+  version?: string; // Optional property
+}
+
+// ❌ Avoid
+const framework: DetectedFramework = {
+  name: 'react',
+  version: packageJson.react || undefined // Error with exactOptionalPropertyTypes
+};
+
+// ✅ Use conditional spreading
+const version = packageJson.react;
+const framework: DetectedFramework = {
+  name: 'react',
+  ...(version && { version }) // Only include if truthy
+};
 ```
 
 ## See Also

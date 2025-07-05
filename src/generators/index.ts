@@ -21,7 +21,7 @@ export {
 export { StructuralTestGenerator, StructuralTestGeneratorOptions } from './StructuralTestGenerator';
 
 // Export base abstractions for language-specific generators
-export { 
+export {
   BaseTestGenerator,
   LanguageContext,
   LanguageFeatures,
@@ -29,7 +29,7 @@ export {
   TestingPattern,
   SourceFileAnalysis,
   ExportedItem,
-  ImportStatement
+  ImportStatement,
 } from './base/BaseTestGenerator';
 
 // Export factory for creating generators

@@ -8,25 +8,34 @@
  * - Error handling and retries
  */
 
-import type { ChildProcess } from 'child_process';
-import { spawn, execSync } from 'child_process';
+import { spawn, execSync, type ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import type { AITask, AITaskBatch, AITaskResult } from './AITaskPreparation';
 import type { ChunkedAITask } from './ChunkedAITaskPreparation';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { validateModelConfiguration } from '../utils/model-mapping';
-import { 
-  AIAuthenticationError, 
-  AITimeoutError, 
+import {
+  AIAuthenticationError,
+  AITimeoutError,
   AIRateLimitError,
   AINetworkError,
-  type AIProgressUpdate 
+  type AIProgressUpdate,
 } from '../types/ai-error-types';
-import { withRetry, CircuitBreaker, FailurePatternDetector, type TaskRetryContext } from '../utils/retry-helper';
+import {
+  withRetry,
+  CircuitBreaker,
+  FailurePatternDetector,
+  type TaskRetryContext,
+} from '../utils/retry-helper';
+import { ProcessLimitValidator } from '../utils/ProcessLimitValidator';
 import { logger } from '../utils/logger';
 import { createStderrParser, type ParsedError } from '../utils/stderr-parser';
-import { ProcessMonitor, type ProcessHealthMetrics, type ProcessResourceUsage } from '../utils/ProcessMonitor';
+import {
+  ProcessMonitor,
+  type ProcessHealthMetrics,
+  type ProcessResourceUsage,
+} from '../utils/ProcessMonitor';
 import { TaskCheckpointManager } from '../state/TaskCheckpointManager';
 
 export interface ClaudeOrchestratorConfig {
@@ -62,6 +71,13 @@ export interface OrchestratorStats {
   totalDuration: number;
   startTime: Date;
   endTime?: Date;
+  // Usage tracking
+  sessionUsage: {
+    processesSpawned: number;
+    peakConcurrency: number;
+    usageWarnings: number;
+    rateLimitHits: number;
+  };
 }
 
 interface ProcessHeartbeat {
@@ -102,12 +118,15 @@ export class ClaudeOrchestrator extends EventEmitter {
   private checkpointManager?: TaskCheckpointManager;
   private activeCheckpoints = new Map<string, string>(); // taskId -> checkpointId
   private failurePatternDetector = new FailurePatternDetector();
-  private taskMetrics = new Map<string, { successTime: number; complexity: 'low' | 'medium' | 'high' }>(); // Task performance tracking
+  private taskMetrics = new Map<
+    string,
+    { successTime: number; complexity: 'low' | 'medium' | 'high' }
+  >(); // Task performance tracking
 
   constructor(private config: ClaudeOrchestratorConfig = {}) {
     super();
     this.config = {
-      maxConcurrent: 3,
+      maxConcurrent: 2, // Reduced from 3 to prevent usage spikes
       model: 'opus', // Use alias for latest model with Max subscription
       fallbackModel: 'sonnet', // Automatic fallback when usage limits reached
       retryAttempts: 3,
@@ -171,50 +190,96 @@ export class ClaudeOrchestrator extends EventEmitter {
   /**
    * Validate Claude CLI authentication
    */
-  async validateClaudeAuth(): Promise<{ authenticated: boolean; error?: string; canDegrade?: boolean }> {
+  validateClaudeAuth(): {
+    authenticated: boolean;
+    error?: string;
+    canDegrade?: boolean;
+  } {
     try {
       // Try to check Claude CLI version (basic check if Claude CLI exists)
       execSync('claude --version', { stdio: 'ignore' });
-      
-      // Check if Claude CLI is properly authenticated using a minimal command
-      // The 'claude config get' command will fail if not authenticated
-      const configCheck = execSync('claude config get 2>&1', { encoding: 'utf-8' });
-      
-      // If we can get config, we're authenticated
-      if (configCheck && !configCheck.includes('error') && !configCheck.includes('login')) {
-        this.isGracefullyDegraded = false;
-        return { authenticated: true };
+
+      // Test Claude CLI with a simple query to verify it's working
+      // This is more reliable than config checks which can have false positives
+      try {
+        const testResult = execSync('echo "test" | claude 2>&1', {
+          encoding: 'utf-8',
+          timeout: 10000,
+        });
+
+        // If we get any response back (even an error), the CLI is working
+        // Empty output or timeout indicates authentication issues
+        if (testResult && testResult.trim().length > 0) {
+          // Additional check: look for specific authentication error patterns
+          if (
+            testResult.includes('authentication required') ||
+            testResult.includes('not authenticated') ||
+            testResult.includes('please login') ||
+            testResult.includes('invalid credentials')
+          ) {
+            return {
+              authenticated: false,
+              error:
+                'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
+              canDegrade: this.config.gracefulDegradation || false,
+            };
+          }
+
+          this.isGracefullyDegraded = false;
+          return { authenticated: true };
+        }
+      } catch (testError) {
+        // Try fallback check with config command
+        try {
+          const configCheck = execSync('claude config get 2>&1', { encoding: 'utf-8' });
+
+          // More lenient check - just ensure we get some output and no auth errors
+          if (
+            configCheck &&
+            !configCheck.includes('not authenticated') &&
+            !configCheck.includes('please login') &&
+            !configCheck.includes('authentication required')
+          ) {
+            this.isGracefullyDegraded = false;
+            return { authenticated: true };
+          }
+        } catch (configError) {
+          // Config command also failed, likely auth issue
+        }
       }
-      
-      return { 
-        authenticated: false, 
-        error: 'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
-        canDegrade: this.config.gracefulDegradation || false
+
+      return {
+        authenticated: false,
+        error:
+          'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
+        canDegrade: this.config.gracefulDegradation || false,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
-        return { 
-          authenticated: false, 
-          error: 'Claude CLI not found. Please ensure Claude Code is installed and available in PATH.',
-          canDegrade: this.config.gracefulDegradation || false
+        return {
+          authenticated: false,
+          error:
+            'Claude CLI not found. Please ensure Claude Code is installed and available in PATH.',
+          canDegrade: this.config.gracefulDegradation || false,
         };
       }
-      
+
       if (errorMessage.includes('login') || errorMessage.includes('authenticate')) {
-        return { 
-          authenticated: false, 
-          error: 'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
-          canDegrade: this.config.gracefulDegradation || false
+        return {
+          authenticated: false,
+          error:
+            'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
+          canDegrade: this.config.gracefulDegradation || false,
         };
       }
-      
+
       // Generic error
-      return { 
-        authenticated: false, 
+      return {
+        authenticated: false,
         error: `Failed to check Claude CLI authentication: ${errorMessage}`,
-        canDegrade: this.config.gracefulDegradation || false
+        canDegrade: this.config.gracefulDegradation || false,
       };
     }
   }
@@ -249,7 +314,7 @@ export class ClaudeOrchestrator extends EventEmitter {
     heartbeat.checkInterval = setInterval(intervalFn, this.HEARTBEAT_INTERVAL);
 
     this.processHeartbeats.set(taskId, heartbeat);
-    
+
     // Run initial check immediately (after heartbeat is stored)
     intervalFn();
   }
@@ -278,18 +343,23 @@ export class ClaudeOrchestrator extends EventEmitter {
   /**
    * Update activity timestamp for a process
    */
-  private updateProcessActivity(taskId: string, bytesReceived: number, isStdout: boolean, data?: string): void {
+  private updateProcessActivity(
+    taskId: string,
+    bytesReceived: number,
+    isStdout: boolean,
+    data?: string
+  ): void {
     const heartbeat = this.processHeartbeats.get(taskId);
     if (heartbeat) {
       heartbeat.lastActivity = new Date();
       heartbeat.consecutiveSlowChecks = 0; // Reset slow check counter on activity
-      
+
       if (isStdout) {
         heartbeat.stdoutBytes += bytesReceived;
       } else {
         heartbeat.stderrBytes += bytesReceived;
       }
-      
+
       // Track progress history
       if (heartbeat.progressHistory) {
         const marker = this.detectProgressMarker(data);
@@ -298,24 +368,24 @@ export class ClaudeOrchestrator extends EventEmitter {
           bytes: bytesReceived,
           ...(marker && { marker }),
         });
-        
+
         // Keep only last 50 entries to avoid memory growth
         if (heartbeat.progressHistory.length > 50) {
           heartbeat.progressHistory = heartbeat.progressHistory.slice(-50);
         }
       }
-      
+
       // Clear waiting for input flag on any activity
       heartbeat.isWaitingForInput = false;
     }
   }
-  
+
   /**
    * Detect progress markers in output that indicate the AI is working
    */
   private detectProgressMarker(data?: string): string | undefined {
     if (!data) return undefined;
-    
+
     // Common progress indicators from Claude CLI
     const progressMarkers = [
       'Analyzing',
@@ -330,13 +400,13 @@ export class ClaudeOrchestrator extends EventEmitter {
       'def test_',
       'class Test',
     ];
-    
+
     for (const marker of progressMarkers) {
       if (data.includes(marker)) {
         return marker;
       }
     }
-    
+
     return undefined;
   }
 
@@ -345,7 +415,7 @@ export class ClaudeOrchestrator extends EventEmitter {
    */
   private captureResourceUsage(pid?: number): ProcessResourceUsage | undefined {
     if (!pid) return undefined;
-    
+
     return this.processMonitor.getResourceUsage(pid) || undefined;
   }
 
@@ -358,7 +428,7 @@ export class ClaudeOrchestrator extends EventEmitter {
 
     const timeSinceLastActivity = Date.now() - heartbeat.lastActivity.getTime();
     const timeSinceStart = Date.now() - (heartbeat.startTime?.getTime() || Date.now());
-    
+
     // Get health metrics from ProcessMonitor if available
     let healthMetrics: ProcessHealthMetrics | undefined;
     if (heartbeat.process.pid) {
@@ -368,14 +438,18 @@ export class ClaudeOrchestrator extends EventEmitter {
         heartbeat.resourceUsage = healthMetrics.resourceUsage;
       }
     }
-    
+
     // Enhanced heuristics for determining process health
-    const processMetrics = this.analyzeProcessHealth(heartbeat, timeSinceLastActivity, timeSinceStart);
-    
+    const processMetrics = this.analyzeProcessHealth(
+      heartbeat,
+      timeSinceLastActivity,
+      timeSinceStart
+    );
+
     // Check for zombie processes
     if (healthMetrics?.isZombie) {
       logger.error(`Process ${taskId} is a zombie process`);
-      
+
       this.emit('process:zombie', {
         taskId,
         lastActivity: heartbeat.lastActivity,
@@ -393,11 +467,11 @@ export class ClaudeOrchestrator extends EventEmitter {
       this.stopHeartbeatMonitoring(taskId);
       return;
     }
-    
+
     // Check for high resource usage
     if (healthMetrics?.isHighResource) {
       logger.warn(`Process ${taskId} high resource usage: ${healthMetrics.warnings.join(', ')}`);
-      
+
       this.emit('process:high-resource', {
         taskId,
         lastActivity: heartbeat.lastActivity,
@@ -408,11 +482,13 @@ export class ClaudeOrchestrator extends EventEmitter {
         recommendations: healthMetrics.recommendations,
       });
     }
-    
+
     // Check if process might be waiting for input
     if (this.checkForInputWait(heartbeat, timeSinceLastActivity)) {
-      logger.warn(`Process ${taskId} may be waiting for input - no activity for ${timeSinceLastActivity / 1000}s`);
-      
+      logger.warn(
+        `Process ${taskId} may be waiting for input - no activity for ${timeSinceLastActivity / 1000}s`
+      );
+
       this.emit('process:waiting-input', {
         taskId,
         lastActivity: heartbeat.lastActivity,
@@ -421,15 +497,15 @@ export class ClaudeOrchestrator extends EventEmitter {
         healthMetrics,
         resourceUsage: heartbeat.resourceUsage,
       });
-      
+
       // Don't kill processes that might be waiting for input yet
       return;
     }
-    
+
     // Check if process appears to be dead
     if (processMetrics.isDead) {
       logger.warn(`Process ${taskId} appears to be dead - ${processMetrics.reason}`);
-      
+
       // Emit warning event with enhanced metrics
       this.emit('process:dead', {
         taskId,
@@ -458,9 +534,9 @@ export class ClaudeOrchestrator extends EventEmitter {
     } else if (processMetrics.isSlow) {
       // Process is slow but not dead yet
       heartbeat.consecutiveSlowChecks = (heartbeat.consecutiveSlowChecks || 0) + 1;
-      
+
       logger.info(`Process ${taskId} is slow - ${processMetrics.reason}`);
-      
+
       this.emit('process:slow', {
         taskId,
         lastActivity: heartbeat.lastActivity,
@@ -474,12 +550,12 @@ export class ClaudeOrchestrator extends EventEmitter {
       });
     }
   }
-  
+
   /**
    * Analyze process health with multiple metrics
    */
   private analyzeProcessHealth(
-    heartbeat: ProcessHeartbeat, 
+    heartbeat: ProcessHeartbeat,
     timeSinceLastActivity: number,
     timeSinceStart: number
   ): {
@@ -493,17 +569,18 @@ export class ClaudeOrchestrator extends EventEmitter {
     const bytesReceived = heartbeat.stdoutBytes + heartbeat.stderrBytes;
     const bytesPerSecond = timeSinceStart > 0 ? (bytesReceived / timeSinceStart) * 1000 : 0;
     const isEarlyPhase = timeSinceStart < 60000; // First minute
-    
+
     // Check if we've seen progress markers recently
-    const recentProgressMarkers = heartbeat.progressHistory?.filter(
-      entry => entry.marker && (Date.now() - entry.timestamp.getTime() < 60000)
-    ).length || 0;
-    
+    const recentProgressMarkers =
+      heartbeat.progressHistory?.filter(
+        (entry) => entry.marker && Date.now() - entry.timestamp.getTime() < 60000
+      ).length || 0;
+
     // Enhanced dead detection heuristics
     let isDead = false;
     let isSlow = false;
     let reason = '';
-    
+
     if (timeSinceLastActivity > this.DEAD_PROCESS_THRESHOLD) {
       // But be more lenient if we've seen progress markers
       if (recentProgressMarkers > 0) {
@@ -521,7 +598,7 @@ export class ClaudeOrchestrator extends EventEmitter {
       }
     } else if (timeSinceLastActivity > this.HEARTBEAT_INTERVAL) {
       isSlow = true;
-      
+
       if (bytesPerSecond < 0.1 && !isEarlyPhase) {
         reason = `very low output rate (${bytesPerSecond.toFixed(2)} bytes/sec)`;
       } else if (heartbeat.consecutiveSlowChecks && heartbeat.consecutiveSlowChecks > 3) {
@@ -530,7 +607,7 @@ export class ClaudeOrchestrator extends EventEmitter {
         reason = `no activity for ${timeSinceLastActivity / 1000}s`;
       }
     }
-    
+
     return {
       isDead,
       isSlow,
@@ -540,43 +617,43 @@ export class ClaudeOrchestrator extends EventEmitter {
       isEarlyPhase,
     };
   }
-  
+
   /**
    * Check if process might be waiting for input
    */
   private checkForInputWait(heartbeat: ProcessHeartbeat, timeSinceLastActivity: number): boolean {
     // Only check if we haven't had activity in a while
     if (timeSinceLastActivity < 30000) return false;
-    
+
     // Check if the last output might indicate waiting for input
     const recentHistory = heartbeat.progressHistory?.slice(-5) || [];
-    
+
     // Look for actual input prompt patterns, not progress markers
-    const hasInputPrompt = recentHistory.some(entry => {
+    const hasInputPrompt = recentHistory.some((entry) => {
       if (!entry.marker || entry.bytes > 20) return false; // Input prompts are very short
-      
+
       const text = entry.marker.toLowerCase();
       // Common input prompt patterns
       const inputPatterns = [
-        />\s*$/,           // "> "
-        /:\s*$/,           // ": "
-        /\?\s*$/,          // "? "
-        /enter\s*$/,       // "enter"
-        /input\s*$/,       // "input"
-        /password\s*$/,    // "password"
-        /continue\s*$/,    // "continue"
+        />\s*$/, // "> "
+        /:\s*$/, // ": "
+        /\?\s*$/, // "? "
+        /enter\s*$/, // "enter"
+        /input\s*$/, // "input"
+        /password\s*$/, // "password"
+        /continue\s*$/, // "continue"
       ];
-      
-      return inputPatterns.some(pattern => pattern.test(text));
+
+      return inputPatterns.some((pattern) => pattern.test(text));
     });
-    
+
     // Only flag as waiting for input if we detect actual prompt patterns
     if (hasInputPrompt && heartbeat.stdoutBytes < 1000) {
       heartbeat.isWaitingForInput = true;
       heartbeat.lastStdinCheck = new Date();
       return true;
     }
-    
+
     return false;
   }
 
@@ -587,15 +664,15 @@ export class ClaudeOrchestrator extends EventEmitter {
     if (this.isRunning) {
       throw new Error('Orchestrator is already running');
     }
-    
+
     // Emit progress for authentication check
     this.emit('progress', {
       taskId: 'auth-check',
       phase: 'authenticating',
       progress: 0,
-      message: 'Validating Claude CLI authentication...'
+      message: 'Validating Claude CLI authentication...',
     } as AIProgressUpdate);
-    
+
     // Validate Claude CLI authentication before starting
     const authStatus = await this.validateClaudeAuth();
     if (!authStatus.authenticated) {
@@ -605,18 +682,19 @@ export class ClaudeOrchestrator extends EventEmitter {
         logger.warn('Claude CLI not available - entering graceful degradation mode');
         this.emit('degradation:enabled', {
           reason: authStatus.error,
-          message: 'AI test generation will return placeholder tests. Install Claude Code for full functionality.'
+          message:
+            'AI test generation will return placeholder tests. Install Claude Code for full functionality.',
         });
       } else {
         throw new AIAuthenticationError(authStatus.error || 'Authentication failed');
       }
     }
-    
+
     this.emit('progress', {
       taskId: 'auth-check',
       phase: 'authenticating',
       progress: 100,
-      message: 'Authentication validated successfully'
+      message: 'Authentication validated successfully',
     } as AIProgressUpdate);
 
     this.isRunning = true;
@@ -632,6 +710,24 @@ export class ClaudeOrchestrator extends EventEmitter {
       batch.maxConcurrency || this.config.maxConcurrent!,
       this.config.maxConcurrent!
     );
+
+    // Validate global process limits
+    const processValidation = ProcessLimitValidator.validateProcessLimit(maxConcurrent);
+    if (!processValidation.allowed) {
+      logger.error(processValidation.message);
+      logger.info('\n' + ProcessLimitValidator.getProcessStatus());
+      
+      // Try to wait for a slot
+      logger.info('Waiting for Claude processes to complete...');
+      const slotAvailable = await ProcessLimitValidator.waitForProcessSlot(30000);
+      
+      if (!slotAvailable) {
+        throw new Error(
+          `Cannot proceed: Too many Claude processes active (${processValidation.current}/${processValidation.max}). ` +
+          `Please wait for existing processes to complete or reduce concurrency settings.`
+        );
+      }
+    }
 
     this.emit('batch:start', { batch, stats: this.stats });
 
@@ -659,7 +755,7 @@ export class ClaudeOrchestrator extends EventEmitter {
       this.cleanupAllHeartbeats();
     }
   }
-  
+
   /**
    * Cleanup all heartbeat monitors
    */
@@ -667,7 +763,7 @@ export class ClaudeOrchestrator extends EventEmitter {
     for (const taskId of this.processHeartbeats.keys()) {
       this.stopHeartbeatMonitoring(taskId);
     }
-    
+
     // Stop all process monitoring
     this.processMonitor.stopAll();
   }
@@ -690,16 +786,16 @@ export class ClaudeOrchestrator extends EventEmitter {
   private assessTaskComplexity(task: AITask): 'low' | 'medium' | 'high' {
     const { estimatedTokens } = task;
     const sourceFile = task.sourceFile;
-    
+
     // Simple heuristics for complexity assessment
     if (estimatedTokens > 8000) return 'high';
     if (estimatedTokens > 4000) return 'medium';
-    
+
     // Check file type indicators
     if (sourceFile.includes('test') || sourceFile.includes('spec')) return 'low';
     if (sourceFile.includes('component') || sourceFile.includes('service')) return 'medium';
     if (sourceFile.includes('controller') || sourceFile.includes('api')) return 'high';
-    
+
     return estimatedTokens > 2000 ? 'medium' : 'low';
   }
 
@@ -709,7 +805,7 @@ export class ClaudeOrchestrator extends EventEmitter {
   private createTaskRetryContext(task: AITask): TaskRetryContext {
     const complexity = this.assessTaskComplexity(task);
     const existingMetrics = this.taskMetrics.get(task.id);
-    
+
     const context: TaskRetryContext = {
       taskId: task.id,
       estimatedTokens: task.estimatedTokens,
@@ -717,11 +813,11 @@ export class ClaudeOrchestrator extends EventEmitter {
       previousAttempts: 0,
       previousFailures: [],
     };
-    
+
     if (existingMetrics?.successTime !== undefined) {
       context.averageSuccessTime = existingMetrics.successTime;
     }
-    
+
     return context;
   }
 
@@ -732,37 +828,38 @@ export class ClaudeOrchestrator extends EventEmitter {
     const startTime = Date.now();
 
     this.emit('task:start', { task });
-    
+
     // Check for existing checkpoint and potentially resume
     let checkpointId: string | undefined;
     let shouldResume = false;
-    
+
     if (this.checkpointManager) {
       const resumeInfo = await this.checkpointManager.canResume(task);
       if (resumeInfo.canResume && resumeInfo.checkpointId) {
         shouldResume = true;
         checkpointId = resumeInfo.checkpointId;
-        
+
         this.emit('progress', {
           taskId: task.id,
           phase: 'preparing',
           progress: resumeInfo.lastProgress || 0,
           message: `Resuming task ${task.id} from checkpoint (${resumeInfo.lastProgress}% complete)`,
-          estimatedTimeRemaining: task.estimatedTokens * 10 * ((100 - (resumeInfo.lastProgress || 0)) / 100)
+          estimatedTimeRemaining:
+            task.estimatedTokens * 10 * ((100 - (resumeInfo.lastProgress || 0)) / 100),
         } as AIProgressUpdate);
-        
+
         logger.info(`Resuming task ${task.id} from checkpoint ${checkpointId}`);
       } else {
         // Create new checkpoint
         checkpointId = await this.checkpointManager.createCheckpoint(task, 'preparing');
         this.activeCheckpoints.set(task.id, checkpointId);
-        
+
         this.emit('progress', {
           taskId: task.id,
           phase: 'preparing',
           progress: 0,
           message: `Processing task ${task.id} (checkpoint created)`,
-          estimatedTimeRemaining: task.estimatedTokens * 10
+          estimatedTimeRemaining: task.estimatedTokens * 10,
         } as AIProgressUpdate);
       }
     } else {
@@ -772,7 +869,7 @@ export class ClaudeOrchestrator extends EventEmitter {
         phase: 'preparing',
         progress: 0,
         message: `Processing task ${task.id}`,
-        estimatedTimeRemaining: task.estimatedTokens * 10
+        estimatedTimeRemaining: task.estimatedTokens * 10,
       } as AIProgressUpdate);
     }
 
@@ -784,13 +881,15 @@ export class ClaudeOrchestrator extends EventEmitter {
 
     // Create intelligent retry context
     const retryContext = this.createTaskRetryContext(task);
-    
+
     // Use intelligent retry helper with adaptive strategies
     const retryResult = await withRetry(
       async () => {
         // Use circuit breaker if enabled
         if (this.circuitBreaker) {
-          return await this.circuitBreaker.execute(() => this.executeClaudeProcess(task, shouldResume, checkpointId));
+          return await this.circuitBreaker.execute(() =>
+            this.executeClaudeProcess(task, shouldResume, checkpointId)
+          );
         } else {
           return await this.executeClaudeProcess(task, shouldResume, checkpointId);
         }
@@ -807,28 +906,30 @@ export class ClaudeOrchestrator extends EventEmitter {
         taskContext: retryContext,
         failurePatterns: this.failurePatternDetector,
         onRetry: (error, attempt, delay) => {
-          logger.info(`Intelligent retry for task ${task.id}: attempt ${attempt + 1}, ` +
-                     `delay ${delay}ms, complexity ${retryContext.complexity}, ` +
-                     `pattern ${this.failurePatternDetector.getRecommendedStrategy(error).strategy}`);
-          
-          this.emit('task:retry', { 
-            task, 
-            attemptNumber: attempt, 
+          logger.info(
+            `Intelligent retry for task ${task.id}: attempt ${attempt + 1}, ` +
+              `delay ${delay}ms, complexity ${retryContext.complexity}, ` +
+              `pattern ${this.failurePatternDetector.getRecommendedStrategy(error).strategy}`
+          );
+
+          this.emit('task:retry', {
+            task,
+            attemptNumber: attempt,
             error: error.message,
             nextRetryIn: delay,
             complexity: retryContext.complexity,
-            strategy: this.failurePatternDetector.getRecommendedStrategy(error).strategy
+            strategy: this.failurePatternDetector.getRecommendedStrategy(error).strategy,
           });
-          
+
           // Update progress with intelligent retry info
           this.emit('progress', {
             taskId: task.id,
             phase: 'preparing',
             progress: 0,
             message: `Intelligent retry: ${retryContext.complexity} complexity task, attempt ${attempt + 1} in ${delay}ms`,
-            estimatedTimeRemaining: task.estimatedTokens * 10
+            estimatedTimeRemaining: task.estimatedTokens * 10,
           } as AIProgressUpdate);
-        }
+        },
       }
     );
 
@@ -855,16 +956,19 @@ export class ClaudeOrchestrator extends EventEmitter {
         successTime: processResult.result!.duration,
         complexity: retryContext.complexity,
       });
-      
+
       // Update average success time for this complexity level
       const similarTasks = Array.from(this.taskMetrics.values()).filter(
-        metric => metric.complexity === retryContext.complexity
+        (metric) => metric.complexity === retryContext.complexity
       );
-      const avgSuccessTime = similarTasks.reduce((sum, metric) => sum + metric.successTime, 0) / similarTasks.length;
+      const avgSuccessTime =
+        similarTasks.reduce((sum, metric) => sum + metric.successTime, 0) / similarTasks.length;
       retryContext.averageSuccessTime = avgSuccessTime;
 
-      logger.debug(`Task ${task.id} completed successfully: duration=${processResult.result!.duration}ms, ` +
-                  `complexity=${retryContext.complexity}, avgForComplexity=${Math.round(avgSuccessTime)}ms`);
+      logger.debug(
+        `Task ${task.id} completed successfully: duration=${processResult.result!.duration}ms, ` +
+          `complexity=${retryContext.complexity}, avgForComplexity=${Math.round(avgSuccessTime)}ms`
+      );
 
       // Update stats
       this.stats.completedTasks++;
@@ -900,12 +1004,16 @@ export class ClaudeOrchestrator extends EventEmitter {
   /**
    * Handle task in degraded mode (no Claude CLI available)
    */
-  private async handleDegradedTask(task: AITask, startTime: number, checkpointId?: string): Promise<void> {
+  private async handleDegradedTask(
+    task: AITask,
+    startTime: number,
+    checkpointId?: string
+  ): Promise<void> {
     logger.info(`Processing task ${task.id} in degraded mode`);
-    
+
     // Generate placeholder tests based on task context
     const placeholderTests = this.generatePlaceholderTests(task);
-    
+
     const processResult: ProcessResult = {
       taskId: task.id,
       success: true,
@@ -931,10 +1039,10 @@ export class ClaudeOrchestrator extends EventEmitter {
     await this.saveGeneratedTests(task, processResult.result!.generatedTests);
 
     this.results.push(processResult);
-    this.emit('task:complete', { 
-      task, 
+    this.emit('task:complete', {
+      task,
       result: processResult,
-      degraded: true 
+      degraded: true,
     });
   }
 
@@ -944,7 +1052,7 @@ export class ClaudeOrchestrator extends EventEmitter {
   private generatePlaceholderTests(task: AITask): string {
     const { language } = task.context.frameworkInfo;
     const sourceFile = path.basename(task.sourceFile);
-    
+
     if (language === 'javascript' || language === 'typescript') {
       return `// AI-Generated Placeholder Tests (Degraded Mode)
 // Install Claude Code and authenticate to enable AI-powered test generation
@@ -953,7 +1061,7 @@ describe('${sourceFile}', () => {
   test.todo('should be tested properly');
   
   // TODO: The following scenarios should be tested:
-  ${task.context.missingScenarios.map(scenario => `  // - ${scenario}`).join('\n')}
+  ${task.context.missingScenarios.map((scenario) => `  // - ${scenario}`).join('\n')}
 });
 
 // Note: These are placeholder tests. Install Claude Code for intelligent test generation.
@@ -970,12 +1078,12 @@ class Test${sourceFile.replace('.py', '').replace(/[^a-zA-Z0-9]/g, '')}:
         pytest.skip("Placeholder test - Claude Code required for AI generation")
     
     # TODO: The following scenarios should be tested:
-${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n')}
+${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\n')}
 
 # Note: These are placeholder tests. Install Claude Code for intelligent test generation.
 `;
     }
-    
+
     return `// Placeholder tests for ${sourceFile} - Claude Code required for AI generation`;
   }
 
@@ -983,8 +1091,8 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
    * Set up timeout progress tracking
    */
   private setupTimeoutProgressTracking(
-    taskId: string, 
-    timeoutMs: number, 
+    taskId: string,
+    timeoutMs: number,
     claude: ChildProcess,
     getStdoutLength: () => number,
     getStderrLength: () => number
@@ -996,12 +1104,12 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
     heartbeat.timeoutProgress = setInterval(() => {
       const elapsed = Date.now() - (heartbeat.startTime?.getTime() || Date.now());
       const progress = Math.floor((elapsed / timeoutMs) * 100);
-      
+
       // Check warning thresholds
       for (const threshold of heartbeat.warningThresholds || []) {
         if (progress >= threshold && heartbeat.warningThresholds?.has(threshold)) {
           heartbeat.warningThresholds.delete(threshold); // Only emit once per threshold
-          
+
           // Capture current state
           const stateInfo = {
             taskId,
@@ -1015,13 +1123,16 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
             stderr: getStderrLength(),
             resourceUsage: this.captureResourceUsage(claude.pid),
           };
-          
+
           // Emit timeout warning event
           this.emit('timeout:warning', stateInfo);
-          
+
           // Log detailed state information
-          logger.warn(`Timeout warning for task ${taskId}: ${threshold}% of timeout reached`, stateInfo);
-          
+          logger.warn(
+            `Timeout warning for task ${taskId}: ${threshold}% of timeout reached`,
+            stateInfo
+          );
+
           // Update progress event with warning
           this.emit('progress', {
             taskId,
@@ -1039,7 +1150,11 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
   /**
    * Execute Claude process for a task
    */
-  private executeClaudeProcess(task: AITask, shouldResume: boolean = false, checkpointId?: string): Promise<{
+  private executeClaudeProcess(
+    task: AITask,
+    shouldResume: boolean = false,
+    checkpointId?: string
+  ): Promise<{
     output: string;
     tokensUsed?: number;
     cost?: number;
@@ -1054,28 +1169,26 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
           const resumeInfo = await this.checkpointManager.resumeFromCheckpoint(checkpointId);
           promptToUse = resumeInfo.resumePrompt;
           estimatedTokens = resumeInfo.estimatedRemainingTokens;
-          
+
           // Update progress to show resuming
           this.emit('progress', {
             taskId: task.id,
             phase: 'generating',
             progress: resumeInfo.checkpoint.progress,
             message: `Resuming generation from ${resumeInfo.checkpoint.progress}%...`,
-            estimatedTimeRemaining: estimatedTokens * 10
+            estimatedTimeRemaining: estimatedTokens * 10,
           } as AIProgressUpdate);
-          
-          logger.info(`Resuming task ${task.id} with ${estimatedTokens} estimated remaining tokens`);
+
+          logger.info(
+            `Resuming task ${task.id} with ${estimatedTokens} estimated remaining tokens`
+          );
         } catch (error) {
           logger.warn(`Failed to resume from checkpoint ${checkpointId}, starting fresh:`, error);
           // Continue with original prompt if resume fails
         }
       }
 
-      const args = [
-        promptToUse,
-        '--model',
-        this.config.model!,
-      ];
+      const args = [promptToUse, '--model', this.config.model!];
 
       // Add fallback model if configured (helps with Max subscription limits)
       if (this.config.fallbackModel) {
@@ -1085,15 +1198,29 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       if (this.config.verbose) {
         console.log(`Executing Claude for task ${task.id} with model ${this.config.model}...`);
       }
-      
+
       // Emit progress update for generation start
       this.emit('progress', {
         taskId: task.id,
         phase: 'generating',
         progress: 10,
         message: `Generating tests with ${this.config.model} model...`,
-        estimatedTimeRemaining: task.estimatedTokens * 10
+        estimatedTimeRemaining: task.estimatedTokens * 10,
       } as AIProgressUpdate);
+
+      // Validate we can spawn another process
+      const spawnValidation = ProcessLimitValidator.validateProcessLimit(1);
+      if (!spawnValidation.allowed) {
+        // Wait for a slot to become available
+        const slotAvailable = await ProcessLimitValidator.waitForProcessSlot(30000);
+        if (!slotAvailable) {
+          reject(new Error(
+            `Cannot spawn Claude process: ${spawnValidation.message}. ` +
+            `Current processes: ${spawnValidation.current}/${spawnValidation.max}`
+          ));
+          return;
+        }
+      }
 
       // Set up environment with extended timeouts for headless AI generation
       const claudeEnv = {
@@ -1112,24 +1239,38 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       let stderr = '';
       let timeout: NodeJS.Timeout;
       let killed = false;
-      
+
       // Create stderr parser for early error detection
       const stderrParser = createStderrParser(this);
-      
+
       // Store active process
       this.activeProcesses.set(task.id, claude);
-      
+
+      // Track usage statistics
+      this.stats.sessionUsage.processesSpawned++;
+      const currentConcurrency = this.activeProcesses.size;
+      if (currentConcurrency > this.stats.sessionUsage.peakConcurrency) {
+        this.stats.sessionUsage.peakConcurrency = currentConcurrency;
+      }
+
+      // Check for usage warning threshold
+      if (currentConcurrency >= 3 && this.stats.sessionUsage.usageWarnings === 0) {
+        this.stats.sessionUsage.usageWarnings++;
+        logger.warn(`⚠️  High concurrency detected: ${currentConcurrency} Claude processes active`);
+        logger.warn('This may cause rapid usage depletion. Consider using sequential processing.');
+      }
+
       // Set up early error detection handler
       const errorHandler = (error: ParsedError) => {
         if (error.severity === 'fatal' && !killed) {
           logger.error(`Early fatal error detected for task ${task.id}: ${error.type}`);
-          
+
           // Kill the process immediately on fatal errors
           killed = true;
           if (timeout) clearTimeout(timeout);
           this.stopHeartbeatMonitoring(task.id);
           this.activeProcesses.delete(task.id);
-          
+
           // Kill the process
           claude.kill('SIGTERM');
           setTimeout(() => {
@@ -1137,12 +1278,12 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
               claude.kill('SIGKILL');
             }
           }, 1000);
-          
+
           // Reject with the specific error
           reject(error.error);
         }
       };
-      
+
       // Listen for early error detection
       this.once('error:detected', errorHandler);
 
@@ -1150,14 +1291,14 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       if (this.config.timeout) {
         // Create a more aggressive timeout handling
         const timeoutMs = this.config.timeout || 900000;
-        
+
         // Set main timeout
         timeout = setTimeout(() => {
           if (!killed) {
             killed = true;
             // Stop heartbeat monitoring before killing
             this.stopHeartbeatMonitoring(task.id);
-            
+
             // Try SIGTERM first, then SIGKILL after 5 seconds
             claude.kill('SIGTERM');
             setTimeout(() => {
@@ -1165,17 +1306,19 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
                 claude.kill('SIGKILL');
               }
             }, 5000);
-            
-            reject(new AITimeoutError(
-              `AI generation timed out after ${timeoutMs / 1000} seconds. ` +
-              `This may indicate: 1) Complex task requiring more time, 2) Claude CLI hanging, ` +
-              `3) Network connectivity issues. Try: reducing batch size, checking Claude Code setup, ` +
-              `or increasing timeout with --timeout flag.`,
-              timeoutMs
-            ));
+
+            reject(
+              new AITimeoutError(
+                `AI generation timed out after ${timeoutMs / 1000} seconds. ` +
+                  `This may indicate: 1) Complex task requiring more time, 2) Claude CLI hanging, ` +
+                  `3) Network connectivity issues. Try: reducing batch size, checking Claude Code setup, ` +
+                  `or increasing timeout with --timeout flag.`,
+                timeoutMs
+              )
+            );
           }
         }, timeoutMs);
-        
+
         // Set progress timeout (if no output for 30 seconds, consider it stuck)
         setTimeout(() => {
           if (!stdout && !killed) {
@@ -1184,7 +1327,7 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
               taskId: task.id,
               phase: 'generating',
               progress: 25,
-              message: 'Waiting for Claude CLI response (may be processing)...'
+              message: 'Waiting for Claude CLI response (may be processing)...',
             } as AIProgressUpdate);
           }
         }, 30000);
@@ -1192,12 +1335,12 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
 
       // Start heartbeat monitoring after timeout setup
       this.startHeartbeatMonitoring(task.id, claude);
-      
+
       // Set up timeout progress tracking if timeout is configured
       if (this.config.timeout) {
         this.setupTimeoutProgressTracking(
-          task.id, 
-          this.config.timeout, 
+          task.id,
+          this.config.timeout,
           claude,
           () => stdout.length,
           () => stderr.length
@@ -1208,10 +1351,10 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
         const dataStr = data.toString();
         const bytes = data.length;
         stdout += dataStr;
-        
+
         // Update heartbeat activity with data content
         this.updateProcessActivity(task.id, bytes, true, dataStr);
-        
+
         // Update checkpoint with partial progress
         if (checkpointId && this.checkpointManager) {
           const progress = Math.min(50 + (stdout.length / estimatedTokens) * 40, 90); // Scale 50-90%
@@ -1225,17 +1368,20 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
             },
             state: {
               outputBytes: stdout.length,
-              elapsedTime: Date.now() - (Date.now() - (this.processHeartbeats.get(task.id)?.startTime?.getTime() || Date.now())),
+              elapsedTime:
+                Date.now() -
+                (Date.now() -
+                  (this.processHeartbeats.get(task.id)?.startTime?.getTime() || Date.now())),
             },
           });
         }
-        
+
         // Emit progress update - we're getting data
         this.emit('progress', {
           taskId: task.id,
           phase: 'generating',
           progress: 50,
-          message: 'Receiving generated tests from Claude...'
+          message: 'Receiving generated tests from Claude...',
         } as AIProgressUpdate);
       });
 
@@ -1243,14 +1389,14 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
         const dataStr = data.toString();
         const bytes = data.length;
         stderr += dataStr;
-        
+
         // Parse stderr in real-time for early error detection
         const parsedError = stderrParser.parseChunk(dataStr);
         if (parsedError && parsedError.severity === 'fatal' && !killed) {
           // Early error detection will trigger the error handler
           logger.debug(`Parsed fatal error from stderr: ${parsedError.type}`);
         }
-        
+
         // Update heartbeat activity with data content
         this.updateProcessActivity(task.id, bytes, false, dataStr);
       });
@@ -1260,13 +1406,15 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
           clearTimeout(timeout);
           this.activeProcesses.delete(task.id);
           this.stopHeartbeatMonitoring(task.id);
-          
+
           // Provide more helpful error messages
           if (error.message.includes('ENOENT')) {
-            reject(new AIAuthenticationError(
-              'Claude CLI not found. Please ensure Claude Code is installed and available in PATH. ' +
-              'Visit https://docs.anthropic.com/claude-code for installation instructions.'
-            ));
+            reject(
+              new AIAuthenticationError(
+                'Claude CLI not found. Please ensure Claude Code is installed and available in PATH. ' +
+                  'Visit https://docs.anthropic.com/claude-code for installation instructions.'
+              )
+            );
           } else {
             reject(new Error(`Failed to spawn Claude process: ${error.message}`));
           }
@@ -1276,12 +1424,12 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       claude.on('close', (code) => {
         // Clean up error handler
         this.off('error:detected', errorHandler);
-        
+
         if (!killed) {
           clearTimeout(timeout);
           this.activeProcesses.delete(task.id);
           this.stopHeartbeatMonitoring(task.id);
-          
+
           // Parse any remaining stderr
           stderrParser.parseRemaining();
 
@@ -1292,27 +1440,37 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
               reject(fatalError.error);
               return;
             }
-            
+
             // Fallback to pattern matching for backwards compatibility
             if (stderr.includes('authentication') || stderr.includes('login')) {
-              reject(new AIAuthenticationError(
-                'Claude CLI authentication required. Please run Claude Code interactively first to authenticate. ' +
-                'Use: claude auth login'
-              ));
+              reject(
+                new AIAuthenticationError(
+                  'Claude CLI authentication required. Please run Claude Code interactively first to authenticate. ' +
+                    'Use: claude auth login'
+                )
+              );
             } else if (stderr.includes('rate limit') || stderr.includes('quota')) {
-              reject(new AIRateLimitError(
-                'Claude API rate limit or quota exceeded. Please try again later or use a different model. ' +
-                'Consider using --model haiku for lower-cost generation.'
-              ));
+              // Track rate limit hits
+              this.stats.sessionUsage.rateLimitHits++;
+              logger.warn(`Rate limit hit #${this.stats.sessionUsage.rateLimitHits} for session`);
+              
+              reject(
+                new AIRateLimitError(
+                  'Claude API rate limit or quota exceeded. Please try again later or use a different model. ' +
+                    'Consider using --model haiku for lower-cost generation or reducing concurrency.'
+                )
+              );
             } else if (stderr.includes('network') || stderr.includes('connection')) {
-              reject(new AINetworkError(
-                'Network connection error while communicating with Claude API. ' +
-                'Please check your internet connection and try again.'
-              ));
+              reject(
+                new AINetworkError(
+                  'Network connection error while communicating with Claude API. ' +
+                    'Please check your internet connection and try again.'
+                )
+              );
             } else {
-              reject(new Error(
-                `Claude process exited with code ${code}${stderr ? `: ${stderr}` : ''}`
-              ));
+              reject(
+                new Error(`Claude process exited with code ${code}${stderr ? `: ${stderr}` : ''}`)
+              );
             }
             return;
           }
@@ -1327,7 +1485,7 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
                 cost: result.total_cost_usd || result.cost,
               });
             } else {
-              resolve({ 
+              resolve({
                 output: stdout.trim() || 'No output generated',
                 tokensUsed: task.estimatedTokens, // Fallback estimation
                 cost: task.estimatedCost, // Fallback estimation
@@ -1335,7 +1493,7 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
             }
           } catch (error) {
             // If JSON parsing fails, return text output
-            resolve({ 
+            resolve({
               output: stdout.trim() || 'Generated test content',
               tokensUsed: task.estimatedTokens,
               cost: task.estimatedCost,
@@ -1461,9 +1619,9 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
     const totalAttempts = this.stats.completedTasks + this.stats.failedTasks;
     const successRate = totalAttempts > 0 ? this.stats.completedTasks / totalAttempts : 0;
     const failureRate = totalAttempts > 0 ? this.stats.failedTasks / totalAttempts : 0;
-    
+
     const circuitBreakerState = this.circuitBreaker?.getState();
-    
+
     return {
       isHealthy: !this.isGracefullyDegraded && successRate >= 0.8,
       isDegraded: this.isGracefullyDegraded,
@@ -1474,7 +1632,7 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
   }
 
   /**
-   * Get system-wide zombie processes  
+   * Get system-wide zombie processes
    */
   getZombieProcesses(): ProcessResourceUsage[] {
     return this.processMonitor.detectZombieProcesses();
@@ -1490,7 +1648,7 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
   } {
     const status = this.processMonitor.getMonitoringStatus();
     const zombies = this.getZombieProcesses();
-    
+
     return {
       ...status,
       zombieProcesses: zombies,
@@ -1506,10 +1664,10 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
     totalTasksWithMetrics: number;
   } {
     const patterns = this.failurePatternDetector.getPatternStats();
-    
+
     // Aggregate task metrics by complexity
     const complexityGroups = new Map<string, { times: number[]; count: number }>();
-    
+
     for (const metric of this.taskMetrics.values()) {
       if (!complexityGroups.has(metric.complexity)) {
         complexityGroups.set(metric.complexity, { times: [], count: 0 });
@@ -1518,13 +1676,13 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       group.times.push(metric.successTime);
       group.count++;
     }
-    
+
     const taskMetrics = Array.from(complexityGroups.entries()).map(([complexity, data]) => ({
       complexity,
       count: data.count,
       avgSuccessTime: data.times.reduce((sum, time) => sum + time, 0) / data.times.length,
     }));
-    
+
     return {
       failurePatterns: patterns,
       taskMetrics,
@@ -1553,7 +1711,7 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
     const reliabilityStatus = this.getReliabilityStatus();
     const processMonitoringStatus = this.getProcessMonitoringStatus();
     const retryStats = this.getRetryStatistics();
-    
+
     const report = [
       '# Claude Orchestrator Execution Report',
       '',
@@ -1574,13 +1732,16 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       `- Monitored Processes: ${processMonitoringStatus.activeProcesses.length}`,
       `- Total History Entries: ${processMonitoringStatus.totalHistory}`,
       `- Zombie Processes Detected: ${processMonitoringStatus.zombieProcesses.length}`,
-      ...(processMonitoringStatus.zombieProcesses.length > 0 ? [
-        '',
-        '### Zombie Processes',
-        ...processMonitoringStatus.zombieProcesses.map(zombie => 
-          `- PID ${zombie.pid}: ${zombie.command || 'unknown'} (Parent: ${zombie.ppid || 'unknown'})`
-        )
-      ] : []),
+      ...(processMonitoringStatus.zombieProcesses.length > 0
+        ? [
+            '',
+            '### Zombie Processes',
+            ...processMonitoringStatus.zombieProcesses.map(
+              (zombie) =>
+                `- PID ${zombie.pid}: ${zombie.command || 'unknown'} (Parent: ${zombie.ppid || 'unknown'})`
+            ),
+          ]
+        : []),
       '',
       '## Resource Usage',
       `- Total Tokens: ${this.stats.totalTokensUsed.toLocaleString()}`,
@@ -1590,20 +1751,26 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       '## Intelligent Retry Statistics',
       `- Tasks with Metrics: ${retryStats.totalTasksWithMetrics}`,
       `- Failure Patterns Learned: ${retryStats.failurePatterns.size}`,
-      ...(retryStats.taskMetrics.length > 0 ? [
-        '',
-        '### Task Complexity Performance',
-        ...retryStats.taskMetrics.map(metric => 
-          `- ${metric.complexity.toUpperCase()}: ${metric.count} tasks, avg ${(metric.avgSuccessTime / 1000).toFixed(1)}s`
-        )
-      ] : []),
-      ...(retryStats.failurePatterns.size > 0 ? [
-        '',
-        '### Learned Failure Patterns',
-        ...Array.from(retryStats.failurePatterns.entries()).map(([pattern, data]) => 
-          `- ${pattern}: ${data.count} occurrences, last seen ${data.lastSeen.toISOString().split('T')[0]}`
-        )
-      ] : []),
+      ...(retryStats.taskMetrics.length > 0
+        ? [
+            '',
+            '### Task Complexity Performance',
+            ...retryStats.taskMetrics.map(
+              (metric) =>
+                `- ${metric.complexity.toUpperCase()}: ${metric.count} tasks, avg ${(metric.avgSuccessTime / 1000).toFixed(1)}s`
+            ),
+          ]
+        : []),
+      ...(retryStats.failurePatterns.size > 0
+        ? [
+            '',
+            '### Learned Failure Patterns',
+            ...Array.from(retryStats.failurePatterns.entries()).map(
+              ([pattern, data]) =>
+                `- ${pattern}: ${data.count} occurrences, last seen ${data.lastSeen.toISOString().split('T')[0]}`
+            ),
+          ]
+        : []),
       '',
       '## Configuration',
       `- Model: ${this.config.model}`,
@@ -1639,7 +1806,12 @@ ${task.context.missingScenarios.map(scenario => `    # - ${scenario}`).join('\n'
       totalCost: 0,
       totalDuration: 0,
       startTime: new Date(),
+      sessionUsage: {
+        processesSpawned: 0,
+        peakConcurrency: 0,
+        usageWarnings: 0,
+        rateLimitHits: 0,
+      },
     };
   }
-
 }

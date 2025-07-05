@@ -1,6 +1,6 @@
 /**
  * FileDiscoveryService provides centralized file discovery for all components
- * 
+ *
  * This service integrates pattern management, caching, and configuration
  * to provide consistent file discovery across the infrastructure.
  */
@@ -41,7 +41,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   constructor(configService?: ConfigurationService) {
     this.config = configService?.getFileDiscoveryConfig() || this.getDefaultConfig();
     this.patternManager = new PatternManagerImpl(configService);
-    
+
     if (this.config.cache.enabled) {
       this.cache = new MemoryFileDiscoveryCache(this.config.cache);
     } else {
@@ -54,13 +54,13 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
    */
   async findFiles(request: FileDiscoveryRequest): Promise<FileDiscoveryResult> {
     const startTime = Date.now();
-    
+
     // Apply configuration defaults to request
     const effectiveRequest = this.applyConfigDefaults(request);
-    
+
     // Generate cache key
     const cacheKey = this.generateCacheKey(effectiveRequest);
-    
+
     // Check cache if enabled
     if (effectiveRequest.useCache !== false) {
       const cached = await this.cache.get(cacheKey);
@@ -70,7 +70,8 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
     }
 
     // Resolve patterns
-    const includePatterns = effectiveRequest.include || 
+    const includePatterns =
+      effectiveRequest.include ||
       this.patternManager.getIncludePatterns(effectiveRequest.type, effectiveRequest.languages);
     const excludePatterns = this.mergeExcludePatterns(effectiveRequest);
 
@@ -117,9 +118,13 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
     }
 
     // Log slow operations and performance stats
-    if (this.config.performance.logSlowOperations && 
-        result.duration > this.config.performance.slowThresholdMs) {
-      console.warn(`Slow file discovery operation: ${result.duration}ms for ${effectiveRequest.baseDir} (${result.files.length} files)`);
+    if (
+      this.config.performance.logSlowOperations &&
+      result.duration > this.config.performance.slowThresholdMs
+    ) {
+      console.warn(
+        `Slow file discovery operation: ${result.duration}ms for ${effectiveRequest.baseDir} (${result.files.length} files)`
+      );
     }
 
     // Log performance statistics if enabled
@@ -130,7 +135,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
         fileCount: result.files.length,
         fromCache: result.fromCache,
         baseDir: effectiveRequest.baseDir,
-        stats: result.stats
+        stats: result.stats,
       });
     }
 
@@ -220,7 +225,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   private mergeExcludePatterns(request: FileDiscoveryRequest): string[] {
     const defaultExcludes = this.patternManager.getExcludePatterns(request.type, request.languages);
     const requestExcludes = request.exclude || [];
-    
+
     return [...defaultExcludes, ...requestExcludes];
   }
 
@@ -237,7 +242,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
       return files;
     }
 
-    return files.filter(file => {
+    return files.filter((file) => {
       const ext = path.extname(file).toLowerCase();
       return languageExtensions.includes(ext);
     });
@@ -276,20 +281,9 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
         '**/*.spec.{js,ts,jsx,tsx}',
         '**/__tests__/**/*.{js,ts,jsx,tsx}',
       ],
-      vitest: [
-        '**/*.{test,spec}.{js,ts,jsx,tsx}',
-        '**/test/**/*.{js,ts,jsx,tsx}',
-      ],
-      pytest: [
-        '**/test_*.py',
-        '**/*_test.py',
-        '**/tests/**/*.py',
-      ],
-      mocha: [
-        '**/*.test.js',
-        '**/*.spec.js',
-        '**/test/**/*.js',
-      ],
+      vitest: ['**/*.{test,spec}.{js,ts,jsx,tsx}', '**/test/**/*.{js,ts,jsx,tsx}'],
+      pytest: ['**/test_*.py', '**/*_test.py', '**/tests/**/*.py'],
+      mocha: ['**/*.test.js', '**/*.spec.js', '**/test/**/*.js'],
     };
 
     return frameworkPatterns[framework.toLowerCase()] || frameworkPatterns.jest || [];

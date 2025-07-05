@@ -2,7 +2,7 @@
  * Type definitions for MCP (Model Context Protocol) testing
  */
 
-import { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 
 /**
  * Extended project analysis for MCP servers
@@ -48,8 +48,6 @@ export interface MCPPrompt {
 /**
  * Type guard for MCP project analysis
  */
-export function isMCPProjectAnalysis(
-  analysis: ProjectAnalysis
-): analysis is MCPProjectAnalysis {
+export function isMCPProjectAnalysis(analysis: ProjectAnalysis): analysis is MCPProjectAnalysis {
   return analysis.projectType === 'mcp-server';
 }

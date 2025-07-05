@@ -6,10 +6,8 @@
  */
 
 import type { TestGap, TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
-import type { AITask, TaskContext, FrameworkInfo, AITaskBatch } from './AITaskPreparation';
-import { AITaskPreparation } from './AITaskPreparation';
-import type { FileChunk } from '../utils/file-chunking';
-import { FileChunker } from '../utils/file-chunking';
+import { AITaskPreparation, type AITask, type TaskContext, type FrameworkInfo, type AITaskBatch } from './AITaskPreparation';
+import { FileChunker, type FileChunk } from '../utils/file-chunking';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -173,7 +171,7 @@ export class ChunkedAITaskPreparation {
       maxTokensPerChunk: this.chunkedConfig.chunkTokenLimit,
       overlapTokens: 200,
       preserveContext: true,
-      language: frameworkInfo.language as any,
+      language: frameworkInfo.language,
     });
 
     console.log(`Split ${gap.sourceFile} into ${chunks.length} chunks`);
@@ -532,7 +530,7 @@ Generate comprehensive logical tests for this code chunk:`;
     return inputCost + outputCost;
   }
 
-  private mapPriorityToNumber(priority: any): number {
+  private mapPriorityToNumber(priority: string | number): number {
     const priorityMap: Record<string, number> = {
       critical: 10,
       high: 8,
@@ -542,7 +540,7 @@ Generate comprehensive logical tests for this code chunk:`;
     return priorityMap[priority] || 5;
   }
 
-  private emit(_event: string, _data: any): void {
+  private emit(_event: string, _data: unknown): void {
     // Event emission for progress tracking
     // This would integrate with EventEmitter if needed
   }

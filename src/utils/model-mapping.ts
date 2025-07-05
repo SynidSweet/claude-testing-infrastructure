@@ -178,13 +178,17 @@ export function validateModelConfiguration(modelName: string): {
 /**
  * Calculate cost for model usage
  */
-export function calculateCost(modelName: string, inputTokens: number, outputTokens: number): number {
+export function calculateCost(
+  modelName: string,
+  inputTokens: number,
+  outputTokens: number
+): number {
   const pricing = getModelPricing(modelName);
   if (!pricing) return 0;
 
   const inputCost = (inputTokens / 1000) * pricing.inputCostPer1K;
   const outputCost = (outputTokens / 1000) * pricing.outputCostPer1K;
-  
+
   return inputCost + outputCost;
 }
 

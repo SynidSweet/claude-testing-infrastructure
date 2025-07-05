@@ -30,10 +30,10 @@ export interface XmlTemplateData extends BaseTemplateData {
 export class XmlTemplateEngine extends BaseTemplateEngine<XmlTemplateData> {
   async render(data: XmlTemplateData): Promise<string> {
     const xml: string[] = [];
-    
+
     xml.push('<?xml version="1.0" encoding="UTF-8"?>');
     xml.push(`<coverage timestamp="${data.timestamp}">`);
-    
+
     // Summary section
     xml.push('    <summary>');
     xml.push(`        <statements>${data.summary.statements}</statements>`);
@@ -41,10 +41,10 @@ export class XmlTemplateEngine extends BaseTemplateEngine<XmlTemplateData> {
     xml.push(`        <functions>${data.summary.functions}</functions>`);
     xml.push(`        <lines>${data.summary.lines}</lines>`);
     xml.push('    </summary>');
-    
+
     // Files section
     xml.push('    <files>');
-    data.files.forEach(file => {
+    data.files.forEach((file) => {
       xml.push(`        <file path="${this.escapeXml(file.path)}">`);
       xml.push('            <summary>');
       xml.push(`                <statements>${file.summary.statements}</statements>`);
@@ -56,18 +56,20 @@ export class XmlTemplateEngine extends BaseTemplateEngine<XmlTemplateData> {
       xml.push('        </file>');
     });
     xml.push('    </files>');
-    
+
     // Uncovered areas section
     xml.push('    <uncovered_areas>');
-    data.uncoveredAreas.forEach(area => {
-      xml.push(`        <area file="${this.escapeXml(area.file)}" line="${area.line}" type="${area.type}">`);
+    data.uncoveredAreas.forEach((area) => {
+      xml.push(
+        `        <area file="${this.escapeXml(area.file)}" line="${area.line}" type="${area.type}">`
+      );
       xml.push(`            ${this.escapeXml(area.description)}`);
       xml.push('        </area>');
     });
     xml.push('    </uncovered_areas>');
-    
+
     xml.push('</coverage>');
-    
+
     return xml.join('\n');
   }
 
@@ -79,17 +81,17 @@ export class XmlTemplateEngine extends BaseTemplateEngine<XmlTemplateData> {
     return {
       ...baseData,
       summary: data.summary,
-      files: files.map(file => ({
+      files: files.map((file) => ({
         path: file.path!,
         summary: {
           statements: file.summary.statements as number,
           branches: file.summary.branches as number,
           functions: file.summary.functions as number,
-          lines: file.summary.lines as number
+          lines: file.summary.lines as number,
         },
-        uncoveredLines: file.uncoveredLines || ''
+        uncoveredLines: file.uncoveredLines || '',
       })),
-      uncoveredAreas
+      uncoveredAreas,
     };
   }
 }

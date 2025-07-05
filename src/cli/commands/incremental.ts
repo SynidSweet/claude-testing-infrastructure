@@ -9,7 +9,7 @@ import { loadCommandConfig } from '../../config/ConfigurationService';
 
 export function createIncrementalCommand(): Command {
   const command = new Command('incremental');
-  
+
   command
     .description('Perform incremental test generation based on file changes')
     .argument('<project-path>', 'Path to the project to analyze')
@@ -26,8 +26,8 @@ export function createIncrementalCommand(): Command {
       try {
         await handleIncrementalCommand(projectPath, options);
       } catch (error) {
-        logger.error('Incremental generation failed', { 
-          error: error instanceof Error ? error.message : String(error)
+        logger.error('Incremental generation failed', {
+          error: error instanceof Error ? error.message : String(error),
         });
         process.exit(1);
       }
@@ -42,18 +42,18 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
     cliArgs: {
       verbose: options.verbose,
       dryRun: options.dryRun,
-      force: options.force
-    }
+      force: options.force,
+    },
   });
-  
+
   if (!configResult.valid) {
-    logger.warn('Configuration validation warnings', { 
-      warnings: configResult.warnings 
+    logger.warn('Configuration validation warnings', {
+      warnings: configResult.warnings,
     });
   }
-  
+
   const config = configResult.config;
-  
+
   // Apply configuration to logger
   if (config.output?.logLevel) {
     logger.level = config.output.logLevel as any;
@@ -69,20 +69,22 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
   }
 
   // Validate incremental generation
-  if (!await validateIncrementalGeneration(incrementalGenerator, changeDetector, options)) {
+  if (!(await validateIncrementalGeneration(incrementalGenerator, changeDetector, options))) {
     return;
   }
 
   // Perform incremental generation
   console.log('🔄 Starting incremental test generation...');
-  
+
   // Use configuration values as defaults
   const result = await incrementalGenerator.generateIncremental({
     forceRegenerate: options.force,
     skipAI: options.skipAi || !config.features?.aiGeneration,
     dryRun: options.dryRun,
     maxConcurrency: parseInt(options.maxConcurrency || '3', 10),
-    costLimit: parseFloat(options.costLimit || (config.incremental?.costLimit || config.ai?.maxCost || '5.0').toString())
+    costLimit: parseFloat(
+      options.costLimit || (config.incremental?.costLimit || config.ai?.maxCost || '5.0').toString()
+    ),
   });
 
   // Display and record results
@@ -167,15 +169,15 @@ async function recordResults(
         testsGenerated: result.newTests.length,
         testsUpdated: result.updatedTests.length,
         testsDeleted: result.deletedTests.length,
-        costIncurred: result.costEstimate
+        costIncurred: result.costEstimate,
       },
       details: {
         changedFiles: result.changedFiles,
         generatedTests: [...result.newTests, ...result.updatedTests],
         ...(result.skippedFiles.length > 0 && {
-          errors: [`Skipped ${result.skippedFiles.length} files`]
-        })
-      }
+          errors: [`Skipped ${result.skippedFiles.length} files`],
+        }),
+      },
     });
   }
 
@@ -187,7 +189,7 @@ async function recordResults(
 }
 
 async function showIncrementalStats(
-  incrementalGenerator: IncrementalGenerator, 
+  incrementalGenerator: IncrementalGenerator,
   historyManager: HistoryManager
 ): Promise<void> {
   console.log('📈 Incremental Testing Statistics\n');
@@ -210,7 +212,7 @@ async function showIncrementalStats(
 
   if (historyStats.mostActiveFiles.length > 0) {
     console.log('\n🔥 Most Active Files:');
-    historyStats.mostActiveFiles.slice(0, 5).forEach(file => {
+    historyStats.mostActiveFiles.slice(0, 5).forEach((file) => {
       console.log(`   ${file.path} (${file.updates} updates)`);
     });
   }
@@ -219,7 +221,7 @@ async function showIncrementalStats(
   const recentEntries = await historyManager.getRecentEntries(5);
   if (recentEntries.length > 0) {
     console.log('\n🕐 Recent Activity:');
-    recentEntries.forEach(entry => {
+    recentEntries.forEach((entry) => {
       const date = new Date(entry.timestamp).toLocaleDateString();
       const operation = entry.operation;
       const files = entry.summary.filesChanged;
@@ -228,12 +230,15 @@ async function showIncrementalStats(
   }
 }
 
-async function compareWithBaseline(historyManager: HistoryManager, baselineId: string): Promise<void> {
+async function compareWithBaseline(
+  historyManager: HistoryManager,
+  baselineId: string
+): Promise<void> {
   console.log(`🔍 Comparing with baseline: ${baselineId}\n`);
 
   try {
     const comparison = await historyManager.compareWithBaseline(baselineId);
-    
+
     console.log('📊 Baseline Comparison:');
     console.log(`   Baseline date: ${new Date(comparison.baselineDate).toLocaleDateString()}`);
     console.log('\n📋 Current State:');
@@ -251,10 +256,11 @@ async function compareWithBaseline(historyManager: HistoryManager, baselineId: s
 
     if (comparison.recommendations.length > 0) {
       console.log('\n💡 Recommendations:');
-      comparison.recommendations.forEach(rec => console.log(`   • ${rec}`));
+      comparison.recommendations.forEach((rec) => console.log(`   • ${rec}`));
     }
-
   } catch (error) {
-    console.error(`❌ Failed to compare with baseline: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `❌ Failed to compare with baseline: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }

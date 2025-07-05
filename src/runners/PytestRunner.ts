@@ -15,7 +15,11 @@ import { FileDiscoveryType } from '../types/file-discovery-types';
 export class PytestRunner extends TestRunner {
   private coverageReporter?: CoverageReporter;
 
-  constructor(config: TestRunnerConfig, analysis: ProjectAnalysis, private fileDiscovery: FileDiscoveryService) {
+  constructor(
+    config: TestRunnerConfig,
+    analysis: ProjectAnalysis,
+    private fileDiscovery: FileDiscoveryService
+  ) {
     super(config, analysis);
 
     // Initialize coverage reporter if coverage is enabled
@@ -46,9 +50,9 @@ export class PytestRunner extends TestRunner {
         baseDir: this.config.testPath,
         type: FileDiscoveryType.TEST_EXECUTION,
         languages: ['python'],
-        useCache: true
+        useCache: true,
       });
-      
+
       return result.files.length > 0;
     } catch {
       return false;
@@ -277,7 +281,6 @@ export class PytestRunner extends TestRunner {
 
     return result;
   }
-
 
   protected getEnvironment(): Record<string, string> {
     return {

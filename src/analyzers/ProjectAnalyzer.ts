@@ -153,8 +153,8 @@ export class ProjectAnalyzer {
       ]);
 
       // Check if this is an MCP server project
-      const isMCPServer = frameworks.some(f => f.name === 'mcp-server' || f.name === 'fastmcp');
-      
+      const isMCPServer = frameworks.some((f) => f.name === 'mcp-server' || f.name === 'fastmcp');
+
       const analysis: ProjectAnalysis = {
         projectPath: this.projectPath,
         languages,
@@ -232,80 +232,98 @@ export class ProjectAnalyzer {
     const pythonDeps = await this.readPythonDependencies();
 
     // React detection
-    if (await this.hasReact(packageJsonContent)) {
+    if (packageJsonContent && this.hasReact(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/.babelrc*',
         '**/webpack.config.*',
       ]);
+      const reactVersion = 
+        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.react ||
+        (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.react;
+      
       frameworks.push({
         name: 'react',
         confidence: 0.9,
-        version:
-          packageJsonContent?.dependencies?.react || packageJsonContent?.devDependencies?.react,
+        ...(reactVersion && { version: reactVersion }),
         configFiles,
       });
     }
 
     // Vue detection
-    if (await this.hasVue(packageJsonContent)) {
+    if (packageJsonContent && this.hasVue(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/vue.config.*',
         '**/vite.config.*',
       ]);
+      const vueVersion = 
+        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.vue ||
+        (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.vue;
+      
       frameworks.push({
         name: 'vue',
         confidence: 0.9,
-        version: packageJsonContent?.dependencies?.vue || packageJsonContent?.devDependencies?.vue,
+        ...(vueVersion && { version: vueVersion }),
         configFiles,
       });
     }
 
     // Angular detection
-    if (await this.hasAngular(packageJsonContent)) {
+    if (packageJsonContent && this.hasAngular(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/angular.json',
         '**/package.json',
         '**/tsconfig.json',
       ]);
+      const angularVersion = 
+        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.[
+          '@angular/core'
+        ];
+      
       frameworks.push({
         name: 'angular',
         confidence: 0.9,
-        version: packageJsonContent?.dependencies?.['@angular/core'],
+        ...(angularVersion && { version: angularVersion }),
         configFiles,
       });
     }
 
     // Express detection
-    if (await this.hasExpress(packageJsonContent)) {
+    if (packageJsonContent && this.hasExpress(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/app.js',
         '**/server.js',
         '**/index.js',
       ]);
+      const expressVersion = 
+        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.express;
+      
       frameworks.push({
         name: 'express',
         confidence: 0.8,
-        version: packageJsonContent?.dependencies?.express,
+        ...(expressVersion && { version: expressVersion }),
         configFiles,
       });
     }
 
     // Next.js detection
-    if (await this.hasNextJs(packageJsonContent)) {
+    if (packageJsonContent && this.hasNextJs(packageJsonContent)) {
       const configFiles = await this.findFiles(['**/next.config.*', '**/package.json']);
+      const nextjsVersion = 
+        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.next;
+      
       frameworks.push({
         name: 'nextjs',
         confidence: 0.9,
-        version: packageJsonContent?.dependencies?.next,
+        ...(nextjsVersion && { version: nextjsVersion }),
         configFiles,
       });
     }
 
     // FastAPI detection
-    if (await this.hasFastAPI(pythonDeps)) {
+    if (this.hasFastAPI(pythonDeps)) {
       const configFiles = await this.findFiles([
         '**/main.py',
         '**/app.py',
@@ -320,7 +338,7 @@ export class ProjectAnalyzer {
     }
 
     // Django detection
-    if (await this.hasDjango(pythonDeps)) {
+    if (this.hasDjango(pythonDeps)) {
       const configFiles = await this.findFiles([
         '**/manage.py',
         '**/settings.py',
@@ -335,7 +353,7 @@ export class ProjectAnalyzer {
     }
 
     // Flask detection
-    if (await this.hasFlask(pythonDeps)) {
+    if (this.hasFlask(pythonDeps)) {
       const configFiles = await this.findFiles([
         '**/app.py',
         '**/main.py',
@@ -350,7 +368,7 @@ export class ProjectAnalyzer {
     }
 
     // MCP Server detection
-    if (await this.hasMCPServer(packageJsonContent)) {
+    if (packageJsonContent && this.hasMCPServer(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/mcp.json',
         '**/.mcp/**',
@@ -359,21 +377,29 @@ export class ProjectAnalyzer {
         '**/server.js',
         '**/server.ts',
       ]);
-      
+
       const framework = await this.detectMCPFramework(packageJsonContent);
       if (framework === 'fastmcp') {
+        const fastmcpVersion = 
+          (packageJsonContent?.dependencies as Record<string, string> | undefined)?.fastmcp ||
+          (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.fastmcp;
+        
         frameworks.push({
           name: 'fastmcp',
           confidence: 0.95,
-          version: packageJsonContent?.dependencies?.fastmcp || packageJsonContent?.devDependencies?.fastmcp,
+          ...(fastmcpVersion && { version: fastmcpVersion }),
           configFiles,
         });
       } else {
+        const mcpVersion = 
+          (packageJsonContent?.dependencies as Record<string, string> | undefined)?.[
+            '@modelcontextprotocol/sdk'
+          ] || (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.['@modelcontextprotocol/sdk'];
+        
         frameworks.push({
           name: 'mcp-server',
           confidence: 0.9,
-          version: packageJsonContent?.dependencies?.['@modelcontextprotocol/sdk'] || 
-                   packageJsonContent?.devDependencies?.['@modelcontextprotocol/sdk'],
+          ...(mcpVersion && { version: mcpVersion }),
           configFiles,
         });
       }
@@ -520,8 +546,8 @@ export class ProjectAnalyzer {
     const pythonDeps = await this.readPythonDependencies();
 
     return {
-      production: packageJsonContent?.dependencies || {},
-      development: packageJsonContent?.devDependencies || {},
+      production: (packageJsonContent?.dependencies as Record<string, string>) || {},
+      development: (packageJsonContent?.devDependencies as Record<string, string>) || {},
       python: pythonDeps || undefined,
     };
   }
@@ -537,9 +563,9 @@ export class ProjectAnalyzer {
     const coverageTools: string[] = [];
 
     // Detect test frameworks from dependencies
-    const allDeps = {
-      ...(packageJsonContent?.dependencies || {}),
-      ...(packageJsonContent?.devDependencies || {}),
+    const allDeps: Record<string, string> = {
+      ...((packageJsonContent?.dependencies as Record<string, string>) || {}),
+      ...((packageJsonContent?.devDependencies as Record<string, string>) || {}),
     };
 
     if (allDeps?.jest) testFrameworks.push('jest');
@@ -600,53 +626,65 @@ export class ProjectAnalyzer {
   }
 
   // Helper methods for framework detection
-  private async hasReact(packageJson: any): Promise<boolean> {
+  private hasReact(packageJson: Record<string, unknown>): boolean {
     if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const dependencies = packageJson.dependencies as Record<string, string> | undefined;
+    const devDependencies = packageJson.devDependencies as Record<string, string> | undefined;
+    const deps = { ...dependencies, ...devDependencies };
     return !!(deps?.react || deps?.['@types/react']);
   }
 
-  private async hasVue(packageJson: any): Promise<boolean> {
+  private hasVue(packageJson: Record<string, unknown>): boolean {
     if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const dependencies = packageJson.dependencies as Record<string, string> | undefined;
+    const devDependencies = packageJson.devDependencies as Record<string, string> | undefined;
+    const deps = { ...dependencies, ...devDependencies };
     return !!(deps?.vue || deps?.['@vue/cli']);
   }
 
-  private async hasAngular(packageJson: any): Promise<boolean> {
+  private hasAngular(packageJson: Record<string, unknown>): boolean {
     if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const dependencies = packageJson.dependencies as Record<string, string> | undefined;
+    const devDependencies = packageJson.devDependencies as Record<string, string> | undefined;
+    const deps = { ...dependencies, ...devDependencies };
     return !!(deps?.['@angular/core'] || deps?.['@angular/cli']);
   }
 
-  private async hasExpress(packageJson: any): Promise<boolean> {
+  private hasExpress(packageJson: Record<string, unknown>): boolean {
     if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const dependencies = packageJson.dependencies as Record<string, string> | undefined;
+    const devDependencies = packageJson.devDependencies as Record<string, string> | undefined;
+    const deps = { ...dependencies, ...devDependencies };
     return !!deps?.express;
   }
 
-  private async hasNextJs(packageJson: any): Promise<boolean> {
+  private hasNextJs(packageJson: Record<string, unknown>): boolean {
     if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const dependencies = packageJson.dependencies as Record<string, string> | undefined;
+    const devDependencies = packageJson.devDependencies as Record<string, string> | undefined;
+    const deps = { ...dependencies, ...devDependencies };
     return !!deps?.next;
   }
 
-  private async hasFastAPI(pythonDeps: any): Promise<boolean> {
+  private hasFastAPI(pythonDeps: Record<string, string> | null): boolean {
     return !!(pythonDeps?.fastapi || pythonDeps?.['fastapi[all]']);
   }
 
-  private async hasDjango(pythonDeps: any): Promise<boolean> {
+  private hasDjango(pythonDeps: Record<string, string> | null): boolean {
     return !!(pythonDeps?.django || pythonDeps?.Django);
   }
 
-  private async hasFlask(pythonDeps: any): Promise<boolean> {
+  private hasFlask(pythonDeps: Record<string, string> | null): boolean {
     return !!(pythonDeps?.flask || pythonDeps?.Flask);
   }
 
-  private async hasMCPServer(packageJson: any): Promise<boolean> {
+  private hasMCPServer(packageJson: Record<string, unknown>): boolean {
     if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const dependencies = packageJson.dependencies as Record<string, string> | undefined;
+    const devDependencies = packageJson.devDependencies as Record<string, string> | undefined;
+    const deps = { ...dependencies, ...devDependencies };
     return !!(
-      deps?.['@modelcontextprotocol/sdk'] || 
+      deps?.['@modelcontextprotocol/sdk'] ||
       deps?.['@modelcontextprotocol/server'] ||
       deps?.fastmcp ||
       deps?.['mcp-framework'] ||
@@ -654,23 +692,28 @@ export class ProjectAnalyzer {
     );
   }
 
-  private async detectMCPFramework(packageJson: any): Promise<'fastmcp' | 'official-sdk' | 'custom'> {
+  private async detectMCPFramework(
+    packageJson: Record<string, unknown>
+  ): Promise<'fastmcp' | 'official-sdk' | 'custom'> {
     if (!packageJson) return 'custom';
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    
+    const deps = { 
+      ...(packageJson.dependencies as Record<string, string> || {}), 
+      ...(packageJson.devDependencies as Record<string, string> || {}) 
+    };
+
     if (deps?.fastmcp) {
       return 'fastmcp';
     } else if (deps?.['@modelcontextprotocol/sdk']) {
       return 'official-sdk';
     }
-    
+
     return 'custom';
   }
 
   private async analyzeMCPCapabilities(): Promise<MCPCapabilities> {
     const packageJson = await this.readPackageJson();
-    const framework = await this.detectMCPFramework(packageJson);
-    
+    const framework = await this.detectMCPFramework(packageJson || {});
+
     // Basic capability detection - would be enhanced with actual AST parsing
     const capabilities: MCPCapabilities = {
       tools: [],
@@ -679,26 +722,32 @@ export class ProjectAnalyzer {
       transports: ['stdio'], // Default transport
       framework,
     };
-    
+
     // Check for HTTP+SSE transport indicators
-    const hasHttpIndicators = packageJson?.dependencies?.express || 
-                             packageJson?.dependencies?.fastify ||
-                             packageJson?.dependencies?.['@fastify/sse'] ||
-                             packageJson?.devDependencies?.express ||
-                             packageJson?.devDependencies?.fastify;
-    
+    const hasHttpIndicators =
+      (packageJson as any)?.dependencies?.express ||
+      (packageJson as any)?.dependencies?.fastify ||
+      (packageJson as any)?.dependencies?.['@fastify/sse'] ||
+      (packageJson as any)?.devDependencies?.express ||
+      (packageJson as any)?.devDependencies?.fastify;
+
     if (hasHttpIndicators) {
       capabilities.transports.push('http-sse');
     }
-    
+
     // Try to detect MCP configuration file
-    const mcpConfigFiles = await this.findFiles(['mcp.json', '.mcp/config.json', '**/mcp.json', '**/.mcp/config.json']);
+    const mcpConfigFiles = await this.findFiles([
+      'mcp.json',
+      '.mcp/config.json',
+      '**/mcp.json',
+      '**/.mcp/config.json',
+    ]);
     if (mcpConfigFiles.length > 0 && mcpConfigFiles[0]) {
       try {
         const configPath = path.join(this.projectPath, mcpConfigFiles[0]);
         const configContent = await fs.readFile(configPath, 'utf-8');
         const config = JSON.parse(configContent);
-        
+
         // Extract capabilities from config if available
         if (config.tools) {
           capabilities.tools = config.tools.map((tool: any) => ({
@@ -707,27 +756,31 @@ export class ProjectAnalyzer {
             inputSchema: tool.inputSchema,
           }));
         }
-        
+
         if (config.resources) {
-          capabilities.resources = config.resources.map((resource: any) => ({
-            name: resource.name || 'unknown',
-            uri: resource.uri || '',
-            mimeType: resource.mimeType,
-          }));
+          capabilities.resources = config.resources.map(
+            (resource: any) => ({
+              name: resource.name || 'unknown',
+              uri: resource.uri || '',
+              mimeType: resource.mimeType,
+            })
+          );
         }
-        
+
         if (config.prompts) {
-          capabilities.prompts = config.prompts.map((prompt: any) => ({
-            name: prompt.name || 'unknown',
-            description: prompt.description,
-            arguments: prompt.arguments,
-          }));
+          capabilities.prompts = config.prompts.map(
+            (prompt: any) => ({
+              name: prompt.name || 'unknown',
+              description: prompt.description,
+              arguments: prompt.arguments,
+            })
+          );
         }
       } catch (error) {
         logger.debug('Could not parse MCP config file:', error);
       }
     }
-    
+
     return capabilities;
   }
 
@@ -735,7 +788,7 @@ export class ProjectAnalyzer {
   private async findFiles(
     patterns: string[],
     ignore: string[] = [],
-    options: any = {}
+    options: Record<string, unknown> = {}
   ): Promise<string[]> {
     // Use FileDiscoveryService if available, otherwise fall back to direct implementation
     if (this.fileDiscovery) {
@@ -745,14 +798,17 @@ export class ProjectAnalyzer {
           include: patterns,
           exclude: ignore,
           type: FileDiscoveryType.CUSTOM,
-          absolute: options.absolute,
+          absolute: options.absolute as boolean,
           includeDirectories: options.onlyFiles === false,
-          useCache: true
+          useCache: true,
         });
 
         return result.files;
       } catch (error) {
-        logger.debug('Error using FileDiscoveryService, falling back to direct implementation:', error);
+        logger.debug(
+          'Error using FileDiscoveryService, falling back to direct implementation:',
+          error
+        );
         // Fall through to direct implementation
       }
     }
@@ -763,9 +819,9 @@ export class ProjectAnalyzer {
         cwd: this.projectPath,
         ignore,
         onlyFiles: options.onlyFiles !== false,
-        deep: options.deep,
+        deep: options.deep as number | undefined,
         dot: false,
-      });
+      } as any) as unknown as string[];
     } catch (error) {
       logger.debug('Error finding files:', error);
       return [];
@@ -786,7 +842,7 @@ export class ProjectAnalyzer {
     }
   }
 
-  private async readPackageJson(): Promise<any> {
+  private async readPackageJson(): Promise<Record<string, unknown> | null> {
     try {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
@@ -994,9 +1050,15 @@ export class ProjectAnalyzer {
   private async detectFileExtensionPattern(): Promise<'js' | 'mjs' | 'ts'> {
     try {
       // Check for common file patterns in the project
-      const tsFiles = await this.findFiles(['**/*.ts', '**/*.tsx'], ['node_modules/**', 'dist/**', 'build/**']);
-      const mjsFiles = await this.findFiles(['**/*.mjs'], ['node_modules/**', 'dist/**', 'build/**']);
-      
+      const tsFiles = await this.findFiles(
+        ['**/*.ts', '**/*.tsx'],
+        ['node_modules/**', 'dist/**', 'build/**']
+      );
+      const mjsFiles = await this.findFiles(
+        ['**/*.mjs'],
+        ['node_modules/**', 'dist/**', 'build/**']
+      );
+
       if (tsFiles.length > 0) {
         return 'ts';
       } else if (mjsFiles.length > 0) {

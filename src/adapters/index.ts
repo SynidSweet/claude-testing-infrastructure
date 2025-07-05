@@ -13,12 +13,12 @@ export const adapters = {
 export interface Adapter {
   name: string;
   framework: string;
-  adapt(source: any): Promise<AdapterResult>;
+  adapt(source: unknown): Promise<AdapterResult>;
 }
 
 export interface AdapterResult {
   success: boolean;
-  output?: any;
+  output?: unknown;
   errors?: string[];
 }
 
@@ -33,7 +33,7 @@ export type FrameworkAdapter = {
 };
 
 // Placeholder function
-export async function getAdapter(_framework: string): Promise<Adapter | null> {
+export function getAdapter(_framework: string): Adapter | null {
   // TODO: Implement adapter retrieval logic
   return null;
 }

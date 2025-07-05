@@ -447,7 +447,7 @@ export class CostEstimator {
   /**
    * Map priority enum to number
    */
-  public mapPriorityToNumber(priority: any): number {
+  public mapPriorityToNumber(priority: string | number): number {
     const priorityMap: Record<string, number> = {
       critical: 10,
       high: 8,

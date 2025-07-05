@@ -15,8 +15,8 @@ export class TestRunnerFactory {
    * Create a test runner for the specified framework
    */
   static createRunner(
-    config: TestRunnerConfig, 
-    analysis: ProjectAnalysis, 
+    config: TestRunnerConfig,
+    analysis: ProjectAnalysis,
     fileDiscovery?: FileDiscoveryService
   ): TestRunner {
     logger.debug(`Creating test runner for framework: ${config.framework}`);
@@ -36,7 +36,7 @@ export class TestRunnerFactory {
 
     // Create instance based on resolved framework
     let instance: TestRunner;
-    
+
     if (resolvedFramework === 'jest') {
       // Update config with resolved framework
       const resolvedConfig = { ...config, framework: resolvedFramework };
@@ -108,5 +108,4 @@ export class TestRunnerFactory {
     // Default fallback
     return 'jest';
   }
-
 }

@@ -2,7 +2,7 @@
 
 /**
  * test-ai command: Complete AI-enhanced testing workflow
- * 
+ *
  * TEMPORARILY DISABLED due to compilation issues in AIEnhancedTestingWorkflow
  */
 
@@ -23,7 +23,9 @@ export const testAICommand = new Command()
   .option('-o, --output <path>', 'Output directory for reports')
   .option('-v, --verbose', 'Enable verbose logging')
   .action(async (_projectPath: string, _options: any) => {
-    console.error(chalk.red('AI-enhanced testing workflow is temporarily disabled due to compilation issues.'));
+    console.error(
+      chalk.red('AI-enhanced testing workflow is temporarily disabled due to compilation issues.')
+    );
     console.log(chalk.yellow('Please use the individual commands instead:'));
     console.log('  npx claude-testing analyze <project>');
     console.log('  npx claude-testing test <project>');

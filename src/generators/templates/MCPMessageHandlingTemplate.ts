@@ -2,9 +2,9 @@ import { MCPProjectAnalysis } from '../../types/mcp-types';
 
 export class MCPMessageHandlingTemplate {
   generateMessageTests(analysis: MCPProjectAnalysis): { path: string; content: string } {
-    const isTypeScript = analysis.languages.some(l => l.name === 'typescript');
+    const isTypeScript = analysis.languages.some((l) => l.name === 'typescript');
     const extension = isTypeScript ? 'ts' : 'js';
-    
+
     return {
       path: `.claude-testing/mcp-message-handling.test.${extension}`,
       content: this.generateTestContent(isTypeScript, analysis),
@@ -12,10 +12,13 @@ export class MCPMessageHandlingTemplate {
   }
 
   private generateTestContent(isTypeScript: boolean, analysis: MCPProjectAnalysis): string {
-    const imports = this.generateImports(analysis.mcpCapabilities?.framework || 'custom', isTypeScript);
+    const imports = this.generateImports(
+      analysis.mcpCapabilities?.framework || 'custom',
+      isTypeScript
+    );
     const setup = this.generateSetup();
     const tests = this.generateTests();
-    
+
     return `${imports}
 
 ${setup}
@@ -28,17 +31,17 @@ ${tests}
 
   private generateImports(framework: string, isTypeScript: boolean): string {
     const imports = [];
-    
+
     if (framework === 'fastmcp') {
       imports.push("import { FastMCP } from 'fastmcp';");
     }
-    
+
     imports.push("import { EventEmitter } from 'events';");
-    
+
     if (isTypeScript) {
       imports.push("import { JSONRPCMessage } from '@modelcontextprotocol/sdk/types';");
     }
-    
+
     return imports.join('\n');
   }
 

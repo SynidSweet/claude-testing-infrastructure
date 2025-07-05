@@ -4,6 +4,38 @@
 
 ⚠️ **STABILITY NOTICE**: This file is protected and stable - designed specifically to not be modified by AI tools during sessions. Use this as your reliable reference point.
 
+## ⚡ TL;DR Quick Start
+
+**For experienced users - complete setup in 2 minutes:**
+
+```bash
+# 1. Clone and build infrastructure
+git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
+cd claude-testing-infrastructure && npm install && npm run build
+
+# 2. Verify working (should show v2.0.0)
+node dist/cli/index.js --version
+
+# 3. Generate tests for your project
+node dist/cli/index.js analyze /path/to/your/project    # Detect languages/frameworks
+node dist/cli/index.js test /path/to/your/project       # Generate comprehensive tests
+node dist/cli/index.js run /path/to/your/project --coverage  # Execute with coverage
+
+# 4. [Optional] AI-powered logical tests (requires Claude CLI with Max subscription)
+node dist/cli/index.js test /path/to/your/project --only-logical
+
+# 5. [Optional] Smart incremental updates based on Git changes
+node dist/cli/index.js incremental /path/to/your/project
+```
+
+**Key Success Indicators:**
+- ✅ Version shows `2.0.0` 
+- ✅ Analysis detects your languages/frameworks correctly
+- ✅ Tests are generated in `.claude-testing/` directory with `package.json` and config files
+- ✅ Tests can be executed with your framework (`npm test` in `.claude-testing/`)
+
+**Need help?** Jump to [Full Setup Guide](#step-1-clone-this-infrastructure) below for detailed instructions.
+
 ## 🚨 Major Update: Single Decoupled Approach
 
 This infrastructure has been completely redesigned as a **single, focused solution** that:
@@ -92,7 +124,11 @@ node dist/cli/index.js test /path/to/your/project --only-structural
 node dist/cli/index.js test /path/to/your/project --only-logical
 
 # Generate logical tests in configurable batches (recommended for large projects)
-node dist/cli/index.js generate-logical-batch /path/to/your/project --batch-size 10
+# Default batch size reduced to 5 to prevent Claude usage spikes
+node dist/cli/index.js generate-logical-batch /path/to/your/project --batch-size 5
+
+# Enable concurrent processing (default is sequential to prevent usage spikes)
+node dist/cli/index.js generate-logical-batch /path/to/your/project --allow-concurrent
 
 # Resume interrupted batch processing
 node dist/cli/index.js generate-logical-batch /path/to/your/project --resume
@@ -144,7 +180,9 @@ node dist/cli/index.js test /path/to/mcp-server
 - Creates both unit and integration tests
 
 ### Batched AI Processing ✅ NEW
-- ✅ Configurable batch sizes (default: 10 tests per batch)
+- ✅ Configurable batch sizes (default: 5 tests per batch - reduced to prevent usage spikes)
+- ✅ Sequential processing by default with optional concurrent mode
+- ✅ Global process limits prevent excessive Claude usage
 - ✅ State persistence for resumable processing
 - ✅ Progress tracking and cost estimation per batch
 - ✅ Iterative processing ideal for large projects
@@ -217,7 +255,11 @@ node dist/cli/index.js incremental /path/to/project --stats
 ### Large Project AI Test Generation (Batched Processing)
 ```bash
 # Start batched AI test generation (ideal for 50+ files)
-node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 10
+# Default batch size is now 5, sequential processing to prevent usage spikes
+node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 5
+
+# Enable concurrent processing if you need faster execution
+node dist/cli/index.js generate-logical-batch /path/to/large/project --allow-concurrent --concurrent 2
 
 # Continue processing next batch (after previous batch completes)
 node dist/cli/index.js generate-logical-batch /path/to/large/project

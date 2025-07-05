@@ -97,14 +97,6 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 
 **INVESTIGATION COMPLETE**: Production readiness assessment identified 28 failing tests (93.2% pass rate) preventing production deployment. Tasks below address critical blockers to achieve >98% pass rate required for production use.
 
-
-
-
-
-
-
-
-
 #### ✅ COMPLETED: Fix AI Generation Hanging Issues  
 **Status**: Completed
 **Priority**: 🟠 Critical  
@@ -312,6 +304,245 @@ The breakdown subtask will decompose this further into specific test fix impleme
 
 ### **🟡 Moderate Tasks (3-6 hours / 2-3 sessions) - Production Blockers**
 - ✅ All moderate production blocking tasks completed
+- Fix ESLint and TypeScript Errors (6-8 hours) - 🟡 High Priority
+
+### **🟡 Code Quality Improvement Tasks**
+
+#### 🟡 Fix Claude Usage Spike - Concurrent Process Management
+**Status**: Pending
+**Priority**: 🟠 High  
+**Estimate**: 4-5 hours
+**Added**: 2025-07-05 after usage spike investigation
+
+##### Problem Summary
+User experiencing rapid Claude usage depletion due to excessive concurrent process spawning. ClaudeOrchestrator allows up to 3 concurrent processes by default, batch size is 10, and CLI can specify up to 50 concurrent processes. Multiple batch commands can stack processes without global limits, causing usage spikes.
+
+##### Success Criteria
+- [ ] Default concurrency reduced to safer levels (maxConcurrent: 2, batchSize: 5)
+- [ ] Global process limit validation prevents > 5 concurrent Claude processes
+- [ ] Sequential execution by default with opt-in concurrency flag
+- [ ] Clear error messages when approaching usage limits
+- [ ] No breaking changes for existing workflows
+- [ ] All tests passing with new limits
+
+##### Detailed Implementation Steps
+
+**Phase 1: Preparation** (10 minutes)
+- [ ] Create feature branch: `git checkout -b fix/claude-usage-limits`
+- [ ] Run existing tests to establish baseline: `npm test`
+- [ ] Document current concurrency behavior in ClaudeOrchestrator
+- [ ] Note all places where concurrency limits are set
+
+**Phase 2: Reduce Default Limits** (30-45 minutes)
+- [ ] Update ClaudeOrchestrator default maxConcurrent from 3 to 2 (line 121)
+- [ ] Update DEFAULT_CONFIG batchSize from 10 to 5 (config.ts:607)
+- [ ] Update BatchedLogicalTestGenerator default batch size to 5
+- [ ] Add configuration warning when values exceed recommended limits
+- [ ] Run tests after each change to ensure compatibility
+
+**Phase 3: Add Global Process Validation** (1.5-2 hours)
+- [ ] Create ProcessLimitValidator service in src/utils/
+- [ ] Implement getActiveClaudeProcessCount() using ps/pgrep
+- [ ] Add validateProcessLimit() to check before spawning
+- [ ] Integrate validation in ClaudeOrchestrator.processBatch()
+- [ ] Add validation to generate-logical-batch command
+- [ ] Test cross-platform compatibility (macOS, Linux, Windows WSL)
+
+**Phase 4: Implement Sequential Default** (1-1.5 hours)
+- [ ] Add --allow-concurrent flag to generate-logical-batch command
+- [ ] Make sequential processing the default behavior
+- [ ] Update batch processing to run tasks one at a time unless flag set
+- [ ] Maintain backward compatibility with explicit concurrent option
+- [ ] Update command help text to explain new behavior
+
+**Phase 5: Add Usage Warnings** (30-45 minutes)
+- [ ] Implement usage tracking in ClaudeOrchestrator stats
+- [ ] Add warning at 80% of typical rate limits
+- [ ] Create clear error messages for limit violations
+- [ ] Add --force flag to override soft limits with warning
+- [ ] Log usage patterns for future analysis
+
+**Phase 6: Cleanup & Documentation** (30 minutes)
+- [ ] Update AI_AGENT_GUIDE.md with new concurrency limits
+- [ ] Add usage optimization section to documentation
+- [ ] Update command examples with recommended settings
+- [ ] Run full test suite and linting
+- [ ] Commit changes with descriptive message
+
+##### Before/After Code Structure
+```
+BEFORE:
+// ClaudeOrchestrator.ts
+maxConcurrent: 3,
+
+// config.ts
+batchSize: 10,
+
+// No global process limits
+// Concurrent by default
+
+AFTER:
+// ClaudeOrchestrator.ts
+maxConcurrent: 2, // Reduced default
+
+// config.ts
+batchSize: 5, // Smaller default batches
+
+// ProcessLimitValidator ensures max 5 global
+// Sequential by default, --allow-concurrent for parallel
+```
+
+##### Risk Assessment
+- **Breaking changes**: Reduced defaults may slow some workflows
+- **Testing strategy**: Validate with typical workloads, test process counting
+- **Rollback plan**: `git checkout main && git branch -D fix/claude-usage-limits`
+- **Migration**: Users can override with explicit config if needed
+
+##### Estimated Effort
+**Total time**: 4-5 hours (single session possible but 2 sessions recommended)
+**Complexity**: Moderate
+**AI Agent suitability**: Good - clear implementation steps with specific changes
+
+#### 🟡 Refactor Authentication Logic in ClaudeOrchestrator
+**Status**: Pending
+**Priority**: 🟡 Medium  
+**Estimate**: 3-4 hours
+**Added**: 2025-07-04 after feedback implementation fixes
+
+##### Problem Summary
+The `validateClaudeAuth()` method in ClaudeOrchestrator became complex after recent authentication fixes. The method now has 60+ lines with nested try-catch blocks, multiple authentication strategies, and mixed concerns. This makes it difficult for AI agents to understand and maintain.
+
+##### Success Criteria
+- [ ] Authentication method reduced to under 30 lines
+- [ ] Each authentication strategy extracted to separate method
+- [ ] Improved code readability for AI agents
+- [ ] All existing authentication behavior preserved
+- [ ] No breaking changes to public interfaces
+- [ ] All tests passing
+
+##### Detailed Implementation Steps
+
+**Phase 1: Preparation** (5-10 minutes)
+- [ ] Create feature branch: `git checkout -b refactor/claude-orchestrator-auth`
+- [ ] Run existing tests to establish baseline: `npm test`
+- [ ] Document current authentication behavior
+- [ ] Take note of all authentication paths
+
+**Phase 2: Safe Refactoring** (2-3 hours)
+- [ ] Extract CLI test strategy to `testClaudeWithQuery()` method
+- [ ] Extract config check strategy to `testClaudeConfig()` method  
+- [ ] Extract CLI availability check to `checkClaudeAvailable()` method
+- [ ] Simplify main `validateClaudeAuth()` to coordinate strategies
+- [ ] Run tests after each extraction to ensure no regressions
+- [ ] Improve error message consistency across strategies
+
+**Phase 3: Test Environment Setup Refactoring** (30-45 minutes)
+- [ ] Extract test environment creation from StructuralTestGenerator to TestEnvironmentService
+- [ ] Move `createTestEnvironment()` methods to new service class
+- [ ] Update StructuralTestGenerator to use TestEnvironmentService
+- [ ] Maintain backward compatibility with existing generator interface
+
+**Phase 4: Cleanup & Documentation** (15-20 minutes)
+- [ ] Update method names for clarity (`validateClaudeAuth` → `validateAuthentication`)
+- [ ] Add inline comments for authentication strategy selection
+- [ ] Run final test suite and linting
+- [ ] Commit changes with descriptive message
+
+##### Before/After Code Structure
+```
+BEFORE:
+validateClaudeAuth() {
+  try {
+    execSync('claude --version');
+    try {
+      const testResult = execSync('echo "test" | claude');
+      // ... 40+ lines of nested logic
+    } catch (testError) {
+      try {
+        const configCheck = execSync('claude config get');
+        // ... more nested logic
+      } catch (configError) {
+        // ... fallback logic
+      }
+    }
+  } catch (error) {
+    // ... error handling
+  }
+}
+
+AFTER:
+validateAuthentication() {
+  await this.checkClaudeAvailable();
+  
+  const strategies = [
+    () => this.testClaudeWithQuery(),
+    () => this.testClaudeConfig()
+  ];
+  
+  for (const strategy of strategies) {
+    if (await strategy()) return { authenticated: true };
+  }
+  
+  return this.handleAuthFailure();
+}
+```
+
+##### Risk Assessment
+- **Breaking changes**: None expected - refactoring internal methods only
+- **Testing strategy**: Run comprehensive test suite after each extraction
+- **Rollback plan**: `git checkout main && git branch -D refactor/claude-orchestrator-auth`
+
+##### Estimated Effort
+**Total time**: 3-4 hours (single session recommended: Yes)
+**Complexity**: Moderate
+**AI Agent suitability**: This task is well-suited for AI agent execution
+
+#### 🟡 Extract Test Environment Service from StructuralTestGenerator  
+**Status**: Pending
+**Priority**: 🟡 Medium  
+**Estimate**: 2-3 hours
+**Added**: 2025-07-04 after test environment setup implementation
+
+##### Problem Summary
+The StructuralTestGenerator class has grown to 1200+ lines after adding test environment setup functionality. The test environment creation logic (150+ lines) is mixed with test generation logic, violating single responsibility principle and making the class hard to understand.
+
+##### Success Criteria
+- [ ] TestEnvironmentService class created with environment setup logic
+- [ ] StructuralTestGenerator reduced by 100+ lines
+- [ ] Clear separation between test generation and environment setup
+- [ ] All existing functionality preserved
+- [ ] No breaking changes to generator interface
+- [ ] All tests passing
+
+##### Detailed Implementation Steps
+
+**Phase 1: Service Extraction** (1-1.5 hours)
+- [ ] Create `TestEnvironmentService` class in `src/services/`
+- [ ] Move environment creation methods from StructuralTestGenerator
+- [ ] Add proper TypeScript interfaces for service
+- [ ] Update StructuralTestGenerator to use service injection
+
+**Phase 2: Integration** (30-45 minutes)
+- [ ] Update test generation workflow to use service
+- [ ] Ensure dry-run mode still skips environment setup
+- [ ] Maintain logging and error handling patterns
+- [ ] Run tests to verify functionality
+
+**Phase 3: Cleanup** (30 minutes)
+- [ ] Remove extracted methods from StructuralTestGenerator
+- [ ] Update imports and dependencies
+- [ ] Add service to dependency injection if applicable
+- [ ] Update related documentation
+
+##### Risk Assessment
+- **Breaking changes**: Low - internal refactoring only
+- **Testing strategy**: Verify test generation still creates proper environment
+- **Rollback plan**: Git revert if integration issues arise
+
+##### Estimated Effort
+**Total time**: 2-3 hours (single session recommended: Yes)
+**Complexity**: Moderate  
+**AI Agent suitability**: Good - clear extraction with defined boundaries
 
 ### **🟠 Complex Tasks (6-12 hours / 3-6 sessions)**
 - Fix AI Generation Hanging Issues (8-12 hours) - 🟠 Critical Priority
@@ -327,9 +558,9 @@ The breakdown subtask will decompose this further into specific test fix impleme
 - Intelligent Test Generation System Epic (40+ hours)
 
 ### **Recommended Execution Order - Production First**
-1. **Immediate (Simple Tasks)**: AsyncPatternDetector fix, configuration test logging cleanup
-2. **Short-term (Moderate Tasks)**: Environment variables, configuration validation, Claude CLI reliability
-3. **Medium-term (Complex Tasks)**: AI generation hanging, comprehensive test stabilization
+1. **Immediate (Simple Tasks)**: ✅ All completed
+2. **Short-term (Moderate Tasks)**: Fix ESLint and TypeScript errors for code quality
+3. **Medium-term (Complex Tasks)**: ✅ AI generation hanging (completed), ✅ comprehensive test stabilization (completed)
 4. **Long-term (Investigation)**: Configuration auto-discovery, file discovery service
 5. **Future (Epics)**: Epic task breakdown and planning phases
 

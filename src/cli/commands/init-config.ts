@@ -2,7 +2,7 @@
 
 /**
  * Configuration Template Initialization Command
- * 
+ *
  * Helps users quickly set up .claude-testing.config.json files
  * based on common project templates
  */
@@ -26,43 +26,43 @@ const AVAILABLE_TEMPLATES: TemplateInfo[] = [
     description: 'React application with TypeScript, Jest, and component testing',
     filename: 'react-typescript.json',
     frameworks: ['React', 'TypeScript', 'JSX'],
-    testFramework: 'Jest'
+    testFramework: 'Jest',
   },
   {
-    name: 'Vue TypeScript', 
+    name: 'Vue TypeScript',
     description: 'Vue.js application with TypeScript, Vitest, and SFC support',
     filename: 'vue-typescript.json',
     frameworks: ['Vue.js', 'TypeScript', 'Composition API'],
-    testFramework: 'Vitest'
+    testFramework: 'Vitest',
   },
   {
     name: 'Next.js TypeScript',
     description: 'Next.js application with TypeScript, API routes, and SSR testing',
-    filename: 'nextjs-typescript.json', 
+    filename: 'nextjs-typescript.json',
     frameworks: ['Next.js', 'React', 'TypeScript'],
-    testFramework: 'Jest'
+    testFramework: 'Jest',
   },
   {
     name: 'Express TypeScript',
     description: 'Express.js API with TypeScript, middleware, and endpoint testing',
     filename: 'express-typescript.json',
     frameworks: ['Express.js', 'Node.js', 'TypeScript'],
-    testFramework: 'Jest'
+    testFramework: 'Jest',
   },
   {
     name: 'Node.js JavaScript',
     description: 'Node.js application with JavaScript, API testing, and business logic',
     filename: 'node-javascript.json',
     frameworks: ['Node.js', 'JavaScript'],
-    testFramework: 'Jest'
+    testFramework: 'Jest',
   },
   {
     name: 'Python Django',
     description: 'Django web application with pytest, models, views, and API testing',
     filename: 'python-django.json',
     frameworks: ['Django', 'Python'],
-    testFramework: 'pytest'
-  }
+    testFramework: 'pytest',
+  },
 ];
 
 export class ConfigInitializer {
@@ -103,15 +103,17 @@ export class ConfigInitializer {
       }
 
       await this.copyTemplate(templateChoice, configPath);
-      
+
       if (options.interactive) {
         await this.customizeConfig(configPath);
       }
 
       await this.showNextSteps(templateChoice);
-
     } catch (error) {
-      console.error('❌ Configuration setup failed:', error instanceof Error ? error.message : String(error));
+      console.error(
+        '❌ Configuration setup failed:',
+        error instanceof Error ? error.message : String(error)
+      );
       process.exit(1);
     }
   }
@@ -127,17 +129,19 @@ export class ConfigInitializer {
 
   private findTemplate(templateName: string): TemplateInfo {
     // Try exact match first
-    let template = AVAILABLE_TEMPLATES.find(t => 
-      t.name.toLowerCase() === templateName.toLowerCase() ||
-      t.filename === templateName ||
-      t.filename === `${templateName}.json`
+    let template = AVAILABLE_TEMPLATES.find(
+      (t) =>
+        t.name.toLowerCase() === templateName.toLowerCase() ||
+        t.filename === templateName ||
+        t.filename === `${templateName}.json`
     );
 
     if (!template) {
       // Try partial match
-      template = AVAILABLE_TEMPLATES.find(t =>
-        t.name.toLowerCase().includes(templateName.toLowerCase()) ||
-        t.frameworks.some(f => f.toLowerCase().includes(templateName.toLowerCase()))
+      template = AVAILABLE_TEMPLATES.find(
+        (t) =>
+          t.name.toLowerCase().includes(templateName.toLowerCase()) ||
+          t.frameworks.some((f) => f.toLowerCase().includes(templateName.toLowerCase()))
       );
     }
 
@@ -146,7 +150,7 @@ export class ConfigInitializer {
 
   private listTemplates(): void {
     console.log('📋 Available Templates:\n');
-    
+
     AVAILABLE_TEMPLATES.forEach((template, index) => {
       console.log(`   ${index + 1}. ${template.name}`);
       console.log(`      ${template.description}`);
@@ -161,7 +165,7 @@ export class ConfigInitializer {
 
   private async interactiveSelection(): Promise<TemplateInfo> {
     console.log('📋 Available Project Templates:\n');
-    
+
     AVAILABLE_TEMPLATES.forEach((template, index) => {
       console.log(`   ${index + 1}. ${template.name}`);
       console.log(`      ${template.description}`);
@@ -170,14 +174,14 @@ export class ConfigInitializer {
 
     const rl = createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     return new Promise((resolve) => {
       rl.question('Select template number (1-6): ', (answer) => {
         rl.close();
         const choice = parseInt(answer.trim()) - 1;
-        
+
         if (choice >= 0 && choice < AVAILABLE_TEMPLATES.length) {
           resolve(AVAILABLE_TEMPLATES[choice]!);
         } else {
@@ -203,17 +207,17 @@ export class ConfigInitializer {
           console.log('✅ Detected: Next.js project');
           return this.findTemplate('nextjs-typescript');
         }
-        
+
         if (deps.react) {
           console.log('✅ Detected: React project');
           return this.findTemplate('react-typescript');
         }
-        
+
         if (deps.vue) {
           console.log('✅ Detected: Vue.js project');
           return this.findTemplate('vue-typescript');
         }
-        
+
         if (deps.express) {
           console.log('✅ Detected: Express.js project');
           return this.findTemplate('express-typescript');
@@ -227,8 +231,9 @@ export class ConfigInitializer {
       const pythonFiles = await this.hasFilePattern('**/*.py');
       if (pythonFiles) {
         // Check for Django
-        const djangoFiles = await this.hasFilePattern('**/manage.py') || 
-                            await this.hasFilePattern('**/settings.py');
+        const djangoFiles =
+          (await this.hasFilePattern('**/manage.py')) ||
+          (await this.hasFilePattern('**/settings.py'));
         if (djangoFiles) {
           console.log('✅ Detected: Django project');
           return this.findTemplate('python-django');
@@ -237,7 +242,6 @@ export class ConfigInitializer {
 
       console.log('⚠️  Could not auto-detect project type, using React TypeScript template');
       return AVAILABLE_TEMPLATES[0]!;
-
     } catch (error) {
       console.log('⚠️  Auto-detection failed, using React TypeScript template');
       return AVAILABLE_TEMPLATES[0]!;
@@ -247,7 +251,7 @@ export class ConfigInitializer {
   private async hasFilePattern(pattern: string): Promise<boolean> {
     try {
       const files = await fs.readdir(this.targetPath, { recursive: true });
-      return files.some(file => file.toString().includes(pattern.replace('**/*', '')));
+      return files.some((file) => file.toString().includes(pattern.replace('**/*', '')));
     } catch {
       return false;
     }
@@ -258,22 +262,24 @@ export class ConfigInitializer {
     console.log(`   ${template.description}\n`);
 
     const templatePath = path.join(this.templatesDir, template.filename);
-    
+
     try {
       const templateContent = await fs.readFile(templatePath, 'utf-8');
       await fs.writeFile(configPath, templateContent, 'utf-8');
-      
+
       console.log('✅ Configuration file created successfully!');
       console.log(`   ${configPath}\n`);
     } catch (error) {
-      throw new Error(`Failed to copy template: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to copy template: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
   private async customizeConfig(configPath: string): Promise<void> {
     const rl = createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     console.log('🔧 Configuration Customization (press Enter to keep defaults):\n');
@@ -282,15 +288,19 @@ export class ConfigInitializer {
       const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
 
       // Customize key settings interactively
-      const maxCost = await this.askQuestion(rl, 
-        `AI maximum cost (current: $${config.ai?.maxCost || 3.00}): `);
+      const maxCost = await this.askQuestion(
+        rl,
+        `AI maximum cost (current: $${config.ai?.maxCost || 3.0}): `
+      );
       if (maxCost.trim()) {
         config.ai = config.ai || {};
         config.ai.maxCost = parseFloat(maxCost);
       }
 
-      const coverageLines = await this.askQuestion(rl,
-        `Coverage lines threshold % (current: ${config.coverage?.thresholds?.global?.lines || 80}): `);
+      const coverageLines = await this.askQuestion(
+        rl,
+        `Coverage lines threshold % (current: ${config.coverage?.thresholds?.global?.lines || 80}): `
+      );
       if (coverageLines.trim()) {
         config.coverage = config.coverage || { thresholds: { global: {} } };
         config.coverage.thresholds.global.lines = parseInt(coverageLines);
@@ -298,7 +308,6 @@ export class ConfigInitializer {
 
       await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
       console.log('\n✅ Configuration customized successfully!\n');
-
     } catch (error) {
       console.log('⚠️  Customization failed, using template defaults\n');
     } finally {
@@ -318,10 +327,10 @@ export class ConfigInitializer {
     console.log('🎯 Next Steps:\n');
     console.log('1. Analyze your project:');
     console.log(`   node dist/cli/index.js analyze ${this.targetPath}\n`);
-    
+
     console.log('2. Generate tests:');
     console.log(`   node dist/cli/index.js test ${this.targetPath}\n`);
-    
+
     console.log('3. Run tests with coverage:');
     console.log(`   node dist/cli/index.js run ${this.targetPath} --coverage\n`);
 

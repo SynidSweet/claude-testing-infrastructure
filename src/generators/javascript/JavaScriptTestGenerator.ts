@@ -1,9 +1,9 @@
 import { BaseTestGenerator } from '../base/BaseTestGenerator';
-import type { 
-  LanguageContext, 
-  SourceFileAnalysis, 
-  ExportedItem, 
-  ImportStatement 
+import type {
+  LanguageContext,
+  SourceFileAnalysis,
+  ExportedItem,
+  ImportStatement,
 } from '../base/BaseTestGenerator';
 import type { ProjectAnalysis } from '../../analyzers/ProjectAnalyzer';
 import type { TestGeneratorConfig, GeneratedTest } from '../TestGenerator';
@@ -18,7 +18,7 @@ import type { FileAsyncPatterns } from './analyzers/AsyncPatternDetector';
 
 /**
  * JavaScript/TypeScript specific test generator
- * 
+ *
  * This generator understands JavaScript and TypeScript patterns,
  * frameworks, and idioms to create appropriate tests.
  */
@@ -34,28 +34,28 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     languageContext: LanguageContext
   ) {
     super(config, analysis, languageContext);
-    
+
     // Initialize JavaScript-specific context
     this.jsContext = this.buildJavaScriptContext();
-    
+
     // Initialize module system analyzer
     this.moduleAnalyzer = new ModuleSystemAnalyzer({
       projectPath: config.projectPath,
       checkFileExtension: true,
       analyzeContent: true,
     });
-    
+
     // Initialize framework detector
     this.frameworkDetector = new JSFrameworkDetector(
       config.projectPath,
       null // Will be loaded when needed
     );
-    
+
     // Initialize async pattern detector
     this.asyncDetector = new AsyncPatternDetector({
       analyzeTypeScript: this.jsContext.isTypeScript,
       maxExamples: 3,
-      minConfidence: 0.6
+      minConfidence: 0.6,
     });
   }
 
@@ -67,7 +67,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
       type: 'commonjs' as const,
       hasPackageJsonType: false,
       confidence: 0.5,
-      fileExtensionPattern: 'js' as const
+      fileExtensionPattern: 'js' as const,
     };
 
     const jsContext: JavaScriptContext = {
@@ -75,17 +75,17 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
         type: moduleSystem.type,
         hasPackageJsonType: moduleSystem.hasPackageJsonType,
         confidence: moduleSystem.confidence,
-        importExtension: moduleSystem.type === 'esm' ? '.js' : ''
+        importExtension: moduleSystem.type === 'esm' ? '.js' : '',
       },
       isTypeScript: this.languageContext.language === 'typescript',
     };
 
     // Add optional properties only if they have values
     // These will be detected per file later
-    
+
     return jsContext;
   }
-  
+
   /**
    * Initialize framework detector with package.json if needed
    */
@@ -94,12 +94,9 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
       const packageJsonPath = path.join(this.config.projectPath, 'package.json');
       const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
       const packageJson = JSON.parse(packageJsonContent);
-      
+
       // Re-initialize framework detector with package.json
-      this.frameworkDetector = new JSFrameworkDetector(
-        this.config.projectPath,
-        packageJson
-      );
+      this.frameworkDetector = new JSFrameworkDetector(this.config.projectPath, packageJson);
     } catch (error) {
       logger.debug('Could not load package.json for framework detection', { error });
       // Keep using the detector with null package.json
@@ -111,17 +108,15 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   protected async getFilesToTest(): Promise<string[]> {
     const fg = (await import('fast-glob')).default;
-    
+
     // Get file extensions based on language
     const extensions = this.getSourceFileExtensions();
-    const patterns = extensions.map(ext => 
-      path.join(this.config.projectPath, `**/*${ext}`)
-    );
+    const patterns = extensions.map((ext) => path.join(this.config.projectPath, `**/*${ext}`));
 
     // Get exclude patterns from config and defaults
     const excludePatterns = [
       ...this.getExcludePatterns(),
-      ...(this.config.patterns?.exclude || [])
+      ...(this.config.patterns?.exclude || []),
     ];
 
     try {
@@ -138,7 +133,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
         });
         return files;
       }
-      
+
       return [];
     } catch (error) {
       logger.error('Failed to find JavaScript/TypeScript files', { error });
@@ -151,11 +146,11 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   protected getSourceFileExtensions(): string[] {
     const extensions = ['.js', '.jsx', '.mjs'];
-    
+
     if (this.jsContext.isTypeScript) {
       extensions.push('.ts', '.tsx');
     }
-    
+
     return extensions;
   }
 
@@ -172,7 +167,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
 
       // Analyze the source file
       const analysis = await this.analyzeSourceFile(filePath);
-      
+
       // Skip files with no exports or only type exports
       if (analysis.exports.length === 0) {
         logger.debug(`Skipping file with no exports: ${filePath}`);
@@ -181,10 +176,10 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
 
       // Select appropriate template
       const template = this.selectTestTemplate(analysis);
-      
+
       // Generate test content
       const content = await this.generateTestContent(template, analysis);
-      
+
       // Get test file path
       const testPath = this.getTestFilePath(filePath);
 
@@ -210,20 +205,17 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   private isTestFile(filePath: string): boolean {
     const fileName = path.basename(filePath);
-    const testPatterns = [
-      /\.test\.[jt]sx?$/,
-      /\.spec\.[jt]sx?$/,
-    ];
+    const testPatterns = [/\.test\.[jt]sx?$/, /\.spec\.[jt]sx?$/];
 
     // Check if the filename itself is a test file
-    if (testPatterns.some(pattern => pattern.test(fileName))) {
+    if (testPatterns.some((pattern) => pattern.test(fileName))) {
       return true;
     }
 
     // Check if the file is in a test directory (but avoid matching project paths)
     const pathSegments = filePath.split(path.sep);
     const testDirPatterns = ['__tests__', 'test', 'tests'];
-    
+
     // Look for actual test directories in the path, but exclude the first few segments
     // to avoid matching project paths like "/test/project"
     for (let i = 2; i < pathSegments.length - 1; i++) {
@@ -273,13 +265,13 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
   protected async analyzeSourceFile(filePath: string): Promise<SourceFileAnalysis> {
     const content = await fs.readFile(filePath, 'utf-8');
     const relativePath = path.relative(this.config.projectPath, filePath);
-    
+
     // Use ModuleSystemAnalyzer for detailed module analysis
     const moduleInfo = await this.moduleAnalyzer.analyzeFile(filePath);
-    
+
     // Use AsyncPatternDetector for comprehensive async analysis
     const asyncAnalysis = await this.asyncDetector.analyzeFile(filePath);
-    
+
     // Basic analysis - will be enhanced with proper AST parsing later
     const analysis: SourceFileAnalysis = {
       filePath,
@@ -295,7 +287,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
         moduleSystem: moduleInfo.fileModuleType || moduleInfo.type,
         moduleInfo, // Store full module info for import generation
         asyncPatterns: asyncAnalysis, // Store detailed async pattern analysis
-      }
+      },
     };
 
     return analysis;
@@ -307,32 +299,39 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
   private detectFileType(filePath: string, content: string): string {
     const fileName = path.basename(filePath);
     const fileNameLower = fileName.toLowerCase();
-    
+
     // Enhanced React component detection
     if (this.languageContext.framework === 'react' || this.languageContext.framework === 'nextjs') {
-      if (/\.(jsx|tsx)$/.test(fileName) || 
-          /import.*from\s+['"]react['"]/.test(content) ||
-          /from\s+['"]react['"]/.test(content) ||
-          /<[A-Z]\w*/.test(content)) { // JSX syntax
+      if (
+        /\.(jsx|tsx)$/.test(fileName) ||
+        /import.*from\s+['"]react['"]/.test(content) ||
+        /from\s+['"]react['"]/.test(content) ||
+        /<[A-Z]\w*/.test(content)
+      ) {
+        // JSX syntax
         return 'component';
       }
     }
 
     // Enhanced Vue component detection
     if (this.languageContext.framework === 'vue' || this.languageContext.framework === 'nuxt') {
-      if (fileName.endsWith('.vue') || 
-          /import.*from\s+['"]vue['"]/.test(content) ||
-          /<template>/.test(content)) {
+      if (
+        fileName.endsWith('.vue') ||
+        /import.*from\s+['"]vue['"]/.test(content) ||
+        /<template>/.test(content)
+      ) {
         return 'component';
       }
     }
 
     // Enhanced Angular component detection
     if (this.languageContext.framework === 'angular') {
-      if (/@Component/.test(content) || 
-          fileNameLower.includes('.component.') ||
-          /@Directive/.test(content) ||
-          /@Pipe/.test(content)) {
+      if (
+        /@Component/.test(content) ||
+        fileNameLower.includes('.component.') ||
+        /@Directive/.test(content) ||
+        /@Pipe/.test(content)
+      ) {
         return 'component';
       }
     }
@@ -343,62 +342,82 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     }
 
     // API/Route detection - enhanced patterns
-    if (/\.(router|routes|route|controller|controllers|api|endpoint|endpoints)\.[jt]sx?$/.test(fileNameLower) ||
-        /router\.[jt]sx?$/.test(fileNameLower) ||
-        content.includes('express.Router()') ||
-        content.includes('@Controller') || // NestJS
-        content.includes('router.get(') ||
-        content.includes('router.post(') ||
-        content.includes('app.get(') ||
-        content.includes('app.post(')) {
+    if (
+      /\.(router|routes|route|controller|controllers|api|endpoint|endpoints)\.[jt]sx?$/.test(
+        fileNameLower
+      ) ||
+      /router\.[jt]sx?$/.test(fileNameLower) ||
+      content.includes('express.Router()') ||
+      content.includes('@Controller') || // NestJS
+      content.includes('router.get(') ||
+      content.includes('router.post(') ||
+      content.includes('app.get(') ||
+      content.includes('app.post(')
+    ) {
       return 'api';
     }
 
     // Service/Model detection - enhanced patterns
-    if (/\.(service|services|model|models|repository|repositories|dao|provider)\.[jt]sx?$/.test(fileNameLower) ||
-        /@Injectable/.test(content) || // NestJS/Angular
-        content.includes('mongoose.Schema') || // Mongoose models
-        content.includes('sequelize.define')) { // Sequelize models
+    if (
+      /\.(service|services|model|models|repository|repositories|dao|provider)\.[jt]sx?$/.test(
+        fileNameLower
+      ) ||
+      /@Injectable/.test(content) || // NestJS/Angular
+      content.includes('mongoose.Schema') || // Mongoose models
+      content.includes('sequelize.define')
+    ) {
+      // Sequelize models
       return 'service';
     }
 
     // Hook detection (React/Vue hooks)
-    if (/use[A-Z]/.test(fileName) || 
-        fileNameLower.includes('.hook.') ||
-        fileNameLower.includes('.hooks.') ||
-        (content.includes('useState') && content.includes('useEffect'))) {
+    if (
+      /use[A-Z]/.test(fileName) ||
+      fileNameLower.includes('.hook.') ||
+      fileNameLower.includes('.hooks.') ||
+      (content.includes('useState') && content.includes('useEffect'))
+    ) {
       return 'hook';
     }
 
     // Store/State management detection
-    if (fileNameLower.includes('store') || 
-        fileNameLower.includes('reducer') ||
-        fileNameLower.includes('context') ||
-        content.includes('createStore') ||
-        content.includes('createContext') ||
-        content.includes('createSlice')) { // Redux Toolkit
+    if (
+      fileNameLower.includes('store') ||
+      fileNameLower.includes('reducer') ||
+      fileNameLower.includes('context') ||
+      content.includes('createStore') ||
+      content.includes('createContext') ||
+      content.includes('createSlice')
+    ) {
+      // Redux Toolkit
       return 'store';
     }
 
     // Middleware detection
-    if (fileNameLower.includes('middleware') ||
-        content.includes('(req, res, next)') ||
-        content.includes('app.use(')) {
+    if (
+      fileNameLower.includes('middleware') ||
+      content.includes('(req, res, next)') ||
+      content.includes('app.use(')
+    ) {
       return 'middleware';
     }
 
     // Utility detection - enhanced patterns
-    if (/\.(util|utils|helper|helpers|lib|common|shared)\.[jt]sx?$/.test(fileNameLower) ||
-        fileNameLower.includes('/utils/') ||
-        fileNameLower.includes('/helpers/') ||
-        fileNameLower.includes('/lib/')) {
+    if (
+      /\.(util|utils|helper|helpers|lib|common|shared)\.[jt]sx?$/.test(fileNameLower) ||
+      fileNameLower.includes('/utils/') ||
+      fileNameLower.includes('/helpers/') ||
+      fileNameLower.includes('/lib/')
+    ) {
       return 'util';
     }
 
     // Config/Constants detection
-    if (/\.(config|configuration|constants|const|env)\.[jt]sx?$/.test(fileNameLower) ||
-        fileNameLower === 'config.js' ||
-        fileNameLower === 'constants.js') {
+    if (
+      /\.(config|configuration|constants|const|env)\.[jt]sx?$/.test(fileNameLower) ||
+      fileNameLower === 'config.js' ||
+      fileNameLower === 'constants.js'
+    ) {
       return 'config';
     }
 
@@ -410,9 +429,13 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    * Extract exports from JavaScript/TypeScript content
    * This is a simplified version - will be enhanced with AST parsing
    */
-  private async extractExports(content: string, _filePath: string, moduleInfo: FileModuleSystemInfo): Promise<ExportedItem[]> {
+  private async extractExports(
+    content: string,
+    _filePath: string,
+    moduleInfo: FileModuleSystemInfo
+  ): Promise<ExportedItem[]> {
     const exports: ExportedItem[] = [];
-    
+
     // Extract default exports
     // Handle export default class Name pattern
     const defaultClassMatch = content.match(/export\s+default\s+class\s+(\w+)/);
@@ -435,7 +458,8 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     }
 
     // Extract named exports
-    const namedExportRegex = /export\s+(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
+    const namedExportRegex =
+      /export\s+(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
     let match;
     while ((match = namedExportRegex.exec(content)) !== null) {
       const name = match[1];
@@ -453,9 +477,9 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     const exportStatementRegex = /export\s*{\s*([^}]+)\s*}/g;
     while ((match = exportStatementRegex.exec(content)) !== null) {
       if (match[1]) {
-        const exportedItems = match[1].split(',').map(item => item.trim());
+        const exportedItems = match[1].split(',').map((item) => item.trim());
         for (const item of exportedItems) {
-          const [localName, exportedName] = item.split(/\s+as\s+/).map(s => s.trim());
+          const [localName, exportedName] = item.split(/\s+as\s+/).map((s) => s.trim());
           if (localName) {
             exports.push({
               name: exportedName || localName,
@@ -468,13 +492,15 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     }
 
     // For CommonJS modules
-    if (moduleInfo.fileModuleType === 'commonjs' || 
-        (!moduleInfo.fileModuleType && moduleInfo.type === 'commonjs')) {
+    if (
+      moduleInfo.fileModuleType === 'commonjs' ||
+      (!moduleInfo.fileModuleType && moduleInfo.type === 'commonjs')
+    ) {
       // Check for module.exports = { ... } pattern
       const objectExportsMatch = content.match(/module\.exports\s*=\s*{\s*([^}]+)\s*}/);
       if (objectExportsMatch && objectExportsMatch[1]) {
         // Parse the exported properties
-        const exportedProps = objectExportsMatch[1]!.split(',').map(prop => prop.trim());
+        const exportedProps = objectExportsMatch[1]!.split(',').map((prop) => prop.trim());
         for (const prop of exportedProps) {
           const propName = prop.split(':')[0]?.trim();
           if (propName) {
@@ -548,7 +574,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
       new RegExp(`${name}\\s*=\\s*async`),
     ];
 
-    return asyncPatterns.some(pattern => pattern.test(content));
+    return asyncPatterns.some((pattern) => pattern.test(content));
   }
 
   /**
@@ -556,15 +582,19 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   private extractImports(content: string, _moduleInfo: FileModuleSystemInfo): ImportStatement[] {
     const imports: ImportStatement[] = [];
-    
+
     // ES6 imports
-    const importRegex = /import\s+(?:type\s+)?(?:(\w+)|{([^}]+)}|\*\s+as\s+(\w+))?\s*(?:,\s*{([^}]+)})?\s*from\s+['"]([^'"]+)['"]/g;
+    const importRegex =
+      /import\s+(?:type\s+)?(?:(\w+)|{([^}]+)}|\*\s+as\s+(\w+))?\s*(?:,\s*{([^}]+)})?\s*from\s+['"]([^'"]+)['"]/g;
     let match;
-    
+
     while ((match = importRegex.exec(content)) !== null) {
       const defaultImport = match[1] || match[3];
-      const namedImports = [...(match[2] ? match[2].split(',') : []), ...(match[4] ? match[4].split(',') : [])]
-        .map(s => s.trim())
+      const namedImports = [
+        ...(match[2] ? match[2].split(',') : []),
+        ...(match[4] ? match[4].split(',') : []),
+      ]
+        .map((s) => s.trim())
         .filter(Boolean);
       const source = match[5];
       const isTypeOnly = match[0]?.includes('import type') || false;
@@ -580,10 +610,11 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     }
 
     // CommonJS requires
-    const requireRegex = /(?:const|let|var)\s+(?:{([^}]+)}|(\w+))\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-    
+    const requireRegex =
+      /(?:const|let|var)\s+(?:{([^}]+)}|(\w+))\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+
     while ((match = requireRegex.exec(content)) !== null) {
-      const namedImports = match[1] ? match[1].split(',').map(s => s.trim()) : [];
+      const namedImports = match[1] ? match[1].split(',').map((s) => s.trim()) : [];
       const defaultImport = match[2];
       const source = match[3];
 
@@ -599,7 +630,6 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     return imports;
   }
 
-
   /**
    * Select appropriate test template based on file analysis
    */
@@ -609,15 +639,15 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     if (analysis.fileType === 'component') {
       return `${this.languageContext.framework}-component`;
     }
-    
+
     if (analysis.fileType === 'api') {
       return 'api-endpoint';
     }
-    
+
     if (analysis.fileType === 'service') {
       return 'service';
     }
-    
+
     return 'default';
   }
 
@@ -630,23 +660,19 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
   ): Promise<string> {
     // Get module info from analysis metadata
     const moduleInfo = analysis.metadata?.moduleInfo as FileModuleSystemInfo | undefined;
-    
+
     // Calculate import path from test file to source file
     const testPath = this.getTestFilePath(analysis.filePath);
     const importPath = this.calculateImportPath(testPath, analysis.filePath, moduleInfo);
-    
+
     // Generate import statements
     const importStatements = await this.generateImportStatements(analysis, importPath, moduleInfo);
-    
+
     // Generate test suites
     const testSuites = this.generateTestSuites(analysis);
-    
+
     // Combine into final test content
-    const content = [
-      importStatements,
-      '',
-      testSuites,
-    ].join('\n');
+    const content = [importStatements, '', testSuites].join('\n');
 
     return content;
   }
@@ -654,18 +680,22 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
   /**
    * Calculate relative import path from test file to source file
    */
-  private calculateImportPath(fromPath: string, toPath: string, moduleInfo?: FileModuleSystemInfo): string {
+  private calculateImportPath(
+    fromPath: string,
+    toPath: string,
+    moduleInfo?: FileModuleSystemInfo
+  ): string {
     const fromDir = path.dirname(fromPath);
     let relativePath = path.relative(fromDir, toPath);
-    
+
     // Ensure forward slashes
     relativePath = relativePath.replace(/\\/g, '/');
-    
+
     // Add ./ prefix if needed
     if (!relativePath.startsWith('.')) {
       relativePath = `./${relativePath}`;
     }
-    
+
     // Handle extension based on module system
     if (moduleInfo) {
       const extension = this.moduleAnalyzer.getImportExtension(moduleInfo);
@@ -682,21 +712,25 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
         relativePath = relativePath.replace(/\.[^/.]+$/, '');
       }
     }
-    
+
     return relativePath;
   }
 
   /**
    * Generate import statements for the test file
    */
-  private async generateImportStatements(analysis: SourceFileAnalysis, importPath: string, moduleInfo?: FileModuleSystemInfo): Promise<string> {
+  private async generateImportStatements(
+    analysis: SourceFileAnalysis,
+    importPath: string,
+    moduleInfo?: FileModuleSystemInfo
+  ): Promise<string> {
     const imports: string[] = [];
-    
+
     // Get preferred test framework
     await this.ensureFrameworkDetectorInitialized();
     const preferredTestFramework = await this.frameworkDetector.getPreferredTestFramework();
     const testFramework = this.languageContext.testFramework || preferredTestFramework;
-    
+
     // Import test framework
     if (testFramework === 'jest') {
       // Jest globals are available, no import needed
@@ -708,26 +742,29 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     }
 
     // Import items from source file
-    const defaultExport = analysis.exports.find(exp => exp.isDefault);
-    const namedExports = analysis.exports.filter(exp => !exp.isDefault);
-    
+    const defaultExport = analysis.exports.find((exp) => exp.isDefault);
+    const namedExports = analysis.exports.filter((exp) => !exp.isDefault);
+
     // Determine import syntax based on module info
-    const importSyntax = moduleInfo ? this.moduleAnalyzer.getImportSyntax(moduleInfo) : 
-                        (this.jsContext.moduleSystem.type === 'esm' ? 'import' : 'require');
-    
+    const importSyntax = moduleInfo
+      ? this.moduleAnalyzer.getImportSyntax(moduleInfo)
+      : this.jsContext.moduleSystem.type === 'esm'
+        ? 'import'
+        : 'require';
+
     if (importSyntax === 'import') {
       // ES module imports
       const importParts: string[] = [];
-      
+
       if (defaultExport) {
         importParts.push(defaultExport.name);
       }
-      
+
       if (namedExports.length > 0) {
-        const namedImportStr = `{ ${namedExports.map(exp => exp.name).join(', ')} }`;
+        const namedImportStr = `{ ${namedExports.map((exp) => exp.name).join(', ')} }`;
         importParts.push(namedImportStr);
       }
-      
+
       if (importParts.length > 0) {
         imports.push(`import ${importParts.join(', ')} from '${importPath}';`);
       }
@@ -736,7 +773,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
       if (defaultExport && namedExports.length === 0) {
         imports.push(`const ${defaultExport.name} = require('${importPath}');`);
       } else if (namedExports.length > 0) {
-        const names = namedExports.map(exp => exp.name).join(', ');
+        const names = namedExports.map((exp) => exp.name).join(', ');
         imports.push(`const { ${names} } = require('${importPath}');`);
       }
     }
@@ -750,22 +787,22 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
   private generateTestSuites(analysis: SourceFileAnalysis): string {
     const fileName = path.basename(analysis.filePath);
     const suites: string[] = [];
-    
+
     // Main describe block
     suites.push(`describe('${fileName}', () => {`);
-    
+
     // Generate tests for each export
     for (const exportItem of analysis.exports) {
       if (exportItem.type === 'interface' || exportItem.type === 'type') {
         // Skip type-only exports
         continue;
       }
-      
+
       suites.push(this.generateTestsForExport(exportItem, analysis));
     }
-    
+
     suites.push('});');
-    
+
     return suites.join('\n');
   }
 
@@ -774,9 +811,9 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   private generateTestsForExport(exportItem: ExportedItem, analysis: SourceFileAnalysis): string {
     const tests: string[] = [];
-    
+
     tests.push(`  describe('${exportItem.name}', () => {`);
-    
+
     switch (exportItem.type) {
       case 'function':
         tests.push(this.generateFunctionTests(exportItem, analysis));
@@ -793,10 +830,10 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
         tests.push(`      expect(${exportItem.name}).toBeDefined();`);
         tests.push(`    });`);
     }
-    
+
     tests.push('  });');
     tests.push('');
-    
+
     return tests.join('\n');
   }
 
@@ -805,15 +842,15 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   private generateFunctionTests(exportItem: ExportedItem, analysis: SourceFileAnalysis): string {
     const tests: string[] = [];
-    
+
     tests.push(`    it('should be a function', () => {`);
     tests.push(`      expect(typeof ${exportItem.name}).toBe('function');`);
     tests.push(`    });`);
     tests.push('');
-    
+
     // Get async pattern information from metadata
     const asyncPatterns = analysis.metadata?.asyncPatterns as FileAsyncPatterns | undefined;
-    
+
     if (exportItem.isAsync || asyncPatterns?.hasAsyncPatterns) {
       // Generate async-aware tests based on detected patterns
       if (asyncPatterns?.primaryPattern === 'promise') {
@@ -844,7 +881,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
         tests.push(`      expect(result).toBeDefined();`);
         tests.push(`    });`);
       }
-      
+
       // Add error handling test for async functions
       tests.push('');
       tests.push(`    it('should handle errors appropriately', async () => {`);
@@ -863,7 +900,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
       tests.push(`      expect(result).toBeDefined();`);
       tests.push(`    });`);
     }
-    
+
     return tests.join('\n');
   }
 
@@ -872,12 +909,12 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   private generateClassTests(exportItem: ExportedItem, _analysis: SourceFileAnalysis): string {
     const tests: string[] = [];
-    
+
     tests.push(`    it('should be instantiable', () => {`);
     tests.push(`      expect(() => new ${exportItem.name}()).not.toThrow();`);
     tests.push(`    });`);
     tests.push('');
-    
+
     tests.push(`    describe('instance', () => {`);
     tests.push(`      let instance;`);
     tests.push('');
@@ -890,7 +927,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     tests.push(`        expect(instance).toBeDefined();`);
     tests.push(`      });`);
     tests.push(`    });`);
-    
+
     return tests.join('\n');
   }
 
@@ -899,17 +936,17 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
    */
   private generateVariableTests(exportItem: ExportedItem, _analysis: SourceFileAnalysis): string {
     const tests: string[] = [];
-    
+
     tests.push(`    it('should be defined', () => {`);
     tests.push(`      expect(${exportItem.name}).toBeDefined();`);
     tests.push(`    });`);
     tests.push('');
-    
+
     tests.push(`    it('should have expected value or structure', () => {`);
     tests.push(`      // TODO: Add value/structure tests`);
     tests.push(`      expect(${exportItem.name}).toBeTruthy();`);
     tests.push(`    });`);
-    
+
     return tests.join('\n');
   }
 }

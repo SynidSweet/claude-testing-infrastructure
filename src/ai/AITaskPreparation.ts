@@ -285,7 +285,7 @@ Generate comprehensive logical tests that thoroughly validate the business logic
    */
   private estimateCost(tokens: number): number {
     const model = this.config.model || this.DEFAULT_MODEL;
-    
+
     // Resolve model name to full identifier
     const resolvedModelName = resolveModelName(model);
     if (!resolvedModelName) {
@@ -414,7 +414,7 @@ Generate comprehensive logical tests that thoroughly validate the business logic
   /**
    * Map priority enum to number
    */
-  private mapPriorityToNumber(priority: any): number {
+  private mapPriorityToNumber(priority: string | number): number {
     const priorityMap: Record<string, number> = {
       critical: 10,
       high: 8,

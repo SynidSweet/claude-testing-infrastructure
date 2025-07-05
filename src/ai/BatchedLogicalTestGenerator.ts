@@ -3,14 +3,13 @@
  *
  * Provides iterative, configurable batch processing for AI test generation:
  * - Configurable batch sizes for manageable AI processing
- * - State persistence between executions 
+ * - State persistence between executions
  * - Progress tracking and resume functionality
  * - Cost estimation per batch
  */
 
 import type { TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
-import type { AITask, AITaskBatch } from './AITaskPreparation';
-import { AITaskPreparation } from './AITaskPreparation';
+import type { AITask, AITaskBatch, AITaskPreparation } from './AITaskPreparation';
 import { ClaudeOrchestrator, type ProcessResult } from './ClaudeOrchestrator';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -62,9 +61,9 @@ export interface BatchInfo {
 
 export class BatchedLogicalTestGenerator {
   private static readonly STATE_FILE = '.claude-testing/batch-state.json';
-  
+
   constructor(
-    private batchSize: number = 10,
+    private batchSize: number = 5, // Reduced from 10 to prevent usage spikes
     private taskPreparation: AITaskPreparation
   ) {
     if (batchSize < 1 || batchSize > 50) {
@@ -82,7 +81,7 @@ export class BatchedLogicalTestGenerator {
   ): Promise<BatchResult> {
     // Prepare all tasks first
     const fullBatch = await this.taskPreparation.prepareTasks(gapReport);
-    
+
     // Extract the specific batch
     const startIndex = batchIndex * config.batchSize;
     const endIndex = Math.min(startIndex + config.batchSize, fullBatch.tasks.length);
@@ -98,7 +97,7 @@ export class BatchedLogicalTestGenerator {
       tasks: batchTasks,
       totalEstimatedTokens: batchTasks.reduce((sum, t) => sum + t.estimatedTokens, 0),
       totalEstimatedCost: batchTasks.reduce((sum, t) => sum + t.estimatedCost, 0),
-      maxConcurrency: config.maxConcurrent
+      maxConcurrency: config.maxConcurrent,
     };
 
     // Check cost limit if specified
@@ -118,7 +117,7 @@ export class BatchedLogicalTestGenerator {
       gracefulDegradation: true,
       exponentialBackoff: true,
       circuitBreakerEnabled: true,
-      maxRetryDelay: 30000
+      maxRetryDelay: 30000,
     });
 
     const startTime = Date.now();
@@ -126,8 +125,8 @@ export class BatchedLogicalTestGenerator {
     const duration = Date.now() - startTime;
 
     // Calculate stats
-    const completed = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
+    const completed = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
     const totalCost = results.reduce((sum, r) => sum + (r.result?.actualCost || 0), 0);
     const totalTokens = results.reduce((sum, r) => sum + (r.result?.tokensUsed || 0), 0);
 
@@ -140,27 +139,30 @@ export class BatchedLogicalTestGenerator {
         failed,
         totalCost,
         totalTokens,
-        duration
-      }
+        duration,
+      },
     };
   }
 
   /**
    * Get information about the next batch to process
    */
-  async getNextBatch(projectPath: string, gapReport: TestGapAnalysisResult): Promise<BatchInfo | null> {
+  async getNextBatch(
+    projectPath: string,
+    gapReport: TestGapAnalysisResult
+  ): Promise<BatchInfo | null> {
     const stateFile = path.join(projectPath, BatchedLogicalTestGenerator.STATE_FILE);
     let progress: BatchProgress | null = null;
 
     try {
       const stateContent = await fs.readFile(stateFile, 'utf-8');
-      progress = JSON.parse(stateContent);
+      progress = JSON.parse(stateContent) as BatchProgress;
     } catch {
       // No existing state
     }
 
     const nextIndex = progress?.nextBatchIndex || 0;
-    
+
     // Prepare all tasks to determine batch bounds
     const fullBatch = await this.taskPreparation.prepareTasks(gapReport);
     const totalTasks = fullBatch.tasks.length;
@@ -178,7 +180,7 @@ export class BatchedLogicalTestGenerator {
       index: nextIndex,
       tasks: batchTasks,
       estimatedCost: batchTasks.reduce((sum, t) => sum + t.estimatedCost, 0),
-      estimatedTokens: batchTasks.reduce((sum, t) => sum + t.estimatedTokens, 0)
+      estimatedTokens: batchTasks.reduce((sum, t) => sum + t.estimatedTokens, 0),
     };
   }
 
@@ -188,7 +190,7 @@ export class BatchedLogicalTestGenerator {
   async saveBatchState(projectPath: string, progress: BatchProgress): Promise<void> {
     const stateFile = path.join(projectPath, BatchedLogicalTestGenerator.STATE_FILE);
     const stateDir = path.dirname(stateFile);
-    
+
     await fs.mkdir(stateDir, { recursive: true });
     await fs.writeFile(stateFile, JSON.stringify(progress, null, 2), 'utf-8');
   }
@@ -198,10 +200,10 @@ export class BatchedLogicalTestGenerator {
    */
   async loadBatchState(projectPath: string): Promise<BatchProgress | null> {
     const stateFile = path.join(projectPath, BatchedLogicalTestGenerator.STATE_FILE);
-    
+
     try {
       const stateContent = await fs.readFile(stateFile, 'utf-8');
-      return JSON.parse(stateContent);
+      return JSON.parse(stateContent) as BatchProgress;
     } catch {
       return null;
     }
@@ -233,7 +235,7 @@ export class BatchedLogicalTestGenerator {
       startTime: new Date().toISOString(),
       lastUpdate: new Date().toISOString(),
       nextBatchIndex: 0,
-      config
+      config,
     };
 
     await this.saveBatchState(projectPath, progress);
@@ -243,10 +245,7 @@ export class BatchedLogicalTestGenerator {
   /**
    * Update batch processing state after completing a batch
    */
-  async updateBatchState(
-    projectPath: string,
-    batchResult: BatchResult
-  ): Promise<BatchProgress> {
+  async updateBatchState(projectPath: string, batchResult: BatchResult): Promise<BatchProgress> {
     const progress = await this.loadBatchState(projectPath);
     if (!progress) {
       throw new Error('No batch state found to update');
@@ -272,9 +271,16 @@ export class BatchedLogicalTestGenerator {
       return null;
     }
 
-    const completionPercentage = ((progress.completedBatches / progress.totalBatches) * 100).toFixed(1);
-    const taskCompletionPercentage = ((progress.completedTasks / progress.totalTasks) * 100).toFixed(1);
-    const avgCostPerTask = progress.completedTasks > 0 ? (progress.actualCostSoFar / progress.completedTasks) : 0;
+    const completionPercentage = (
+      (progress.completedBatches / progress.totalBatches) *
+      100
+    ).toFixed(1);
+    const taskCompletionPercentage = (
+      (progress.completedTasks / progress.totalTasks) *
+      100
+    ).toFixed(1);
+    const avgCostPerTask =
+      progress.completedTasks > 0 ? progress.actualCostSoFar / progress.completedTasks : 0;
 
     const report = [
       '# Batched AI Test Generation Progress',
@@ -298,7 +304,7 @@ export class BatchedLogicalTestGenerator {
       '## Timeline',
       `- Started: ${progress.startTime}`,
       `- Last Update: ${progress.lastUpdate}`,
-      ''
+      '',
     ];
 
     return report.join('\n');
@@ -309,7 +315,7 @@ export class BatchedLogicalTestGenerator {
    */
   async cleanupBatchState(projectPath: string): Promise<void> {
     const stateFile = path.join(projectPath, BatchedLogicalTestGenerator.STATE_FILE);
-    
+
     try {
       await fs.unlink(stateFile);
     } catch {
@@ -320,26 +326,29 @@ export class BatchedLogicalTestGenerator {
   /**
    * Validate that batching is beneficial for the given gap report
    */
-  validateBatchingBenefit(gapReport: TestGapAnalysisResult): { beneficial: boolean; reason: string } {
+  validateBatchingBenefit(gapReport: TestGapAnalysisResult): {
+    beneficial: boolean;
+    reason: string;
+  } {
     const taskCount = gapReport.gaps.length;
-    
+
     if (taskCount <= this.batchSize) {
       return {
         beneficial: false,
-        reason: `Only ${taskCount} tasks found, which fits in a single batch of ${this.batchSize}`
+        reason: `Only ${taskCount} tasks found, which fits in a single batch of ${this.batchSize}`,
       };
     }
 
     if (taskCount < this.batchSize * 2) {
       return {
         beneficial: false,
-        reason: `Only ${taskCount} tasks found, batching provides minimal benefit`
+        reason: `Only ${taskCount} tasks found, batching provides minimal benefit`,
       };
     }
 
     return {
       beneficial: true,
-      reason: `${taskCount} tasks found, batching into ${Math.ceil(taskCount / this.batchSize)} batches will provide better control`
+      reason: `${taskCount} tasks found, batching into ${Math.ceil(taskCount / this.batchSize)} batches will provide better control`,
     };
   }
 }

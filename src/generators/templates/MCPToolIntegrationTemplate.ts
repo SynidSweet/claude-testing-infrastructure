@@ -2,21 +2,31 @@ import { MCPTool } from '../../analyzers/ProjectAnalyzer';
 import { MCPProjectAnalysis } from '../../types/mcp-types';
 
 export class MCPToolIntegrationTemplate {
-  generateToolTests(tools: MCPTool[], analysis: MCPProjectAnalysis): { path: string; content: string } {
-    const isTypeScript = analysis.languages.some(l => l.name === 'typescript');
+  generateToolTests(
+    tools: MCPTool[],
+    analysis: MCPProjectAnalysis
+  ): { path: string; content: string } {
+    const isTypeScript = analysis.languages.some((l) => l.name === 'typescript');
     const extension = isTypeScript ? 'ts' : 'js';
-    
+
     return {
       path: `.claude-testing/mcp-tool-integration.test.${extension}`,
       content: this.generateTestContent(tools, isTypeScript, analysis),
     };
   }
 
-  private generateTestContent(tools: MCPTool[], isTypeScript: boolean, analysis: MCPProjectAnalysis): string {
-    const imports = this.generateImports(analysis.mcpCapabilities?.framework || 'custom', isTypeScript);
+  private generateTestContent(
+    tools: MCPTool[],
+    isTypeScript: boolean,
+    analysis: MCPProjectAnalysis
+  ): string {
+    const imports = this.generateImports(
+      analysis.mcpCapabilities?.framework || 'custom',
+      isTypeScript
+    );
     const setup = this.generateSetup();
     const tests = this.generateTests(tools);
-    
+
     return `${imports}
 
 ${setup}
@@ -29,15 +39,17 @@ ${tests}
 
   private generateImports(framework: string, isTypeScript: boolean): string {
     const imports = [];
-    
+
     if (framework === 'fastmcp') {
       imports.push("import { FastMCP } from 'fastmcp';");
     }
-    
+
     if (isTypeScript) {
-      imports.push("import { CallToolRequest, ListToolsRequest } from '@modelcontextprotocol/sdk/types';");
+      imports.push(
+        "import { CallToolRequest, ListToolsRequest } from '@modelcontextprotocol/sdk/types';"
+      );
     }
-    
+
     return imports.join('\n');
   }
 
@@ -58,8 +70,9 @@ afterAll(async () => {
   }
 
   private generateTests(tools: MCPTool[]): string {
-    const toolTests = tools.length > 0 ? this.generateSpecificToolTests(tools) : this.generateGenericToolTests();
-    
+    const toolTests =
+      tools.length > 0 ? this.generateSpecificToolTests(tools) : this.generateGenericToolTests();
+
     return `
   describe('Tool Discovery', () => {
     test('should list available tools', async () => {
@@ -195,7 +208,10 @@ ${toolTests}
   }
 
   private generateSpecificToolTests(tools: MCPTool[]): string {
-    const testCases = tools.slice(0, 3).map((tool, index) => `
+    const testCases = tools
+      .slice(0, 3)
+      .map(
+        (tool, index) => `
     test('should execute ${tool.name} tool', async () => {
       const request = {
         jsonrpc: '2.0',
@@ -215,8 +231,10 @@ ${toolTests}
       expect(response.result.content.length).toBeGreaterThan(0);
       expect(response.result.content[0]).toHaveProperty('type');
       expect(response.result.content[0]).toHaveProperty('text');
-    });`).join('\n');
-    
+    });`
+      )
+      .join('\n');
+
     return testCases;
   }
 
@@ -263,10 +281,10 @@ ${toolTests}
     if (!tool.inputSchema || typeof tool.inputSchema !== 'object') {
       return '{}';
     }
-    
+
     const schema = tool.inputSchema as any;
     const sampleArgs: any = {};
-    
+
     if (schema.properties) {
       Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
         switch (prop.type) {
@@ -290,7 +308,7 @@ ${toolTests}
         }
       });
     }
-    
+
     return JSON.stringify(sampleArgs, null, 8);
   }
 }

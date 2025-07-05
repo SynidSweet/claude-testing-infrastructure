@@ -3,7 +3,7 @@ import type { DetectedFramework } from '../../../analyzers/ProjectAnalyzer';
 
 /**
  * Enhanced JavaScript/TypeScript framework detector
- * 
+ *
  * Provides comprehensive framework detection capabilities for:
  * - UI frameworks (React, Vue, Angular, Svelte, etc.)
  * - Backend frameworks (Express, NestJS, Koa, Fastify, etc.)
@@ -73,7 +73,11 @@ export class JSFrameworkDetector {
     }
 
     // Testing Library
-    if (deps['@testing-library/react'] || deps['@testing-library/vue'] || deps['@testing-library/angular']) {
+    if (
+      deps['@testing-library/react'] ||
+      deps['@testing-library/vue'] ||
+      deps['@testing-library/angular']
+    ) {
       testFrameworks.push('testing-library');
     }
 
@@ -115,10 +119,10 @@ export class JSFrameworkDetector {
    */
   async getPreferredTestFramework(): Promise<string> {
     const testFrameworks = await this.detectTestingFrameworks();
-    
+
     // Priority order
     const priorityOrder = ['vitest', 'jest', 'mocha', 'jasmine', 'ava', 'tape', 'karma'];
-    
+
     for (const framework of priorityOrder) {
       if (testFrameworks.includes(framework)) {
         return framework;
@@ -141,7 +145,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'react',
         confidence: 0.95,
-        configFiles: []
+        configFiles: [],
       };
       const version = deps.react || deps['react-dom'];
       if (version) {
@@ -154,11 +158,11 @@ export class JSFrameworkDetector {
     if (deps.vue || deps['@vue/cli'] || deps['vue-demi']) {
       const vueVersion = deps.vue || '';
       const isVue3 = vueVersion.startsWith('3') || deps['@vue/composition-api'];
-      
+
       const framework: DetectedFramework = {
         name: 'vue',
         confidence: 0.95,
-        configFiles: []
+        configFiles: [],
       };
       if (vueVersion) {
         framework.version = vueVersion;
@@ -176,7 +180,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'angular',
         confidence: 0.95,
-        configFiles: []
+        configFiles: [],
       };
       if (deps['@angular/core']) {
         framework.version = deps['@angular/core'];
@@ -189,7 +193,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'svelte',
         confidence: 0.95,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.svelte) {
         framework.version = deps.svelte;
@@ -202,7 +206,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'react', // Treat as React-compatible
         confidence: 0.85,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.preact) {
         framework.version = deps.preact;
@@ -215,7 +219,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'react', // Similar testing patterns to React
         confidence: 0.8,
-        configFiles: []
+        configFiles: [],
       };
       if (deps['solid-js']) {
         framework.version = deps['solid-js'];
@@ -238,7 +242,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'express',
         confidence: 0.9,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.express) {
         framework.version = deps.express;
@@ -251,7 +255,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'express', // NestJS is built on Express/Fastify
         confidence: 0.95,
-        configFiles: []
+        configFiles: [],
       };
       if (deps['@nestjs/core']) {
         framework.version = deps['@nestjs/core'];
@@ -264,7 +268,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'express', // Similar patterns
         confidence: 0.85,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.koa) {
         framework.version = deps.koa;
@@ -277,7 +281,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'express', // Similar patterns
         confidence: 0.85,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.fastify) {
         framework.version = deps.fastify;
@@ -290,7 +294,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'express', // Similar patterns
         confidence: 0.8,
-        configFiles: []
+        configFiles: [],
       };
       const version = deps['@hapi/hapi'] || deps.hapi;
       if (version) {
@@ -314,19 +318,19 @@ export class JSFrameworkDetector {
       const nextFramework: DetectedFramework = {
         name: 'nextjs',
         confidence: 0.95,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.next) {
         nextFramework.version = deps.next;
       }
       frameworks.push(nextFramework);
-      
+
       // Next.js implies React
       if (!this.hasFramework(frameworks, 'react')) {
         const reactFramework: DetectedFramework = {
           name: 'react',
           confidence: 0.9,
-          configFiles: []
+          configFiles: [],
         };
         if (deps.react) {
           reactFramework.version = deps.react;
@@ -340,20 +344,20 @@ export class JSFrameworkDetector {
       const nuxtFramework: DetectedFramework = {
         name: 'nuxt',
         confidence: 0.95,
-        configFiles: []
+        configFiles: [],
       };
       const nuxtVersion = deps.nuxt || deps['@nuxt/core'];
       if (nuxtVersion) {
         nuxtFramework.version = nuxtVersion;
       }
       frameworks.push(nuxtFramework);
-      
+
       // Nuxt implies Vue
       if (!this.hasFramework(frameworks, 'vue')) {
         const vueFramework: DetectedFramework = {
           name: 'vue',
           confidence: 0.9,
-          configFiles: []
+          configFiles: [],
         };
         if (deps.vue) {
           vueFramework.version = deps.vue;
@@ -367,7 +371,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'react', // Gatsby is React-based
         confidence: 0.9,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.react) {
         framework.version = deps.react;
@@ -380,7 +384,7 @@ export class JSFrameworkDetector {
       const framework: DetectedFramework = {
         name: 'react',
         confidence: 0.9,
-        configFiles: []
+        configFiles: [],
       };
       if (deps.react) {
         framework.version = deps.react;
@@ -420,11 +424,11 @@ export class JSFrameworkDetector {
    */
   private getAllDependencies(): Record<string, string> {
     if (!this.packageJson) return {};
-    
+
     return {
       ...(this.packageJson.dependencies || {}),
       ...(this.packageJson.devDependencies || {}),
-      ...(this.packageJson.peerDependencies || {})
+      ...(this.packageJson.peerDependencies || {}),
     };
   }
 
@@ -432,7 +436,7 @@ export class JSFrameworkDetector {
    * Check if a framework is already detected
    */
   private hasFramework(frameworks: DetectedFramework[], name: string): boolean {
-    return frameworks.some(f => f.name === name);
+    return frameworks.some((f) => f.name === name);
   }
 
   /**
@@ -450,47 +454,47 @@ export class JSFrameworkDetector {
           testFramework: 'jest',
           setupFiles: ['setupTests.js'],
           additionalDeps: ['@testing-library/react', '@testing-library/jest-dom'],
-          configTemplate: 'react-jest'
+          configTemplate: 'react-jest',
         };
-      
+
       case 'vue':
         return {
           testFramework: 'vitest',
           setupFiles: ['vitest.config.ts'],
           additionalDeps: ['@vue/test-utils', '@testing-library/vue'],
-          configTemplate: 'vue-vitest'
+          configTemplate: 'vue-vitest',
         };
-      
+
       case 'angular':
         return {
           testFramework: 'karma',
           setupFiles: ['karma.conf.js'],
           additionalDeps: ['@angular-devkit/build-angular', 'karma-jasmine'],
-          configTemplate: 'angular-karma'
+          configTemplate: 'angular-karma',
         };
-      
+
       case 'express':
         return {
           testFramework: 'jest',
           setupFiles: ['jest.config.js'],
           additionalDeps: ['supertest'],
-          configTemplate: 'express-jest'
+          configTemplate: 'express-jest',
         };
-      
+
       case 'nextjs':
         return {
           testFramework: 'jest',
           setupFiles: ['jest.config.js', 'jest.setup.js'],
           additionalDeps: ['@testing-library/react', 'jest-environment-jsdom'],
-          configTemplate: 'nextjs-jest'
+          configTemplate: 'nextjs-jest',
         };
-      
+
       default:
         return {
           testFramework: 'jest',
           setupFiles: ['jest.config.js'],
           additionalDeps: [],
-          configTemplate: 'default-jest'
+          configTemplate: 'default-jest',
         };
     }
   }

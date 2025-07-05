@@ -604,7 +604,7 @@ export const DEFAULT_CONFIG: Required<ClaudeTestingConfig> = {
     testTypes: [TestType.UNIT, TestType.INTEGRATION],
     maxRetries: 3,
     timeoutMs: 60000,
-    batchSize: 10,
+    batchSize: 5, // Reduced from 10 to prevent usage spikes
   },
   coverage: {
     enabled: true,

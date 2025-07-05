@@ -61,9 +61,11 @@ export class MarkdownTemplateEngine extends BaseTemplateEngine<MarkdownTemplateD
       lines.push('');
       lines.push('| File | Lines | Statements | Branches | Functions |');
       lines.push('|------|-------|------------|----------|-----------|');
-      
-      data.files.forEach(file => {
-        lines.push(`| ${file.filename} | ${file.lines}% | ${file.statements}% | ${file.branches}% | ${file.functions}% |`);
+
+      data.files.forEach((file) => {
+        lines.push(
+          `| ${file.filename} | ${file.lines}% | ${file.statements}% | ${file.branches}% | ${file.functions}% |`
+        );
       });
       lines.push('');
     }
@@ -72,7 +74,7 @@ export class MarkdownTemplateEngine extends BaseTemplateEngine<MarkdownTemplateD
     if (data.suggestions.length > 0) {
       lines.push('## Improvement Suggestions');
       lines.push('');
-      data.suggestions.forEach(suggestion => {
+      data.suggestions.forEach((suggestion) => {
         lines.push(`${suggestion.index}. **${suggestion.target}** in \`${suggestion.file}\``);
         lines.push(`   - ${suggestion.description}`);
         lines.push(`   - Priority: ${suggestion.priority}/10 | Effort: ${suggestion.effort}`);
@@ -99,24 +101,24 @@ export class MarkdownTemplateEngine extends BaseTemplateEngine<MarkdownTemplateD
         statements: summary.statements as string,
         branches: summary.branches as string,
         functions: summary.functions as string,
-        lines: summary.lines as string
+        lines: summary.lines as string,
       },
       meetsThresholds: data.meetsThreshold,
-      files: files.map(file => ({
+      files: files.map((file) => ({
         filename: file.filename,
         lines: file.summary.lines as string,
         statements: file.summary.statements as string,
         branches: file.summary.branches as string,
-        functions: file.summary.functions as string
+        functions: file.summary.functions as string,
       })),
-      suggestions: suggestions.map(suggestion => ({
+      suggestions: suggestions.map((suggestion) => ({
         index: suggestion.index!,
         target: suggestion.target,
         file: suggestion.file,
         description: suggestion.description,
         priority: suggestion.priority,
-        effort: suggestion.effort
-      }))
+        effort: suggestion.effort,
+      })),
     };
   }
 }

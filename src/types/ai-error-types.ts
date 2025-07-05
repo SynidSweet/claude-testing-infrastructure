@@ -6,7 +6,10 @@
  * Base error class for AI-related operations
  */
 export class AIError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string
+  ) {
     super(message);
     this.name = 'AIError';
   }
@@ -26,7 +29,10 @@ export class AIAuthenticationError extends AIError {
  * Timeout error for AI operations
  */
 export class AITimeoutError extends AIError {
-  constructor(message: string, public readonly timeoutMs: number) {
+  constructor(
+    message: string,
+    public readonly timeoutMs: number
+  ) {
     super(message, 'AI_TIMEOUT_ERROR');
     this.name = 'AITimeoutError';
   }
@@ -36,7 +42,10 @@ export class AITimeoutError extends AIError {
  * Model configuration error
  */
 export class AIModelError extends AIError {
-  constructor(message: string, public readonly modelName: string) {
+  constructor(
+    message: string,
+    public readonly modelName: string
+  ) {
     super(message, 'AI_MODEL_ERROR');
     this.name = 'AIModelError';
   }

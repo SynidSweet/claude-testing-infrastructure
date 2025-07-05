@@ -14,7 +14,11 @@ import { FileDiscoveryType } from '../types/file-discovery-types';
 export class JestRunner extends TestRunner {
   private coverageReporter?: CoverageReporter;
 
-  constructor(config: TestRunnerConfig, analysis: ProjectAnalysis, private fileDiscovery: FileDiscoveryService) {
+  constructor(
+    config: TestRunnerConfig,
+    analysis: ProjectAnalysis,
+    private fileDiscovery: FileDiscoveryService
+  ) {
     super(config, analysis);
 
     // Initialize coverage reporter if coverage is enabled
@@ -44,9 +48,9 @@ export class JestRunner extends TestRunner {
       const result = await this.fileDiscovery.findFiles({
         baseDir: this.config.testPath,
         type: FileDiscoveryType.TEST_EXECUTION,
-        useCache: true
+        useCache: true,
       });
-      
+
       return result.files.length > 0;
     } catch {
       return false;
@@ -373,13 +377,13 @@ export class JestRunner extends TestRunner {
 
   private generateJestConfig(): any {
     const moduleSystem = this.analysis.moduleSystem;
-    
+
     // Base configuration
     const config: any = {
       testEnvironment: 'node',
       testMatch: ['**/*.test.{js,ts,jsx,tsx}'],
       passWithNoTests: true,
-      setupFilesAfterEnv: ['<rootDir>/setupTests.js']
+      setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
     };
 
     // Configure for ES modules
@@ -387,10 +391,10 @@ export class JestRunner extends TestRunner {
       config.preset = 'ts-jest/presets/default-esm';
       config.extensionsToTreatAsEsm = ['.ts'];
       config.moduleNameMapper = {
-        '^(\\.{1,2}/.*)\\.js$': '$1'
+        '^(\\.{1,2}/.*)\\.js$': '$1',
       };
       config.transform = {
-        '^.+\\.tsx?$': ['ts-jest', { useESM: true }]
+        '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
       };
     } else {
       // CommonJS configuration
@@ -400,18 +404,18 @@ export class JestRunner extends TestRunner {
     // Add coverage configuration if enabled
     if (this.config.coverage?.enabled) {
       config.collectCoverage = true;
-      
+
       if (this.config.coverage.outputDir) {
         config.coverageDirectory = this.config.coverage.outputDir;
       }
-      
+
       if (this.config.coverage.reporters) {
         config.coverageReporters = this.config.coverage.reporters;
       }
-      
+
       if (this.config.coverage.thresholds) {
         config.coverageThreshold = {
-          global: this.config.coverage.thresholds
+          global: this.config.coverage.thresholds,
         };
       }
     }
@@ -423,7 +427,6 @@ export class JestRunner extends TestRunner {
     // For now, default to npx jest which should work in most cases
     return 'npx';
   }
-
 
   private extractUncoveredLinesFromReport(coverageData: any): Record<string, number[]> {
     const uncoveredLines: Record<string, number[]> = {};
