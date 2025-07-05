@@ -308,106 +308,13 @@ The breakdown subtask will decompose this further into specific test fix impleme
 
 ### **🟡 Code Quality Improvement Tasks**
 
-#### 🟡 Fix Claude Usage Spike - Concurrent Process Management
-**Status**: Pending
-**Priority**: 🟠 High  
-**Estimate**: 4-5 hours
-**Added**: 2025-07-05 after usage spike investigation
-
-##### Problem Summary
-User experiencing rapid Claude usage depletion due to excessive concurrent process spawning. ClaudeOrchestrator allows up to 3 concurrent processes by default, batch size is 10, and CLI can specify up to 50 concurrent processes. Multiple batch commands can stack processes without global limits, causing usage spikes.
-
-##### Success Criteria
-- [ ] Default concurrency reduced to safer levels (maxConcurrent: 2, batchSize: 5)
-- [ ] Global process limit validation prevents > 5 concurrent Claude processes
-- [ ] Sequential execution by default with opt-in concurrency flag
-- [ ] Clear error messages when approaching usage limits
-- [ ] No breaking changes for existing workflows
-- [ ] All tests passing with new limits
-
-##### Detailed Implementation Steps
-
-**Phase 1: Preparation** (10 minutes)
-- [ ] Create feature branch: `git checkout -b fix/claude-usage-limits`
-- [ ] Run existing tests to establish baseline: `npm test`
-- [ ] Document current concurrency behavior in ClaudeOrchestrator
-- [ ] Note all places where concurrency limits are set
-
-**Phase 2: Reduce Default Limits** (30-45 minutes)
-- [ ] Update ClaudeOrchestrator default maxConcurrent from 3 to 2 (line 121)
-- [ ] Update DEFAULT_CONFIG batchSize from 10 to 5 (config.ts:607)
-- [ ] Update BatchedLogicalTestGenerator default batch size to 5
-- [ ] Add configuration warning when values exceed recommended limits
-- [ ] Run tests after each change to ensure compatibility
-
-**Phase 3: Add Global Process Validation** (1.5-2 hours)
-- [ ] Create ProcessLimitValidator service in src/utils/
-- [ ] Implement getActiveClaudeProcessCount() using ps/pgrep
-- [ ] Add validateProcessLimit() to check before spawning
-- [ ] Integrate validation in ClaudeOrchestrator.processBatch()
-- [ ] Add validation to generate-logical-batch command
-- [ ] Test cross-platform compatibility (macOS, Linux, Windows WSL)
-
-**Phase 4: Implement Sequential Default** (1-1.5 hours)
-- [ ] Add --allow-concurrent flag to generate-logical-batch command
-- [ ] Make sequential processing the default behavior
-- [ ] Update batch processing to run tasks one at a time unless flag set
-- [ ] Maintain backward compatibility with explicit concurrent option
-- [ ] Update command help text to explain new behavior
-
-**Phase 5: Add Usage Warnings** (30-45 minutes)
-- [ ] Implement usage tracking in ClaudeOrchestrator stats
-- [ ] Add warning at 80% of typical rate limits
-- [ ] Create clear error messages for limit violations
-- [ ] Add --force flag to override soft limits with warning
-- [ ] Log usage patterns for future analysis
-
-**Phase 6: Cleanup & Documentation** (30 minutes)
-- [ ] Update AI_AGENT_GUIDE.md with new concurrency limits
-- [ ] Add usage optimization section to documentation
-- [ ] Update command examples with recommended settings
-- [ ] Run full test suite and linting
-- [ ] Commit changes with descriptive message
-
-##### Before/After Code Structure
-```
-BEFORE:
-// ClaudeOrchestrator.ts
-maxConcurrent: 3,
-
-// config.ts
-batchSize: 10,
-
-// No global process limits
-// Concurrent by default
-
-AFTER:
-// ClaudeOrchestrator.ts
-maxConcurrent: 2, // Reduced default
-
-// config.ts
-batchSize: 5, // Smaller default batches
-
-// ProcessLimitValidator ensures max 5 global
-// Sequential by default, --allow-concurrent for parallel
-```
-
-##### Risk Assessment
-- **Breaking changes**: Reduced defaults may slow some workflows
-- **Testing strategy**: Validate with typical workloads, test process counting
-- **Rollback plan**: `git checkout main && git branch -D fix/claude-usage-limits`
-- **Migration**: Users can override with explicit config if needed
-
-##### Estimated Effort
-**Total time**: 4-5 hours (single session possible but 2 sessions recommended)
-**Complexity**: Moderate
-**AI Agent suitability**: Good - clear implementation steps with specific changes
 
 #### 🟡 Refactor Authentication Logic in ClaudeOrchestrator
-**Status**: Pending
+**Status**: In Progress
 **Priority**: 🟡 Medium  
 **Estimate**: 3-4 hours
 **Added**: 2025-07-04 after feedback implementation fixes
+**Started**: 2025-07-05
 
 ##### Problem Summary
 The `validateClaudeAuth()` method in ClaudeOrchestrator became complex after recent authentication fixes. The method now has 60+ lines with nested try-catch blocks, multiple authentication strategies, and mixed concerns. This makes it difficult for AI agents to understand and maintain.

@@ -188,6 +188,101 @@ export class ClaudeOrchestrator extends EventEmitter {
   }
 
   /**
+   * Check if Claude CLI is available
+   */
+  private checkClaudeAvailable(): boolean {
+    try {
+      execSync('claude --version', { stdio: 'ignore' });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Test Claude CLI with a simple query
+   */
+  private testClaudeWithQuery(): {
+    success: boolean;
+    error?: string;
+  } {
+    try {
+      const testResult = execSync('echo "test" | claude 2>&1', {
+        encoding: 'utf-8',
+        timeout: 10000,
+      });
+
+      // If we get any response back (even an error), the CLI is working
+      // Empty output or timeout indicates authentication issues
+      if (testResult && testResult.trim().length > 0) {
+        // Check for specific authentication error patterns
+        if (
+          testResult.includes('authentication required') ||
+          testResult.includes('not authenticated') ||
+          testResult.includes('please login') ||
+          testResult.includes('invalid credentials')
+        ) {
+          return {
+            success: false,
+            error:
+              'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
+          };
+        }
+        return { success: true };
+      }
+      return { success: false };
+    } catch (error) {
+      return { success: false };
+    }
+  }
+
+  /**
+   * Test Claude CLI with config command
+   */
+  private testClaudeConfig(): {
+    success: boolean;
+    error?: string;
+  } {
+    try {
+      const configCheck = execSync('claude config get 2>&1', { encoding: 'utf-8' });
+
+      // More lenient check - just ensure we get some output and no auth errors
+      if (
+        configCheck &&
+        !configCheck.includes('not authenticated') &&
+        !configCheck.includes('please login') &&
+        !configCheck.includes('authentication required')
+      ) {
+        return { success: true };
+      }
+      return {
+        success: false,
+        error:
+          'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
+      };
+    } catch (error) {
+      return { success: false };
+    }
+  }
+
+  /**
+   * Handle authentication failure
+   */
+  private handleAuthFailure(error?: string): {
+    authenticated: boolean;
+    error: string;
+    canDegrade?: boolean;
+  } {
+    return {
+      authenticated: false,
+      error:
+        error ||
+        'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
+      canDegrade: this.config.gracefulDegradation || false,
+    };
+  }
+
+  /**
    * Validate Claude CLI authentication
    */
   validateClaudeAuth(): {
@@ -195,93 +290,34 @@ export class ClaudeOrchestrator extends EventEmitter {
     error?: string;
     canDegrade?: boolean;
   } {
-    try {
-      // Try to check Claude CLI version (basic check if Claude CLI exists)
-      execSync('claude --version', { stdio: 'ignore' });
-
-      // Test Claude CLI with a simple query to verify it's working
-      // This is more reliable than config checks which can have false positives
-      try {
-        const testResult = execSync('echo "test" | claude 2>&1', {
-          encoding: 'utf-8',
-          timeout: 10000,
-        });
-
-        // If we get any response back (even an error), the CLI is working
-        // Empty output or timeout indicates authentication issues
-        if (testResult && testResult.trim().length > 0) {
-          // Additional check: look for specific authentication error patterns
-          if (
-            testResult.includes('authentication required') ||
-            testResult.includes('not authenticated') ||
-            testResult.includes('please login') ||
-            testResult.includes('invalid credentials')
-          ) {
-            return {
-              authenticated: false,
-              error:
-                'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
-              canDegrade: this.config.gracefulDegradation || false,
-            };
-          }
-
-          this.isGracefullyDegraded = false;
-          return { authenticated: true };
-        }
-      } catch (testError) {
-        // Try fallback check with config command
-        try {
-          const configCheck = execSync('claude config get 2>&1', { encoding: 'utf-8' });
-
-          // More lenient check - just ensure we get some output and no auth errors
-          if (
-            configCheck &&
-            !configCheck.includes('not authenticated') &&
-            !configCheck.includes('please login') &&
-            !configCheck.includes('authentication required')
-          ) {
-            this.isGracefullyDegraded = false;
-            return { authenticated: true };
-          }
-        } catch (configError) {
-          // Config command also failed, likely auth issue
-        }
-      }
-
-      return {
-        authenticated: false,
-        error:
-          'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
-        canDegrade: this.config.gracefulDegradation || false,
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
-        return {
-          authenticated: false,
-          error:
-            'Claude CLI not found. Please ensure Claude Code is installed and available in PATH.',
-          canDegrade: this.config.gracefulDegradation || false,
-        };
-      }
-
-      if (errorMessage.includes('login') || errorMessage.includes('authenticate')) {
-        return {
-          authenticated: false,
-          error:
-            'Claude CLI not authenticated. Please run Claude Code interactively to authenticate.',
-          canDegrade: this.config.gracefulDegradation || false,
-        };
-      }
-
-      // Generic error
-      return {
-        authenticated: false,
-        error: `Failed to check Claude CLI authentication: ${errorMessage}`,
-        canDegrade: this.config.gracefulDegradation || false,
-      };
+    // Check if Claude CLI is available
+    if (!this.checkClaudeAvailable()) {
+      return this.handleAuthFailure(
+        'Claude CLI not found. Please ensure Claude Code is installed and available in PATH.'
+      );
     }
+
+    // Try authentication strategies in order
+    const queryTest = this.testClaudeWithQuery();
+    if (queryTest.success) {
+      this.isGracefullyDegraded = false;
+      return { authenticated: true };
+    }
+
+    // If query test failed with auth error, return immediately
+    if (queryTest.error) {
+      return this.handleAuthFailure(queryTest.error);
+    }
+
+    // Try config check as fallback
+    const configTest = this.testClaudeConfig();
+    if (configTest.success) {
+      this.isGracefullyDegraded = false;
+      return { authenticated: true };
+    }
+
+    // Both strategies failed
+    return this.handleAuthFailure(configTest.error);
   }
 
   /**
@@ -716,15 +752,15 @@ export class ClaudeOrchestrator extends EventEmitter {
     if (!processValidation.allowed) {
       logger.error(processValidation.message);
       logger.info('\n' + ProcessLimitValidator.getProcessStatus());
-      
+
       // Try to wait for a slot
       logger.info('Waiting for Claude processes to complete...');
       const slotAvailable = await ProcessLimitValidator.waitForProcessSlot(30000);
-      
+
       if (!slotAvailable) {
         throw new Error(
           `Cannot proceed: Too many Claude processes active (${processValidation.current}/${processValidation.max}). ` +
-          `Please wait for existing processes to complete or reduce concurrency settings.`
+            `Please wait for existing processes to complete or reduce concurrency settings.`
         );
       }
     }
@@ -1214,10 +1250,12 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
         // Wait for a slot to become available
         const slotAvailable = await ProcessLimitValidator.waitForProcessSlot(30000);
         if (!slotAvailable) {
-          reject(new Error(
-            `Cannot spawn Claude process: ${spawnValidation.message}. ` +
-            `Current processes: ${spawnValidation.current}/${spawnValidation.max}`
-          ));
+          reject(
+            new Error(
+              `Cannot spawn Claude process: ${spawnValidation.message}. ` +
+                `Current processes: ${spawnValidation.current}/${spawnValidation.max}`
+            )
+          );
           return;
         }
       }
@@ -1453,7 +1491,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
               // Track rate limit hits
               this.stats.sessionUsage.rateLimitHits++;
               logger.warn(`Rate limit hit #${this.stats.sessionUsage.rateLimitHits} for session`);
-              
+
               reject(
                 new AIRateLimitError(
                   'Claude API rate limit or quota exceeded. Please try again later or use a different model. ' +
