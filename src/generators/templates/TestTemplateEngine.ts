@@ -47,9 +47,11 @@ export class TestTemplateEngine {
   generateTest(context: TemplateContext): string {
     const template = this.findBestTemplate(context);
     if (!template) {
-      throw new Error(`No template found for ${context.language}/${context.framework}/${context.testType}`);
+      throw new Error(
+        `No template found for ${context.language}/${context.framework}/${context.testType}`
+      );
     }
-    
+
     return template.generate(context);
   }
 
@@ -104,11 +106,11 @@ export class TestTemplateEngine {
     this.registerTemplate(new JestJavaScriptTemplate());
     this.registerTemplate(new JestReactComponentTemplate());
     this.registerTemplate(new JestExpressApiTemplate());
-    
+
     // TypeScript Jest templates
     this.registerTemplate(new JestTypeScriptTemplate());
     this.registerTemplate(new JestReactTypeScriptTemplate());
-    
+
     // Python pytest templates
     this.registerTemplate(new PytestTemplate());
     this.registerTemplate(new PytestFastApiTemplate());
@@ -125,16 +127,15 @@ export class TestTemplateEngine {
     // Import enhanced templates dynamically to avoid circular dependencies
     try {
       const enhancedTemplates = require('./JavaScriptEnhancedTemplates');
-      
+
       // Enhanced JavaScript templates
       this.registerTemplate(new enhancedTemplates.EnhancedJestJavaScriptTemplate());
       this.registerTemplate(new enhancedTemplates.EnhancedReactComponentTemplate());
       this.registerTemplate(new enhancedTemplates.EnhancedVueComponentTemplate());
       this.registerTemplate(new enhancedTemplates.EnhancedAngularComponentTemplate());
-      
+
       // Enhanced TypeScript templates
       this.registerTemplate(new enhancedTemplates.EnhancedTypeScriptTemplate());
-      
     } catch (error) {
       // Fallback to basic templates if enhanced templates fail to load
       console.warn('Enhanced templates failed to load, using basic templates:', error);
@@ -143,9 +144,13 @@ export class TestTemplateEngine {
 }
 
 // Helper function for type-specific tests
-function generateJSTypeSpecificTests(exportName: string, testType: TestType, isAsync: boolean): string {
+function generateJSTypeSpecificTests(
+  exportName: string,
+  testType: TestType,
+  isAsync: boolean
+): string {
   let tests = '';
-  
+
   if (isAsync) {
     tests += `    it('should handle async operations', async () => {
       if (typeof ${exportName} === 'function') {
@@ -172,7 +177,7 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
 
 `;
   }
-  
+
   if (testType === TestType.UTILITY) {
     tests += `    it('should work with typical inputs', () => {
       if (typeof ${exportName} === 'function') {
@@ -216,7 +221,7 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
 
 `;
   }
-  
+
   tests += `    it('should have expected behavior', () => {
       if (typeof ${exportName} === 'function') {
         // Test function properties
@@ -248,7 +253,7 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
       }
     });
 `;
-  
+
   return tests;
 }
 
@@ -259,22 +264,32 @@ class JestJavaScriptTemplate implements Template {
   framework = 'jest';
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports, hasDefaultExport, isAsync, testType, moduleSystem, modulePath } = context;
-    
+    const { moduleName, exports, hasDefaultExport, isAsync, testType, moduleSystem, modulePath } =
+      context;
+
     // Generate import statement based on module system
     let importStatement = '';
     const useESM = moduleSystem === 'esm';
-    
+
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
-    
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
+
     if (useESM) {
       // ES Modules syntax
       if (hasDefaultExport && exports.length > 0) {
@@ -330,7 +345,7 @@ describe('${moduleName}', () => {
 
     // If we have detected exports, test each one
     if (exports.length > 0) {
-      exports.forEach(exportName => {
+      exports.forEach((exportName) => {
         testContent += `  describe('${exportName}', () => {
     it('should be defined', () => {
       expect(${exportName}).toBeDefined();
@@ -380,30 +395,41 @@ class JestReactComponentTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, hasDefaultExport, exports, moduleSystem, modulePath } = context;
     const useESM = moduleSystem === 'esm';
-    
+
     // If no default export, use first export name or fallback to moduleName
-    const componentName: string = hasDefaultExport 
-      ? moduleName 
-      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+    const componentName: string = hasDefaultExport
+      ? moduleName
+      : exports && exports.length > 0 && exports[0]
+        ? exports[0]
+        : moduleName;
 
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
 
     let importStatements = '';
     let componentImport = '';
-    
+
     if (useESM) {
       // ES Module syntax with React testing imports
       importStatements = `import React from 'react';
 import { render, screen } from '@testing-library/react';`;
-      
+
       if (hasDefaultExport) {
         componentImport = `import ${componentName} from '${importPathWithExtension}';`;
       } else if (exports && exports.length > 0) {
@@ -475,7 +501,6 @@ describe('${componentName}', () => {
 `;
     }
   }
-
 }
 
 class JestExpressApiTemplate implements Template {
@@ -487,8 +512,8 @@ class JestExpressApiTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, exports, moduleSystem } = context;
     const useESM = moduleSystem === 'esm';
-    
-    const templateContent = `${useESM ? 'import request from \'supertest\';\nimport express from \'express\';\nimport { ' + exports.join(', ') + ' } from \'./' + moduleName + '.js\';' : 'const request = require(\'supertest\');\nconst express = require(\'express\');\nconst { ' + exports.join(', ') + ' } = require(\'./' + moduleName + '\');'}
+
+    const templateContent = `${useESM ? "import request from 'supertest';\nimport express from 'express';\nimport { " + exports.join(', ') + " } from './" + moduleName + ".js';" : "const request = require('supertest');\nconst express = require('express');\nconst { " + exports.join(', ') + " } = require('./" + moduleName + "');"}
 
 const app = express();
 app.use(express.json());
@@ -502,7 +527,9 @@ describe('${moduleName} API', () => {
     // Cleanup
   });
 
-${exports.map(exportName => `
+${exports
+  .map(
+    (exportName) => `
   describe('${exportName}', () => {
     it('should handle successful requests', async () => {
       const response = await request(app)
@@ -525,7 +552,9 @@ ${exports.map(exportName => `
       // TODO: Add authentication tests
     });
   });
-`).join('')}
+`
+  )
+  .join('')}
 });
 `;
 
@@ -542,17 +571,26 @@ class JestTypeScriptTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, exports, hasDefaultExport, moduleSystem, modulePath } = context;
     const useESM = moduleSystem === 'esm';
-    
+
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
-    
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
+
     let importStatement = '';
     if (useESM) {
       // ES Modules syntax for TypeScript
@@ -591,7 +629,7 @@ describe('${moduleName}', () => {
 `;
     }
 
-    exports.forEach(exportName => {
+    exports.forEach((exportName) => {
       testContent += `  describe('${exportName}', () => {
     it('should be defined', () => {
       expect(${exportName}).toBeDefined();
@@ -606,7 +644,6 @@ describe('${moduleName}', () => {
     testContent += '});';
     return testContent;
   }
-
 }
 
 class JestReactTypeScriptTemplate implements Template {
@@ -617,23 +654,34 @@ class JestReactTypeScriptTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, hasDefaultExport, exports, moduleSystem, modulePath } = context;
-    
+
     // If no default export, use first export name or fallback to moduleName
-    const componentName: string = hasDefaultExport 
-      ? moduleName 
-      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+    const componentName: string = hasDefaultExport
+      ? moduleName
+      : exports && exports.length > 0 && exports[0]
+        ? exports[0]
+        : moduleName;
     const useESM = moduleSystem === 'esm';
-    
+
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
-    
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
+
     if (useESM) {
       return `import React from 'react';
 import { render, screen, RenderResult } from '@testing-library/react';
@@ -794,21 +842,22 @@ class PytestTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, modulePath, exports } = context;
-    
+
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
-    
+
     // Filter out empty or whitespace-only exports
-    const validExports = exports.filter(exp => exp && exp.trim());
-    
+    const validExports = exports.filter((exp) => exp && exp.trim());
+
     // Handle empty exports case
-    const importStatement = validExports.length > 0 
-      ? `from ${importModule} import ${validExports.join(', ')}`
-      : `import ${importModule}`;
-    
+    const importStatement =
+      validExports.length > 0
+        ? `from ${importModule} import ${validExports.join(', ')}`
+        : `import ${importModule}`;
+
     // Clean moduleName for class name (replace dots and hyphens with underscores)
     const className = moduleName.replace(/[\.-]/g, '_');
-    
+
     return `"""Tests for ${moduleName} module."""
 import pytest
 ${importStatement}
@@ -822,7 +871,11 @@ class Test${this.capitalize(className)}:
         # This test verifies the module was imported successfully
         ${validExports.length > 0 ? 'assert True  # Module imported successfully' : `assert ${importModule} is not None`}
 
-${validExports.length > 0 ? validExports.map(exportName => `
+${
+  validExports.length > 0
+    ? validExports
+        .map(
+          (exportName) => `
     def test_${exportName.toLowerCase()}_exists(self):
         """Test that ${exportName} is defined and importable."""
         assert ${exportName} is not None
@@ -1007,7 +1060,10 @@ ${validExports.length > 0 ? validExports.map(exportName => `
             except AttributeError:
                 # This is also acceptable
                 assert True
-`).join('') : `
+`
+        )
+        .join('')
+    : `
     def test_module_structure(self):
         """Test basic module structure and contents."""
         # Check if module has expected attributes
@@ -1042,7 +1098,8 @@ ${validExports.length > 0 ? validExports.map(exportName => `
         # Test that repeated imports work
         # TODO: Add specific import stability tests
         assert True  # Placeholder for import stability tests
-`}
+`
+}
 `;
   }
 
@@ -1059,18 +1116,19 @@ class PytestFastApiTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, modulePath, exports } = context;
-    
+
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
-    
+
     // Filter out empty or whitespace-only exports
-    const validExports = exports.filter(exp => exp && exp.trim());
-    
+    const validExports = exports.filter((exp) => exp && exp.trim());
+
     // Handle empty exports case
-    const importStatement = validExports.length > 0 
-      ? `from ${importModule} import ${validExports.join(', ')}`
-      : `import ${importModule}`;
-    
+    const importStatement =
+      validExports.length > 0
+        ? `from ${importModule} import ${validExports.join(', ')}`
+        : `import ${importModule}`;
+
     return `"""Tests for ${moduleName} FastAPI endpoints."""
 import pytest
 from fastapi.testclient import TestClient
@@ -1087,7 +1145,9 @@ def client():
 class Test${this.capitalize(moduleName)}Api:
     """Test class for ${moduleName} API endpoints."""
 
-${validExports.map(exportName => `
+${validExports
+  .map(
+    (exportName) => `
     def test_${exportName.toLowerCase()}_get_success(self, client):
         """Test successful GET request for ${exportName}."""
         # Test multiple possible endpoint patterns
@@ -1196,7 +1256,9 @@ ${validExports.map(exportName => `
         """Test 404 error handling for ${exportName}."""
         response = client.get("/api/${exportName.toLowerCase()}/nonexistent")
         assert response.status_code == 404
-`).join('')}
+`
+  )
+  .join('')}
 `;
   }
 
@@ -1213,18 +1275,19 @@ class PytestDjangoTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, modulePath, exports } = context;
-    
+
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
-    
+
     // Filter out empty or whitespace-only exports
-    const validExports = exports.filter(exp => exp && exp.trim());
-    
+    const validExports = exports.filter((exp) => exp && exp.trim());
+
     // Handle empty exports case
-    const importStatement = validExports.length > 0 
-      ? `from ${importModule} import ${validExports.join(', ')}`
-      : `import ${importModule}`;
-    
+    const importStatement =
+      validExports.length > 0
+        ? `from ${importModule} import ${validExports.join(', ')}`
+        : `import ${importModule}`;
+
     return `"""Tests for ${moduleName} Django views."""
 import pytest
 from django.test import Client
@@ -1241,7 +1304,9 @@ class Test${this.capitalize(moduleName)}Views:
         self.client = Client()
         # TODO: Create test data
 
-${validExports.map(exportName => `
+${validExports
+  .map(
+    (exportName) => `
     def test_${exportName.toLowerCase()}_get_success(self):
         """Test successful GET request for ${exportName}."""
         url = reverse('${exportName.toLowerCase()}')  # TODO: Update URL name
@@ -1264,7 +1329,9 @@ ${validExports.map(exportName => `
         """Test permissions for ${exportName}."""
         # TODO: Test user permissions
         pass
-`).join('')}
+`
+  )
+  .join('')}
 `;
   }
 

@@ -75,7 +75,7 @@ export class ConfigurationManager {
   validateCompleteConfiguration(config: ClaudeTestingConfig): ConfigValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
-    
+
     // For complete configs, we just validate without merging
     // Reuse the existing validation methods by passing the config as both user and merged
     this.validateAndMergeArrays(config, config, errors, warnings);
@@ -88,10 +88,10 @@ export class ConfigurationManager {
     this.validateAndMergeWatch(config, config, errors, warnings);
     this.validateAndMergeAI(config, config, errors, warnings);
     this.validateAndMergeOutput(config, config, errors, warnings);
-    
+
     // Cross-validation checks
     this.performCrossValidation(config, errors, warnings);
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -99,7 +99,7 @@ export class ConfigurationManager {
       config: config,
     };
   }
-  
+
   /**
    * Validate configuration object and merge with defaults
    */
@@ -109,11 +109,10 @@ export class ConfigurationManager {
 
     // Check if userConfig already has all required fields (i.e., it's a merged config)
     const isAlreadyMerged = this.hasAllRequiredFields(userConfig);
-    
-    
+
     // Start with default configuration or use the provided config if already merged
-    const mergedConfig: ClaudeTestingConfig = isAlreadyMerged 
-      ? JSON.parse(JSON.stringify(userConfig)) as ClaudeTestingConfig
+    const mergedConfig: ClaudeTestingConfig = isAlreadyMerged
+      ? (JSON.parse(JSON.stringify(userConfig)) as ClaudeTestingConfig)
       : JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 
     try {
@@ -156,7 +155,7 @@ export class ConfigurationManager {
         Object.assign(mergedConfig.aiOptions, userConfig.aiOptions);
         this.validateLegacyAIOptions(userConfig.aiOptions, mergedConfig, errors, warnings);
       }
-      
+
       // Handle root-level fields
       if (userConfig.costLimit !== undefined) {
         if (typeof userConfig.costLimit !== 'number') {
@@ -165,7 +164,7 @@ export class ConfigurationManager {
             value: userConfig.costLimit,
             message: 'Should be a number',
             suggestion: 'Use a numeric value for cost limits',
-            example: '10.00'
+            example: '10.00',
           });
           warnings.push(warning);
         } else {
@@ -179,7 +178,7 @@ export class ConfigurationManager {
             value: userConfig.dryRun,
             message: 'Should be a boolean',
             suggestion: 'Use true or false',
-            example: 'true'
+            example: 'true',
           });
           warnings.push(warning);
         } else {
@@ -191,7 +190,6 @@ export class ConfigurationManager {
     } catch (error) {
       errors.push(`Configuration validation failed: ${(error as Error).message}`);
     }
-
 
     return {
       valid: errors.length === 0,
@@ -229,7 +227,7 @@ export class ConfigurationManager {
   getConfigurationPath(): string {
     return this.configPath;
   }
-  
+
   /**
    * Check if a configuration object has all required fields
    * (i.e., it's already been merged with defaults)
@@ -237,11 +235,20 @@ export class ConfigurationManager {
   private hasAllRequiredFields(config: PartialClaudeTestingConfig): boolean {
     // Check for presence of all required top-level fields from DEFAULT_CONFIG
     const requiredFields = [
-      'include', 'exclude', 'testFramework', 'aiModel', 'features',
-      'generation', 'coverage', 'incremental', 'watch', 'ai', 'output'
+      'include',
+      'exclude',
+      'testFramework',
+      'aiModel',
+      'features',
+      'generation',
+      'coverage',
+      'incremental',
+      'watch',
+      'ai',
+      'output',
     ];
-    
-    return requiredFields.every(field => field in config);
+
+    return requiredFields.every((field) => field in config);
   }
 
   // Private validation methods
@@ -260,7 +267,7 @@ export class ConfigurationManager {
           value: userConfig.include,
           message: 'Should be an array of strings',
           suggestion: 'Use an array of glob patterns',
-          example: '["src/**/*.js", "src/**/*.ts"]'
+          example: '["src/**/*.js", "src/**/*.ts"]',
         });
         if (warnings) warnings.push(warning);
       } else if (userConfig.include.some((pattern) => typeof pattern !== 'string')) {
@@ -280,7 +287,7 @@ export class ConfigurationManager {
           value: userConfig.exclude,
           message: 'Should be an array of strings',
           suggestion: 'Use an array of glob patterns',
-          example: '["**/*.test.js", "node_modules/**"]'
+          example: '["**/*.test.js", "node_modules/**"]',
         });
         if (warnings) warnings.push(warning);
       } else if (userConfig.exclude.some((pattern) => typeof pattern !== 'string')) {
@@ -305,12 +312,12 @@ export class ConfigurationManager {
           value: userConfig.testFramework,
           message: 'Should be a string',
           suggestion: 'Use one of: jest, vitest, pytest, mocha, chai, jasmine, auto',
-          example: 'jest'
+          example: 'jest',
         });
         warnings.push(warning);
         return;
       }
-      
+
       const validFrameworks: TestFramework[] = [
         'jest',
         'vitest',
@@ -346,7 +353,6 @@ export class ConfigurationManager {
     errors: string[],
     warnings: string[]
   ): void {
-    
     if (userConfig.aiModel !== undefined) {
       const validModels: AIModel[] = [
         'claude-3-5-sonnet-20241022',
@@ -356,23 +362,23 @@ export class ConfigurationManager {
       if (!validModels.includes(userConfig.aiModel)) {
         // Check if it's a common alias that needs to be mapped
         const modelAliases: Record<string, string> = {
-          'sonnet': 'claude-3-5-sonnet-20241022',
-          'opus': 'claude-3-opus-20240229',
-          'haiku': 'claude-3-haiku-20240307',
-          'claude-3-sonnet': 'claude-3-5-sonnet-20241022'
+          sonnet: 'claude-3-5-sonnet-20241022',
+          opus: 'claude-3-opus-20240229',
+          haiku: 'claude-3-haiku-20240307',
+          'claude-3-sonnet': 'claude-3-5-sonnet-20241022',
         };
-        
-        const suggestion = modelAliases[userConfig.aiModel.toLowerCase()] 
+
+        const suggestion = modelAliases[userConfig.aiModel.toLowerCase()]
           ? `Use '${modelAliases[userConfig.aiModel.toLowerCase()]}' or configure model aliases`
           : undefined;
-        
+
         const errorDetails: import('./config-error-messages').ConfigErrorDetails = {
           field: 'aiModel',
           value: userConfig.aiModel,
           message: `Invalid AI model identifier. Valid options: ${validModels.join(', ')}`,
           suggestion,
           example: 'claude-3-5-sonnet-20241022',
-          documentation: 'https://docs.anthropic.com/claude-testing/ai-models'
+          documentation: 'https://docs.anthropic.com/claude-testing/ai-models',
         };
         const error = ConfigErrorFormatter.formatError(errorDetails);
         errors.push(error);
@@ -433,7 +439,7 @@ export class ConfigurationManager {
             ConfigErrorFormatter.templates.unknownField(
               `features.${key}`,
               value,
-              similarFields.map(f => `features.${f}`)
+              similarFields.map((f) => `features.${f}`)
             )
           );
           errors.push(error);
@@ -520,7 +526,7 @@ export class ConfigurationManager {
       if (userConfig.generation.testTypes !== undefined) {
         this.validateTestTypes(userConfig.generation.testTypes, mergedConfig, errors);
       }
-      
+
       // Validate maxRetries
       if (userConfig.generation.maxRetries !== undefined) {
         // Handle string numbers gracefully
@@ -531,29 +537,25 @@ export class ConfigurationManager {
             value: value,
             message: 'Should be a number, not a string',
             suggestion: 'Use numeric value without quotes',
-            example: '3'
+            example: '3',
           });
           warnings.push(warning);
           // Still parse and use it
           mergedConfig.generation.maxRetries = parseInt(value, 10);
-        } else if (
-          !Number.isInteger(value) ||
-          value < 0 ||
-          value > 10
-        ) {
+        } else if (!Number.isInteger(value) || value < 0 || value > 10) {
           const warning = ConfigErrorFormatter.formatError({
             field: 'generation.maxRetries',
             value: value,
             message: `Value should be between 0 and 10 for optimal performance`,
             suggestion: 'Use a value between 1 and 3 for best results',
-            example: '3'
+            example: '3',
           });
           warnings.push(warning);
         } else {
           mergedConfig.generation.maxRetries = value;
         }
       }
-      
+
       // Validate batchSize
       if (userConfig.generation.batchSize !== undefined) {
         if (
@@ -566,14 +568,14 @@ export class ConfigurationManager {
             value: userConfig.generation.batchSize,
             message: `Value should be between 1 and 100`,
             suggestion: 'Use a value between 5 and 20 for best performance',
-            example: '10'
+            example: '10',
           });
           warnings.push(warning);
         } else {
           mergedConfig.generation.batchSize = userConfig.generation.batchSize;
         }
       }
-      
+
       // Validate timeoutMs
       if (userConfig.generation.timeoutMs !== undefined) {
         if (
@@ -585,7 +587,7 @@ export class ConfigurationManager {
             value: userConfig.generation.timeoutMs,
             message: `Value must be a positive number`,
             suggestion: 'Use a value between 30000 and 300000 (30 seconds to 5 minutes)',
-            example: '60000'
+            example: '60000',
           });
           warnings.push(warning);
         } else {
@@ -701,7 +703,7 @@ export class ConfigurationManager {
           warnings
         );
       }
-      
+
       // Validate reporters
       if (userConfig.coverage.reporters !== undefined) {
         if (!Array.isArray(userConfig.coverage.reporters)) {
@@ -709,28 +711,28 @@ export class ConfigurationManager {
         } else {
           const validReporters = ['text', 'lcov', 'html', 'json', 'clover', 'cobertura'];
           const invalidReporters: string[] = [];
-          
+
           for (const reporter of userConfig.coverage.reporters) {
             if (!validReporters.includes(reporter)) {
               invalidReporters.push(reporter);
             }
           }
-          
+
           if (invalidReporters.length > 0) {
             const warning = ConfigErrorFormatter.formatError({
               field: 'coverage.reporters',
               value: invalidReporters,
               message: `Invalid coverage reporter(s): ${invalidReporters.join(', ')}`,
               suggestion: `Valid reporters: ${validReporters.join(', ')}`,
-              example: '["text", "lcov", "html"]'
+              example: '["text", "lcov", "html"]',
             });
             warnings.push(warning);
           }
-          
+
           mergedConfig.coverage.reporters = userConfig.coverage.reporters;
         }
       }
-      
+
       // Other coverage fields
       if (userConfig.coverage.outputDir !== undefined) {
         mergedConfig.coverage.outputDir = userConfig.coverage.outputDir;
@@ -767,7 +769,7 @@ export class ConfigurationManager {
                 value: value,
                 message: 'Must be a number',
                 suggestion: 'Use a numeric value between 0 and 100',
-                example: '80'
+                example: '80',
               });
               warnings.push(warning);
             } else if (value < 0 || value > 100) {
@@ -776,15 +778,13 @@ export class ConfigurationManager {
                 value: value,
                 message: 'Value out of range (must be 0-100)',
                 suggestion: 'Use a value between 50 and 90 for practical thresholds',
-                example: '80'
+                example: '80',
               });
               warnings.push(warning);
             } else {
               (mergedConfig.coverage.thresholds!.global as any)[metric] = value;
               if (value > 95) {
-                warnings.push(
-                  `Very high coverage threshold for ${metric}: ${value}%`
-                );
+                warnings.push(`Very high coverage threshold for ${metric}: ${value}%`);
               }
             }
           }
@@ -989,7 +989,7 @@ export class ConfigurationManager {
           mergedConfig.output.file = userConfig.output.file;
         }
       }
-      
+
       // Validate format (singular)
       if (userConfig.output.format !== undefined) {
         const validFormats: OutputFormat[] = [
@@ -1006,7 +1006,7 @@ export class ConfigurationManager {
             value: userConfig.output.format,
             message: `Invalid output format`,
             suggestion: `Valid formats: ${validFormats.join(', ')}`,
-            example: 'json'
+            example: 'json',
           });
           errors.push(error);
         } else {
@@ -1037,7 +1037,7 @@ export class ConfigurationManager {
           value: aiOptions.maxTokens,
           message: `Value should be between 256 and 8192`,
           suggestion: 'Use a value between 1000 and 4000 for optimal results',
-          example: '2000'
+          example: '2000',
         });
         warnings.push(warning);
       } else {
@@ -1046,16 +1046,20 @@ export class ConfigurationManager {
         }
       }
     }
-    
+
     // Validate temperature
     if (aiOptions.temperature !== undefined) {
-      if (typeof aiOptions.temperature !== 'number' || aiOptions.temperature < 0 || aiOptions.temperature > 1) {
+      if (
+        typeof aiOptions.temperature !== 'number' ||
+        aiOptions.temperature < 0 ||
+        aiOptions.temperature > 1
+      ) {
         const warning = ConfigErrorFormatter.formatError({
           field: 'aiOptions.temperature',
           value: aiOptions.temperature,
           message: `Value must be between 0.0 and 1.0`,
           suggestion: 'Use a value between 0.2 and 0.8 for balanced results',
-          example: '0.7'
+          example: '0.7',
         });
         warnings.push(warning);
       }
@@ -1085,11 +1089,11 @@ export class ConfigurationManager {
         value: { unitTests: false, integrationTests: false },
         message: 'Both unit tests and integration tests are disabled',
         suggestion: 'Enable at least one test type',
-        example: '"features": { "unitTests": true, "integrationTests": true }'
+        example: '"features": { "unitTests": true, "integrationTests": true }',
       });
       errors.push(error);
     }
-    
+
     // Check if both logical and structural tests are disabled
     if (!config.features.logicalTests && !config.features.structuralTests) {
       const warning = ConfigErrorFormatter.formatError({
@@ -1097,7 +1101,7 @@ export class ConfigurationManager {
         value: { logicalTests: false, structuralTests: false },
         message: 'Both structural and logical tests are disabled. No tests will be generated.',
         suggestion: 'Enable at least one test generation type',
-        example: '"features": { "structuralTests": true, "logicalTests": true }'
+        example: '"features": { "structuralTests": true, "logicalTests": true }',
       });
       warnings.push(warning);
     }
@@ -1121,7 +1125,7 @@ export class ConfigurationManager {
         value: true,
         message: 'Watch mode requires incremental testing to be effective',
         suggestion: "Enable 'features.incremental' for optimal watch mode performance",
-        example: '"features": { "watch": true, "incremental": true }'
+        example: '"features": { "watch": true, "incremental": true }',
       });
       warnings.push(warning);
     }
@@ -1144,7 +1148,7 @@ export class ConfigurationManager {
       // Skip cross-validation if include/exclude aren't arrays
       return;
     }
-    
+
     const hasJavaScript = config.include.some(
       (pattern) => pattern.includes('.js') || pattern.includes('.ts')
     );
@@ -1156,7 +1160,7 @@ export class ConfigurationManager {
         value: config.testFramework,
         message: 'Mixed language project detected (JavaScript and Python)',
         suggestion: 'Use "auto" for automatic framework detection in multi-language projects',
-        example: '"testFramework": "auto"'
+        example: '"testFramework": "auto"',
       });
       warnings.push(warning);
     }

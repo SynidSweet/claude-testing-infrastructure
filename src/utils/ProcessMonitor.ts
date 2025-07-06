@@ -1,6 +1,6 @@
 /**
  * Process Monitor Utility
- * 
+ *
  * Cross-platform process monitoring for detecting resource usage,
  * zombie processes, and subprocess health issues.
  */
@@ -10,13 +10,13 @@ import { logger } from './logger';
 
 export interface ProcessResourceUsage {
   pid: number;
-  cpu: number;        // CPU usage percentage
-  memory: number;     // Memory usage percentage  
-  rss?: number;       // Resident Set Size in KB
-  vsz?: number;       // Virtual Memory Size in KB
-  state?: string;     // Process state (R, S, D, Z, etc.)
-  ppid?: number;      // Parent Process ID
-  command?: string;   // Process command
+  cpu: number; // CPU usage percentage
+  memory: number; // Memory usage percentage
+  rss?: number; // Resident Set Size in KB
+  vsz?: number; // Virtual Memory Size in KB
+  state?: string; // Process state (R, S, D, Z, etc.)
+  ppid?: number; // Parent Process ID
+  command?: string; // Process command
 }
 
 export interface ProcessHealthMetrics {
@@ -30,10 +30,10 @@ export interface ProcessHealthMetrics {
 }
 
 export interface ProcessMonitorConfig {
-  cpuThreshold: number;     // CPU % threshold for alerts (default: 80)
-  memoryThreshold: number;  // Memory % threshold for alerts (default: 80)
-  checkInterval: number;    // Monitoring interval in ms (default: 30000)
-  maxHistory: number;       // Max history entries to keep (default: 100)
+  cpuThreshold: number; // CPU % threshold for alerts (default: 80)
+  memoryThreshold: number; // Memory % threshold for alerts (default: 80)
+  checkInterval: number; // Monitoring interval in ms (default: 30000)
+  maxHistory: number; // Max history entries to keep (default: 100)
   zombieDetection: boolean; // Enable zombie process detection (default: true)
 }
 
@@ -156,7 +156,7 @@ export class ProcessMonitor {
     try {
       // Look for processes in zombie state
       const zombies = this.findZombieProcesses();
-      
+
       if (zombies.length > 0) {
         logger.warn(`Detected ${zombies.length} zombie processes`);
       }
@@ -176,8 +176,10 @@ export class ProcessMonitor {
     totalHistory: number;
     configuration: ProcessMonitorConfig;
   } {
-    const totalHistory = Array.from(this.history.values())
-      .reduce((sum, entries) => sum + entries.length, 0);
+    const totalHistory = Array.from(this.history.values()).reduce(
+      (sum, entries) => sum + entries.length,
+      0
+    );
 
     return {
       activeProcesses: Array.from(this.monitoring),
@@ -234,13 +236,14 @@ export class ProcessMonitor {
 
       // Emit events for high resource usage
       if (healthMetrics.isHighResource) {
-        logger.warn(`Process ${pid} high resource usage: CPU=${resourceUsage.cpu}%, Memory=${resourceUsage.memory}%`);
+        logger.warn(
+          `Process ${pid} high resource usage: CPU=${resourceUsage.cpu}%, Memory=${resourceUsage.memory}%`
+        );
       }
 
       if (healthMetrics.isZombie) {
         logger.error(`Process ${pid} is in zombie state`);
       }
-
     } catch (error) {
       logger.debug(`Error checking process ${pid}: ${error}`);
       // Process might have terminated
@@ -255,13 +258,14 @@ export class ProcessMonitor {
     try {
       // Try to get detailed process info using ps command
       // Use cross-platform ps options for better compatibility
-      const psCommand = process.platform === 'darwin' 
-        ? `ps -p ${pid} -o pid,ppid,%cpu,%mem,rss,vsz,state,comm` 
-        : `ps -p ${pid} -o pid,ppid,%cpu,%mem,rss,vsz,stat,comm 2>/dev/null`;
+      const psCommand =
+        process.platform === 'darwin'
+          ? `ps -p ${pid} -o pid,ppid,%cpu,%mem,rss,vsz,state,comm`
+          : `ps -p ${pid} -o pid,ppid,%cpu,%mem,rss,vsz,stat,comm 2>/dev/null`;
 
       const psOutput = execSync(psCommand, {
         encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore']
+        stdio: ['ignore', 'pipe', 'ignore'],
       }).trim();
 
       if (!psOutput) {
@@ -278,7 +282,7 @@ export class ProcessMonitor {
       if (!dataLine) {
         return null;
       }
-      
+
       const fields = dataLine.split(/\s+/);
 
       if (fields.length < 8) {
@@ -305,7 +309,6 @@ export class ProcessMonitor {
         ...(parsedState && { state: parsedState }),
         ...(parsedCommand && { command: parsedCommand }),
       };
-
     } catch (error) {
       logger.debug(`Failed to capture detailed resource usage for PID ${pid}: ${error}`);
       // Fallback to basic resource usage
@@ -320,7 +323,7 @@ export class ProcessMonitor {
     try {
       const psOutput = execSync(`ps -p ${pid} -o %cpu,%mem 2>/dev/null || echo ""`, {
         encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore']
+        stdio: ['ignore', 'pipe', 'ignore'],
       }).trim();
 
       if (!psOutput) {
@@ -352,13 +355,14 @@ export class ProcessMonitor {
   private findZombieProcesses(): ProcessResourceUsage[] {
     try {
       // Look for processes with zombie state
-      const psCommand = process.platform === 'darwin'
-        ? `ps -A -o pid,ppid,%cpu,%mem,state,comm | grep " Z "`
-        : `ps -A -o pid,ppid,%cpu,%mem,stat,comm | grep " Z"`;
+      const psCommand =
+        process.platform === 'darwin'
+          ? `ps -A -o pid,ppid,%cpu,%mem,state,comm | grep " Z "`
+          : `ps -A -o pid,ppid,%cpu,%mem,stat,comm | grep " Z"`;
 
       const psOutput = execSync(psCommand, {
         encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore']
+        stdio: ['ignore', 'pipe', 'ignore'],
       }).trim();
 
       if (!psOutput) {
@@ -377,7 +381,7 @@ export class ProcessMonitor {
           const parsedMemory = fields[3] ? parseFloat(fields[3]) : 0;
           const parsedState = fields[4] || 'Z';
           const parsedCommand = fields.slice(5).join(' ') || 'zombie';
-          
+
           zombies.push({
             pid: parsedPid,
             cpu: parsedCpu,
@@ -439,7 +443,7 @@ export class ProcessMonitor {
       }
     }
 
-    // Check memory usage  
+    // Check memory usage
     const isHighMemory = current.memory > this.config.memoryThreshold;
     if (isHighMemory) {
       healthScore -= 20;
@@ -452,8 +456,8 @@ export class ProcessMonitor {
     // Analyze trends if we have history
     if (history.length >= 3) {
       const recentEntries = history.slice(-3);
-      const cpuTrend = this.calculateTrend(recentEntries.map(e => e.resourceUsage.cpu));
-      const memoryTrend = this.calculateTrend(recentEntries.map(e => e.resourceUsage.memory));
+      const cpuTrend = this.calculateTrend(recentEntries.map((e) => e.resourceUsage.cpu));
+      const memoryTrend = this.calculateTrend(recentEntries.map((e) => e.resourceUsage.memory));
 
       if (cpuTrend > 10) {
         healthScore -= 10;

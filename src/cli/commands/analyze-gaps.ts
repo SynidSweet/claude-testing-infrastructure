@@ -1,6 +1,12 @@
 import { fs, path, logger } from '../../utils/common-imports';
 import { Command } from 'commander';
-import { ProjectAnalyzer, TestGapAnalyzer, GapReportGenerator, StructuralTestGenerator, TestGeneratorConfig } from '../../utils/analyzer-imports';
+import {
+  ProjectAnalyzer,
+  TestGapAnalyzer,
+  GapReportGenerator,
+  StructuralTestGenerator,
+  TestGeneratorConfig,
+} from '../../utils/analyzer-imports';
 import type { ReportOptions } from '../../analyzers/GapReportGenerator';
 import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
@@ -30,11 +36,11 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
   .option('--no-colors', 'Disable colored terminal output')
   .action(async (projectPath: string, options: AnalyzeGapsOptions) => {
     const startTime = Date.now();
-    
+
     try {
       // Resolve and validate project path
       const resolvedProjectPath = path.resolve(projectPath);
-      
+
       try {
         await fs.access(resolvedProjectPath);
       } catch (error) {
@@ -48,20 +54,24 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         cliArgs: {
           verbose: options.verbose,
           format: options.format,
-          threshold: options.threshold
-        }
+          threshold: options.threshold,
+        },
       });
-      
+
       if (!configResult.valid) {
-        logger.warn('Configuration validation warnings', { 
-          warnings: configResult.warnings 
+        logger.warn('Configuration validation warnings', {
+          warnings: configResult.warnings,
         });
       }
-      
+
       const config = configResult.config;
-      
+
       // Apply configuration to logger
-      if (options.verbose || config.output?.logLevel === 'debug' || config.output?.logLevel === 'verbose') {
+      if (
+        options.verbose ||
+        config.output?.logLevel === 'debug' ||
+        config.output?.logLevel === 'verbose'
+      ) {
         logger.level = 'debug';
       } else if (config.output?.logLevel) {
         logger.level = config.output.logLevel as any;
@@ -69,7 +79,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
 
       logger.info('Starting test gap analysis', {
         projectPath,
-        options
+        options,
       });
 
       // Step 1: Analyze the project
@@ -84,33 +94,38 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
       const testGenConfig: TestGeneratorConfig = {
         projectPath: resolvedProjectPath,
         outputPath: path.join(resolvedProjectPath, '.claude-testing'),
-        testFramework: config.testFramework || (projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest'),
+        testFramework:
+          config.testFramework ||
+          (projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest'),
         options: {},
         patterns: {
           include: config.include,
-          exclude: config.exclude
-        }
+          exclude: config.exclude,
+        },
       };
 
-      const testGenerator = new StructuralTestGenerator(testGenConfig, projectAnalysis, {}, fileDiscovery);
+      const testGenerator = new StructuralTestGenerator(
+        testGenConfig,
+        projectAnalysis,
+        {},
+        fileDiscovery
+      );
       const generationResult = await testGenerator.generateAllTests();
 
       if (!generationResult.success) {
         logger.error('Failed to generate structural tests for gap analysis', {
-          errors: generationResult.errors
+          errors: generationResult.errors,
         });
         process.exit(1);
       }
 
       // Step 3: Analyze gaps
       logger.info('Analyzing test gaps', {
-        testsGenerated: generationResult.tests.length
+        testsGenerated: generationResult.tests.length,
       });
 
       const gapAnalyzer = new TestGapAnalyzer(projectAnalysis, {
-        complexityThreshold: options.threshold 
-          ? parseInt(String(options.threshold), 10) 
-          : 3 // Default complexity threshold
+        complexityThreshold: options.threshold ? parseInt(String(options.threshold), 10) : 3, // Default complexity threshold
       });
 
       const gapAnalysis = await gapAnalyzer.analyzeTestGaps(generationResult);
@@ -125,8 +140,8 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         timing: {
           duration,
           startTime: new Date(startTime).toISOString(),
-          endTime: new Date(endTime).toISOString()
-        }
+          endTime: new Date(endTime).toISOString(),
+        },
       };
 
       // Configure report options
@@ -135,16 +150,21 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         includeCodeSnippets: options.includeCodeSnippets || false,
         useColors: !options.noColors,
         includeTiming: true,
-        maxGapsToShow: 50
+        maxGapsToShow: 50,
       };
 
       const reportGenerator = new GapReportGenerator(reportOptions);
 
       if (options.output) {
-        await outputResults(analysisWithTiming, options.output, options.format || 'json', reportGenerator);
-        logger.info('Gap analysis results saved', { 
+        await outputResults(
+          analysisWithTiming,
+          options.output,
+          options.format || 'json',
+          reportGenerator
+        );
+        logger.info('Gap analysis results saved', {
           outputPath: options.output,
-          format: options.format
+          format: options.format,
         });
       } else {
         // Output to console with enhanced visualization
@@ -158,7 +178,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         totalGaps: gapAnalysis.summary.totalGaps,
         estimatedCost: gapAnalysis.estimatedCost.estimatedCostUSD,
         overallAssessment: gapAnalysis.summary.overallAssessment,
-        duration
+        duration,
       });
 
       // Exit with appropriate code
@@ -168,24 +188,23 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         process.exit(1); // Indicates some gaps found
       }
       // Exit 0 for excellent/good assessments
-
     } catch (error) {
-      logger.error('Gap analysis failed', { 
+      logger.error('Gap analysis failed', {
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
       process.exit(1);
     }
   });
 
 async function outputResults(
-  analysis: any, 
-  outputPath: string, 
-  format: string, 
+  analysis: any,
+  outputPath: string,
+  format: string,
   reportGenerator: GapReportGenerator
 ): Promise<void> {
   const outputDir = path.dirname(outputPath);
-  
+
   try {
     await fs.mkdir(outputDir, { recursive: true });
   } catch (error) {
@@ -224,4 +243,3 @@ function outputToConsole(analysis: any, format: string, reportGenerator: GapRepo
       break;
   }
 }
-

@@ -17,26 +17,24 @@ export class EnhancedJestJavaScriptTemplate implements Template {
   framework = 'jest';
 
   generate(context: TemplateContext): string {
-    const { 
-      moduleName, 
-      exports, 
-      hasDefaultExport, 
-      testType, 
-      moduleSystem, 
-      modulePath 
-    } = context;
+    const { moduleName, exports, hasDefaultExport, testType, moduleSystem, modulePath } = context;
 
     // Extract async patterns from metadata if available
     const asyncPatterns = this.getAsyncPatterns(context);
     // const moduleInfo = this.getModuleInfo(context); // Reserved for future use
-    
+
     const useESM = moduleSystem === 'esm';
     const importPath = modulePath || moduleName;
     const relativeImportPath = this.normalizeImportPath(importPath);
     const importPathWithExtension = this.addExtensionIfNeeded(relativeImportPath, useESM);
-    
+
     const importStatement = this.generateImportStatement(
-      moduleName, exports, hasDefaultExport, useESM, importPathWithExtension, relativeImportPath
+      moduleName,
+      exports,
+      hasDefaultExport,
+      useESM,
+      importPathWithExtension,
+      relativeImportPath
     );
 
     let testContent = `${importStatement}
@@ -68,7 +66,7 @@ describe('${moduleName}', () => {
 
     // Named export tests
     if (exports.length > 0) {
-      exports.forEach(exportName => {
+      exports.forEach((exportName) => {
         testContent += this.generateNamedExportTests(exportName, testType, asyncPatterns);
       });
     } else {
@@ -91,32 +89,35 @@ describe('${moduleName}', () => {
   // }
 
   private normalizeImportPath(importPath: string): string {
-    return importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || 
-           (!importPath.includes('/') && !importPath.includes('\\')) ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? 
-        importPath : `./${importPath}`) : 
-      importPath;
+    return importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+      ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+        ? importPath
+        : `./${importPath}`
+      : importPath;
   }
 
   private addExtensionIfNeeded(importPath: string, useESM: boolean): string {
     // Remove TypeScript extensions first (.ts, .tsx)
     const pathWithoutTsExtension = importPath.replace(/\.(ts|tsx)$/, '');
-    
+
     const hasJsExtension = /\.(js|jsx)$/.test(pathWithoutTsExtension);
-    
+
     if (useESM && !hasJsExtension) {
       return `${pathWithoutTsExtension}.js`;
     }
-    
+
     return pathWithoutTsExtension;
   }
 
   private generateImportStatement(
-    moduleName: string, 
-    exports: string[], 
-    hasDefaultExport: boolean, 
-    useESM: boolean, 
-    importPathWithExtension: string, 
+    moduleName: string,
+    exports: string[],
+    hasDefaultExport: boolean,
+    useESM: boolean,
+    importPathWithExtension: string,
     relativeImportPath: string
   ): string {
     if (useESM) {
@@ -149,7 +150,7 @@ describe('${moduleName}', () => {
 `;
 
     // Test based on detected patterns
-    const patternTypes = new Set(asyncPatterns.patterns.map(p => p.type));
+    const patternTypes = new Set(asyncPatterns.patterns.map((p) => p.type));
 
     if (patternTypes.has('async-await')) {
       tests += `    it('should handle async/await patterns correctly', async () => {
@@ -198,8 +199,10 @@ describe('${moduleName}', () => {
     return tests;
   }
 
-  private generateDefaultExportTests(moduleName: string, asyncPatterns: FileAsyncPatterns | null): string {
-    
+  private generateDefaultExportTests(
+    moduleName: string,
+    asyncPatterns: FileAsyncPatterns | null
+  ): string {
     let tests = `  describe('default export', () => {
     it('should export a default value', () => {
       expect(${moduleName}).toBeDefined();
@@ -231,8 +234,11 @@ describe('${moduleName}', () => {
     return tests;
   }
 
-  private generateNamedExportTests(exportName: string, testType: TestType, asyncPatterns: FileAsyncPatterns | null): string {
-    
+  private generateNamedExportTests(
+    exportName: string,
+    testType: TestType,
+    asyncPatterns: FileAsyncPatterns | null
+  ): string {
     let tests = `  describe('${exportName}', () => {
     it('should be defined', () => {
       expect(${exportName}).toBeDefined();
@@ -251,7 +257,11 @@ describe('${moduleName}', () => {
     }
 
     // Add type-specific tests
-    tests += this.generateTypeSpecificTests(exportName, testType, asyncPatterns?.hasAsyncPatterns || false);
+    tests += this.generateTypeSpecificTests(
+      exportName,
+      testType,
+      asyncPatterns?.hasAsyncPatterns || false
+    );
 
     tests += `  });
 
@@ -259,10 +269,13 @@ describe('${moduleName}', () => {
     return tests;
   }
 
-  private generateAsyncExportTests(exportName: string, asyncPatterns: FileAsyncPatterns | null): string {
+  private generateAsyncExportTests(
+    exportName: string,
+    asyncPatterns: FileAsyncPatterns | null
+  ): string {
     if (!asyncPatterns?.patterns) return '';
 
-    const patternTypes = new Set(asyncPatterns.patterns.map(p => p.type));
+    const patternTypes = new Set(asyncPatterns.patterns.map((p) => p.type));
     let tests = '';
 
     if (patternTypes.has('async-await')) {
@@ -303,7 +316,11 @@ describe('${moduleName}', () => {
     return tests;
   }
 
-  private generateTypeSpecificTests(exportName: string, testType: TestType, _isAsync: boolean): string {
+  private generateTypeSpecificTests(
+    exportName: string,
+    testType: TestType,
+    _isAsync: boolean
+  ): string {
     let tests = '';
 
     if (testType === TestType.UTILITY) {
@@ -398,10 +415,12 @@ export class EnhancedReactComponentTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, hasDefaultExport, exports, moduleSystem, modulePath } = context;
     const useESM = moduleSystem === 'esm';
-    
-    const componentName = hasDefaultExport 
-      ? moduleName 
-      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+
+    const componentName = hasDefaultExport
+      ? moduleName
+      : exports && exports.length > 0 && exports[0]
+        ? exports[0]
+        : moduleName;
 
     const importPath = modulePath || moduleName;
     const relativeImportPath = this.normalizeImportPath(importPath);
@@ -411,11 +430,17 @@ export class EnhancedReactComponentTemplate implements Template {
 
     if (useESM) {
       return this.generateESMReactTemplate(
-        componentName, hasDefaultExport, importPathWithExtension, asyncPatterns
+        componentName,
+        hasDefaultExport,
+        importPathWithExtension,
+        asyncPatterns
       );
     } else {
       return this.generateCommonJSReactTemplate(
-        componentName, hasDefaultExport, relativeImportPath, asyncPatterns
+        componentName,
+        hasDefaultExport,
+        relativeImportPath,
+        asyncPatterns
       );
     }
   }
@@ -426,33 +451,36 @@ export class EnhancedReactComponentTemplate implements Template {
   }
 
   private normalizeImportPath(importPath: string): string {
-    return importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || 
-           (!importPath.includes('/') && !importPath.includes('\\')) ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? 
-        importPath : `./${importPath}`) : 
-      importPath;
+    return importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+      ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+        ? importPath
+        : `./${importPath}`
+      : importPath;
   }
 
   private addExtensionIfNeeded(importPath: string, useESM: boolean): string {
     // Remove TypeScript extensions first (.ts, .tsx)
     const pathWithoutTsExtension = importPath.replace(/\.(ts|tsx)$/, '');
-    
+
     const hasJsExtension = /\.(js|jsx)$/.test(pathWithoutTsExtension);
-    
+
     if (useESM && !hasJsExtension) {
       return `${pathWithoutTsExtension}.js`;
     }
-    
+
     return pathWithoutTsExtension;
   }
 
   private generateESMReactTemplate(
-    componentName: string, 
-    hasDefaultExport: boolean, 
-    importPath: string, 
+    componentName: string,
+    hasDefaultExport: boolean,
+    importPath: string,
     asyncPatterns: FileAsyncPatterns | null
   ): string {
-    const componentImport = hasDefaultExport 
+    const componentImport = hasDefaultExport
       ? `import ${componentName} from '${importPath}';`
       : `import { ${componentName} } from '${importPath}';`;
 
@@ -537,12 +565,12 @@ describe('${componentName}', () => {
   }
 
   private generateCommonJSReactTemplate(
-    componentName: string, 
-    hasDefaultExport: boolean, 
-    importPath: string, 
+    componentName: string,
+    hasDefaultExport: boolean,
+    importPath: string,
     _asyncPatterns: FileAsyncPatterns | null
   ): string {
-    const componentImport = hasDefaultExport 
+    const componentImport = hasDefaultExport
       ? `const ${componentName} = require('${importPath}');`
       : `const { ${componentName} } = require('${importPath}');`;
 
@@ -688,10 +716,12 @@ export class EnhancedVueComponentTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, hasDefaultExport, exports, moduleSystem, modulePath } = context;
     const useESM = moduleSystem === 'esm';
-    
-    const componentName = hasDefaultExport 
-      ? moduleName 
-      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+
+    const componentName = hasDefaultExport
+      ? moduleName
+      : exports && exports.length > 0 && exports[0]
+        ? exports[0]
+        : moduleName;
 
     const importPath = modulePath || moduleName;
     const relativeImportPath = this.normalizeImportPath(importPath);
@@ -701,11 +731,17 @@ export class EnhancedVueComponentTemplate implements Template {
 
     if (useESM) {
       return this.generateESMVueTemplate(
-        componentName, hasDefaultExport, importPathWithExtension, asyncPatterns
+        componentName,
+        hasDefaultExport,
+        importPathWithExtension,
+        asyncPatterns
       );
     } else {
       return this.generateCommonJSVueTemplate(
-        componentName, hasDefaultExport, relativeImportPath, asyncPatterns
+        componentName,
+        hasDefaultExport,
+        relativeImportPath,
+        asyncPatterns
       );
     }
   }
@@ -716,33 +752,36 @@ export class EnhancedVueComponentTemplate implements Template {
   }
 
   private normalizeImportPath(importPath: string): string {
-    return importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || 
-           (!importPath.includes('/') && !importPath.includes('\\')) ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? 
-        importPath : `./${importPath}`) : 
-      importPath;
+    return importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+      ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+        ? importPath
+        : `./${importPath}`
+      : importPath;
   }
 
   private addExtensionIfNeeded(importPath: string, useESM: boolean): string {
     // Remove TypeScript extensions first (.ts, .tsx)
     const pathWithoutTsExtension = importPath.replace(/\.(ts|tsx)$/, '');
-    
+
     const hasJsExtension = /\.(js|jsx)$/.test(pathWithoutTsExtension);
-    
+
     if (useESM && !hasJsExtension) {
       return `${pathWithoutTsExtension}.js`;
     }
-    
+
     return pathWithoutTsExtension;
   }
 
   private generateESMVueTemplate(
-    componentName: string, 
-    hasDefaultExport: boolean, 
-    importPath: string, 
+    componentName: string,
+    hasDefaultExport: boolean,
+    importPath: string,
     asyncPatterns: FileAsyncPatterns | null
   ): string {
-    const componentImport = hasDefaultExport 
+    const componentImport = hasDefaultExport
       ? `import ${componentName} from '${importPath}';`
       : `import { ${componentName} } from '${importPath}';`;
 
@@ -841,12 +880,12 @@ describe('${componentName}', () => {
   }
 
   private generateCommonJSVueTemplate(
-    componentName: string, 
-    hasDefaultExport: boolean, 
-    importPath: string, 
+    componentName: string,
+    hasDefaultExport: boolean,
+    importPath: string,
     _asyncPatterns: FileAsyncPatterns | null
   ): string {
-    const componentImport = hasDefaultExport 
+    const componentImport = hasDefaultExport
       ? `const ${componentName} = require('${importPath}');`
       : `const { ${componentName} } = require('${importPath}');`;
 
@@ -946,10 +985,12 @@ export class EnhancedAngularComponentTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, hasDefaultExport, exports, moduleSystem, modulePath } = context;
     const useESM = moduleSystem === 'esm';
-    
-    const componentName = hasDefaultExport 
-      ? moduleName 
-      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+
+    const componentName = hasDefaultExport
+      ? moduleName
+      : exports && exports.length > 0 && exports[0]
+        ? exports[0]
+        : moduleName;
 
     const importPath = modulePath || moduleName;
     const relativeImportPath = this.normalizeImportPath(importPath);
@@ -959,11 +1000,17 @@ export class EnhancedAngularComponentTemplate implements Template {
 
     if (useESM) {
       return this.generateESMAngularTemplate(
-        componentName, hasDefaultExport, importPathWithExtension, asyncPatterns
+        componentName,
+        hasDefaultExport,
+        importPathWithExtension,
+        asyncPatterns
       );
     } else {
       return this.generateCommonJSAngularTemplate(
-        componentName, hasDefaultExport, relativeImportPath, asyncPatterns
+        componentName,
+        hasDefaultExport,
+        relativeImportPath,
+        asyncPatterns
       );
     }
   }
@@ -974,33 +1021,36 @@ export class EnhancedAngularComponentTemplate implements Template {
   }
 
   private normalizeImportPath(importPath: string): string {
-    return importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || 
-           (!importPath.includes('/') && !importPath.includes('\\')) ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? 
-        importPath : `./${importPath}`) : 
-      importPath;
+    return importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+      ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+        ? importPath
+        : `./${importPath}`
+      : importPath;
   }
 
   private addExtensionIfNeeded(importPath: string, useESM: boolean): string {
     // Remove TypeScript extensions first (.ts, .tsx)
     const pathWithoutTsExtension = importPath.replace(/\.(ts|tsx)$/, '');
-    
+
     const hasJsExtension = /\.(js|jsx)$/.test(pathWithoutTsExtension);
-    
+
     if (useESM && !hasJsExtension) {
       return `${pathWithoutTsExtension}.js`;
     }
-    
+
     return pathWithoutTsExtension;
   }
 
   private generateESMAngularTemplate(
-    componentName: string, 
-    hasDefaultExport: boolean, 
-    importPath: string, 
+    componentName: string,
+    hasDefaultExport: boolean,
+    importPath: string,
     asyncPatterns: FileAsyncPatterns | null
   ): string {
-    const componentImport = hasDefaultExport 
+    const componentImport = hasDefaultExport
       ? `import ${componentName} from '${importPath}';`
       : `import { ${componentName} } from '${importPath}';`;
 
@@ -1111,12 +1161,12 @@ describe('${componentName}', () => {
   }
 
   private generateCommonJSAngularTemplate(
-    componentName: string, 
-    hasDefaultExport: boolean, 
-    importPath: string, 
+    componentName: string,
+    hasDefaultExport: boolean,
+    importPath: string,
     _asyncPatterns: FileAsyncPatterns | null
   ): string {
-    const componentImport = hasDefaultExport 
+    const componentImport = hasDefaultExport
       ? `const ${componentName} = require('${importPath}');`
       : `const { ${componentName} } = require('${importPath}');`;
 
@@ -1220,23 +1270,22 @@ export class EnhancedTypeScriptTemplate implements Template {
   framework = 'jest';
 
   generate(context: TemplateContext): string {
-    const { 
-      moduleName, 
-      exports, 
-      hasDefaultExport, 
-      moduleSystem, 
-      modulePath 
-    } = context;
+    const { moduleName, exports, hasDefaultExport, moduleSystem, modulePath } = context;
 
     const asyncPatterns = this.getAsyncPatterns(context);
     const useESM = moduleSystem === 'esm';
-    
+
     const importPath = modulePath || moduleName;
     const relativeImportPath = this.normalizeImportPath(importPath);
     const importPathWithExtension = this.addExtensionIfNeeded(relativeImportPath, useESM);
-    
+
     const importStatement = this.generateImportStatement(
-      moduleName, exports, hasDefaultExport, useESM, importPathWithExtension, relativeImportPath
+      moduleName,
+      exports,
+      hasDefaultExport,
+      useESM,
+      importPathWithExtension,
+      relativeImportPath
     );
 
     let testContent = `${importStatement}
@@ -1262,7 +1311,7 @@ describe('${moduleName}', () => {
 
     // Enhanced export tests
     if (exports.length > 0) {
-      exports.forEach(exportName => {
+      exports.forEach((exportName) => {
         testContent += this.generateTypeScriptExportTests(exportName, asyncPatterns);
       });
     } else {
@@ -1279,32 +1328,35 @@ describe('${moduleName}', () => {
   }
 
   private normalizeImportPath(importPath: string): string {
-    return importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || 
-           (!importPath.includes('/') && !importPath.includes('\\')) ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? 
-        importPath : `./${importPath}`) : 
-      importPath;
+    return importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+      ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+        ? importPath
+        : `./${importPath}`
+      : importPath;
   }
 
   private addExtensionIfNeeded(importPath: string, useESM: boolean): string {
     // Remove TypeScript extensions first (.ts, .tsx)
     const pathWithoutTsExtension = importPath.replace(/\.(ts|tsx)$/, '');
-    
+
     const hasJsExtension = /\.(js|jsx)$/.test(pathWithoutTsExtension);
-    
+
     if (useESM && !hasJsExtension) {
       return `${pathWithoutTsExtension}.js`;
     }
-    
+
     return pathWithoutTsExtension;
   }
 
   private generateImportStatement(
-    moduleName: string, 
-    exports: string[], 
-    hasDefaultExport: boolean, 
-    useESM: boolean, 
-    importPathWithExtension: string, 
+    moduleName: string,
+    exports: string[],
+    hasDefaultExport: boolean,
+    useESM: boolean,
+    importPathWithExtension: string,
     relativeImportPath: string
   ): string {
     if (useESM) {
@@ -1386,7 +1438,10 @@ describe('${moduleName}', () => {
     return tests;
   }
 
-  private generateAsyncTypeScriptTests(moduleName: string, asyncPatterns: FileAsyncPatterns): string {
+  private generateAsyncTypeScriptTests(
+    moduleName: string,
+    asyncPatterns: FileAsyncPatterns
+  ): string {
     if (!asyncPatterns.patterns || asyncPatterns.patterns.length === 0) {
       return '';
     }
@@ -1394,7 +1449,7 @@ describe('${moduleName}', () => {
     let tests = `  describe('async TypeScript behavior', () => {
 `;
 
-    const patternTypes = new Set(asyncPatterns.patterns.map(p => p.type));
+    const patternTypes = new Set(asyncPatterns.patterns.map((p) => p.type));
 
     if (patternTypes.has('async-await')) {
       tests += `    it('should handle async/await with proper TypeScript types', async () => {
@@ -1528,7 +1583,10 @@ describe('${moduleName}', () => {
     return tests;
   }
 
-  private generateTypeScriptExportTests(exportName: string, asyncPatterns: FileAsyncPatterns | null): string {
+  private generateTypeScriptExportTests(
+    exportName: string,
+    asyncPatterns: FileAsyncPatterns | null
+  ): string {
     let tests = `  describe('${exportName} (TypeScript)', () => {
     it('should be defined with correct TypeScript type', () => {
       expect(${exportName}).toBeDefined();
@@ -1629,8 +1687,11 @@ describe('${moduleName}', () => {
     return tests;
   }
 
-  private generateAsyncExportTypeScriptTests(exportName: string, asyncPatterns: FileAsyncPatterns): string {
-    const patternTypes = new Set(asyncPatterns.patterns?.map(p => p.type) || []);
+  private generateAsyncExportTypeScriptTests(
+    exportName: string,
+    asyncPatterns: FileAsyncPatterns
+  ): string {
+    const patternTypes = new Set(asyncPatterns.patterns?.map((p) => p.type) || []);
     let tests = '';
 
     if (patternTypes.has('async-await') || patternTypes.has('promise')) {

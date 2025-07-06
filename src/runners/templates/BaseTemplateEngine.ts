@@ -14,22 +14,24 @@ export interface BaseTemplateData {
 /**
  * Base template engine providing common functionality for all template formats
  */
-export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput = CoverageData | AggregatedCoverageData> {
-  
+export abstract class BaseTemplateEngine<
+  TData extends BaseTemplateData,
+  TInput = CoverageData | AggregatedCoverageData,
+> {
   /**
    * Abstract method for rendering template data to output format
    */
   abstract render(data: TData): Promise<string>;
-  
+
   /**
    * Abstract method for preparing template data from coverage input
    */
   abstract prepareTemplateData(
-    data: TInput, 
-    gaps?: CoverageGapAnalysis, 
+    data: TInput,
+    gaps?: CoverageGapAnalysis,
     projectName?: string
   ): TData;
-  
+
   /**
    * Get CSS class name for coverage percentage
    */
@@ -38,28 +40,28 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
     if (percentage >= 60) return 'warning';
     return 'poor';
   }
-  
+
   /**
    * Format percentage with one decimal place
    */
   protected formatPercentage(value: number): string {
     return value.toFixed(1);
   }
-  
+
   /**
    * Get current date as locale string
    */
   protected getCurrentDateString(): string {
     return new Date().toLocaleString();
   }
-  
+
   /**
    * Get current ISO timestamp
    */
   protected getCurrentTimestamp(): string {
     return new Date().toISOString();
   }
-  
+
   /**
    * Create base template data with common properties
    */
@@ -67,14 +69,17 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
     return {
       projectName: projectName || 'Project',
       generatedDate: this.getCurrentDateString(),
-      timestamp: this.getCurrentTimestamp()
+      timestamp: this.getCurrentTimestamp(),
     };
   }
-  
+
   /**
    * Transform coverage files data to consistent format
    */
-  protected transformFilesData(files: Record<string, any>, format: 'formatted' | 'raw' = 'formatted'): Array<{
+  protected transformFilesData(
+    files: Record<string, any>,
+    format: 'formatted' | 'raw' = 'formatted'
+  ): Array<{
     filename: string;
     path?: string;
     summary: {
@@ -89,19 +94,31 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
       filename,
       path: filename, // Also provide as path for compatibility
       summary: {
-        lines: format === 'formatted' ? this.formatPercentage(coverage.summary.lines) : coverage.summary.lines,
-        statements: format === 'formatted' ? this.formatPercentage(coverage.summary.statements) : coverage.summary.statements,
-        branches: format === 'formatted' ? this.formatPercentage(coverage.summary.branches) : coverage.summary.branches,
-        functions: format === 'formatted' ? this.formatPercentage(coverage.summary.functions) : coverage.summary.functions
+        lines:
+          format === 'formatted'
+            ? this.formatPercentage(coverage.summary.lines)
+            : coverage.summary.lines,
+        statements:
+          format === 'formatted'
+            ? this.formatPercentage(coverage.summary.statements)
+            : coverage.summary.statements,
+        branches:
+          format === 'formatted'
+            ? this.formatPercentage(coverage.summary.branches)
+            : coverage.summary.branches,
+        functions:
+          format === 'formatted'
+            ? this.formatPercentage(coverage.summary.functions)
+            : coverage.summary.functions,
       },
       ...(coverage.uncoveredLines?.length > 0 && {
-        uncoveredLines: Array.isArray(coverage.uncoveredLines) 
+        uncoveredLines: Array.isArray(coverage.uncoveredLines)
           ? coverage.uncoveredLines.join(', ')
-          : coverage.uncoveredLines
-      })
+          : coverage.uncoveredLines,
+      }),
     }));
   }
-  
+
   /**
    * Transform suggestions data to consistent format
    */
@@ -119,24 +136,29 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
       file: suggestion.file,
       description: suggestion.description,
       priority: suggestion.priority,
-      effort: suggestion.effort
+      effort: suggestion.effort,
     }));
   }
 
   /**
    * Transform coverage summary to common format
    */
-  protected transformSummaryData(summary: any, format: 'formatted' | 'raw' = 'formatted'): {
+  protected transformSummaryData(
+    summary: any,
+    format: 'formatted' | 'raw' = 'formatted'
+  ): {
     statements: string | number;
     branches: string | number;
     functions: string | number;
     lines: string | number;
   } {
     return {
-      statements: format === 'formatted' ? this.formatPercentage(summary.statements) : summary.statements,
+      statements:
+        format === 'formatted' ? this.formatPercentage(summary.statements) : summary.statements,
       branches: format === 'formatted' ? this.formatPercentage(summary.branches) : summary.branches,
-      functions: format === 'formatted' ? this.formatPercentage(summary.functions) : summary.functions,
-      lines: format === 'formatted' ? this.formatPercentage(summary.lines) : summary.lines
+      functions:
+        format === 'formatted' ? this.formatPercentage(summary.functions) : summary.functions,
+      lines: format === 'formatted' ? this.formatPercentage(summary.lines) : summary.lines,
     };
   }
 
@@ -149,11 +171,11 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
     line: number;
     description: string;
   }> {
-    return uncoveredAreas.map(area => ({
+    return uncoveredAreas.map((area) => ({
       type: area.type,
       file: area.file,
       line: area.line,
-      description: area.description
+      description: area.description,
     }));
   }
 
@@ -186,20 +208,28 @@ export abstract class BaseTemplateEngine<TData extends BaseTemplateData, TInput 
     });
 
     // Handle loops {{#each array}}...{{/each}}
-    result = result.replace(/\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (_match, key, content) => {
-      const array = data[key];
-      if (!Array.isArray(array)) return '';
-      
-      return array.map(item => {
-        let itemContent = content;
-        // Replace nested variables
-        itemContent = itemContent.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (m: string, path: string) => {
-          const value = this.getNestedValue(item, path);
-          return value !== undefined ? String(value) : m;
-        });
-        return itemContent;
-      }).join('');
-    });
+    result = result.replace(
+      /\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g,
+      (_match, key, content) => {
+        const array = data[key];
+        if (!Array.isArray(array)) return '';
+
+        return array
+          .map((item) => {
+            let itemContent = content;
+            // Replace nested variables
+            itemContent = itemContent.replace(
+              /\{\{(\w+(?:\.\w+)*)\}\}/g,
+              (m: string, path: string) => {
+                const value = this.getNestedValue(item, path);
+                return value !== undefined ? String(value) : m;
+              }
+            );
+            return itemContent;
+          })
+          .join('');
+      }
+    );
 
     return result;
   }

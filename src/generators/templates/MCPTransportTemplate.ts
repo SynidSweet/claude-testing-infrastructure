@@ -1,21 +1,28 @@
 import { MCPProjectAnalysis } from '../../types/mcp-types';
 
 export class MCPTransportTemplate {
-  generateTransportTests(transport: 'stdio' | 'http-sse', analysis: MCPProjectAnalysis): { path: string; content: string } {
-    const isTypeScript = analysis.languages.some(l => l.name === 'typescript');
+  generateTransportTests(
+    transport: 'stdio' | 'http-sse',
+    analysis: MCPProjectAnalysis
+  ): { path: string; content: string } {
+    const isTypeScript = analysis.languages.some((l) => l.name === 'typescript');
     const extension = isTypeScript ? 'ts' : 'js';
-    
+
     return {
       path: `.claude-testing/mcp-transport-${transport}.test.${extension}`,
       content: this.generateTestContent(transport, isTypeScript, analysis),
     };
   }
 
-  private generateTestContent(transport: 'stdio' | 'http-sse', isTypeScript: boolean, _analysis: MCPProjectAnalysis): string {
+  private generateTestContent(
+    transport: 'stdio' | 'http-sse',
+    isTypeScript: boolean,
+    _analysis: MCPProjectAnalysis
+  ): string {
     const imports = this.generateImports(transport, isTypeScript);
     const setup = this.generateSetup(transport);
     const tests = transport === 'stdio' ? this.generateStdioTests() : this.generateHttpSseTests();
-    
+
     return `${imports}
 
 ${setup}
@@ -28,7 +35,7 @@ ${tests}
 
   private generateImports(transport: 'stdio' | 'http-sse', isTypeScript: boolean): string {
     const imports = [];
-    
+
     if (transport === 'stdio') {
       imports.push("import { spawn } from 'child_process';");
       imports.push("import { Readable, Writable } from 'stream';");
@@ -36,11 +43,11 @@ ${tests}
       imports.push("import axios from 'axios';");
       imports.push("import { EventSource } from 'eventsource';");
     }
-    
+
     if (isTypeScript) {
       imports.push("import { Transport } from '@modelcontextprotocol/sdk/types';");
     }
-    
+
     return imports.join('\n');
   }
 

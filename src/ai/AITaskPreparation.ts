@@ -285,7 +285,7 @@ Generate comprehensive logical tests that thoroughly validate the business logic
    */
   private estimateCost(tokens: number): number {
     const model = this.config.model || this.DEFAULT_MODEL;
-    
+
     // Resolve model name to full identifier
     const resolvedModelName = resolveModelName(model);
     if (!resolvedModelName) {

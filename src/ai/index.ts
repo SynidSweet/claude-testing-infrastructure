@@ -36,5 +36,5 @@ export type {
   BatchProgress,
   BatchConfig,
   BatchResult,
-  BatchInfo
+  BatchInfo,
 } from './BatchedLogicalTestGenerator';

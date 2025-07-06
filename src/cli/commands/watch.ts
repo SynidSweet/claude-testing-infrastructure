@@ -1,6 +1,6 @@
 /**
  * Watch Mode Command
- * 
+ *
  * Continuously monitors project files and automatically updates tests when changes are detected:
  * - Real-time file change detection
  * - Debounced incremental test generation
@@ -59,7 +59,7 @@ export const watchCommand = new Command('watch')
     let fileWatcher: FileWatcher | null = null;
     let debouncer: FileChangeDebouncer | null = null;
     let incrementalGenerator: IncrementalGenerator | null = null;
-    
+
     const stats: WatchStats = {
       startTime: new Date(),
       totalChangeEvents: 0,
@@ -68,13 +68,13 @@ export const watchCommand = new Command('watch')
       successfulGenerations: 0,
       failedGenerations: 0,
       lastActivity: new Date(),
-      filesWatched: 0
+      filesWatched: 0,
     };
-    
+
     try {
       // Validate project path
       const resolvedPath = path.resolve(projectPath);
-      
+
       try {
         const projectStats = await fs.stat(resolvedPath);
         if (!projectStats.isDirectory()) {
@@ -89,18 +89,18 @@ export const watchCommand = new Command('watch')
       const configResult = await loadCommandConfig(resolvedPath, {
         cliArgs: {
           verbose: options.verbose,
-          watch: true
-        }
+          watch: true,
+        },
       });
-      
+
       if (!configResult.valid) {
-        logger.warn('Configuration validation warnings', { 
-          warnings: configResult.warnings
+        logger.warn('Configuration validation warnings', {
+          warnings: configResult.warnings,
         });
       }
-      
+
       const config = configResult.config;
-      
+
       // Apply configuration to options
       if (config.output?.logLevel && options.verbose) {
         logger.level = 'debug';
@@ -115,7 +115,7 @@ export const watchCommand = new Command('watch')
       const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
       const projectAnalyzer = new ProjectAnalyzer(resolvedPath, fileDiscovery);
       await projectAnalyzer.analyzeProject();
-      
+
       // Initialize incremental generator if test generation is enabled
       if (!options.noGenerate) {
         spinner.text = 'Setting up incremental test generation...';
@@ -126,61 +126,55 @@ export const watchCommand = new Command('watch')
       spinner.text = 'Setting up file watcher...';
       const watcherConfig: any = {
         projectPath: resolvedPath,
-        verbose: options.verbose || false
+        verbose: options.verbose || false,
       };
-      
+
       // Use configuration for include/exclude patterns
       if (options.include) {
         watcherConfig.includePatterns = options.include;
       } else if (config.include) {
         watcherConfig.includePatterns = config.include;
       }
-      
+
       if (options.exclude) {
         watcherConfig.ignorePatterns = options.exclude;
       } else if (config.exclude) {
         watcherConfig.ignorePatterns = config.exclude;
       }
-      
+
       fileWatcher = new FileWatcher(watcherConfig);
 
       // Set up debouncer for file changes
       const debounceDelay = parseInt(options.debounce || '500');
       // Check if watch configuration has a debounce setting
       const configDebounce = config.watch?.debounceMs || debounceDelay;
-      
+
       debouncer = new FileChangeDebouncer({
         delay: options.debounce ? debounceDelay : configDebounce,
         maxBatchSize: 10,
         maxWaitTime: 3000,
         groupBy: 'extension', // Group by file type for better batching
-        verbose: options.verbose || false
+        verbose: options.verbose || false,
       });
 
       // Set up event handlers
-      setupEventHandlers(
-        fileWatcher,
-        debouncer,
-        incrementalGenerator,
-        stats,
-        options
-      );
+      setupEventHandlers(fileWatcher, debouncer, incrementalGenerator, stats, options);
 
       // Start watching
       spinner.text = 'Starting file watcher...';
       await fileWatcher.startWatching();
-      
+
       stats.filesWatched = fileWatcher.getWatchedFiles().length;
-      
+
       spinner.succeed(chalk.green('Watch mode started successfully!'));
-      
+
       // Display initial status
       displayStatus(resolvedPath, stats, options);
-      
+
       // Set up periodic statistics if requested
       const statsIntervalSeconds = parseInt(options.statsInterval || '30');
       let statsTimer: NodeJS.Timeout | null = null;
-      
+
       if (statsIntervalSeconds > 0) {
         statsTimer = setInterval(() => {
           displayStats(stats);
@@ -190,38 +184,37 @@ export const watchCommand = new Command('watch')
       // Set up graceful shutdown
       const cleanup = async () => {
         console.log('\n' + chalk.yellow('Shutting down watch mode...'));
-        
+
         if (statsTimer) {
           clearInterval(statsTimer);
         }
-        
+
         if (debouncer) {
           debouncer.cancel();
         }
-        
+
         if (fileWatcher) {
           await fileWatcher.stopWatching();
         }
-        
+
         displayFinalStats(stats);
         process.exit(0);
       };
 
       process.on('SIGINT', cleanup);
       process.on('SIGTERM', cleanup);
-      
+
       // Keep process alive
       process.stdin.resume();
-      
     } catch (error) {
       spinner.fail('Failed to start watch mode');
       logger.error('Watch mode initialization error:', error);
-      
+
       // Cleanup on error
       if (fileWatcher) {
         await fileWatcher.stopWatching().catch(() => {});
       }
-      
+
       process.exit(1);
     }
   });
@@ -240,17 +233,17 @@ function setupEventHandlers(
   fileWatcher.on('fileChange', (event: FileChangeEvent) => {
     stats.totalChangeEvents++;
     stats.lastActivity = new Date();
-    
+
     console.log(chalk.dim(`${formatTime()} ${getChangeIcon(event.type)} ${event.relativePath}`));
-    
+
     // Convert to debouncer format
     const debounceEvent = {
       type: event.type,
       filePath: event.filePath,
       timestamp: event.timestamp,
-      extension: event.extension
+      extension: event.extension,
     };
-    
+
     debouncer.debounce(debounceEvent);
   });
 
@@ -263,38 +256,37 @@ function setupEventHandlers(
   debouncer.on('debounced', async (event: DebouncedEvent<any>, groupKey: string) => {
     stats.totalBatches++;
     stats.lastActivity = new Date();
-    
+
     const fileCount = event.events.length;
-    const uniqueFiles = new Set(event.events.map(e => e.filePath)).size;
-    
+    const uniqueFiles = new Set(event.events.map((e) => e.filePath)).size;
+
     console.log(
-      chalk.blue(`${formatTime()} 🔄 Processing ${fileCount} changes (${uniqueFiles} files) in ${groupKey}`)
+      chalk.blue(
+        `${formatTime()} 🔄 Processing ${fileCount} changes (${uniqueFiles} files) in ${groupKey}`
+      )
     );
-    
+
     if (!options.noGenerate && incrementalGenerator) {
       try {
         stats.totalGenerations++;
-        
+
         // Generate tests for changed files
         const spinner = ora({
           text: 'Generating tests...',
           color: 'blue',
-          spinner: 'dots'
+          spinner: 'dots',
         }).start();
-        
+
         const result = await incrementalGenerator.generateIncremental();
-        
+
         stats.successfulGenerations++;
         const testCount = result.newTests.length + result.updatedTests.length;
-        spinner.succeed(
-          chalk.green(`Generated ${testCount} tests (${result.totalTime}ms)`)
-        );
-        
+        spinner.succeed(chalk.green(`Generated ${testCount} tests (${result.totalTime}ms)`));
+
         if (testCount > 0 && options.autoRun) {
           // TODO: Add automatic test execution
           console.log(chalk.gray('  Auto-run tests feature coming soon...'));
         }
-        
       } catch (error) {
         stats.failedGenerations++;
         console.log(chalk.red(`Test generation error: ${error}`));
@@ -323,13 +315,16 @@ function displayStatus(projectPath: string, stats: WatchStats, options: WatchOpt
  */
 function displayStats(stats: WatchStats): void {
   const uptime = Math.floor((Date.now() - stats.startTime.getTime()) / 1000);
-  const successRate = stats.totalGenerations > 0 
-    ? Math.round((stats.successfulGenerations / stats.totalGenerations) * 100)
-    : 0;
-  
+  const successRate =
+    stats.totalGenerations > 0
+      ? Math.round((stats.successfulGenerations / stats.totalGenerations) * 100)
+      : 0;
+
   console.log(chalk.dim('\n📊 Watch Statistics'));
   console.log(chalk.dim(`   Uptime: ${formatDuration(uptime)}`));
-  console.log(chalk.dim(`   Changes: ${stats.totalChangeEvents} events, ${stats.totalBatches} batches`));
+  console.log(
+    chalk.dim(`   Changes: ${stats.totalChangeEvents} events, ${stats.totalBatches} batches`)
+  );
   console.log(chalk.dim(`   Generations: ${stats.totalGenerations} (${successRate}% success)`));
   console.log(chalk.dim(`   Last activity: ${formatTimeAgo(stats.lastActivity)}\n`));
 }
@@ -339,14 +334,16 @@ function displayStats(stats: WatchStats): void {
  */
 function displayFinalStats(stats: WatchStats): void {
   const totalDuration = Date.now() - stats.startTime.getTime();
-  
+
   console.log(chalk.cyan('\n📊 Final Watch Statistics'));
   console.log(chalk.dim('─────────────────────────'));
   console.log(`Total uptime: ${formatDuration(Math.floor(totalDuration / 1000))}`);
   console.log(`File changes: ${stats.totalChangeEvents}`);
   console.log(`Change batches: ${stats.totalBatches}`);
   console.log(`Test generations: ${stats.totalGenerations}`);
-  console.log(`Success rate: ${stats.totalGenerations > 0 ? Math.round((stats.successfulGenerations / stats.totalGenerations) * 100) : 0}%`);
+  console.log(
+    `Success rate: ${stats.totalGenerations > 0 ? Math.round((stats.successfulGenerations / stats.totalGenerations) * 100) : 0}%`
+  );
   console.log(chalk.green('\nThank you for using Claude Testing Infrastructure! 🚀\n'));
 }
 
@@ -361,7 +358,7 @@ function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m ${secs}s`;
   } else if (minutes > 0) {
@@ -373,7 +370,7 @@ function formatDuration(seconds: number): string {
 
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  
+
   if (seconds < 60) return `${seconds}s ago`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   return `${Math.floor(seconds / 3600)}h ago`;
@@ -381,9 +378,13 @@ function formatTimeAgo(date: Date): string {
 
 function getChangeIcon(type: string): string {
   switch (type) {
-    case 'add': return '➕';
-    case 'change': return '📝';
-    case 'unlink': return '🗑️';
-    default: return '📄';
+    case 'add':
+      return '➕';
+    case 'change':
+      return '📝';
+    case 'unlink':
+      return '🗑️';
+    default:
+      return '📄';
   }
 }

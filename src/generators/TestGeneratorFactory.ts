@@ -8,18 +8,21 @@ import type { FileDiscoveryService } from '../types/file-discovery-types';
 
 /**
  * Factory for creating appropriate test generators based on configuration
- * 
+ *
  * This factory determines which test generator to use based on the
  * configuration and project analysis. It supports both the legacy
  * StructuralTestGenerator and new language-specific generators.
  */
 export class TestGeneratorFactory {
   private static featureFlagEnabled = false;
-  private static languageGenerators = new Map<string, new (
-    config: TestGeneratorConfig,
-    analysis: ProjectAnalysis,
-    context: LanguageContext
-  ) => BaseTestGenerator>();
+  private static languageGenerators = new Map<
+    string,
+    new (
+      config: TestGeneratorConfig,
+      analysis: ProjectAnalysis,
+      context: LanguageContext
+    ) => BaseTestGenerator
+  >();
 
   /**
    * Enable or disable language-specific generators feature flag
@@ -117,7 +120,7 @@ export class TestGeneratorFactory {
   private static detectPrimaryLanguage(analysis: ProjectAnalysis): string {
     // Count files by language
     const languageCounts = new Map<string, number>();
-    
+
     for (const lang of analysis.languages) {
       const currentCount = languageCounts.get(lang.name) || 0;
       languageCounts.set(lang.name, currentCount + lang.files.length);
@@ -168,7 +171,7 @@ export class TestGeneratorFactory {
     analysis: ProjectAnalysis,
     config: TestGeneratorConfig
   ): LanguageContext {
-    const isTypeScript = analysis.languages.some(lang => lang.name === 'typescript');
+    const isTypeScript = analysis.languages.some((lang) => lang.name === 'typescript');
     const moduleSystem = analysis.moduleSystem?.type || 'commonjs';
     const framework = this.detectJavaScriptFramework(analysis);
     const testFramework = config.testFramework || 'jest';
@@ -184,8 +187,16 @@ export class TestGeneratorFactory {
         hasTypeAnnotations: isTypeScript,
         testingPatterns: [
           { name: 'unit', applicable: true, templateKey: 'unit' },
-          { name: 'component', applicable: framework === 'react' || framework === 'vue' || framework === 'angular', templateKey: 'component' },
-          { name: 'integration', applicable: framework === 'express' || framework === 'fastify', templateKey: 'integration' },
+          {
+            name: 'component',
+            applicable: framework === 'react' || framework === 'vue' || framework === 'angular',
+            templateKey: 'component',
+          },
+          {
+            name: 'integration',
+            applicable: framework === 'express' || framework === 'fastify',
+            templateKey: 'integration',
+          },
         ],
         assertionStyle: 'expect',
       },
@@ -219,7 +230,11 @@ export class TestGeneratorFactory {
         hasTypeAnnotations: true, // Python 3.5+ type hints
         testingPatterns: [
           { name: 'unit', applicable: true, templateKey: 'unit' },
-          { name: 'integration', applicable: framework === 'fastapi' || framework === 'flask' || framework === 'django', templateKey: 'integration' },
+          {
+            name: 'integration',
+            applicable: framework === 'fastapi' || framework === 'flask' || framework === 'django',
+            templateKey: 'integration',
+          },
         ],
         assertionStyle: 'assert',
       },
@@ -237,12 +252,12 @@ export class TestGeneratorFactory {
    */
   private static detectJavaScriptFramework(analysis: ProjectAnalysis): string | undefined {
     const frameworks = analysis.frameworks;
-    
+
     // Priority order for framework detection
     const priorityOrder = ['react', 'vue', 'angular', 'express', 'fastify', 'nest'];
-    
+
     for (const framework of priorityOrder) {
-      if (frameworks.some(fw => fw.name === framework)) {
+      if (frameworks.some((fw) => fw.name === framework)) {
         return framework;
       }
     }
@@ -255,12 +270,12 @@ export class TestGeneratorFactory {
    */
   private static detectPythonFramework(analysis: ProjectAnalysis): string | undefined {
     const frameworks = analysis.frameworks;
-    
+
     // Priority order for Python framework detection
     const priorityOrder = ['fastapi', 'django', 'flask'];
-    
+
     for (const framework of priorityOrder) {
-      if (frameworks.some(fw => fw.name === framework)) {
+      if (frameworks.some((fw) => fw.name === framework)) {
         return framework;
       }
     }

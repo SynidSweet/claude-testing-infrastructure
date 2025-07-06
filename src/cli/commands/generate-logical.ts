@@ -2,7 +2,7 @@
 
 /**
  * generate-logical command: AI-powered logical test generation
- * 
+ *
  * Uses Claude to generate comprehensive logical tests based on gap analysis
  */
 
@@ -15,11 +15,11 @@ import { TestGapAnalyzer } from '../../analyzers/TestGapAnalyzer';
 import { ProjectAnalyzer } from '../../analyzers/ProjectAnalyzer';
 import { StructuralTestGenerator } from '../../generators/StructuralTestGenerator';
 import { TestGeneratorConfig } from '../../generators/TestGenerator';
-import { 
-  AITaskPreparation, 
+import {
+  AITaskPreparation,
   ClaudeOrchestrator,
   CostEstimator,
-  BatchedLogicalTestGenerator
+  BatchedLogicalTestGenerator,
 } from '../../ai';
 import { logger } from '../../utils/logger';
 import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
@@ -42,11 +42,11 @@ export const generateLogicalCommand = new Command()
   .option('-v, --verbose', 'Enable verbose logging')
   .action(async (projectPath: string, options: any) => {
     const spinner = ora('Initializing AI test generation...').start();
-    
+
     try {
       // Resolve paths
       const absoluteProjectPath = path.resolve(projectPath);
-      
+
       // Validate project exists
       const projectStats = await fs.stat(absoluteProjectPath);
       if (!projectStats.isDirectory()) {
@@ -59,20 +59,24 @@ export const generateLogicalCommand = new Command()
         cliArgs: {
           verbose: options.verbose,
           aiModel: options.model,
-          dryRun: options.dryRun
-        }
+          dryRun: options.dryRun,
+        },
       });
-      
+
       if (!configResult.valid) {
-        logger.warn('Configuration validation warnings', { 
-          warnings: configResult.warnings 
+        logger.warn('Configuration validation warnings', {
+          warnings: configResult.warnings,
         });
       }
-      
+
       const config = configResult.config;
-      
+
       // Apply configuration to logger
-      if (options.verbose || config.output?.logLevel === 'debug' || config.output?.logLevel === 'verbose') {
+      if (
+        options.verbose ||
+        config.output?.logLevel === 'debug' ||
+        config.output?.logLevel === 'verbose'
+      ) {
         logger.level = 'debug';
       } else if (config.output?.logLevel) {
         logger.level = config.output.logLevel as any;
@@ -81,7 +85,7 @@ export const generateLogicalCommand = new Command()
       // Step 1: Get or generate gap analysis
       spinner.text = 'Loading gap analysis...';
       let gapReport;
-      
+
       if (options.gapReport) {
         // Load existing report
         const reportContent = await fs.readFile(options.gapReport, 'utf-8');
@@ -94,22 +98,29 @@ export const generateLogicalCommand = new Command()
         const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
         const projectAnalyzer = new ProjectAnalyzer(absoluteProjectPath, fileDiscovery);
         const projectAnalysis = await projectAnalyzer.analyzeProject();
-        
+
         spinner.text = 'Generating structural tests...';
         const testConfig: TestGeneratorConfig = {
           projectPath: absoluteProjectPath,
           outputPath: path.join(absoluteProjectPath, '.claude-testing'),
-          testFramework: config.testFramework || (projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest'),
+          testFramework:
+            config.testFramework ||
+            (projectAnalysis.languages[0]?.name === 'python' ? 'pytest' : 'jest'),
           options: {},
           patterns: {
             include: config.include,
-            exclude: config.exclude
-          }
+            exclude: config.exclude,
+          },
         };
-        
-        const structuralGenerator = new StructuralTestGenerator(testConfig, projectAnalysis, {}, fileDiscovery);
+
+        const structuralGenerator = new StructuralTestGenerator(
+          testConfig,
+          projectAnalysis,
+          {},
+          fileDiscovery
+        );
         const generationResult = await structuralGenerator.generateAllTests();
-        
+
         spinner.text = 'Analyzing test gaps...';
         const analyzer = new TestGapAnalyzer(projectAnalysis);
         gapReport = await analyzer.analyzeTestGaps(generationResult);
@@ -128,7 +139,7 @@ export const generateLogicalCommand = new Command()
       const taskPrep = new AITaskPreparation({
         model: options.model || config.aiModel || 'sonnet', // Use CLI arg, then config, then default
         maxConcurrentTasks: parseInt(options.concurrent || '3'),
-        minComplexityForAI: parseInt(options.minComplexity || '5')
+        minComplexityForAI: parseInt(options.minComplexity || '5'),
       });
 
       let batch = await taskPrep.prepareTasks(gapReport);
@@ -151,17 +162,21 @@ export const generateLogicalCommand = new Command()
       if (options.budget) {
         const budget = parseFloat(options.budget);
         const optimization = estimator.optimizeForBudget(gapReport, budget);
-        
+
         if (optimization.tasksExcluded > 0) {
-          console.log(chalk.yellow(`\nBudget optimization: ${optimization.tasksIncluded} tasks included, ${optimization.tasksExcluded} excluded`));
+          console.log(
+            chalk.yellow(
+              `\nBudget optimization: ${optimization.tasksIncluded} tasks included, ${optimization.tasksExcluded} excluded`
+            )
+          );
         }
-        
+
         // Filter batch based on optimization
-        batch.tasks = batch.tasks.filter(task => {
-          const allocation = optimization.allocations.find(a => a.file === task.sourceFile);
+        batch.tasks = batch.tasks.filter((task) => {
+          const allocation = optimization.allocations.find((a) => a.file === task.sourceFile);
           return allocation?.includeInBatch;
         });
-        
+
         batch.totalEstimatedCost = optimization.totalEstimatedCost;
       }
 
@@ -169,22 +184,28 @@ export const generateLogicalCommand = new Command()
       if (options.batchMode) {
         const batchSize = parseInt(options.batchSize) || 10;
         const batchGenerator = new BatchedLogicalTestGenerator(batchSize, taskPrep);
-        
+
         // Validate batching benefit
         const validation = batchGenerator.validateBatchingBenefit(gapReport);
         if (!validation.beneficial) {
           console.log(chalk.yellow(`\nBatch mode note: ${validation.reason}`));
           console.log(chalk.yellow('Proceeding with regular processing...'));
         } else {
-          console.log(chalk.blue(`\nBatch mode: Will process ${Math.ceil(gapReport.gaps.length / batchSize)} batches of ${batchSize} tasks each`));
-          console.log(chalk.yellow('Use generate-logical-batch command for better iterative control'));
+          console.log(
+            chalk.blue(
+              `\nBatch mode: Will process ${Math.ceil(gapReport.gaps.length / batchSize)} batches of ${batchSize} tasks each`
+            )
+          );
+          console.log(
+            chalk.yellow('Use generate-logical-batch command for better iterative control')
+          );
         }
       }
 
       // Show recommendations
       if (costReport.recommendations.length > 0) {
         console.log('\n' + chalk.blue('Recommendations:'));
-        costReport.recommendations.forEach(rec => {
+        costReport.recommendations.forEach((rec) => {
           console.log(`  • ${rec}`);
         });
       }
@@ -192,11 +213,11 @@ export const generateLogicalCommand = new Command()
       // Dry run mode - just show what would be done
       if (options.dryRun) {
         spinner.succeed('Dry run complete');
-        
+
         console.log('\n' + chalk.blue('Tasks to be generated:'));
         const summary = taskPrep.generateSummary(batch);
         console.log(summary);
-        
+
         // Save batch for later use
         if (options.output) {
           const batchPath = path.join(options.output, 'ai-batch.json');
@@ -204,19 +225,21 @@ export const generateLogicalCommand = new Command()
           await taskPrep.saveBatch(batch, batchPath);
           console.log(`\nBatch saved to: ${batchPath}`);
         }
-        
+
         return;
       }
 
       // Step 4: Execute AI generation
       console.log('\n' + chalk.blue('Starting AI test generation...'));
-      
+
       // Check if Claude Code CLI is available
       try {
         const { execSync } = require('child_process');
         execSync('claude --version', { stdio: 'ignore' });
       } catch {
-        throw new Error('Claude Code CLI not found. Please install it first: npm install -g @anthropic-ai/claude-code');
+        throw new Error(
+          'Claude Code CLI not found. Please install it first: npm install -g @anthropic-ai/claude-code'
+        );
       }
 
       const timeoutMs = parseInt(options.timeout) * 1000;
@@ -225,7 +248,7 @@ export const generateLogicalCommand = new Command()
         model: options.model, // Use alias directly (opus, sonnet, haiku)
         fallbackModel: options.model === 'opus' ? 'sonnet' : 'haiku',
         timeout: timeoutMs, // Convert seconds to milliseconds
-        verbose: options.verbose
+        verbose: options.verbose,
       });
 
       if (options.verbose) {
@@ -235,7 +258,7 @@ export const generateLogicalCommand = new Command()
       // Set up progress tracking
       let completed = 0;
       const total = batch.tasks.length;
-      
+
       orchestrator.on('task:complete', ({ task }) => {
         completed++;
         spinner.text = `Generating tests... (${completed}/${total}) - ${path.basename(task.sourceFile)}`;
@@ -250,8 +273,8 @@ export const generateLogicalCommand = new Command()
       const results = await orchestrator.processBatch(batch);
 
       // Step 5: Generate report
-      spinner.succeed(`Generated ${results.filter(r => r.success).length} test files`);
-      
+      spinner.succeed(`Generated ${results.filter((r) => r.success).length} test files`);
+
       const report = orchestrator.generateReport();
       console.log('\n' + report);
 
@@ -266,12 +289,20 @@ export const generateLogicalCommand = new Command()
 
         // Save detailed results
         const resultsPath = path.join(outputDir, 'ai-generation-results.json');
-        await fs.writeFile(resultsPath, JSON.stringify({
-          timestamp: new Date().toISOString(),
-          batch,
-          results,
-          stats: (orchestrator as any).stats
-        }, null, 2), 'utf-8');
+        await fs.writeFile(
+          resultsPath,
+          JSON.stringify(
+            {
+              timestamp: new Date().toISOString(),
+              batch,
+              results,
+              stats: (orchestrator as any).stats,
+            },
+            null,
+            2
+          ),
+          'utf-8'
+        );
 
         console.log(`\nReports saved to: ${outputDir}`);
       }
@@ -289,8 +320,9 @@ export const generateLogicalCommand = new Command()
       console.log('\n' + chalk.green('✓ AI test generation complete!'));
       console.log(`  Total cost: $${orchStats.totalCost.toFixed(2)}`);
       console.log(`  Tokens used: ${orchStats.totalTokensUsed.toLocaleString()}`);
-      console.log(`  Duration: ${((orchStats.endTime!.getTime() - orchStats.startTime.getTime()) / 1000).toFixed(1)}s`);
-
+      console.log(
+        `  Duration: ${((orchStats.endTime!.getTime() - orchStats.startTime.getTime()) / 1000).toFixed(1)}s`
+      );
     } catch (error) {
       spinner.fail('AI test generation failed');
       logger.error('Error:', error);

@@ -1,10 +1,15 @@
 import { path } from '../../utils/common-imports';
 import { GapPriority } from '../TestGapAnalyzer';
-import { GapReportSchema, ActionableInsight, ReportOptions, VisualizationConfig } from '../GapReportGenerator';
+import {
+  GapReportSchema,
+  ActionableInsight,
+  ReportOptions,
+  VisualizationConfig,
+} from '../GapReportGenerator';
 
 /**
  * Terminal Report Generator - Creates enhanced terminal output with visualization
- * 
+ *
  * Focused class responsible for generating colorized terminal reports
  * with visual indicators and formatted output.
  */
@@ -19,14 +24,14 @@ export class TerminalReportGenerator {
       maxGapsToShow: 20,
       useColors: true,
       includeTiming: true,
-      ...options
+      ...options,
     };
-    
+
     this.visualConfig = {
       terminalWidth: 80,
       useUnicode: true,
       colorScheme: 'default',
-      ...visualConfig
+      ...visualConfig,
     };
   }
 
@@ -38,27 +43,27 @@ export class TerminalReportGenerator {
 
     // Header with title and metadata
     output += this.renderHeader(schema.metadata);
-    
+
     // Executive summary with visual indicators
     output += this.renderSummarySection(schema.summary);
-    
+
     // Cost visualization with breakdown
     output += this.renderCostSection(schema.cost);
-    
+
     // Priority matrix visualization
     output += this.renderPriorityMatrix(schema.summary.priorityDistribution);
-    
+
     // Recommendations categorized by urgency
     output += this.renderRecommendationsSection(schema.recommendations);
-    
+
     // Actionable insights
     output += this.renderInsightsSection(schema.insights);
-    
+
     // Detailed gaps (if enabled and not too many)
     if (this.options.includeDetails && schema.gaps.length <= (this.options.maxGapsToShow || 20)) {
       output += this.renderDetailedGaps(schema.gaps);
     }
-    
+
     // Footer with next steps
     output += this.renderFooter(schema);
 
@@ -70,14 +75,18 @@ export class TerminalReportGenerator {
   private renderHeader(metadata: GapReportSchema['metadata']): string {
     const title = '🔍 Test Gap Analysis Report';
     const separator = '━'.repeat(this.visualConfig.terminalWidth || 80);
-    
+
     return `
 ${this.colorize(title, 'bold')}
 ${separator}
 📅 Generated: ${metadata.generatedAt}
 📁 Project: ${metadata.projectPath}
-🏷️  Version: ${metadata.version}${metadata.duration ? `
-⏱️  Duration: ${metadata.duration}ms` : ''}
+🏷️  Version: ${metadata.version}${
+      metadata.duration
+        ? `
+⏱️  Duration: ${metadata.duration}ms`
+        : ''
+    }
 
 `;
   }
@@ -90,18 +99,31 @@ ${'─'.repeat(30)}
     const metrics = [
       { label: 'Total Files', value: summary.totalFiles, icon: '📁' },
       { label: 'Files with Tests', value: summary.filesWithTests, icon: '✅' },
-      { label: 'Need Logical Tests', value: summary.filesNeedingLogicalTests, icon: summary.filesNeedingLogicalTests > 0 ? '⚠️' : '✅' },
-      { label: 'Total Gaps', value: summary.totalGaps, icon: this.getGapStatusIcon(summary.totalGaps) }
+      {
+        label: 'Need Logical Tests',
+        value: summary.filesNeedingLogicalTests,
+        icon: summary.filesNeedingLogicalTests > 0 ? '⚠️' : '✅',
+      },
+      {
+        label: 'Total Gaps',
+        value: summary.totalGaps,
+        icon: this.getGapStatusIcon(summary.totalGaps),
+      },
     ];
 
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       output += `${metric.icon} ${metric.label.padEnd(18)}: ${metric.value}\n`;
     });
 
-    const assessmentColor = summary.overallAssessment === 'excellent' ? 'green' : 
-                          summary.overallAssessment === 'good' ? 'yellow' :
-                          summary.overallAssessment === 'needs-improvement' ? 'yellow' : 'red';
-    
+    const assessmentColor =
+      summary.overallAssessment === 'excellent'
+        ? 'green'
+        : summary.overallAssessment === 'good'
+          ? 'yellow'
+          : summary.overallAssessment === 'needs-improvement'
+            ? 'yellow'
+            : 'red';
+
     output += `📈 ${this.colorize(`Overall Assessment: ${summary.overallAssessment.toUpperCase()}`, assessmentColor)}\n\n`;
 
     return output;
@@ -131,7 +153,9 @@ ${'─'.repeat(20)}
     return output + '\n';
   }
 
-  private renderRecommendationsSection(recommendations: GapReportSchema['recommendations']): string {
+  private renderRecommendationsSection(
+    recommendations: GapReportSchema['recommendations']
+  ): string {
     let output = `${this.colorize('💡 Recommendations', 'bold')}
 ${'─'.repeat(22)}
 `;
@@ -163,9 +187,11 @@ ${'─'.repeat(16)}
 `;
 
     insights.slice(0, 3).forEach((insight, i) => {
-      const impactIcon = insight.impact === 'high' ? '🔥' : insight.impact === 'medium' ? '⚡' : '💡';
-      const effortColor = insight.effort === 'low' ? 'green' : insight.effort === 'medium' ? 'yellow' : 'red';
-      
+      const impactIcon =
+        insight.impact === 'high' ? '🔥' : insight.impact === 'medium' ? '⚡' : '💡';
+      const effortColor =
+        insight.effort === 'low' ? 'green' : insight.effort === 'medium' ? 'yellow' : 'red';
+
       output += `${i + 1}. ${impactIcon} ${this.colorize(insight.title, 'bold')}\n`;
       output += `   Impact: ${insight.impact.toUpperCase()} | Effort: ${this.colorize(insight.effort.toUpperCase(), effortColor)}\n`;
       output += `   ${insight.description}\n\n`;
@@ -182,14 +208,14 @@ ${'─'.repeat(30)}
     gaps.slice(0, this.options.maxGapsToShow || 20).forEach((gap, i) => {
       const priorityIcon = this.getPriorityIcon(gap.priority);
       const priorityColor = this.getPriorityColor(gap.priority);
-      
+
       output += `${i + 1}. ${priorityIcon} ${this.colorize(path.basename(gap.sourceFile), 'bold')}\n`;
       output += `   Priority: ${this.colorize(gap.priority.toUpperCase(), priorityColor)} | `;
       output += `Complexity: ${gap.complexity}/10 | Gaps: ${gap.gapCount}\n`;
       output += `   Framework: ${gap.framework} | Language: ${gap.language}\n`;
-      
+
       if (gap.gaps.length > 0) {
-        gap.gaps.slice(0, 3).forEach(g => {
+        gap.gaps.slice(0, 3).forEach((g) => {
           const typeIcon = this.getGapTypeIcon(g.type);
           output += `   ${typeIcon} ${g.description}\n`;
         });
@@ -205,7 +231,7 @@ ${'─'.repeat(30)}
 
   private renderFooter(schema: GapReportSchema): string {
     let nextSteps = '';
-    
+
     if (schema.summary.totalGaps > 0) {
       nextSteps = `
 ${this.colorize('🚀 Next Steps', 'bold')}
@@ -226,17 +252,20 @@ Consider running periodic gap analysis as your code evolves.
 `;
     }
 
-    return nextSteps + `${'━'.repeat(this.visualConfig.terminalWidth || 80)}
+    return (
+      nextSteps +
+      `${'━'.repeat(this.visualConfig.terminalWidth || 80)}
 Report generated by Claude Testing Infrastructure v${schema.metadata.version}
 
-`;
+`
+    );
   }
 
   // Utility methods for terminal styling and icons
 
   private colorize(text: string, color: string): string {
     if (!this.options.useColors) return text;
-    
+
     const colors: Record<string, string> = {
       red: '\x1b[31m',
       green: '\x1b[32m',
@@ -245,18 +274,18 @@ Report generated by Claude Testing Infrastructure v${schema.metadata.version}
       magenta: '\x1b[35m',
       cyan: '\x1b[36m',
       bold: '\x1b[1m',
-      reset: '\x1b[0m'
+      reset: '\x1b[0m',
     };
-    
+
     return `${colors[color] || ''}${text}${colors.reset}`;
   }
 
   private getPriorityIcon(priority: GapPriority): string {
     const icons = {
       [GapPriority.CRITICAL]: '🔴',
-      [GapPriority.HIGH]: '🟠', 
+      [GapPriority.HIGH]: '🟠',
       [GapPriority.MEDIUM]: '🟡',
-      [GapPriority.LOW]: '🟢'
+      [GapPriority.LOW]: '🟢',
     };
     return icons[priority] || '⚪';
   }
@@ -265,8 +294,8 @@ Report generated by Claude Testing Infrastructure v${schema.metadata.version}
     const colors = {
       [GapPriority.CRITICAL]: 'red',
       [GapPriority.HIGH]: 'magenta',
-      [GapPriority.MEDIUM]: 'yellow', 
-      [GapPriority.LOW]: 'green'
+      [GapPriority.MEDIUM]: 'yellow',
+      [GapPriority.LOW]: 'green',
     };
     return colors[priority] || 'reset';
   }
@@ -282,9 +311,9 @@ Report generated by Claude Testing Infrastructure v${schema.metadata.version}
     const icons: Record<string, string> = {
       'business-logic': '🧠',
       'edge-case': '⚡',
-      'integration': '🔗',
+      integration: '🔗',
       'error-handling': '🛡️',
-      'performance': '🚀'
+      performance: '🚀',
     };
     return icons[type] || '📝';
   }

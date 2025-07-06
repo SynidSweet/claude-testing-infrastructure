@@ -2,9 +2,9 @@ import { MCPProjectAnalysis } from '../../types/mcp-types';
 
 export class MCPChaosTemplate {
   generateChaosTests(analysis: MCPProjectAnalysis): { path: string; content: string } {
-    const isTypeScript = analysis.languages.some(l => l.name === 'typescript');
+    const isTypeScript = analysis.languages.some((l) => l.name === 'typescript');
     const extension = isTypeScript ? 'ts' : 'js';
-    
+
     return {
       path: `.claude-testing/mcp-chaos-testing.test.${extension}`,
       content: this.generateTestContent(isTypeScript, analysis),
@@ -12,10 +12,13 @@ export class MCPChaosTemplate {
   }
 
   private generateTestContent(_isTypeScript: boolean, analysis: MCPProjectAnalysis): string {
-    const imports = this.generateImports(analysis.mcpCapabilities?.framework || 'custom', _isTypeScript);
+    const imports = this.generateImports(
+      analysis.mcpCapabilities?.framework || 'custom',
+      _isTypeScript
+    );
     const setup = this.generateSetup();
     const tests = this.generateTests();
-    
+
     return `${imports}
 
 ${setup}
@@ -28,11 +31,11 @@ ${tests}
 
   private generateImports(framework: string, _isTypeScript: boolean): string {
     const imports = [];
-    
+
     if (framework === 'fastmcp') {
       imports.push("import { FastMCP } from 'fastmcp';");
     }
-    
+
     return imports.join('\n');
   }
 

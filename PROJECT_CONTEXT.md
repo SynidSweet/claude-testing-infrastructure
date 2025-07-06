@@ -1,6 +1,6 @@
 # Project Context & AI Agent Guide
 
-*Last updated: 2025-07-04 | Updated by: /document command | Added configuration templates and init-config command*
+*Last updated: 2025-07-06 | Updated by: /document command | Added branch-based deployment strategy and test coverage improvements*
 
 ## 🎯 Project Overview
 
@@ -71,6 +71,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 - **ConfigurationService** (`src/config/ConfigurationService.ts`): Centralized configuration loading with source precedence, individual source validation, comprehensive error/warning reporting per configuration source
 - **ConfigInitializer** (`src/cli/commands/init-config.ts`): ✅ NEW - Configuration template system with 6 pre-built templates for common frameworks (React, Vue, Next.js, Express, Node.js, Django), auto-detection of project types, and interactive setup
 - **ProcessMonitor** (`src/utils/ProcessMonitor.ts`): ✅ TESTS FIXED - Comprehensive cross-platform process monitoring with CPU/memory tracking, zombie process detection, health metrics analysis, and historical resource usage data. Fixed test mocking for execSync to properly handle string outputs
+- **ResourceLimitWrapper** (`src/utils/ResourceLimitWrapper.ts`): ✅ NEW - Process resource management component with configurable memory/CPU limits, real-time monitoring, automatic termination for resource violations, and graceful cleanup handling
 
 ## 🔌 Integrations & External Dependencies
 
@@ -138,19 +139,19 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 - **Integration tests**: `/tests/integration/configuration/` - Comprehensive configuration integration test suite
 - **Architecture decisions**: `/docs/architecture/overview.md` - System design
 - **User guides**: `/docs/user/getting-started.md` - Complete usage examples
+- **Deployment strategy**: `/docs/deployment/strategy.md` - Branch-based deployment approach with deploy/clean branch
+- **Contributing guide**: `/CONTRIBUTING.md` - Dual-branch workflow and contribution guidelines
 
 ## 🎯 Current Status & Priorities
 
 ### Current Status
-**PRODUCTION-READY MAINTENANCE MODE** (2025-07-04): Infrastructure is in stable maintenance mode with all critical user feedback addressed. All high-priority implementation and refactoring tasks completed. Test suite at 96.3% pass rate with CI/CD pipeline fully operational. Remaining work consists of investigation-phase tasks (6-8+ hours) and architectural epics (20-40+ hours).
+**PRODUCTION-READY MAINTENANCE MODE** (2025-07-06): Infrastructure is in stable maintenance mode with all critical user feedback addressed. All high-priority implementation and refactoring tasks completed. Test suite at 96.3% pass rate with CI/CD pipeline fully operational. Branch-based deployment strategy implemented with deploy/clean branch for minimal installations. Remaining work consists of investigation-phase tasks (6-8+ hours) and architectural epics (20-40+ hours).
 
 ### Recent Updates
 - **2025-07-06**: Implemented branch-based deployment strategy - created deploy/clean branch with minimal deployment package, added GitHub Actions workflow for automatic syncing, comprehensive documentation for dual-branch usage
 - **2025-07-06**: Achieved production-ready test coverage - ProgressReporter at 100% coverage, ResourceLimitWrapper at 85.85% coverage, comprehensive test suites with 56 new tests total
 - **2025-07-04**: Added configuration template system - created 6 pre-built templates for common frameworks, implemented init-config CLI command with auto-detection and interactive setup, comprehensive documentation for template usage
 - **2025-07-04**: Fixed test quality measurement system - resolved duplicate content generation in ClaudeOrchestrator.saveGeneratedTests method, preventing multiple AI-generated test sections from being appended to the same file
-- **2025-07-04**: Enhanced generated test quality - added intelligent class vs function detection for proper instantiation, fixed module existence tests to use first export when no default export exists, improved React testing configuration with proper jest-dom setup and responsive component mocks
-- **2025-07-03**: Comprehensive test suite stabilization - fixed AsyncPatternDetector mocks and test logic, added NewExpression handler for Promise detection, corrected TypeScript import extensions in multiple templates, improved callback pattern detection confidence levels
 
 📖 **See active tasks**: [`/docs/planning/ACTIVE_TASKS.md`](./docs/planning/ACTIVE_TASKS.md)  
 📖 **See future work**: [`/docs/planning/FUTURE_WORK.md`](./docs/planning/FUTURE_WORK.md)

@@ -61,7 +61,11 @@ program
   .option('--coverage', 'Generate coverage report')
   .option('--update', 'Update existing tests based on changes')
   .option('--force', 'Skip validation checks (e.g., test-to-source ratio)')
-  .option('--max-ratio <number>', 'Override maximum test-to-source file ratio (default: 10)', parseFloat)
+  .option(
+    '--max-ratio <number>',
+    'Override maximum test-to-source file ratio (default: 10)',
+    parseFloat
+  )
   .option('--enable-chunking', 'Enable file chunking for large files (default: true)')
   .option('--chunk-size <size>', 'Maximum tokens per chunk (default: 3500)', parseInt)
   .option('--dry-run', 'Preview test generation without creating files')

@@ -108,10 +108,10 @@ export async function handleAnalysisOperation<T>(
     // Capture error details more effectively
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    const context: Record<string, unknown> = { 
+    const context: Record<string, unknown> = {
       originalError: error,
       errorMessage,
-      errorStack
+      errorStack,
     };
     if (projectPath) {
       context.projectPath = projectPath;
@@ -235,7 +235,7 @@ export function formatErrorMessage(error: unknown): string {
     if (errorMessage && errorMessage !== error.message) {
       return errorMessage;
     }
-    
+
     const contextInfo =
       Object.keys(error.context).length > 0 ? ` (${Object.keys(error.context).join(', ')})` : '';
     return `${error.message}${contextInfo}`;

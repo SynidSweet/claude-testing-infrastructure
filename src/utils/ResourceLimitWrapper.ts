@@ -5,9 +5,10 @@
  * with configurable CPU/memory limits and graceful shutdown handling.
  */
 
-import { ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
 import { logger } from './logger';
-import { ProcessMonitor, ProcessResourceUsage, ProcessHealthMetrics } from './ProcessMonitor';
+import type { ProcessResourceUsage, ProcessHealthMetrics } from './ProcessMonitor';
+import { ProcessMonitor } from './ProcessMonitor';
 
 export interface ResourceLimitConfig {
   /** Maximum CPU usage percentage before warning (default: 80) */
@@ -100,8 +101,8 @@ export class ResourceLimitWrapper {
     this.processMonitor.startMonitoring(pid);
 
     // Set up resource violation tracking
-    let consecutiveCpuViolations = 0;
-    let consecutiveMemoryViolations = 0;
+    const consecutiveCpuViolations = 0;
+    const consecutiveMemoryViolations = 0;
 
     // Set up periodic resource checks
     const resourceCheckInterval = setInterval(() => {
@@ -111,7 +112,7 @@ export class ResourceLimitWrapper {
       }
 
       const healthMetrics = this.processMonitor.getHealthMetrics(pid);
-      
+
       if (!healthMetrics.isAlive) {
         logger.debug(`Process ${pid} is no longer alive, stopping monitoring`);
         clearInterval(resourceCheckInterval);
@@ -220,7 +221,9 @@ export class ResourceLimitWrapper {
     if (usage.cpu > this.config.cpuKillThreshold) {
       consecutiveCpuViolations++;
       if (consecutiveCpuViolations >= this.config.violationThreshold) {
-        violations.push(`CPU usage exceeded kill threshold: ${usage.cpu.toFixed(1)}% > ${this.config.cpuKillThreshold}%`);
+        violations.push(
+          `CPU usage exceeded kill threshold: ${usage.cpu.toFixed(1)}% > ${this.config.cpuKillThreshold}%`
+        );
         logger.error(`Process ${pid} exceeded CPU kill threshold`, {
           processName,
           cpu: usage.cpu,
@@ -245,7 +248,9 @@ export class ResourceLimitWrapper {
     if (usage.memory > this.config.memoryKillThreshold) {
       consecutiveMemoryViolations++;
       if (consecutiveMemoryViolations >= this.config.violationThreshold) {
-        violations.push(`Memory usage exceeded kill threshold: ${usage.memory.toFixed(1)}% > ${this.config.memoryKillThreshold}%`);
+        violations.push(
+          `Memory usage exceeded kill threshold: ${usage.memory.toFixed(1)}% > ${this.config.memoryKillThreshold}%`
+        );
         logger.error(`Process ${pid} exceeded memory kill threshold`, {
           processName,
           memory: usage.memory,
@@ -278,7 +283,7 @@ export class ResourceLimitWrapper {
    */
   private terminateProcess(process: ChildProcess, reason: string): void {
     const pid = process.pid;
-    
+
     if (!pid || process.killed) {
       return;
     }
@@ -288,7 +293,7 @@ export class ResourceLimitWrapper {
     try {
       // First try graceful termination
       process.kill('SIGTERM');
-      
+
       // Force kill after 5 seconds if still running
       setTimeout(() => {
         if (!process.killed && process.pid) {

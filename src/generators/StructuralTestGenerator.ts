@@ -52,7 +52,7 @@ export class StructuralTestGenerator extends TestGenerator {
     private fileDiscovery?: FileDiscoveryService
   ) {
     super(config, analysis);
-    
+
     // Use configuration patterns if available, otherwise use defaults
     const defaultIncludePatterns = ['**/*.{js,ts,jsx,tsx,py}'];
     const defaultExcludePatterns = [
@@ -67,10 +67,12 @@ export class StructuralTestGenerator extends TestGenerator {
       '**/tests/**',
       '**/__tests__/**',
     ];
-    
+
     this.options = {
-      includePatterns: config.patterns?.include || options.includePatterns || defaultIncludePatterns,
-      excludePatterns: config.patterns?.exclude || options.excludePatterns || defaultExcludePatterns,
+      includePatterns:
+        config.patterns?.include || options.includePatterns || defaultIncludePatterns,
+      excludePatterns:
+        config.patterns?.exclude || options.excludePatterns || defaultExcludePatterns,
       generateMocks: true,
       generateSetup: true,
       includeTestData: false,
@@ -97,26 +99,26 @@ export class StructuralTestGenerator extends TestGenerator {
       type: FileDiscoveryType.TEST_GENERATION,
       languages: this.getDetectedLanguages(),
       absolute: true,
-      useCache: true
+      useCache: true,
     });
 
     logger.debug(`FileDiscoveryService found ${result.files.length} files`, {
       fromCache: result.fromCache,
       duration: result.duration,
-      stats: result.stats
+      stats: result.stats,
     });
 
     // Apply existing test filtering if configured
     if (this.options.skipExistingTests) {
       const filesWithoutTests: string[] = [];
-      
+
       for (const file of result.files) {
         const hasExistingTest = await this.hasExistingTest(file);
         if (!hasExistingTest) {
           filesWithoutTests.push(file);
         }
       }
-      
+
       return filesWithoutTests;
     }
 
@@ -170,7 +172,7 @@ export class StructuralTestGenerator extends TestGenerator {
   }
 
   private getDetectedLanguages(): string[] {
-    return this.analysis.languages.map(lang => lang.name);
+    return this.analysis.languages.map((lang) => lang.name);
   }
 
   protected async generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null> {
@@ -317,15 +319,15 @@ export class StructuralTestGenerator extends TestGenerator {
     // Calculate the relative path from the test file location to the source file
     const testPath = this.getTestFilePath(filePath, testType);
     const relativePath = path.relative(path.dirname(testPath), filePath);
-    
+
     // Convert to forward slashes for import statements
     const normalizedPath = relativePath.split(path.sep).join('/');
-    
+
     // Ensure the path starts with ./ or ../
     if (!normalizedPath.startsWith('./') && !normalizedPath.startsWith('../')) {
       return './' + normalizedPath;
     }
-    
+
     return normalizedPath;
   }
 
@@ -779,13 +781,15 @@ Object.defineProperty(window, 'matchMedia', {
    */
   private validatePatterns(): void {
     // Check for valid pattern formats
-    const invalidIncludePatterns = this.options.includePatterns?.filter(pattern => 
-      !pattern || typeof pattern !== 'string' || pattern.trim() === ''
-    ) || [];
+    const invalidIncludePatterns =
+      this.options.includePatterns?.filter(
+        (pattern) => !pattern || typeof pattern !== 'string' || pattern.trim() === ''
+      ) || [];
 
-    const invalidExcludePatterns = this.options.excludePatterns?.filter(pattern => 
-      !pattern || typeof pattern !== 'string' || pattern.trim() === ''
-    ) || [];
+    const invalidExcludePatterns =
+      this.options.excludePatterns?.filter(
+        (pattern) => !pattern || typeof pattern !== 'string' || pattern.trim() === ''
+      ) || [];
 
     if (invalidIncludePatterns.length > 0) {
       logger.warn('Invalid include patterns found', { patterns: invalidIncludePatterns });
@@ -799,7 +803,8 @@ Object.defineProperty(window, 'matchMedia', {
     logger.debug('Pattern validation completed', {
       includeCount: this.options.includePatterns?.length || 0,
       excludeCount: this.options.excludePatterns?.length || 0,
-      hasNodeModulesExclude: this.options.excludePatterns?.some(p => p.includes('node_modules')) || false,
+      hasNodeModulesExclude:
+        this.options.excludePatterns?.some((p) => p.includes('node_modules')) || false,
     });
   }
 
@@ -887,7 +892,6 @@ Object.defineProperty(window, 'matchMedia', {
 
       // Update results count
       existingResults.push(...mcpTests);
-      
     } catch (error) {
       logger.error('Failed to generate MCP tests', { error });
       throw error;

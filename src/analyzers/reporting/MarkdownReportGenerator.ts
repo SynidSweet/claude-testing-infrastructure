@@ -4,7 +4,7 @@ import { GapReportSchema, ReportOptions } from '../GapReportGenerator';
 
 /**
  * Markdown Report Generator - Creates enhanced markdown reports
- * 
+ *
  * Focused class responsible for generating comprehensive markdown reports
  * with visual indicators, tables, and detailed gap analysis.
  */
@@ -92,9 +92,11 @@ export class MarkdownReportGenerator {
 
 `;
       schema.insights.forEach((insight, i) => {
-        const impactIcon = insight.impact === 'high' ? '🔥' : insight.impact === 'medium' ? '⚡' : '💡';
-        const effortIcon = insight.effort === 'low' ? '🟢' : insight.effort === 'medium' ? '🟡' : '🔴';
-        
+        const impactIcon =
+          insight.impact === 'high' ? '🔥' : insight.impact === 'medium' ? '⚡' : '💡';
+        const effortIcon =
+          insight.effort === 'low' ? '🟢' : insight.effort === 'medium' ? '🟡' : '🔴';
+
         markdown += `### ${i + 1}. ${insight.title} ${impactIcon}
 
 **Impact**: ${insight.impact.toUpperCase()} | **Effort**: ${insight.effort.toUpperCase()} ${effortIcon}
@@ -103,7 +105,7 @@ ${insight.description}
 
 **Actions**:
 `;
-        insight.actions.forEach(action => {
+        insight.actions.forEach((action) => {
           markdown += `- ${action}\n`;
         });
         markdown += '\n';
@@ -132,7 +134,7 @@ ${insight.description}
         if (gap.gaps.length > 0) {
           markdown += `**Identified Issues**:
 `;
-          gap.gaps.forEach(g => {
+          gap.gaps.forEach((g) => {
             const typeIcon = this.getGapTypeIcon(g.type);
             markdown += `- ${typeIcon} ${g.description} _(${g.type}, ${g.estimatedEffort} effort)_\n`;
           });
@@ -142,7 +144,7 @@ ${insight.description}
         if (this.options.includeCodeSnippets && gap.context?.codeSnippets) {
           markdown += `**Code Complexity Indicators**:
 `;
-          gap.context.codeSnippets.forEach(snippet => {
+          gap.context.codeSnippets.forEach((snippet) => {
             markdown += `- **${snippet.name}**: `;
             const indicators = [];
             if (snippet.complexity.hasAsync) indicators.push('async');
@@ -163,9 +165,9 @@ Found ${schema.gaps.length} files with test gaps. Use \`--output detailed-report
 **Top Priority Files**:
 `;
       const topPriorityGaps = schema.gaps
-        .filter(gap => gap.priority === GapPriority.CRITICAL || gap.priority === GapPriority.HIGH)
+        .filter((gap) => gap.priority === GapPriority.CRITICAL || gap.priority === GapPriority.HIGH)
         .slice(0, 10);
-        
+
       topPriorityGaps.forEach((gap, i) => {
         const priorityIcon = this.getPriorityIcon(gap.priority);
         markdown += `${i + 1}. ${priorityIcon} \`${path.basename(gap.sourceFile)}\` (${gap.gapCount} gaps, complexity ${gap.complexity}/10)\n`;
@@ -184,9 +186,9 @@ Found ${schema.gaps.length} files with test gaps. Use \`--output detailed-report
   private getPriorityIcon(priority: GapPriority): string {
     const icons = {
       [GapPriority.CRITICAL]: '🔴',
-      [GapPriority.HIGH]: '🟠', 
+      [GapPriority.HIGH]: '🟠',
       [GapPriority.MEDIUM]: '🟡',
-      [GapPriority.LOW]: '🟢'
+      [GapPriority.LOW]: '🟢',
     };
     return icons[priority] || '⚪';
   }
@@ -200,10 +202,10 @@ Found ${schema.gaps.length} files with test gaps. Use \`--output detailed-report
 
   private getAssessmentIcon(assessment: string): string {
     const icons: Record<string, string> = {
-      'excellent': '🏆',
-      'good': '👍',
+      excellent: '🏆',
+      good: '👍',
       'needs-improvement': '⚠️',
-      'poor': '❌'
+      poor: '❌',
     };
     return icons[assessment] || '❓';
   }
@@ -212,9 +214,9 @@ Found ${schema.gaps.length} files with test gaps. Use \`--output detailed-report
     const icons: Record<string, string> = {
       'business-logic': '🧠',
       'edge-case': '⚡',
-      'integration': '🔗',
+      integration: '🔗',
       'error-handling': '🛡️',
-      'performance': '🚀'
+      performance: '🚀',
     };
     return icons[type] || '📝';
   }

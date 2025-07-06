@@ -1,6 +1,6 @@
 /**
  * Language and framework context types for test generation
- * 
+ *
  * These types define the context information needed by test generators
  * to create appropriate tests for different languages and frameworks.
  */
