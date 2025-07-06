@@ -114,6 +114,7 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 - **Stderr parser**: `src/utils/stderr-parser.ts` - Real-time Claude CLI error detection with comprehensive pattern matching and early termination capabilities
 - **Shell command sanitizer**: `src/utils/ShellCommandSanitizer.ts` - Pattern detection for problematic shell commands
 - **Process monitoring**: `src/utils/ProcessMonitor.ts` - Comprehensive cross-platform process monitoring with CPU/memory tracking, zombie detection, health metrics, and historical data analysis
+- **Resource limit wrapper**: `src/utils/ResourceLimitWrapper.ts` - Process resource management with configurable limits, memory/CPU monitoring, and automatic termination for resource violations
 - **Task checkpointing**: `src/state/TaskCheckpointManager.ts` - AI task checkpointing system with partial progress persistence, automatic resume capability, and timeout recovery
 - **Configuration system**: `src/config/ConfigurationService.ts` - Centralized configuration service with source management
 - **Configuration types**: `src/types/config.ts` - Complete TypeScript interfaces for .claude-testing.config.json and FileDiscoveryConfig
@@ -144,6 +145,8 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 **PRODUCTION-READY MAINTENANCE MODE** (2025-07-04): Infrastructure is in stable maintenance mode with all critical user feedback addressed. All high-priority implementation and refactoring tasks completed. Test suite at 96.3% pass rate with CI/CD pipeline fully operational. Remaining work consists of investigation-phase tasks (6-8+ hours) and architectural epics (20-40+ hours).
 
 ### Recent Updates
+- **2025-07-06**: Implemented branch-based deployment strategy - created deploy/clean branch with minimal deployment package, added GitHub Actions workflow for automatic syncing, comprehensive documentation for dual-branch usage
+- **2025-07-06**: Achieved production-ready test coverage - ProgressReporter at 100% coverage, ResourceLimitWrapper at 85.85% coverage, comprehensive test suites with 56 new tests total
 - **2025-07-04**: Added configuration template system - created 6 pre-built templates for common frameworks, implemented init-config CLI command with auto-detection and interactive setup, comprehensive documentation for template usage
 - **2025-07-04**: Fixed test quality measurement system - resolved duplicate content generation in ClaudeOrchestrator.saveGeneratedTests method, preventing multiple AI-generated test sections from being appended to the same file
 - **2025-07-04**: Enhanced generated test quality - added intelligent class vs function detection for proper instantiation, fixed module existence tests to use first export when no default export exists, improved React testing configuration with proper jest-dom setup and responsive component mocks
