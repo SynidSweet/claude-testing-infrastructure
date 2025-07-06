@@ -264,7 +264,7 @@ export class FileChangeDebouncer extends Debouncer<FileChangeDebounceEvent> {
           ? (event: FileChangeDebounceEvent) => event.extension || 'unknown'
           : config.groupBy === 'directory'
             ? (event: FileChangeDebounceEvent) => {
-                const path = require('path');
+                const path = require('path') as typeof import('path');
                 return path.dirname(event.filePath);
               }
             : config.groupBy === 'file'

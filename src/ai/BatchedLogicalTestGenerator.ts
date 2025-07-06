@@ -9,8 +9,7 @@
  */
 
 import type { TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
-import type { AITask, AITaskBatch } from './AITaskPreparation';
-import type { AITaskPreparation } from './AITaskPreparation';
+import type { AITask, AITaskBatch, AITaskPreparation } from './AITaskPreparation';
 import { ClaudeOrchestrator, type ProcessResult } from './ClaudeOrchestrator';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -128,8 +127,8 @@ export class BatchedLogicalTestGenerator {
     // Calculate stats
     const completed = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
-    const totalCost = results.reduce((sum, r) => sum + (r.result?.actualCost || 0), 0);
-    const totalTokens = results.reduce((sum, r) => sum + (r.result?.tokensUsed || 0), 0);
+    const totalCost = results.reduce((sum, r) => sum + (r.result?.actualCost ?? 0), 0);
+    const totalTokens = results.reduce((sum, r) => sum + (r.result?.tokensUsed ?? 0), 0);
 
     return {
       batchIndex,
@@ -157,12 +156,15 @@ export class BatchedLogicalTestGenerator {
 
     try {
       const stateContent = await fs.readFile(stateFile, 'utf-8');
-      progress = JSON.parse(stateContent);
+      const parsed = JSON.parse(stateContent) as unknown;
+      if (this.isValidBatchProgress(parsed)) {
+        progress = parsed;
+      }
     } catch {
       // No existing state
     }
 
-    const nextIndex = progress?.nextBatchIndex || 0;
+    const nextIndex = progress?.nextBatchIndex ?? 0;
 
     // Prepare all tasks to determine batch bounds
     const fullBatch = await this.taskPreparation.prepareTasks(gapReport);
@@ -204,7 +206,14 @@ export class BatchedLogicalTestGenerator {
 
     try {
       const stateContent = await fs.readFile(stateFile, 'utf-8');
-      return JSON.parse(stateContent);
+      const parsed = JSON.parse(stateContent) as unknown;
+
+      // Validate that the parsed object has the required BatchProgress structure
+      if (this.isValidBatchProgress(parsed)) {
+        return parsed;
+      }
+
+      return null;
     } catch {
       return null;
     }
@@ -351,5 +360,32 @@ export class BatchedLogicalTestGenerator {
       beneficial: true,
       reason: `${taskCount} tasks found, batching into ${Math.ceil(taskCount / this.batchSize)} batches will provide better control`,
     };
+  }
+
+  /**
+   * Type guard to validate BatchProgress object structure
+   */
+  private isValidBatchProgress(obj: unknown): obj is BatchProgress {
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'batchId' in obj &&
+      'projectPath' in obj &&
+      'totalTasks' in obj &&
+      'completedBatches' in obj &&
+      'totalBatches' in obj &&
+      'completedTasks' in obj &&
+      'failedTasks' in obj &&
+      'totalEstimatedCost' in obj &&
+      'actualCostSoFar' in obj &&
+      'startTime' in obj &&
+      'lastUpdate' in obj &&
+      'nextBatchIndex' in obj &&
+      'config' in obj &&
+      typeof (obj as BatchProgress).batchId === 'string' &&
+      typeof (obj as BatchProgress).projectPath === 'string' &&
+      typeof (obj as BatchProgress).totalTasks === 'number' &&
+      typeof (obj as BatchProgress).nextBatchIndex === 'number'
+    );
   }
 }

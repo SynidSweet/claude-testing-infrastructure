@@ -277,7 +277,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   private async generateLogicalTests(gapReport: any): Promise<any> {
     // Check if Claude is available
     try {
-      const { execSync } = require('child_process');
+      const { execSync } = require('child_process') as typeof import('child_process');
       execSync('which claude', { stdio: 'ignore' });
     } catch {
       logger.warn('Claude CLI not found - skipping AI generation');

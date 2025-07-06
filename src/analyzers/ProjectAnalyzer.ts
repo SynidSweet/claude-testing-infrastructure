@@ -1,6 +1,5 @@
 import { fs, path, fg, logger } from '../utils/common-imports';
-import type { FileDiscoveryService } from '../types/file-discovery-types';
-import { FileDiscoveryType } from '../types/file-discovery-types';
+import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
 
 export interface ProjectAnalysis {
   projectPath: string;
@@ -54,6 +53,20 @@ export interface DetectedPackageManager {
   name: 'npm' | 'yarn' | 'pnpm' | 'pip' | 'poetry' | 'pipenv';
   confidence: number;
   lockFiles: string[];
+}
+
+export interface PackageJsonContent {
+  name?: string;
+  version?: string;
+  type?: 'module' | 'commonjs';
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  engines?: Record<string, string>;
+  main?: string;
+  module?: string;
+  types?: string;
+  [key: string]: unknown;
 }
 
 export interface ProjectStructure {
@@ -238,11 +251,12 @@ export class ProjectAnalyzer {
         '**/.babelrc*',
         '**/webpack.config.*',
       ]);
+      const reactVersion =
+        packageJsonContent?.dependencies?.react ?? packageJsonContent?.devDependencies?.react;
       frameworks.push({
         name: 'react',
         confidence: 0.9,
-        version:
-          packageJsonContent?.dependencies?.react || packageJsonContent?.devDependencies?.react,
+        ...(reactVersion && { version: reactVersion }),
         configFiles,
       });
     }
@@ -254,10 +268,12 @@ export class ProjectAnalyzer {
         '**/vue.config.*',
         '**/vite.config.*',
       ]);
+      const vueVersion =
+        packageJsonContent?.dependencies?.vue ?? packageJsonContent?.devDependencies?.vue;
       frameworks.push({
         name: 'vue',
         confidence: 0.9,
-        version: packageJsonContent?.dependencies?.vue || packageJsonContent?.devDependencies?.vue,
+        ...(vueVersion && { version: vueVersion }),
         configFiles,
       });
     }
@@ -272,7 +288,9 @@ export class ProjectAnalyzer {
       frameworks.push({
         name: 'angular',
         confidence: 0.9,
-        version: packageJsonContent?.dependencies?.['@angular/core'],
+        ...(packageJsonContent?.dependencies?.['@angular/core'] && {
+          version: packageJsonContent.dependencies['@angular/core'],
+        }),
         configFiles,
       });
     }
@@ -288,7 +306,9 @@ export class ProjectAnalyzer {
       frameworks.push({
         name: 'express',
         confidence: 0.8,
-        version: packageJsonContent?.dependencies?.express,
+        ...(packageJsonContent?.dependencies?.express && {
+          version: packageJsonContent.dependencies.express,
+        }),
         configFiles,
       });
     }
@@ -299,7 +319,9 @@ export class ProjectAnalyzer {
       frameworks.push({
         name: 'nextjs',
         confidence: 0.9,
-        version: packageJsonContent?.dependencies?.next,
+        ...(packageJsonContent?.dependencies?.next && {
+          version: packageJsonContent.dependencies.next,
+        }),
         configFiles,
       });
     }
@@ -362,23 +384,30 @@ export class ProjectAnalyzer {
 
       const framework = await this.detectMCPFramework(packageJsonContent);
       if (framework === 'fastmcp') {
-        frameworks.push({
+        const fastmcpVersion =
+          packageJsonContent?.dependencies?.fastmcp ?? packageJsonContent?.devDependencies?.fastmcp;
+        const fastmcpFramework: DetectedFramework = {
           name: 'fastmcp',
           confidence: 0.95,
-          version:
-            packageJsonContent?.dependencies?.fastmcp ||
-            packageJsonContent?.devDependencies?.fastmcp,
           configFiles,
-        });
+        };
+        if (fastmcpVersion) {
+          fastmcpFramework.version = fastmcpVersion;
+        }
+        frameworks.push(fastmcpFramework);
       } else {
-        frameworks.push({
+        const mcpSdkVersion =
+          packageJsonContent?.dependencies?.['@modelcontextprotocol/sdk'] ??
+          packageJsonContent?.devDependencies?.['@modelcontextprotocol/sdk'];
+        const mcpFramework: DetectedFramework = {
           name: 'mcp-server',
           confidence: 0.9,
-          version:
-            packageJsonContent?.dependencies?.['@modelcontextprotocol/sdk'] ||
-            packageJsonContent?.devDependencies?.['@modelcontextprotocol/sdk'],
           configFiles,
-        });
+        };
+        if (mcpSdkVersion) {
+          mcpFramework.version = mcpSdkVersion;
+        }
+        frameworks.push(mcpFramework);
       }
     }
 
@@ -800,7 +829,7 @@ export class ProjectAnalyzer {
     }
   }
 
-  private async readPackageJson(): Promise<any> {
+  private async readPackageJson(): Promise<PackageJsonContent | null> {
     try {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
