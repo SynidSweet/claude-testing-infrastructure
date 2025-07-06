@@ -8,6 +8,7 @@ import {
   formatErrorMessage,
 } from '../../utils/error-handling';
 import { displayConfigurationSources } from '../../utils/config-display';
+import { RecursionPreventionValidator } from '../../utils/recursion-prevention';
 
 interface AnalyzeOptions {
   output?: string;
@@ -25,6 +26,14 @@ export async function analyzeCommand(
   // Access global options from parent command
   const globalOptions = command?.parent?.opts() || {};
   const showConfigSources = globalOptions.showConfigSources || false;
+
+  // CRITICAL: Prevent recursion before any processing
+  const recursionCheck = RecursionPreventionValidator.validateNotSelfTarget(projectPath);
+  if (!recursionCheck.isSafe) {
+    console.error(chalk.red(RecursionPreventionValidator.getBlockedOperationMessage(recursionCheck)));
+    process.exit(1);
+  }
+
   const spinner = ora('Analyzing project...').start();
 
   try {

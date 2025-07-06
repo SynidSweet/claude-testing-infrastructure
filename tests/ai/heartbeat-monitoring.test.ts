@@ -4,6 +4,7 @@
 
 import { ClaudeOrchestrator } from '../../src/ai/ClaudeOrchestrator';
 import type { AITaskBatch, TaskContext } from '../../src/ai/AITaskPreparation';
+import { ProcessContext } from '../../src/types/process-types';
 import { EventEmitter } from 'events';
 
 // Mock child_process
@@ -23,6 +24,10 @@ jest.mock('../../src/utils/logger', () => ({
 }));
 
 describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
+  if (process.env.DISABLE_HEADLESS_AGENTS === 'true') {
+    test.skip('Skipping heartbeat tests when headless agents are disabled', () => {});
+    return;
+  }
   jest.setTimeout(15000); // 15 second timeout for all tests
   let orchestrator: ClaudeOrchestrator;
   let mockProcess: any;
@@ -80,7 +85,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
     orchestrator = new ClaudeOrchestrator({
       timeout: 60000, // 1 minute for testing
       maxConcurrent: 1,
-    });
+    }, ProcessContext.VALIDATION_TEST);
   });
 
   afterEach(() => {
@@ -359,7 +364,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       orchestrator = new ClaudeOrchestrator({
         timeout: 60000,
         maxConcurrent: 2,
-      });
+      }, ProcessContext.VALIDATION_TEST);
 
       const batchPromise = orchestrator.processBatch(batch);
       await Promise.resolve();

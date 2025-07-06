@@ -1,120 +1,181 @@
 # Technical Stack
 
-*Last updated: 2025-06-30 | Updated by: /document-all command | Added discriminated union types system*
+*Last updated: 2025-07-05 | Comprehensive technology stack and dependencies*
 
-## Technology Foundation
-- **Primary language(s)**: TypeScript (compiled to Node.js 18+), JavaScript ES6+, Python 3.9+
-- **Framework(s)**: Core Node.js with framework-specific adapters (React, Vue, Express, FastAPI, Flask, Django)
-- **Database(s)**: Project-agnostic (supports PostgreSQL, MySQL, SQLite, MongoDB based on target project)
-- **Key libraries**: 
-  - **Core Analysis**: fast-glob (pattern matching), @babel/parser (AST parsing), ignore (gitignore support)
-  - **CLI & UI**: chalk (terminal styling), commander (CLI framework), ora (spinners)
-  - **File Operations**: fs-extra (enhanced file ops), simple-git (git integration)
-  - **Validation**: ajv (JSON validation), ajv-formats (format validation), zod (TypeScript validation)
-  - **Testing Infrastructure**: jest (internal testing), jest/vitest (JS testing), pytest (Python testing)
-  - **Configuration**: cosmiconfig (flexible configuration loading), winston (logging)
-  - **Error Handling**: Custom standardized error system with context-aware error classes
-  - **Configuration Schema**: Complete TypeScript interfaces and JSON schema validation for .claude-testing.config.json
-  - **Type System**: Comprehensive discriminated union types for analysis, coverage, generation, and reporting operations
-  - **Coverage System**: istanbul/nyc (JS coverage), coverage.py (Python coverage), custom template engines
-- **Infrastructure**: Standalone TypeScript repositories with Git-based distribution, CI/CD templates for GitHub Actions
+## 🔧 Core Technologies
 
-## System Architecture
-- **Architectural pattern**: Two complementary approaches (NOT competing solutions):
-  1. **Template-based**: Direct installation into projects for quick setup and full customization
-  2. **Decoupled**: Separate testing repository that never modifies the target project
-- **Core modules/components**:
-  - Project Discovery Engine: Analyzes codebases and detects frameworks/patterns
-  - Template Management System: Copies and configures testing templates
-  - Configuration Generator: Creates framework-specific test configurations
-  - Language Adapter Pattern: Intentional multi-language support (NOT code duplication)
-- **Data flow**: Project Analysis → Framework Detection → Adapter Selection → Configuration Generation → Test Setup
-- **External integrations**: Git repositories, NPM/pip package managers, CI/CD platforms (GitHub Actions, GitLab CI)
-- **Key architectural principle**: JavaScript and Python support uses language-specific adapters, not duplicated code
+### Runtime Environment
+- **Node.js 18+**: Primary runtime environment with modern ES2022 features
+- **TypeScript 5.x**: Full type safety with strict configuration and exactOptionalPropertyTypes
+- **ES Modules**: Modern module system with CommonJS compatibility layer
 
-## Project Structure (Updated 2025-06-28)
-```
-claude-testing/
-├── ARCHITECTURE.md               # System design and dual-approach explanation
-├── IMPLEMENTATION_PLAN_COMPLETE.md # 6-week implementation plan with 200+ tasks
-├── AI_POWERED_TEST_GENERATION_PLAN.md # Claude integration strategy
-├── INCREMENTAL_TESTING_STRATEGY.md # Smart change detection plan
-├── src/                         # ⭐ NEW: Core TypeScript infrastructure
-│   ├── analyzers/               # Project analysis engine
-│   │   ├── ProjectAnalyzer.ts   # ⭐ IMPLEMENTED: Core analyzer class
-│   │   └── index.ts            # Analyzer exports and legacy compatibility
-│   ├── cli/                    # Command-line interface
-│   │   ├── index.ts            # Main CLI entry point
-│   │   └── commands/           # Individual CLI commands
-│   │       ├── analyze.ts      # ⭐ ENHANCED: Multi-format analysis command
-│   │       ├── test.ts         # Test generation command (placeholder)
-│   │       └── watch.ts        # Watch mode command (placeholder)
-│   ├── generators/             # Test generation engine (future)
-│   ├── runners/                # Test execution engine (future)
-│   │   └── templates/          # ⭐ NEW: Template engines for report generation
-│   │       ├── HtmlTemplateEngine.ts      # HTML report generator
-│   │       ├── MarkdownTemplateEngine.ts  # Markdown report generator
-│   │       ├── XmlTemplateEngine.ts       # XML report generator
-│   │       └── coverage-report.html       # External HTML template
-│   ├── adapters/               # Language adapters (future)
-│   ├── types/                  # ⭐ NEW: TypeScript type definitions
-│   │   ├── config.ts           # Complete configuration interfaces for .claude-testing.config.json
-│   │   └── index.ts            # Type definition exports
-│   └── utils/                  # Shared utilities
-│       ├── logger.ts          # Winston-based logging
-│       ├── error-handling.ts  # ⭐ NEW: Standardized error system with custom classes
-│       ├── config-validation.ts # ⭐ NEW: Configuration validation with detailed error messages
-│       ├── common-imports.ts  # Consolidated common imports
-│       └── analyzer-imports.ts # Consolidated analyzer imports
-├── tests/                      # TypeScript test suite
-│   ├── analyzers/              # Analyzer tests
-│   │   └── ProjectAnalyzer.test.ts # ⭐ COMPREHENSIVE: 10 test cases
-│   └── utils/                  # Utility tests
-├── schemas/                    # ⭐ NEW: JSON schema definitions
-│   └── claude-testing.config.schema.json # Configuration validation schema
-├── dist/                       # Compiled JavaScript output
-├── shared/                     # Legacy: Shared components (adapter pattern)
-│   ├── interfaces/              # Core interfaces (IProjectAdapter, etc.)
-│   ├── adapters/               # Language adapter implementations
-│   │   ├── base/               # Abstract base classes
-│   │   ├── javascript/         # JavaScriptAdapter
-│   │   ├── python/            # PythonAdapter
-│   │   └── AdapterFactory.js  # Automatic adapter selection
-│   └── examples/               # Usage examples
-├── ai-testing-template/          # Template-based approach (modifies target project)
-│   ├── scripts/                  # Initialization and setup automation
-│   │   ├── init.js              # Original initialization script
-│   │   ├── initWithAdapter.js   # ⭐ NEW: Adapter-based initialization
-│   │   └── utils/               # Utilities including new FileSystemAdapter
-│   ├── templates/               # Test templates by technology stack
-│   │   ├── javascript/          # JS/TS frontend and backend templates
-│   │   ├── python/              # Python backend testing templates
-│   │   └── common/              # CI/CD and shared configurations
-│   ├── examples/                # Working example implementations
-│   └── docs/                    # Agent-optimized documentation
-├── decoupled-testing-suite/     # Decoupled approach (zero modification)
-│   ├── core/                    # Core testing infrastructure
-│   │   ├── discovery/           # ProjectDiscovery engine for code analysis
-│   │   ├── config/              # Configuration management system
-│   │   ├── runners/             # Test execution engines
-│   │   └── interfaces/          # Stable API contracts for version safety
-│   ├── config/                  # Configuration schemas and adapters
-│   │   ├── adapters/            # Framework-specific adapters
-│   │   └── schemas/             # JSON schemas for validation
-│   ├── templates/               # External test templates
-│   ├── scripts/                 # ✅ IMPLEMENTED: All automation scripts
-│   │   ├── discover-project.js  # Analyze project structure
-│   │   ├── init-project.js      # Initialize configuration
-│   │   ├── run-tests.js         # Execute tests
-│   │   ├── analyze-project.js   # Deep project analysis
-│   │   ├── validate-setup.js    # Validate configuration
-│   │   ├── safe-update.js       # Update testing suite
-│   │   ├── migrate-config.js    # Migrate configurations
-│   │   └── check-compatibility.js # Check compatibility
-│   └── examples/                # ⭐ NEW: Working demo applications
-│       └── decoupled-demo/      # Complete React app demo
-└── Planning Documents/          # Implementation plans and specifications
-```
+### Language Support
+- **JavaScript**: ES6+ with full async/await, destructuring, and modern features
+- **TypeScript**: Full TypeScript support with strict type checking
+- **Python**: 3.8+ support for pytest-based test generation (expanding)
+
+## 🏗️ Framework Dependencies
+
+### CLI and Command Processing
+- **Commander.js 12.x**: Production-grade CLI framework with subcommands
+- **chalk 5.x**: Terminal string styling for enhanced user experience
+- **ora 8.x**: Elegant terminal spinners for long-running operations
+
+### File System and Path Processing
+- **fast-glob 3.x**: High-performance glob pattern matching
+- **chokidar 3.x**: Cross-platform file system watching
+- **fs-extra**: Enhanced file system operations with promisified API
+
+### AST and Code Analysis
+- **@babel/parser 7.x**: JavaScript/TypeScript AST parsing
+- **@babel/traverse 7.x**: AST traversal for code analysis
+- **@babel/types 7.x**: AST node type definitions and utilities
+
+### Testing Infrastructure
+- **Jest 29.x**: Primary testing framework with coverage reporting
+- **@testing-library/jest-dom**: Enhanced Jest matchers for DOM testing
+- **pytest**: Python testing framework (for target project test execution)
+
+## 🔌 AI and External Integrations
+
+### AI Processing
+- **Claude CLI**: Anthropic's Claude Code CLI for AI-powered test generation
+- **Token Estimation**: Custom token counting and cost calculation
+- **Batch Processing**: Intelligent task batching with state persistence
+
+### Version Control
+- **Git**: Required for incremental testing and change detection
+- **Simple-git 3.x**: Programmatic Git operations for change analysis
+
+### Process Management
+- **Cross-platform Process Monitoring**: ps (Unix), wmic (Windows)
+- **Child Process Management**: Enhanced Node.js spawn with timeout controls
+- **Resource Monitoring**: CPU, memory tracking across platforms
+
+## 🛠️ Development Dependencies
+
+### Build and Compilation
+- **TypeScript Compiler**: tsc with strict type checking
+- **ts-node**: Development-time TypeScript execution
+- **rimraf**: Cross-platform file/directory removal
+
+### Code Quality
+- **ESLint 9.x**: JavaScript/TypeScript linting with comprehensive rules
+- **Prettier 3.x**: Code formatting with consistent style
+- **Husky 9.x**: Git hooks for automated quality checks
+
+### Testing and Validation
+- **Jest**: Unit and integration testing framework
+- **@types/jest**: TypeScript definitions for Jest
+- **Supertest**: HTTP assertion library for API testing (when applicable)
+
+## 📊 Configuration and Validation
+
+### Schema Validation
+- **Zod 3.x**: Runtime type validation and schema definition
+- **JSON Schema**: Configuration file validation
+- **Custom Validators**: Framework-specific validation logic
+
+### Configuration Management
+- **Multi-source Configuration**: CLI args, env vars, config files
+- **Template System**: Pre-built configurations for common frameworks
+- **Environment Variable Mapping**: `CLAUDE_TESTING_*` prefix support
+
+## 🎯 Target Project Support
+
+### JavaScript/TypeScript Frameworks
+- **React 18+**: Components, hooks, JSX/TSX support
+- **Vue 3+**: Composition API, template analysis
+- **Angular**: Component architecture, dependency injection
+- **Next.js**: Full-stack React framework with SSR/SSG
+- **Express**: Node.js web framework
+- **Node.js**: Runtime and module detection
+
+### Python Frameworks
+- **FastAPI**: Modern async web framework
+- **Flask**: Lightweight web framework
+- **Django**: Full-featured web framework
+- **pytest**: Testing framework integration
+
+### Testing Frameworks (Target Projects)
+- **Jest**: Full integration with module mocking
+- **Vitest**: Vite-native testing framework
+- **pytest**: Python testing with fixtures and parametrization
+- **Mocha/Chai**: Traditional Node.js testing (basic support)
+
+### Module Systems
+- **ES Modules**: Modern import/export syntax
+- **CommonJS**: require/module.exports for Node.js
+- **Mixed Projects**: Automatic detection and appropriate handling
+- **TypeScript Modules**: .ts/.tsx import resolution
+
+## 🔄 External Service Integrations
+
+### Required Services
+- **Anthropic Claude API**: Via Claude CLI for AI generation
+- **File System**: Cross-platform file operations
+- **Git Repository**: For change detection and incremental updates
+
+### Optional Services
+- **GitHub Actions**: CI/CD integration templates
+- **GitLab CI**: Continuous integration support
+- **Coverage Services**: Codecov, Coveralls integration
+- **IDE Extensions**: VS Code debugging and integration
+
+## 📈 Performance and Scalability
+
+### Caching Strategy
+- **Memory Caching**: TTL-based caching with configurable limits
+- **File System Caching**: Intelligent cache invalidation
+- **Pattern Caching**: Compiled glob patterns for performance
+
+### Concurrency Management
+- **Process Limits**: Global Claude process limits (max 5)
+- **Batch Processing**: Configurable batch sizes (default: 5)
+- **Sequential Processing**: Default mode to prevent resource exhaustion
+- **Optional Concurrency**: `--allow-concurrent` flag for parallel processing
+
+### Resource Optimization
+- **File Chunking**: Large files split for AI processing (4k+ tokens)
+- **Streaming Operations**: Memory-efficient file processing
+- **Lazy Loading**: On-demand module loading for CLI commands
+- **Connection Pooling**: Efficient resource management
+
+## 🔒 Security and Reliability
+
+### Error Handling
+- **Circuit Breaker Pattern**: Prevents cascading failures
+- **Intelligent Retry**: Exponential backoff with jitter
+- **Graceful Degradation**: Fallback modes when AI unavailable
+- **Timeout Management**: Adaptive timeouts based on task complexity
+
+### Process Safety
+- **Process Isolation**: Subprocess sandboxing
+- **Resource Limits**: Memory and CPU monitoring
+- **Zombie Process Detection**: Automatic cleanup
+- **Signal Handling**: Proper SIGTERM/SIGKILL handling
+
+### Data Protection
+- **No Credential Storage**: Uses existing Claude CLI authentication
+- **Temporary File Cleanup**: Automatic cleanup of intermediate files
+- **Error Sanitization**: Sensitive information removal from logs
+
+## 🌐 Cross-Platform Compatibility
+
+### Operating Systems
+- **Linux**: Ubuntu 20.04+ with full feature support
+- **macOS**: macOS 12+ with native process monitoring
+- **Windows**: Windows 10+ with WSL and PowerShell support
+
+### Architecture Support
+- **x64**: Primary architecture with full support
+- **ARM64**: Apple Silicon and ARM servers
+- **Multi-arch**: Automatic architecture detection
+
+### Environment Compatibility
+- **Docker**: Container support with volume mounting
+- **CI/CD**: GitHub Actions, GitLab CI, Jenkins
+- **Development**: Local development with hot reloading
 
 ## See Also
 - 📖 **Architecture Overview**: [`/docs/architecture/overview.md`](./overview.md)

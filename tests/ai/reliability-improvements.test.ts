@@ -11,12 +11,17 @@
 import { ClaudeOrchestrator } from '../../src/ai/ClaudeOrchestrator';
 import { AITaskBatch } from '../../src/ai/AITaskPreparation';
 import { AITimeoutError, AINetworkError } from '../../src/types/ai-error-types';
+import { ProcessContext } from '../../src/types/process-types';
 import { withRetry, CircuitBreaker } from '../../src/utils/retry-helper';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
 describe('Claude CLI Reliability Improvements', () => {
+  if (process.env.DISABLE_HEADLESS_AGENTS === 'true') {
+    test.skip('Skipping reliability tests when headless agents are disabled', () => {});
+    return;
+  }
   let orchestrator: ClaudeOrchestrator;
 
   beforeEach(() => {
@@ -28,7 +33,7 @@ describe('Claude CLI Reliability Improvements', () => {
       exponentialBackoff: true,
       circuitBreakerEnabled: true,
       maxRetryDelay: 1000 // Short delays for tests
-    });
+    }, ProcessContext.VALIDATION_TEST);
   });
 
   describe('Retry Helper with Exponential Backoff', () => {

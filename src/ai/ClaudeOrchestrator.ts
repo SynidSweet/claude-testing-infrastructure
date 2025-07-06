@@ -28,7 +28,7 @@ import {
   FailurePatternDetector,
   type TaskRetryContext,
 } from '../utils/retry-helper';
-import { ProcessLimitValidator } from '../utils/ProcessLimitValidator';
+import { GlobalProcessManager } from '../utils/GlobalProcessManager';
 import { logger } from '../utils/logger';
 import { createStderrParser, type ParsedError } from '../utils/stderr-parser';
 import {
@@ -37,6 +37,9 @@ import {
   type ProcessResourceUsage,
 } from '../utils/ProcessMonitor';
 import { TaskCheckpointManager } from '../state/TaskCheckpointManager';
+import { RecursionPreventionValidator } from '../utils/recursion-prevention';
+import { ProcessContext } from '../types/process-types';
+import { ProcessContextValidator } from '../utils/ProcessContextValidator';
 
 export interface ClaudeOrchestratorConfig {
   maxConcurrent?: number;
@@ -122,9 +125,29 @@ export class ClaudeOrchestrator extends EventEmitter {
     string,
     { successTime: number; complexity: 'low' | 'medium' | 'high' }
   >(); // Task performance tracking
+  private globalProcessManager: GlobalProcessManager;
+  private processContext: ProcessContext;
+  private contextValidator: ProcessContextValidator;
 
-  constructor(private config: ClaudeOrchestratorConfig = {}) {
+  constructor(
+    private config: ClaudeOrchestratorConfig = {},
+    context: ProcessContext = ProcessContext.USER_INITIATED
+  ) {
     super();
+    
+    // Initialize process context and validator
+    this.processContext = context;
+    this.contextValidator = ProcessContextValidator.getInstance();
+    
+    // CRITICAL SAFETY CHECK ON INITIALIZATION
+    if (process.env.DISABLE_HEADLESS_AGENTS === 'true') {
+      console.error('\n' + '='.repeat(80));
+      console.error('🚨 WARNING: HEADLESS CLAUDE AGENTS ARE DISABLED 🚨');
+      console.error('DISABLE_HEADLESS_AGENTS=true is set - AI test generation will fail');
+      console.error('This prevents recursive testing and system crashes');
+      console.error('='.repeat(80) + '\n');
+    }
+    
     this.config = {
       maxConcurrent: 2, // Reduced from 3 to prevent usage spikes
       model: 'opus', // Use alias for latest model with Max subscription
@@ -185,6 +208,9 @@ export class ClaudeOrchestrator extends EventEmitter {
     if (this.config.circuitBreakerEnabled) {
       this.circuitBreaker = new CircuitBreaker(5, 60000); // 5 failures, 1 minute recovery
     }
+
+    // Initialize global process manager
+    this.globalProcessManager = GlobalProcessManager.getInstance();
   }
 
   /**
@@ -197,6 +223,53 @@ export class ClaudeOrchestrator extends EventEmitter {
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Emergency shutdown - immediately terminate all processes
+   * Used when recursion or process limit violations are detected
+   */
+  public emergencyShutdown(reason: string): void {
+    logger.error(`🚨 EMERGENCY SHUTDOWN: ${reason}`);
+    
+    // Emergency recursion check
+    if (!RecursionPreventionValidator.emergencyRecursionCheck()) {
+      logger.error('🚨 RECURSION DETECTED - Terminating all processes immediately');
+    }
+
+    // Trigger global emergency shutdown
+    this.globalProcessManager.emergencyShutdown(`ClaudeOrchestrator: ${reason}`);
+
+    // Force stop all running processes (in case some weren't registered)
+    const activeProcessIds = Array.from(this.activeProcesses.keys());
+    logger.warn(`Terminating ${activeProcessIds.length} active Claude processes`);
+
+    for (const [taskId, process] of this.activeProcesses) {
+      try {
+        // Stop monitoring first
+        this.stopHeartbeatMonitoring(taskId);
+        
+        // Kill process with SIGKILL (immediate termination)
+        if (process.pid && !process.killed) {
+          process.kill('SIGKILL');
+          logger.warn(`Killed process ${process.pid} for task ${taskId}`);
+        }
+      } catch (error) {
+        logger.error(`Failed to kill process for task ${taskId}:`, error);
+      }
+    }
+
+    // Clear all active processes
+    this.activeProcesses.clear();
+    this.processHeartbeats.clear();
+    this.taskQueue = [];
+    this.isRunning = false;
+
+    // Update stats
+    this.stats.sessionUsage.usageWarnings++;
+    this.stats.endTime = new Date();
+
+    logger.error(`Emergency shutdown completed. Reason: ${reason}`);
   }
 
   /**
@@ -748,21 +821,29 @@ export class ClaudeOrchestrator extends EventEmitter {
     );
 
     // Validate global process limits
-    const processValidation = ProcessLimitValidator.validateProcessLimit(maxConcurrent);
-    if (!processValidation.allowed) {
-      logger.error(processValidation.message);
-      logger.info('\n' + ProcessLimitValidator.getProcessStatus());
+    // Emergency recursion check before batch processing
+    if (!RecursionPreventionValidator.emergencyRecursionCheck()) {
+      this.emergencyShutdown('Recursion detected during batch processing');
+      throw new Error(
+        '🚨 EMERGENCY SHUTDOWN: Recursion detected - infrastructure cannot test itself. ' +
+        'This safety mechanism prevents exponential process spawning and system crashes. ' +
+        'Set DISABLE_HEADLESS_AGENTS=true to acknowledge this protection.'
+      );
+    }
 
-      // Try to wait for a slot
-      logger.info('Waiting for Claude processes to complete...');
-      const slotAvailable = await ProcessLimitValidator.waitForProcessSlot(30000);
-
-      if (!slotAvailable) {
-        throw new Error(
-          `Cannot proceed: Too many Claude processes active (${processValidation.current}/${processValidation.max}). ` +
-            `Please wait for existing processes to complete or reduce concurrency settings.`
-        );
-      }
+    // Check if we should trigger graceful degradation
+    const currentCounts = this.globalProcessManager.getCurrentCounts();
+    const limits = this.globalProcessManager.getLimits();
+    
+    if (currentCounts.total >= limits.warningThreshold) {
+      logger.warn(`⚠️  High process usage detected: ${currentCounts.total}/${limits.maxTotal} processes`);
+      logger.warn('Batch processing will continue but may experience delays due to process limits');
+    }
+    
+    // Emergency check for critical limit violations
+    if (currentCounts.total >= limits.maxTotal - 2) {
+      this.emergencyShutdown(`Critical process limit exceeded in batch: ${currentCounts.total} processes`);
+      throw new Error('Emergency shutdown triggered - critical process limit exceeded in batch processing');
     }
 
     this.emit('batch:start', { batch, stats: this.stats });
@@ -1196,6 +1277,54 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
     cost?: number;
   }> {
     return new Promise(async (resolve, reject) => {
+      // CRITICAL PROCESS CONTEXT VALIDATION
+      const contextValidation = this.contextValidator.validateAIProcessSpawn(
+        this.processContext, 
+        task.sourceFile
+      );
+      
+      if (!contextValidation.allowed) {
+        const errorMessage = ProcessContextValidator.createContextViolationError(
+          this.processContext,
+          'AI process spawning',
+          contextValidation
+        );
+        logger.error(`Process context violation: ${errorMessage.message}`);
+        reject(errorMessage);
+        return;
+      }
+
+      // TEMPORARY HARD STOP - CRITICAL RECURSION PREVENTION CHECK
+      if (process.env.DISABLE_HEADLESS_AGENTS === 'true') {
+        const errorMessage = `
+🚨🚨🚨 CRITICAL SAFETY STOP TRIGGERED 🚨🚨🚨
+
+HEADLESS CLAUDE AGENTS ARE DISABLED via DISABLE_HEADLESS_AGENTS=true
+
+This hard stop prevents:
+- EXPONENTIAL PROCESS SPAWNING (Jest × Claude CLI = System Crash)
+- RESOURCE EXHAUSTION leading to system failure
+- USAGE QUOTA DEPLETION from runaway processes
+- RECURSIVE TEST GENERATION that never ends
+
+If you're seeing this message, the safety mechanism is WORKING CORRECTLY.
+
+DO NOT attempt to bypass this check - it exists to protect your system!
+
+To proceed safely:
+1. Ensure you're NOT testing the infrastructure on itself
+2. Use a different target project for testing
+3. Remove DISABLE_HEADLESS_AGENTS=true when testing other projects
+
+Task ID: ${task.id}
+Source File: ${task.sourceFile}
+Current Directory: ${process.cwd()}
+Context: ${this.contextValidator.getContextDescription(this.processContext)}
+`;
+        logger.error(errorMessage);
+        reject(new Error(errorMessage));
+        return;
+      }
       let promptToUse = task.prompt;
       let estimatedTokens = task.estimatedTokens;
 
@@ -1245,19 +1374,32 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
       } as AIProgressUpdate);
 
       // Validate we can spawn another process
-      const spawnValidation = ProcessLimitValidator.validateProcessLimit(1);
-      if (!spawnValidation.allowed) {
-        // Wait for a slot to become available
-        const slotAvailable = await ProcessLimitValidator.waitForProcessSlot(30000);
-        if (!slotAvailable) {
-          reject(
-            new Error(
-              `Cannot spawn Claude process: ${spawnValidation.message}. ` +
-                `Current processes: ${spawnValidation.current}/${spawnValidation.max}`
-            )
-          );
+      // Emergency recursion check before spawning
+      if (!RecursionPreventionValidator.emergencyRecursionCheck()) {
+        this.emergencyShutdown('Recursion detected during process spawn');
+        reject(new Error('Emergency shutdown triggered - recursion detected'));
+        return;
+      }
+
+      // Reserve process slot with GlobalProcessManager
+      const reservation = await this.globalProcessManager.reserveProcessSlot(
+        'claude',
+        'ClaudeOrchestrator',
+        30000 // 30 second timeout
+      );
+
+      if (!reservation.success) {
+        // Check if we should trigger emergency shutdown
+        const currentCounts = this.globalProcessManager.getCurrentCounts();
+        if (currentCounts.total >= 10) {
+          this.emergencyShutdown(`Critical process limit exceeded: ${currentCounts.total} processes`);
+          reject(new Error('Emergency shutdown triggered - critical process limit exceeded'));
           return;
         }
+
+        // Process limit reached, gracefully fail
+        reject(new Error(`Cannot spawn Claude process: ${reservation.reason}`));
+        return;
       }
 
       // Set up environment with extended timeouts for headless AI generation
@@ -1280,6 +1422,20 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
 
       // Create stderr parser for early error detection
       const stderrParser = createStderrParser(this);
+
+      // Register process with GlobalProcessManager
+      const registration = this.globalProcessManager.registerProcess(
+        reservation.reservationId,
+        claude,
+        task.id
+      );
+
+      if (!registration.success) {
+        // Failed to register - clean up
+        claude.kill('SIGTERM');
+        reject(new Error(`Failed to register process: ${registration.reason}`));
+        return;
+      }
 
       // Store active process
       this.activeProcesses.set(task.id, claude);
@@ -1308,6 +1464,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
           if (timeout) clearTimeout(timeout);
           this.stopHeartbeatMonitoring(task.id);
           this.activeProcesses.delete(task.id);
+          this.globalProcessManager.unregisterProcess(task.id);
 
           // Kill the process
           claude.kill('SIGTERM');
@@ -1443,6 +1600,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
         if (!killed) {
           clearTimeout(timeout);
           this.activeProcesses.delete(task.id);
+          this.globalProcessManager.unregisterProcess(task.id);
           this.stopHeartbeatMonitoring(task.id);
 
           // Provide more helpful error messages
@@ -1466,6 +1624,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
         if (!killed) {
           clearTimeout(timeout);
           this.activeProcesses.delete(task.id);
+          this.globalProcessManager.unregisterProcess(task.id);
           this.stopHeartbeatMonitoring(task.id);
 
           // Parse any remaining stderr
@@ -1634,6 +1793,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
         new Promise<void>((resolve) => {
           process.on('close', () => {
             this.activeProcesses.delete(taskId);
+            this.globalProcessManager.unregisterProcess(taskId);
             resolve();
           });
           process.kill('SIGTERM');

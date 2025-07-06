@@ -2,7 +2,7 @@
 
 *Quick navigation for AI agents working with specific features and components*
 
-*Last updated: 2025-07-03 | Updated by: /document command | Added production validation system with CI/CD integration*
+*Last updated: 2025-07-06 | Global Process Management Architecture completed - centralized process coordination system*
 
 ## 🎯 Purpose
 
@@ -107,6 +107,15 @@ This guide helps AI agents understand and work with individual features of the C
 - `scripts/production-deployment-checklist.js` - Automated deployment validation checklist
 - `.github/workflows/test.yml` - CI/CD integration with production validation job
 **Features**: Quality gate validation, realistic thresholds (93% test pass rate, 85% overall score), comprehensive reporting, deployment automation
+
+### Global Process Management ✅ NEW
+**Purpose**: Centralized process coordination to prevent runaway process scenarios  
+**Key Files**:
+- `src/utils/GlobalProcessManager.ts` - Singleton process coordinator with reservation system
+- `src/types/process-types.ts` - Process management type definitions and interfaces
+- `src/utils/__tests__/GlobalProcessManager.test.ts` - Comprehensive test coverage
+**Features**: Process limits (max 5 Claude, max 12 total), reservation-based spawning, emergency shutdown, graceful degradation, cross-component integration
+**Integration**: ClaudeOrchestrator, JestRunner, PytestRunner all use centralized process management
 
 ## 📦 Working with Features
 
@@ -398,6 +407,14 @@ class FeatureRepository {
 - Deployment: `npm run validation:deployment`
 - Thresholds: 93% test pass rate, 85% overall score
 - CI Integration: Automatic validation with artifact generation
+
+### Global Process Management ✅ NEW
+- Coordinate: `GlobalProcessManager.getInstance()`
+- Reserve: `reserveProcessSlot(type, component)`
+- Register: `registerProcess(reservationId, process)`
+- Monitor: `getCurrentCounts()`, `shouldGracefullyDegrade()`
+- Emergency: `emergencyShutdown(reason)`
+- Limits: 5 Claude, 10 test runners, 12 total processes
 
 ---
 

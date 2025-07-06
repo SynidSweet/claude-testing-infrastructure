@@ -15,6 +15,9 @@ import { displayConfigurationSources } from '../../utils/config-display';
 import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../../ai';
 import { ProgressReporter } from '../../utils/ProgressReporter';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
+import { RecursionPreventionValidator } from '../../utils/recursion-prevention';
+import { ProcessContext } from '../../types/process-types';
+import { ImportSanitizer } from '../../utils/ImportSanitizer';
 
 interface TestOptions {
   config?: string;
@@ -39,6 +42,13 @@ export async function testCommand(
   // Access global options from parent command
   const globalOptions = command?.parent?.opts() || {};
   const showConfigSources = globalOptions.showConfigSources || false;
+
+  // CRITICAL: Prevent recursion before any processing
+  const recursionCheck = RecursionPreventionValidator.validateNotSelfTarget(projectPath);
+  if (!recursionCheck.isSafe) {
+    console.error(chalk.red(RecursionPreventionValidator.getBlockedOperationMessage(recursionCheck)));
+    process.exit(1);
+  }
 
   let spinner = ora('Analyzing project...').start();
 
@@ -265,14 +275,62 @@ export async function testCommand(
   }
 }
 
+/**
+ * Creates a safe test output path that is external to any infrastructure directory
+ * This is part of Phase 2 of the Process Context Isolation System
+ */
+async function createSafeTestOutputPath(projectPath: string): Promise<string> {
+  const absoluteProjectPath = path.resolve(projectPath);
+  
+  // Check if this is the infrastructure itself
+  if (await isInfrastructureProject(absoluteProjectPath)) {
+    throw new Error(
+      'Cannot generate tests for the Claude Testing Infrastructure itself. ' +
+      'This would create recursive process spawning. ' +
+      'Use the infrastructure to test OTHER projects, not itself.'
+    );
+  }
+  
+  // For external projects, use the standard .claude-testing directory
+  // This is safe because it's within the target project, not the infrastructure
+  return path.join(absoluteProjectPath, '.claude-testing');
+}
+
+/**
+ * Detects if a project path is the Claude Testing Infrastructure
+ */
+async function isInfrastructureProject(projectPath: string): Promise<boolean> {
+  const normalizedPath = path.resolve(projectPath);
+  
+  // Check for infrastructure-specific markers
+  const infrastructureMarkers = [
+    'claude-testing-infrastructure',
+    'src/ai/ClaudeOrchestrator.ts',
+    'src/cli/index.ts',
+    'src/generators/TestGenerator.ts'
+  ];
+  
+  for (const marker of infrastructureMarkers) {
+    const markerPath = path.join(normalizedPath, marker);
+    try {
+      await fs.access(markerPath);
+      return true;
+    } catch {
+      // File doesn't exist, continue checking
+    }
+  }
+  
+  return false;
+}
+
 async function loadConfiguration(
   projectPath: string,
   analysis: any,
   options: TestOptions,
   showConfigSources: boolean = false
 ): Promise<TestGeneratorConfig> {
-  // Create default output path
-  const outputPath = path.join(projectPath, '.claude-testing');
+  // Create default output path - EXTERNAL to infrastructure for safety
+  const outputPath = await createSafeTestOutputPath(projectPath);
 
   // Ensure output directory exists (skip in dry-run mode)
   if (!options.dryRun) {
@@ -386,6 +444,25 @@ async function loadConfiguration(
 async function writeGeneratedTests(tests: any[], verbose = false): Promise<void> {
   for (const test of tests) {
     try {
+      // PHASE 2: Final validation - check test output path and content safety
+      const pathValidation = ImportSanitizer.validateTestFile(test.content, test.testPath);
+      
+      if (!pathValidation.isSafe) {
+        const errorMsg = `Blocked unsafe test file creation: ${test.testPath}`;
+        logger.error(errorMsg, {
+          risks: pathValidation.dangerousImports.map(d => d.risk),
+          suggestions: pathValidation.suggestions
+        });
+        
+        console.log(chalk.red(`  ✗ BLOCKED: ${test.testPath}`));
+        console.log(chalk.yellow(`    Reason: ${pathValidation.dangerousImports[0]?.risk || 'Safety violation'}`));
+        pathValidation.suggestions.forEach(suggestion => {
+          console.log(chalk.gray(`    Suggestion: ${suggestion}`));
+        });
+        
+        continue; // Skip this file but continue with others
+      }
+      
       // Create directory if it doesn't exist
       await fs.mkdir(path.dirname(test.testPath), { recursive: true });
 
@@ -644,7 +721,7 @@ async function generateLogicalTests(
       timeout: 900000, // 15 minutes
       verbose: options.verbose || false,
       gracefulDegradation: false, // Disable degradation for --only-logical
-    });
+    }, ProcessContext.USER_INITIATED);
 
     // Set up progress tracking with detailed feedback
     let completed = 0;

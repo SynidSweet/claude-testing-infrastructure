@@ -7,12 +7,14 @@ import type { CoverageReporter } from './CoverageReporter';
 import { CoverageReporterFactory } from './CoverageReporter';
 import type { FileDiscoveryService } from '../types/file-discovery-types';
 import { FileDiscoveryType } from '../types/file-discovery-types';
+import { GlobalProcessManager } from '../utils/GlobalProcessManager';
 
 /**
  * Jest test runner implementation
  */
 export class JestRunner extends TestRunner {
   private coverageReporter?: CoverageReporter;
+  private globalProcessManager: GlobalProcessManager;
 
   constructor(
     config: TestRunnerConfig,
@@ -20,6 +22,9 @@ export class JestRunner extends TestRunner {
     private fileDiscovery: FileDiscoveryService
   ) {
     super(config, analysis);
+    
+    // Initialize global process manager
+    this.globalProcessManager = GlobalProcessManager.getInstance();
 
     // Initialize coverage reporter if coverage is enabled
     if (config.coverage?.enabled) {
@@ -60,15 +65,79 @@ export class JestRunner extends TestRunner {
   protected async executeTests(): Promise<TestResult> {
     const { command, args } = this.getRunCommand();
 
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       let stdout = '';
       let stderr = '';
+
+      // Reserve process slot with GlobalProcessManager
+      const reservation = await this.globalProcessManager.reserveProcessSlot(
+        'jest',
+        'JestRunner',
+        30000 // 30 second timeout
+      );
+
+      if (!reservation.success) {
+        logger.error(`Cannot spawn Jest process: ${reservation.reason}`);
+        resolve({
+          success: false,
+          exitCode: 1,
+          testSuites: 0,
+          tests: 0,
+          passed: 0,
+          failed: 0,
+          skipped: 0,
+          duration: 0,
+          failures: [
+            {
+              suite: 'Process Management',
+              test: 'Process Limit',
+              message: `Cannot spawn Jest process: ${reservation.reason}`,
+            },
+          ],
+          output: '',
+          errorOutput: `Process limit reached: ${reservation.reason}`,
+        });
+        return;
+      }
 
       const child = spawn(command, args, {
         cwd: this.getWorkingDirectory(),
         env: this.getEnvironment(),
         stdio: ['pipe', 'pipe', 'pipe'],
       });
+
+      // Register process with GlobalProcessManager
+      const processId = `jest-${Date.now()}`;
+      const registration = this.globalProcessManager.registerProcess(
+        reservation.reservationId,
+        child,
+        processId
+      );
+
+      if (!registration.success) {
+        logger.error(`Failed to register Jest process: ${registration.reason}`);
+        child.kill('SIGTERM');
+        resolve({
+          success: false,
+          exitCode: 1,
+          testSuites: 0,
+          tests: 0,
+          passed: 0,
+          failed: 0,
+          skipped: 0,
+          duration: 0,
+          failures: [
+            {
+              suite: 'Process Management',
+              test: 'Process Registration',
+              message: `Failed to register process: ${registration.reason}`,
+            },
+          ],
+          output: '',
+          errorOutput: `Process registration failed: ${registration.reason}`,
+        });
+        return;
+      }
 
       child.stdout?.on('data', (data) => {
         stdout += data.toString();
@@ -79,12 +148,18 @@ export class JestRunner extends TestRunner {
       });
 
       child.on('close', async (code) => {
+        // Unregister process with GlobalProcessManager
+        this.globalProcessManager.unregisterProcess(processId);
+        
         const exitCode = code || 0;
         const result = await this.parseOutput(stdout, stderr, exitCode);
         resolve(result);
       });
 
       child.on('error', (error) => {
+        // Unregister process on error
+        this.globalProcessManager.unregisterProcess(processId);
+        
         logger.error('Jest process error', { error });
         resolve({
           success: false,

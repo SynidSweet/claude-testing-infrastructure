@@ -26,16 +26,16 @@ export class ProcessLimitValidator {
           const pgrep = execSync('pgrep -f "claude|claude-cli" 2>/dev/null || true', {
             encoding: 'utf8',
           }).trim();
-          
+
           if (pgrep) {
-            const pids = pgrep.split('\n').filter(pid => pid);
+            const pids = pgrep.split('\n').filter((pid) => pid);
             claudeCount = pids.length;
-            
+
             // Get details for each process
             for (const pid of pids) {
               try {
                 const cmd = execSync(`ps -p ${pid} -o comm= 2>/dev/null || true`, {
-                  encoding: 'utf8'
+                  encoding: 'utf8',
                 }).trim();
                 if (cmd) {
                   details.push(`PID ${pid}: ${cmd}`);
@@ -50,11 +50,11 @@ export class ProcessLimitValidator {
           const ps = execSync('ps aux | grep -E "claude|claude-cli" | grep -v grep || true', {
             encoding: 'utf8',
           });
-          
-          const lines = ps.split('\n').filter(line => line.trim());
+
+          const lines = ps.split('\n').filter((line) => line.trim());
           claudeCount = lines.length;
-          
-          lines.forEach(line => {
+
+          lines.forEach((line) => {
             const parts = line.split(/\s+/);
             if (parts.length > 10) {
               details.push(`PID ${parts[1]}: ${parts.slice(10).join(' ')}`);
@@ -68,11 +68,11 @@ export class ProcessLimitValidator {
             'wmic process where "name like \'%claude%\'" get ProcessId,CommandLine /format:csv 2>nul || echo ""',
             { encoding: 'utf8' }
           );
-          
-          const lines = wmic.split('\n').filter(line => line.includes('claude'));
+
+          const lines = wmic.split('\n').filter((line) => line.includes('claude'));
           claudeCount = lines.length;
-          
-          lines.forEach(line => {
+
+          lines.forEach((line) => {
             const parts = line.split(',');
             if (parts.length >= 3) {
               details.push(`PID ${parts[2]}: ${parts[1]}`);
@@ -132,21 +132,21 @@ export class ProcessLimitValidator {
    */
   static async waitForProcessSlot(timeout: number = 30000): Promise<boolean> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeout) {
       const validation = this.validateProcessLimit(1);
       if (validation.allowed) {
         return true;
       }
-      
+
       logger.info(
         `Waiting for Claude process slot... (${validation.current}/${validation.max} active)`
       );
-      
+
       // Wait 2 seconds before checking again
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-    
+
     return false;
   }
 
@@ -155,15 +155,13 @@ export class ProcessLimitValidator {
    */
   static getProcessStatus(): string {
     const count = this.getActiveClaudeProcessCount();
-    const status = [
-      `Claude processes: ${count.claude}/${this.MAX_CLAUDE_PROCESSES}`,
-    ];
-    
+    const status = [`Claude processes: ${count.claude}/${this.MAX_CLAUDE_PROCESSES}`];
+
     if (count.details.length > 0) {
       status.push('Active processes:');
-      count.details.forEach(detail => status.push(`  - ${detail}`));
+      count.details.forEach((detail) => status.push(`  - ${detail}`));
     }
-    
+
     return status.join('\n');
   }
 }

@@ -1,6 +1,6 @@
 # Process Monitoring
 
-*Last updated: 2025-07-02 | Feature Status: ✅ New Feature | Cross-platform resource debugging*
+*Last updated: 2025-07-06 | Feature Status: ✅ Enhanced | Critical safety mechanism fix completed*
 
 ## Overview
 
@@ -195,6 +195,26 @@ Comprehensive integration with user troubleshooting guides:
 - **Watch mode enhancement** for continuous resource monitoring
 - **Documentation integration** with comprehensive troubleshooting guides
 - **Zero configuration** required for basic functionality
+
+## Recent Safety Enhancements
+
+### Emergency Recursion Prevention Fix (2025-07-06)
+**Critical Fix**: Resolved logic order bug in `src/utils/recursion-prevention.ts` that allowed Jest execution to bypass the `DISABLE_HEADLESS_AGENTS=true` environment flag.
+
+**Issue**: When running `npm test` with safety environment variable set, Jest check was executed before the environment flag check, allowing 2 Claude processes to spawn despite the safety mechanism.
+
+**Solution**: Moved environment flag check to absolute first position with no exceptions:
+```typescript
+// BEFORE (BROKEN): Jest could bypass safety
+if (process.env.DISABLE_HEADLESS_AGENTS === 'true') return false;
+if (processArgs.includes('jest')) return true; // ❌ Bypassed safety!
+
+// AFTER (FIXED): Environment flag is absolute
+if (process.env.DISABLE_HEADLESS_AGENTS === 'true') return false; // ✅ No exceptions
+if (processArgs.includes('jest')) return true; // ✅ Only if environment allows
+```
+
+**Impact**: The safety mechanism now works as intended - when `DISABLE_HEADLESS_AGENTS=true` is set, **zero** Claude processes are spawned regardless of execution context (Jest, npm test, etc.).
 
 ---
 

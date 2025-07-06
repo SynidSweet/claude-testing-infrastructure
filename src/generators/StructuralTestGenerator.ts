@@ -13,6 +13,8 @@ import { MCPChaosTemplate } from './templates/MCPChaosTemplate';
 import { isMCPProjectAnalysis } from '../types/mcp-types';
 import type { FileDiscoveryService } from '../types/file-discovery-types';
 import { FileDiscoveryType } from '../types/file-discovery-types';
+import { TestEnvironmentService } from '../services/TestEnvironmentService';
+import { ImportSanitizer } from '../utils/ImportSanitizer';
 
 export interface StructuralTestGeneratorOptions {
   /** Patterns for files to include in test generation */
@@ -104,7 +106,7 @@ export class StructuralTestGenerator extends TestGenerator {
       absolute: true,
       useCache: true,
     };
-    
+
     // Only add include/exclude if they have values
     if (this.options.includePatterns) {
       request.include = this.options.includePatterns;
@@ -112,7 +114,7 @@ export class StructuralTestGenerator extends TestGenerator {
     if (this.options.excludePatterns) {
       request.exclude = this.options.excludePatterns;
     }
-    
+
     const result = await this.fileDiscovery!.findFiles(request);
 
     logger.debug(`FileDiscoveryService found ${result.files.length} files`, {
@@ -315,7 +317,48 @@ export class StructuralTestGenerator extends TestGenerator {
       context.moduleSystem = this.analysis.moduleSystem.type;
     }
 
-    return templateEngine.generateTest(context);
+    const rawTestContent = templateEngine.generateTest(context);
+    
+    // PHASE 2: Import sanitization - prevent dangerous imports in generated tests
+    const sanitizationResult = ImportSanitizer.analyzeTestContent(rawTestContent, filePath);
+    
+    if (!sanitizationResult.isSafe) {
+      logger.warn(`Dangerous imports detected in generated test for ${filePath}:`, {
+        dangerousImports: sanitizationResult.dangerousImports.map(d => d.importStatement),
+        suggestions: sanitizationResult.suggestions
+      });
+      
+      // Sanitize the content
+      const sanitizedContent = ImportSanitizer.sanitizeTestContent(rawTestContent, filePath);
+      
+      // Add warning comment to sanitized test
+      const warningComment = this.generateSanitizationWarningComment(sanitizationResult);
+      return `${warningComment}\n\n${sanitizedContent}`;
+    }
+    
+    return rawTestContent;
+  }
+
+  /**
+   * Generates a warning comment for sanitized tests
+   */
+  private generateSanitizationWarningComment(result: any): string {
+    const language = this.getPrimaryLanguage();
+    const commentPrefix = language === 'python' ? '#' : '//';
+    
+    let warning = `${commentPrefix} WARNING: This test was automatically sanitized during generation\n`;
+    warning += `${commentPrefix} Dangerous imports were detected and removed/modified:\n`;
+    
+    result.dangerousImports.forEach((dangerous: any) => {
+      warning += `${commentPrefix} - ${dangerous.risk}: ${dangerous.importStatement}\n`;
+    });
+    
+    warning += `${commentPrefix} Suggestions:\n`;
+    result.suggestions.forEach((suggestion: string) => {
+      warning += `${commentPrefix} - ${suggestion}\n`;
+    });
+    
+    return warning;
   }
 
   private getPythonModulePath(filePath: string): string {
@@ -917,279 +960,15 @@ Object.defineProperty(window, 'matchMedia', {
   protected async preGenerate(): Promise<void> {
     await super.preGenerate();
 
-    if (this.options.dryRun) {
-      return; // Skip environment setup in dry-run mode
-    }
-
-    try {
-      await this.createTestEnvironment();
-    } catch (error) {
-      logger.warn('Failed to create test environment', { error });
-      // Don't throw - continue with test generation even if environment setup fails
-    }
-  }
-
-  /**
-   * Create test execution environment with package.json and framework config
-   */
-  private async createTestEnvironment(): Promise<void> {
-    const outputPath = this.config.outputPath;
-
-    // Ensure output directory exists
-    await fs.mkdir(outputPath, { recursive: true });
-
-    // Create package.json for the test directory
-    await this.createTestPackageJson(outputPath);
-
-    // Create test framework configuration
-    await this.createTestFrameworkConfig(outputPath);
-
-    logger.info(`Created test environment at ${outputPath}`);
-  }
-
-  /**
-   * Create package.json for the test directory
-   */
-  private async createTestPackageJson(outputPath: string): Promise<void> {
-    const packageJsonPath = path.join(outputPath, 'package.json');
-
-    // Check if package.json already exists
-    try {
-      await fs.access(packageJsonPath);
-      return; // Already exists, don't overwrite
-    } catch {
-      // Doesn't exist, create it
-    }
-
-    const packageConfig = {
-      name: `${path.basename(this.config.projectPath)}-tests`,
-      version: '1.0.0',
-      description: 'Generated tests for ' + path.basename(this.config.projectPath),
-      private: true,
-      scripts: this.getTestScripts(),
-      devDependencies: this.getTestDependencies(),
-      jest: this.config.testFramework === 'jest' ? this.getJestConfig() : undefined,
-    };
-
-    // Remove undefined values
-    Object.keys(packageConfig).forEach((key) => {
-      if (packageConfig[key as keyof typeof packageConfig] === undefined) {
-        delete packageConfig[key as keyof typeof packageConfig];
-      }
+    const environmentService = new TestEnvironmentService({
+      analysis: this.analysis,
+      config: this.config,
+      dryRun: this.options.dryRun || false,
     });
 
-    await fs.writeFile(packageJsonPath, JSON.stringify(packageConfig, null, 2), 'utf-8');
-    logger.debug(`Created package.json at ${packageJsonPath}`);
+    await environmentService.createEnvironment();
   }
 
-  /**
-   * Get test scripts based on framework
-   */
-  private getTestScripts(): Record<string, string> {
-    switch (this.config.testFramework) {
-      case 'jest':
-        return {
-          test: 'jest',
-          'test:watch': 'jest --watch',
-          'test:coverage': 'jest --coverage',
-        };
-      case 'pytest':
-        return {
-          test: 'pytest',
-          'test:coverage': 'pytest --cov',
-        };
-      case 'vitest':
-        return {
-          test: 'vitest run',
-          'test:watch': 'vitest',
-          'test:coverage': 'vitest run --coverage',
-        };
-      default:
-        return {
-          test: this.config.testFramework || 'jest',
-        };
-    }
-  }
-
-  /**
-   * Get test dependencies based on detected languages and frameworks
-   */
-  private getTestDependencies(): Record<string, string> {
-    const deps: Record<string, string> = {};
-
-    // Add test framework dependencies
-    switch (this.config.testFramework) {
-      case 'jest':
-        deps.jest = '^29.7.0';
-        deps['@types/jest'] = '^29.5.5';
-        break;
-      case 'vitest':
-        deps.vitest = '^0.34.0';
-        break;
-    }
-
-    // Add language-specific dependencies
-    const languages = this.analysis.languages.map((l) => l.name);
-    const frameworks = this.analysis.frameworks.map((f) => f.name);
-
-    if (languages.includes('typescript')) {
-      deps.typescript = '^5.2.0';
-      deps['ts-jest'] = '^29.1.0';
-      deps['@types/node'] = '^20.6.0';
-    }
-
-    if (frameworks.includes('react')) {
-      deps['@testing-library/react'] = '^13.4.0';
-      deps['@testing-library/jest-dom'] = '^6.1.0';
-      deps['@testing-library/user-event'] = '^14.5.0';
-    }
-
-    if (frameworks.includes('vue')) {
-      deps['@vue/test-utils'] = '^2.4.0';
-    }
-
-    if (frameworks.includes('angular')) {
-      deps['@angular/testing'] = '^16.0.0';
-    }
-
-    // Add common utilities
-    if (this.config.testFramework === 'jest') {
-      deps['jest-environment-jsdom'] = '^29.7.0';
-    }
-
-    return deps;
-  }
-
-  /**
-   * Get Jest configuration
-   */
-  private getJestConfig(): any {
-    const languages = this.analysis.languages.map((l) => l.name);
-    const frameworks = this.analysis.frameworks.map((f) => f.name);
-
-    const config: any = {
-      testEnvironment:
-        frameworks.includes('react') || frameworks.includes('vue') ? 'jsdom' : 'node',
-      collectCoverageFrom: [
-        '**/*.{js,jsx,ts,tsx}',
-        '!**/*.d.ts',
-        '!**/node_modules/**',
-        '!**/coverage/**',
-      ],
-      testMatch: ['**/*.test.{js,jsx,ts,tsx}', '**/*.spec.{js,jsx,ts,tsx}'],
-      moduleFileExtensions: ['js', 'jsx', 'json', 'node'],
-    };
-
-    if (languages.includes('typescript')) {
-      config.preset = 'ts-jest';
-      config.moduleFileExtensions.push('ts', 'tsx');
-      config.transform = {
-        '^.+\\.tsx?$': 'ts-jest',
-      };
-    }
-
-    if (frameworks.includes('react')) {
-      config.setupFilesAfterEnv = ['<rootDir>/jest.setup.js'];
-    }
-
-    return config;
-  }
-
-  /**
-   * Create test framework configuration files
-   */
-  private async createTestFrameworkConfig(outputPath: string): Promise<void> {
-    const frameworks = this.analysis.frameworks.map((f) => f.name);
-
-    // Create Jest setup file for React projects
-    if (this.config.testFramework === 'jest' && frameworks.includes('react')) {
-      const setupPath = path.join(outputPath, 'jest.setup.js');
-
-      try {
-        await fs.access(setupPath);
-        return; // Already exists
-      } catch {
-        // Create setup file
-        const setupContent = `import '@testing-library/jest-dom';
-
-// Global test configuration
-global.ResizeObserver = class ResizeObserver {
-  constructor(callback) {
-    this.callback = callback;
-  }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
-`;
-
-        await fs.writeFile(setupPath, setupContent, 'utf-8');
-        logger.debug(`Created Jest setup file at ${setupPath}`);
-      }
-    }
-
-    // Create TypeScript config for TypeScript projects
-    const languages = this.analysis.languages.map((l) => l.name);
-    if (languages.includes('typescript')) {
-      const tsconfigPath = path.join(outputPath, 'tsconfig.json');
-
-      try {
-        await fs.access(tsconfigPath);
-        return; // Already exists
-      } catch {
-        const tsconfigContent = {
-          compilerOptions: {
-            target: 'es2020',
-            module: 'commonjs',
-            lib: ['es2020', 'dom'],
-            allowJs: true,
-            skipLibCheck: true,
-            esModuleInterop: true,
-            allowSyntheticDefaultImports: true,
-            strict: true,
-            forceConsistentCasingInFileNames: true,
-            moduleResolution: 'node',
-            resolveJsonModule: true,
-            isolatedModules: true,
-            noEmit: true,
-            jsx: frameworks.includes('react') ? 'react-jsx' : undefined,
-          },
-          include: ['**/*'],
-          exclude: ['node_modules', 'coverage'],
-        };
-
-        // Remove undefined values
-        Object.keys(tsconfigContent.compilerOptions).forEach((key) => {
-          if (
-            tsconfigContent.compilerOptions[key as keyof typeof tsconfigContent.compilerOptions] ===
-            undefined
-          ) {
-            delete tsconfigContent.compilerOptions[
-              key as keyof typeof tsconfigContent.compilerOptions
-            ];
-          }
-        });
-
-        await fs.writeFile(tsconfigPath, JSON.stringify(tsconfigContent, null, 2), 'utf-8');
-        logger.debug(`Created TypeScript config at ${tsconfigPath}`);
-      }
-    }
-  }
 }
 
 interface FileAnalysis {

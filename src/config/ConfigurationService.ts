@@ -1146,7 +1146,10 @@ export class ConfigurationService {
     for (const source of this.sources) {
       if (source.loaded) {
         logger.debug(`Merging source: ${source.type}`, { data: source.data });
-        mergedConfig = this.deepMerge(mergedConfig as Record<string, unknown>, source.data as Record<string, unknown>) as PartialClaudeTestingConfig;
+        mergedConfig = this.deepMerge(
+          mergedConfig as Record<string, unknown>,
+          source.data as Record<string, unknown>
+        ) as PartialClaudeTestingConfig;
       }
       allErrors.push(...source.errors);
       allWarnings.push(...source.warnings);
@@ -1199,7 +1202,7 @@ export class ConfigurationService {
         // Include null and false values
         if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
           // For objects, recursively merge
-          result[key] = this.deepMerge(result[key] || {} as any, source[key] as any);
+          result[key] = this.deepMerge(result[key] || ({} as any), source[key] as any);
         } else {
           // For primitives and arrays, override completely
           result[key] = source[key] as any;

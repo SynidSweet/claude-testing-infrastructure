@@ -2,7 +2,7 @@
 
 *Comprehensive improvements to enhance maintainability, reduce complexity, and optimize for AI agent development*
 
-*Last updated: 2025-07-04 | Reviewed status - all immediate tasks completed, infrastructure in maintenance mode*
+*Last updated: 2025-07-06 | Completed REF-ARCH-001 Phase 2 - Test generation sandboxing with ImportSanitizer implemented*
 **STATUS UPDATE (2025-07-02)**: **ALL CRITICAL USER FEEDBACK + CI/CD MAINTENANCE COMPLETED** - 
 1. Fixed AI Model Configuration Issues preventing "sonnet"/"haiku" model recognition with comprehensive model mapping system.
 2. Completed Logical Test Generation Implementation with full AI-powered workflow and removed token limits. 
@@ -25,6 +25,15 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 - **37 files with duplicate import patterns** - opportunity for consolidation
 - **25+ error handling code blocks** - can be standardized
 - **Complex nested structures** requiring multiple context passes for AI comprehension
+
+## 🚨 CRITICAL: Process Spawning Prevention
+
+**UPDATE (2025-07-05)**: REF-CRITICAL-001 Emergency Recursion Prevention has been completed. A temporary hard stop was implemented in ClaudeOrchestrator that triggers when DISABLE_HEADLESS_AGENTS=true is set, preventing the infrastructure from testing itself. This addresses the immediate safety concern while REF-CRITICAL-002 will provide the permanent architectural solution.
+
+**UPDATE (2025-07-06)**: REF-CRITICAL-003 Emergency Recursion Logic Fix completed successfully. The environment flag now takes absolute precedence, preventing all Claude process spawning when `DISABLE_HEADLESS_AGENTS=true` is set.
+
+
+
 
 ## 🎯 Refactoring Priorities
 
@@ -310,52 +319,6 @@ The breakdown subtask will decompose this further into specific test fix impleme
 
 
 
-#### 🟡 Extract Test Environment Service from StructuralTestGenerator  
-**Status**: Pending
-**Priority**: 🟡 Medium  
-**Estimate**: 2-3 hours
-**Added**: 2025-07-04 after test environment setup implementation
-
-##### Problem Summary
-The StructuralTestGenerator class has grown to 1200+ lines after adding test environment setup functionality. The test environment creation logic (150+ lines) is mixed with test generation logic, violating single responsibility principle and making the class hard to understand.
-
-##### Success Criteria
-- [ ] TestEnvironmentService class created with environment setup logic
-- [ ] StructuralTestGenerator reduced by 100+ lines
-- [ ] Clear separation between test generation and environment setup
-- [ ] All existing functionality preserved
-- [ ] No breaking changes to generator interface
-- [ ] All tests passing
-
-##### Detailed Implementation Steps
-
-**Phase 1: Service Extraction** (1-1.5 hours)
-- [ ] Create `TestEnvironmentService` class in `src/services/`
-- [ ] Move environment creation methods from StructuralTestGenerator
-- [ ] Add proper TypeScript interfaces for service
-- [ ] Update StructuralTestGenerator to use service injection
-
-**Phase 2: Integration** (30-45 minutes)
-- [ ] Update test generation workflow to use service
-- [ ] Ensure dry-run mode still skips environment setup
-- [ ] Maintain logging and error handling patterns
-- [ ] Run tests to verify functionality
-
-**Phase 3: Cleanup** (30 minutes)
-- [ ] Remove extracted methods from StructuralTestGenerator
-- [ ] Update imports and dependencies
-- [ ] Add service to dependency injection if applicable
-- [ ] Update related documentation
-
-##### Risk Assessment
-- **Breaking changes**: Low - internal refactoring only
-- **Testing strategy**: Verify test generation still creates proper environment
-- **Rollback plan**: Git revert if integration issues arise
-
-##### Estimated Effort
-**Total time**: 2-3 hours (single session recommended: Yes)
-**Complexity**: Moderate  
-**AI Agent suitability**: Good - clear extraction with defined boundaries
 
 ### **🟠 Complex Tasks (6-12 hours / 3-6 sessions)**
 - Fix AI Generation Hanging Issues (8-12 hours) - 🟠 Critical Priority

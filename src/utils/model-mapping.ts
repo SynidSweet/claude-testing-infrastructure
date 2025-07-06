@@ -35,7 +35,7 @@ export const MODEL_DATABASE: Record<string, ModelInfo> = {
     inputCostPer1K: 0.003,
     outputCostPer1K: 0.015,
     contextWindow: 200000,
-    bestForComplexity: [5, 8],
+    bestForComplexity: [5, 7],
     aliases: ['sonnet', 'claude-3-sonnet', 'claude-3-5-sonnet'],
   },
   'claude-3-opus-20240229': {
@@ -53,7 +53,7 @@ export const MODEL_DATABASE: Record<string, ModelInfo> = {
     inputCostPer1K: 0.00025,
     outputCostPer1K: 0.00125,
     contextWindow: 200000,
-    bestForComplexity: [1, 5],
+    bestForComplexity: [1, 4],
     aliases: ['haiku', 'claude-3-haiku'],
   },
 };

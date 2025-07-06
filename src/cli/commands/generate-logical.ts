@@ -21,6 +21,7 @@ import {
   CostEstimator,
   BatchedLogicalTestGenerator,
 } from '../../ai';
+import { ProcessContext } from '../../types/process-types';
 import { logger } from '../../utils/logger';
 import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
@@ -249,7 +250,7 @@ export const generateLogicalCommand = new Command()
         fallbackModel: options.model === 'opus' ? 'sonnet' : 'haiku',
         timeout: timeoutMs, // Convert seconds to milliseconds
         verbose: options.verbose,
-      });
+      }, ProcessContext.USER_INITIATED);
 
       if (options.verbose) {
         console.log(chalk.gray(`Using ${timeoutMs / 1000}s timeout per AI task`));

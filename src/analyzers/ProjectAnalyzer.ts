@@ -238,10 +238,10 @@ export class ProjectAnalyzer {
         '**/.babelrc*',
         '**/webpack.config.*',
       ]);
-      const reactVersion = 
+      const reactVersion =
         (packageJsonContent?.dependencies as Record<string, string> | undefined)?.react ||
         (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.react;
-      
+
       frameworks.push({
         name: 'react',
         confidence: 0.9,
@@ -257,10 +257,10 @@ export class ProjectAnalyzer {
         '**/vue.config.*',
         '**/vite.config.*',
       ]);
-      const vueVersion = 
+      const vueVersion =
         (packageJsonContent?.dependencies as Record<string, string> | undefined)?.vue ||
         (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.vue;
-      
+
       frameworks.push({
         name: 'vue',
         confidence: 0.9,
@@ -276,11 +276,10 @@ export class ProjectAnalyzer {
         '**/package.json',
         '**/tsconfig.json',
       ]);
-      const angularVersion = 
-        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.[
-          '@angular/core'
-        ];
-      
+      const angularVersion = (
+        packageJsonContent?.dependencies as Record<string, string> | undefined
+      )?.['@angular/core'];
+
       frameworks.push({
         name: 'angular',
         confidence: 0.9,
@@ -297,9 +296,10 @@ export class ProjectAnalyzer {
         '**/server.js',
         '**/index.js',
       ]);
-      const expressVersion = 
-        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.express;
-      
+      const expressVersion = (
+        packageJsonContent?.dependencies as Record<string, string> | undefined
+      )?.express;
+
       frameworks.push({
         name: 'express',
         confidence: 0.8,
@@ -311,9 +311,9 @@ export class ProjectAnalyzer {
     // Next.js detection
     if (packageJsonContent && this.hasNextJs(packageJsonContent)) {
       const configFiles = await this.findFiles(['**/next.config.*', '**/package.json']);
-      const nextjsVersion = 
-        (packageJsonContent?.dependencies as Record<string, string> | undefined)?.next;
-      
+      const nextjsVersion = (packageJsonContent?.dependencies as Record<string, string> | undefined)
+        ?.next;
+
       frameworks.push({
         name: 'nextjs',
         confidence: 0.9,
@@ -380,10 +380,10 @@ export class ProjectAnalyzer {
 
       const framework = await this.detectMCPFramework(packageJsonContent);
       if (framework === 'fastmcp') {
-        const fastmcpVersion = 
+        const fastmcpVersion =
           (packageJsonContent?.dependencies as Record<string, string> | undefined)?.fastmcp ||
           (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.fastmcp;
-        
+
         frameworks.push({
           name: 'fastmcp',
           confidence: 0.95,
@@ -391,11 +391,14 @@ export class ProjectAnalyzer {
           configFiles,
         });
       } else {
-        const mcpVersion = 
+        const mcpVersion =
           (packageJsonContent?.dependencies as Record<string, string> | undefined)?.[
             '@modelcontextprotocol/sdk'
-          ] || (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.['@modelcontextprotocol/sdk'];
-        
+          ] ||
+          (packageJsonContent?.devDependencies as Record<string, string> | undefined)?.[
+            '@modelcontextprotocol/sdk'
+          ];
+
         frameworks.push({
           name: 'mcp-server',
           confidence: 0.9,
@@ -696,9 +699,9 @@ export class ProjectAnalyzer {
     packageJson: Record<string, unknown>
   ): Promise<'fastmcp' | 'official-sdk' | 'custom'> {
     if (!packageJson) return 'custom';
-    const deps = { 
-      ...(packageJson.dependencies as Record<string, string> || {}), 
-      ...(packageJson.devDependencies as Record<string, string> || {}) 
+    const deps = {
+      ...((packageJson.dependencies as Record<string, string>) || {}),
+      ...((packageJson.devDependencies as Record<string, string>) || {}),
     };
 
     if (deps?.fastmcp) {
@@ -758,23 +761,19 @@ export class ProjectAnalyzer {
         }
 
         if (config.resources) {
-          capabilities.resources = config.resources.map(
-            (resource: any) => ({
-              name: resource.name || 'unknown',
-              uri: resource.uri || '',
-              mimeType: resource.mimeType,
-            })
-          );
+          capabilities.resources = config.resources.map((resource: any) => ({
+            name: resource.name || 'unknown',
+            uri: resource.uri || '',
+            mimeType: resource.mimeType,
+          }));
         }
 
         if (config.prompts) {
-          capabilities.prompts = config.prompts.map(
-            (prompt: any) => ({
-              name: prompt.name || 'unknown',
-              description: prompt.description,
-              arguments: prompt.arguments,
-            })
-          );
+          capabilities.prompts = config.prompts.map((prompt: any) => ({
+            name: prompt.name || 'unknown',
+            description: prompt.description,
+            arguments: prompt.arguments,
+          }));
         }
       } catch (error) {
         logger.debug('Could not parse MCP config file:', error);
@@ -815,13 +814,13 @@ export class ProjectAnalyzer {
 
     // Direct implementation fallback
     try {
-      return await fg(patterns, {
+      return (await fg(patterns, {
         cwd: this.projectPath,
         ignore,
         onlyFiles: options.onlyFiles !== false,
         deep: options.deep as number | undefined,
         dot: false,
-      } as any) as unknown as string[];
+      } as any)) as unknown as string[];
     } catch (error) {
       logger.debug('Error finding files:', error);
       return [];

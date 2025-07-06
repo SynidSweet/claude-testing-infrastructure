@@ -11,6 +11,7 @@
 import type { TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
 import type { AITask, AITaskBatch, AITaskPreparation } from './AITaskPreparation';
 import { ClaudeOrchestrator, type ProcessResult } from './ClaudeOrchestrator';
+import { ProcessContext } from '../types/process-types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -118,7 +119,7 @@ export class BatchedLogicalTestGenerator {
       exponentialBackoff: true,
       circuitBreakerEnabled: true,
       maxRetryDelay: 30000,
-    });
+    }, ProcessContext.TEST_GENERATION);
 
     const startTime = Date.now();
     const results = await orchestrator.processBatch(batch);

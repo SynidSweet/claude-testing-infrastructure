@@ -18,6 +18,7 @@ import { TestRunnerFactory } from '../runners/TestRunnerFactory';
 import { TestGapAnalyzer } from '../analyzers/TestGapAnalyzer';
 // import { CoverageReporter } from '../runners/CoverageReporter'; // Not currently used
 import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../ai';
+import { ProcessContext } from '../types/process-types';
 import { logger } from '../utils/logger';
 
 export interface WorkflowConfig {
@@ -310,7 +311,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       maxConcurrent: this.config.aiConcurrency || 3,
       model: `claude-3-${this.config.aiModel}`,
       verbose: this.config.verbose || false,
-    });
+    }, ProcessContext.TEST_GENERATION);
 
     // Track progress
     orchestrator.on('task:complete', ({ task }) => {

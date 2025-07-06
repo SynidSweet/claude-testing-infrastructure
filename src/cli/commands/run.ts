@@ -5,6 +5,7 @@ import { handleValidation, formatErrorMessage } from '../../utils/error-handling
 import { ConfigurationService } from '../../config/ConfigurationService';
 import { displayConfigurationSources } from '../../utils/config-display';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
+import { RecursionPreventionValidator } from '../../utils/recursion-prevention';
 
 interface RunOptions {
   config?: string;
@@ -25,6 +26,14 @@ export async function runCommand(
   // Access global options from parent command
   const globalOptions = command?.parent?.opts() || {};
   const showConfigSources = globalOptions.showConfigSources || false;
+
+  // CRITICAL: Prevent recursion before any processing
+  const recursionCheck = RecursionPreventionValidator.validateNotSelfTarget(projectPath);
+  if (!recursionCheck.isSafe) {
+    console.error(chalk.red(RecursionPreventionValidator.getBlockedOperationMessage(recursionCheck)));
+    process.exit(1);
+  }
+
   let spinner = ora('Analyzing project...').start();
 
   try {

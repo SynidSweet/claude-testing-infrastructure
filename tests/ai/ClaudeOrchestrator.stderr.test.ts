@@ -3,6 +3,7 @@
  */
 
 import { ClaudeOrchestrator } from '../../src/ai/ClaudeOrchestrator';
+import { ProcessContext } from '../../src/types/process-types';
 import type { AITaskBatch } from '../../src/ai/AITaskPreparation';
 import { EventEmitter } from 'events';
 import * as child_process from 'child_process';
@@ -25,6 +26,10 @@ function createMockProcess() {
 }
 
 describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
+  if (process.env.DISABLE_HEADLESS_AGENTS === 'true') {
+    test.skip('Skipping stderr tests when headless agents are disabled', () => {});
+    return;
+  }
   let orchestrator: ClaudeOrchestrator;
   
   beforeEach(() => {
@@ -48,7 +53,7 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       maxConcurrent: 1,
       timeout: 5000,
       retryAttempts: 1, // Reduce retries for faster tests
-    });
+    }, ProcessContext.VALIDATION_TEST);
   });
 
   afterEach(() => {
