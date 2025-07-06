@@ -46,13 +46,21 @@ df -h .
 
 ### Step 1: Clone this infrastructure
 ```bash
-# Clone it anywhere - it works independently
+# For testing your own projects (recommended - clean deployment branch)
+git clone -b deploy/clean https://github.com/SynidSweet/claude-testing-infrastructure.git
+cd claude-testing-infrastructure
+
+# OR for contributing to the infrastructure (full development environment)
 git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
 cd claude-testing-infrastructure
 
 # If you encounter git dubious ownership warnings, configure safe.directory
 git config --global --add safe.directory "$(pwd)"
 ```
+
+**Branch Information:**
+- `deploy/clean`: Minimal deployment branch with only core infrastructure (no tests, dev tools)
+- `main`: Full development environment with test suite, CI/CD, and development tools
 
 ### Step 2: Install and build
 ```bash

@@ -1,0 +1,70 @@
+name: Sync Deploy Branch
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'templates/**'
+      - 'AI_AGENT_GUIDE.md'
+      - 'package.json'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+      
+      - name: Sync to deploy/clean
+        run: |
+          # Fetch and checkout deploy branch
+          git fetch origin deploy/clean
+          git checkout deploy/clean
+          
+          # Merge changes from main (only core files)
+          git checkout main -- src/ templates/ AI_AGENT_GUIDE.md
+          
+          # Update package.json but keep it clean
+          git checkout main -- package.json
+          node -e "
+            const pkg = require('./package.json');
+            const clean = {
+              name: pkg.name,
+              version: pkg.version,
+              description: pkg.description,
+              main: pkg.main,
+              bin: pkg.bin,
+              dependencies: pkg.dependencies,
+              scripts: {
+                build: pkg.scripts.build || 'tsc',
+                start: pkg.scripts.start || 'node dist/cli/index.js',
+                clean: pkg.scripts.clean || 'rimraf dist'
+              },
+              engines: pkg.engines,
+              repository: pkg.repository,
+              keywords: pkg.keywords,
+              author: pkg.author,
+              license: pkg.license
+            };
+            // Add rimraf to dependencies if clean script uses it
+            if (clean.scripts.clean.includes('rimraf') && !clean.dependencies.rimraf) {
+              clean.dependencies.rimraf = '^5.0.10';
+            }
+            require('fs').writeFileSync('./package.json', JSON.stringify(clean, null, 2) + '\n');
+          "
+          
+          # Commit if there are changes
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: sync core infrastructure from main"
+            git push origin deploy/clean
+          else
+            echo "No changes to sync"
+          fi

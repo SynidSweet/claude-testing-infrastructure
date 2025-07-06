@@ -64,15 +64,25 @@ git config --global --add safe.directory "$(pwd)"
 git config --global --add safe.directory "/path/to/your/project"
 ```
 
-### Production-Ready CLI
+### Installation Options
 
-1. **Clone and Build**
-   ```bash
-   git clone <repository-url>
-   cd claude-testing
-   npm install
-   npm run build
-   ```
+#### For Testing Your Own Projects (Recommended)
+Use the clean deployment branch that contains only the core infrastructure:
+```bash
+git clone -b deploy/clean https://github.com/SynidSweet/claude-testing-infrastructure.git
+cd claude-testing-infrastructure
+npm install
+npm run build
+```
+
+#### For Contributing to the Infrastructure
+Use the main branch with full development environment:
+```bash
+git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
+cd claude-testing-infrastructure
+npm install
+npm run build
+```
 
 2. **Analyze Your Project**
    ```bash
