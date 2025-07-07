@@ -10,6 +10,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "jest",
+    "test:fast": "jest --testPathPattern='tests/(utils|generators|analyzers|config)' --testPathIgnorePatterns='integration|validation|fixtures' --testTimeout=5000",
+    "test:core": "jest --testPathIgnorePatterns='validation/ai-agents|fixtures/.*\\.claude-testing' --testTimeout=10000",
+    "test:full": "jest --testTimeout=30000",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ai-validation": "jest --config jest.ai-validation.config.js",
@@ -23,7 +26,7 @@
     "format:check": "prettier --check 'src/**/*.{ts,js,json}'",
     "prebuild": "rimraf dist",
     "prepare": "husky",
-    "precommit": "npm run quality:check && npm run test:local-comprehensive",
+    "precommit": "npm run quality:check && npm run test:core",
     "quality:check": "npm run lint && npm run format:check && npm run build",
     "test:local-comprehensive": "npm test"
   },

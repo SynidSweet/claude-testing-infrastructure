@@ -376,7 +376,7 @@ export class CostEstimator {
 
     // Batch optimization
     const highPriorityCount = report.gaps.filter(
-      (g) => g.priority === 'critical' || g.priority === 'high'
+      (g) => (g.priority as string) === 'critical' || (g.priority as string) === 'high'
     ).length;
     if (highPriorityCount > 10) {
       recommendations.push(
@@ -455,6 +455,6 @@ export class CostEstimator {
       medium: 5,
       low: 3,
     };
-    return priorityMap[priority] || 5;
+    return priorityMap[priority] ?? 5;
   }
 }

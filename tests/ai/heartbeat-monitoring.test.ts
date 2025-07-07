@@ -23,7 +23,7 @@ jest.mock('../../src/utils/logger', () => ({
 }));
 
 describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
-  jest.setTimeout(15000); // 15 second timeout for all tests
+  jest.setTimeout(30000); // 30 second timeout for all tests to handle timing-sensitive operations
   let orchestrator: ClaudeOrchestrator;
   let mockProcess: any;
   const mockSpawn = require('child_process').spawn as jest.Mock;

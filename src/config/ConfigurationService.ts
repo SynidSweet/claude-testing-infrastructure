@@ -12,12 +12,13 @@
 
 import { fs, path, logger } from '../utils/common-imports';
 import { ConfigurationManager } from '../utils/config-validation';
-import type {
-  ClaudeTestingConfig,
-  PartialClaudeTestingConfig,
-  ConfigValidationResult,
+import {
+  DEFAULT_CONFIG,
+  type ClaudeTestingConfig,
+  type PartialClaudeTestingConfig,
+  type ConfigValidationResult,
+  type AIModel,
 } from '../types/config';
-import { DEFAULT_CONFIG } from '../types/config';
 import type { FileDiscoveryConfig } from '../types/file-discovery-types';
 
 /**
@@ -65,7 +66,7 @@ export interface ConfigurationServiceOptions {
   /** Whether to include user configuration */
   includeUserConfig?: boolean;
   /** CLI arguments to merge */
-  cliArgs?: Record<string, any>;
+  cliArgs?: Record<string, unknown>;
 }
 
 /**
@@ -115,7 +116,7 @@ export class ConfigurationService {
     this.loadResult = null;
 
     // Load from all sources in reverse priority order (lowest to highest)
-    await this.loadDefaultConfiguration();
+    this.loadDefaultConfiguration();
 
     if (this.options.includeUserConfig) {
       await this.loadUserConfiguration();
@@ -128,11 +129,11 @@ export class ConfigurationService {
     }
 
     if (this.options.includeEnvVars) {
-      await this.loadEnvironmentConfiguration();
+      this.loadEnvironmentConfiguration();
     }
 
     if (this.options.cliArgs) {
-      await this.loadCliConfiguration();
+      this.loadCliConfiguration();
     }
 
     // Merge all configurations
@@ -224,7 +225,7 @@ export class ConfigurationService {
 
   // Private methods for loading different configuration sources
 
-  private async loadDefaultConfiguration(): Promise<void> {
+  private loadDefaultConfiguration(): void {
     const source: ConfigurationSource = {
       type: ConfigurationSourceType.DEFAULTS,
       data: DEFAULT_CONFIG,
@@ -245,7 +246,7 @@ export class ConfigurationService {
       try {
         await fs.access(configPath);
         const configContent = await fs.readFile(configPath, 'utf8');
-        const userConfig = JSON.parse(configContent);
+        const userConfig = JSON.parse(configContent) as PartialClaudeTestingConfig;
 
         // Validate the user configuration to get errors and warnings
         const manager = new ConfigurationManager(this.options.projectPath);
@@ -312,7 +313,7 @@ export class ConfigurationService {
     }
   }
 
-  private async loadEnvironmentConfiguration(): Promise<void> {
+  private loadEnvironmentConfiguration(): void {
     const { config: envConfig, warnings } = this.extractEnvConfig();
 
     const source: ConfigurationSource = {
@@ -331,7 +332,7 @@ export class ConfigurationService {
     }
   }
 
-  private async loadCliConfiguration(): Promise<void> {
+  private loadCliConfiguration(): void {
     if (!this.options.cliArgs || Object.keys(this.options.cliArgs).length === 0) {
       return;
     }
@@ -368,7 +369,7 @@ export class ConfigurationService {
 
     try {
       const configContent = await fs.readFile(this.options.customConfigPath, 'utf8');
-      const customConfig = JSON.parse(configContent);
+      const customConfig = JSON.parse(configContent) as PartialClaudeTestingConfig;
 
       // Validate the custom configuration to get errors and warnings
       const manager = new ConfigurationManager(this.options.projectPath);
@@ -447,7 +448,7 @@ export class ConfigurationService {
       }
 
       // Pass the parsed value with the original key for special case handling
-      this.setNestedValue(config, path, parsedValue, key);
+      this.setNestedValue(config as Record<string, unknown>, path, parsedValue, key);
     }
 
     return { config, warnings };
@@ -468,7 +469,7 @@ export class ConfigurationService {
     value: string,
     isArrayField: boolean = false,
     key?: string
-  ): { value: any; warning?: string } {
+  ): { value: unknown; warning?: string } {
     // Handle array fields specially
     if (isArrayField) {
       if (value === '') return { value: [] }; // Empty string = empty array for array fields
@@ -535,7 +536,12 @@ export class ConfigurationService {
   /**
    * Set a nested value in an object using a path array
    */
-  private setNestedValue(obj: any, path: string[], value: any, originalKey?: string): void {
+  private setNestedValue(
+    obj: Record<string, unknown>,
+    path: string[],
+    value: unknown,
+    originalKey?: string
+  ): void {
     if (path.length === 0) return;
 
     // Handle special root-level mappings first
@@ -569,7 +575,8 @@ export class ConfigurationService {
 
     // Handle CUSTOM_PROMPTS fields
     if (upperPath.startsWith('CUSTOM_PROMPTS_')) {
-      if (!obj.customPrompts) obj.customPrompts = {};
+      if (!obj.customPrompts || typeof obj.customPrompts !== 'object') obj.customPrompts = {};
+      const customPrompts = obj.customPrompts as Record<string, unknown>;
       const promptKey = upperPath.substring('CUSTOM_PROMPTS_'.length);
 
       // Handle empty strings for custom prompts
@@ -579,61 +586,68 @@ export class ConfigurationService {
       }
 
       if (promptKey === 'TEST_GENERATION') {
-        obj.customPrompts.testGeneration = value;
+        customPrompts.testGeneration = value;
         return;
       }
     }
 
     // OUTPUT_FORMAT needs special handling - set both format and formats
     if (upperPath === 'OUTPUT_FORMAT') {
-      if (!obj.output) obj.output = {};
-      obj.output.format = value;
-      obj.output.formats = [value];
+      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
+      const output = obj.output as Record<string, unknown>;
+      output.format = value;
+      output.formats = [value];
       return;
     }
 
     // Map FEATURES_COVERAGE to features.coverage
     if (upperPath === 'FEATURES_COVERAGE') {
-      if (!obj.features) obj.features = {};
-      obj.features.coverage = value;
+      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
+      const features = obj.features as Record<string, unknown>;
+      features.coverage = value;
       return;
     }
 
     // Map FEATURES_EDGE_CASES to features.edgeCases
     if (upperPath === 'FEATURES_EDGE_CASES') {
-      if (!obj.features) obj.features = {};
-      obj.features.edgeCases = value;
+      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
+      const features = obj.features as Record<string, unknown>;
+      features.edgeCases = value;
       return;
     }
 
     // Map FEATURES_INTEGRATION_TESTS to features.integrationTests
     if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
-      if (!obj.features) obj.features = {};
-      obj.features.integrationTests = value;
+      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
+      const features = obj.features as Record<string, unknown>;
+      features.integrationTests = value;
       return;
     }
 
     // Map FEATURES_MOCKING to features.mocks
     if (upperPath === 'FEATURES_MOCKING') {
-      if (!obj.features) obj.features = {};
-      obj.features.mocks = value;
+      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
+      const features = obj.features as Record<string, unknown>;
+      features.mocks = value;
       return;
     }
 
     // Map OUTPUT_VERBOSE to output.verbose
     if (upperPath === 'OUTPUT_VERBOSE') {
-      if (!obj.output) obj.output = {};
-      obj.output.verbose = value;
+      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
+      const output = obj.output as Record<string, unknown>;
+      output.verbose = value;
       if (value === true) {
-        obj.output.logLevel = 'verbose';
+        output.logLevel = 'verbose';
       }
       return;
     }
 
     // Map OUTPUT_LOG_LEVEL to output.logLevel
     if (upperPath === 'OUTPUT_LOG_LEVEL') {
-      if (!obj.output) obj.output = {};
-      obj.output.logLevel = value;
+      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
+      const output = obj.output as Record<string, unknown>;
+      output.logLevel = value;
       return;
     }
 
@@ -646,26 +660,31 @@ export class ConfigurationService {
 
     // Map COVERAGE_ENABLED to coverage.enabled
     if (upperPath === 'COVERAGE_ENABLED') {
-      if (!obj.coverage) obj.coverage = {};
-      obj.coverage.enabled = value;
+      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
+      const coverage = obj.coverage as Record<string, unknown>;
+      coverage.enabled = value;
       return;
     }
 
     // Map COVERAGE_REPORTERS to coverage.reporters
     if (upperPath === 'COVERAGE_REPORTERS') {
-      if (!obj.coverage) obj.coverage = {};
-      obj.coverage.reporters = value;
+      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
+      const coverage = obj.coverage as Record<string, unknown>;
+      coverage.reporters = value;
       return;
     }
 
     // Handle COVERAGE_THRESHOLDS_GLOBAL fields
     if (upperPath.startsWith('COVERAGE_THRESHOLDS_GLOBAL_')) {
-      if (!obj.coverage) obj.coverage = {};
-      if (!obj.coverage.thresholds) obj.coverage.thresholds = {};
-      if (!obj.coverage.thresholds.global) obj.coverage.thresholds.global = {};
+      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
+      const coverage = obj.coverage as Record<string, unknown>;
+      if (!coverage.thresholds || typeof coverage.thresholds !== 'object') coverage.thresholds = {};
+      const thresholds = coverage.thresholds as Record<string, unknown>;
+      if (!thresholds.global || typeof thresholds.global !== 'object') thresholds.global = {};
+      const global = thresholds.global as Record<string, unknown>;
 
       const thresholdKey = upperPath.substring('COVERAGE_THRESHOLDS_GLOBAL_'.length).toLowerCase();
-      obj.coverage.thresholds.global[thresholdKey] = value;
+      global[thresholdKey] = value;
       return;
     }
 
@@ -724,7 +743,7 @@ export class ConfigurationService {
     if (camelPath.length === 0) return;
 
     // Navigate to the parent object, creating nested objects as needed
-    let current: any = obj;
+    let current: Record<string, unknown> = obj;
     for (let i = 0; i < camelPath.length - 1; i++) {
       const key = camelPath[i];
       if (!key) continue;
@@ -732,7 +751,13 @@ export class ConfigurationService {
       if (current[key] === undefined) {
         current[key] = {};
       }
-      current = current[key];
+      // Type guard to ensure we're working with an object
+      if (typeof current[key] === 'object' && current[key] !== null) {
+        current = current[key] as Record<string, unknown>;
+      } else {
+        current[key] = {};
+        current = current[key] as Record<string, unknown>;
+      }
     }
 
     // Set the final value
@@ -748,23 +773,29 @@ export class ConfigurationService {
   /**
    * Handle special cases for environment variable mapping
    */
-  private handleEnvMappingSpecialCases(obj: any, path: string[], value: any): void {
+  private handleEnvMappingSpecialCases(
+    obj: Record<string, unknown>,
+    path: string[],
+    value: string
+  ): void {
     const upperPath = path.join('_').toUpperCase();
 
     // Map FEATURES_MOCKING to features.mocks (not mocking)
     if (upperPath === 'FEATURES_MOCKING') {
       if (!obj.features) obj.features = {};
-      obj.features.mocks = value;
-      delete obj.features.mocking;
+      const features = obj.features as Record<string, unknown>;
+      features.mocks = value;
+      delete features.mocking;
     }
 
     // Map FEATURES_INTEGRATION_TESTS to features.integrationTests
     if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
       if (!obj.features) obj.features = {};
-      obj.features.integrationTests = value;
+      const features = obj.features as Record<string, unknown>;
+      features.integrationTests = value;
       // Clean up incorrectly parsed nested structure
-      if (obj.features.Integration) {
-        delete obj.features.Integration;
+      if (features.Integration) {
+        delete features.Integration;
       }
     }
 
@@ -773,12 +804,15 @@ export class ConfigurationService {
       const thresholdType = path[path.length - 1]; // Get the last segment (e.g., 'functions')
       if (thresholdType) {
         if (!obj.coverage) obj.coverage = {};
-        if (!obj.coverage.thresholds) obj.coverage.thresholds = {};
-        if (!obj.coverage.thresholds.global) obj.coverage.thresholds.global = {};
-        obj.coverage.thresholds.global[thresholdType.toLowerCase()] = value;
+        const coverage = obj.coverage as Record<string, unknown>;
+        if (!coverage.thresholds) coverage.thresholds = {};
+        const thresholds = coverage.thresholds as Record<string, unknown>;
+        if (!thresholds.global) thresholds.global = {};
+        const global = thresholds.global as Record<string, unknown>;
+        global[thresholdType.toLowerCase()] = value;
         // Clean up incorrectly parsed nested structure
-        if (obj.coverage.Thresholds) {
-          delete obj.coverage.Thresholds;
+        if (coverage.Thresholds) {
+          delete coverage.Thresholds;
         }
       }
     }
@@ -786,20 +820,23 @@ export class ConfigurationService {
     // Map OUTPUT_FORMAT to output.format AND formats array
     if (upperPath === 'OUTPUT_FORMAT' && typeof value === 'string') {
       if (!obj.output) obj.output = {};
-      obj.output.format = value;
+      const output = obj.output as Record<string, unknown>;
+      output.format = value;
       // Also maintain formats array for compatibility
-      if (!obj.output.formats) obj.output.formats = [];
-      if (!obj.output.formats.includes(value)) {
-        obj.output.formats.push(value);
+      if (!output.formats) output.formats = [];
+      const formats = output.formats as string[];
+      if (!formats.includes(value)) {
+        formats.push(value);
       }
     }
 
     // Map OUTPUT_VERBOSE to output.verbose AND logLevel
     if (upperPath === 'OUTPUT_VERBOSE') {
       if (!obj.output) obj.output = {};
-      obj.output.verbose = value;
-      if (value === true) {
-        obj.output.logLevel = 'verbose';
+      const output = obj.output as Record<string, unknown>;
+      output.verbose = value;
+      if (value === 'true') {
+        output.logLevel = 'verbose';
       }
     }
 
@@ -864,8 +901,8 @@ export class ConfigurationService {
         obj.aiOptions[aiOptionKey] = value;
       }
       // Clean up the ai.options structure
-      if (obj.ai?.options) {
-        delete obj.ai.options;
+      if (obj.ai && typeof obj.ai === 'object' && 'options' in obj.ai) {
+        delete (obj.ai as any).options;
         if (Object.keys(obj.ai).length === 0) {
           delete obj.ai;
         }
@@ -874,14 +911,14 @@ export class ConfigurationService {
 
     // Handle baseline flag
     if (upperPath === 'INCREMENTAL_BASELINE') {
-      if (!obj.incremental) obj.incremental = {};
-      obj.incremental.baseline = value;
+      if (!obj.incremental) obj.incremental = {} as any;
+      (obj.incremental as any).baseline = value;
     }
 
     // Handle watch debounce
     if (upperPath === 'WATCH_DEBOUNCE_MS') {
-      if (!obj.watch) obj.watch = {};
-      obj.watch.debounceMs = value;
+      if (!obj.watch) obj.watch = {} as any;
+      (obj.watch as any).debounceMs = value;
     }
   }
 
@@ -889,12 +926,12 @@ export class ConfigurationService {
     const config: PartialClaudeTestingConfig = {};
 
     // AI model mapping
-    if (cliArgs.aiModel) {
-      config.aiModel = cliArgs.aiModel;
+    if (cliArgs.aiModel && typeof cliArgs.aiModel === 'string') {
+      config.aiModel = cliArgs.aiModel as AIModel;
     }
 
     // Output configuration
-    if (cliArgs.verbose !== undefined) {
+    if (cliArgs.verbose !== undefined && typeof cliArgs.verbose === 'boolean') {
       if (!config.output) config.output = {};
       config.output.verbose = cliArgs.verbose;
       if (cliArgs.verbose) {
@@ -902,7 +939,7 @@ export class ConfigurationService {
       }
     }
 
-    if (cliArgs.debug !== undefined) {
+    if (cliArgs.debug !== undefined && typeof cliArgs.debug === 'boolean') {
       if (!config.output) config.output = {};
       config.output.logLevel = 'debug';
     }
@@ -1060,7 +1097,7 @@ export class ConfigurationService {
 
       // Parse threshold string like "80" or "statements:80,branches:70"
       if (thresholdString.includes(':')) {
-        const thresholds: any = {};
+        const thresholds: Record<string, number> = {};
         const parts = thresholdString.split(',');
 
         // Check for invalid format (multiple colons)
@@ -1137,7 +1174,7 @@ export class ConfigurationService {
     for (const source of this.sources) {
       if (source.loaded) {
         logger.debug(`Merging source: ${source.type}`, { data: source.data });
-        mergedConfig = this.deepMerge(mergedConfig, source.data);
+        mergedConfig = this.deepMerge(mergedConfig, source.data as Record<string, unknown>);
       }
       allErrors.push(...source.errors);
       allWarnings.push(...source.warnings);
@@ -1182,7 +1219,10 @@ export class ConfigurationService {
     };
   }
 
-  private deepMerge(target: any, source: any): any {
+  private deepMerge(
+    target: Record<string, unknown>,
+    source: Record<string, unknown>
+  ): Record<string, unknown> {
     const result = { ...target };
 
     for (const key in source) {
@@ -1190,7 +1230,13 @@ export class ConfigurationService {
         // Include null and false values
         if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
           // For objects, recursively merge
-          result[key] = this.deepMerge(result[key] || {}, source[key]);
+          const targetValue = result[key];
+          const sourceValue = source[key];
+          const mergeTarget =
+            targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue)
+              ? (targetValue as Record<string, unknown>)
+              : {};
+          result[key] = this.deepMerge(mergeTarget, sourceValue as Record<string, unknown>);
         } else {
           // For primitives and arrays, override completely
           result[key] = source[key];
@@ -1201,7 +1247,12 @@ export class ConfigurationService {
     return result;
   }
 
-  private generateSummary() {
+  private generateSummary(): {
+    sourcesLoaded: number;
+    sourcesWithErrors: number;
+    totalErrors: number;
+    totalWarnings: number;
+  } {
     const sourcesLoaded = this.sources.filter((s) => s.loaded).length;
     const sourcesWithErrors = this.sources.filter((s) => s.errors.length > 0).length;
     const totalErrors = this.sources.reduce((sum, s) => sum + s.errors.length, 0);

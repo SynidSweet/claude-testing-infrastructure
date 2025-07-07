@@ -486,7 +486,7 @@ export class ClaudeOrchestrator extends EventEmitter {
       this.stopHeartbeatMonitoring(taskId);
     } else if (processMetrics.isSlow) {
       // Process is slow but not dead yet
-      heartbeat.consecutiveSlowChecks = (heartbeat.consecutiveSlowChecks || 0) + 1;
+      heartbeat.consecutiveSlowChecks = (heartbeat.consecutiveSlowChecks ?? 0) + 1;
 
       logger.info(`Process ${taskId} is slow - ${processMetrics.reason}`);
 
@@ -527,7 +527,7 @@ export class ClaudeOrchestrator extends EventEmitter {
     const recentProgressMarkers =
       heartbeat.progressHistory?.filter(
         (entry) => entry.marker && Date.now() - entry.timestamp.getTime() < 60000
-      ).length || 0;
+      ).length ?? 0;
 
     // Enhanced dead detection heuristics
     let isDead = false;
@@ -579,7 +579,7 @@ export class ClaudeOrchestrator extends EventEmitter {
     if (timeSinceLastActivity < 30000) return false;
 
     // Check if the last output might indicate waiting for input
-    const recentHistory = heartbeat.progressHistory?.slice(-5) || [];
+    const recentHistory = heartbeat.progressHistory?.slice(-5) ?? [];
 
     // Look for actual input prompt patterns, not progress markers
     const hasInputPrompt = recentHistory.some((entry) => {
@@ -639,7 +639,7 @@ export class ClaudeOrchestrator extends EventEmitter {
             'AI test generation will return placeholder tests. Install Claude Code for full functionality.',
         });
       } else {
-        throw new AIAuthenticationError(authStatus.error || 'Authentication failed');
+        throw new AIAuthenticationError(authStatus.error ?? 'Authentication failed');
       }
     }
 
@@ -777,10 +777,10 @@ export class ClaudeOrchestrator extends EventEmitter {
         this.emit('progress', {
           taskId: task.id,
           phase: 'preparing',
-          progress: resumeInfo.lastProgress || 0,
+          progress: resumeInfo.lastProgress ?? 0,
           message: `Resuming task ${task.id} from checkpoint (${resumeInfo.lastProgress}% complete)`,
           estimatedTimeRemaining:
-            task.estimatedTokens * 10 * ((100 - (resumeInfo.lastProgress || 0)) / 100),
+            task.estimatedTokens * 10 * ((100 - (resumeInfo.lastProgress ?? 0)) / 100),
         } as AIProgressUpdate);
 
         logger.info(`Resuming task ${task.id} from checkpoint ${checkpointId}`);
@@ -830,9 +830,9 @@ export class ClaudeOrchestrator extends EventEmitter {
         }
       },
       {
-        maxAttempts: this.config.retryAttempts || 3,
-        initialDelay: this.config.retryDelay || 1000,
-        maxDelay: this.config.maxRetryDelay || 30000,
+        maxAttempts: this.config.retryAttempts ?? 3,
+        initialDelay: this.config.retryDelay ?? 1000,
+        maxDelay: this.config.maxRetryDelay ?? 30000,
         backoffFactor: 2,
         jitter: true,
         retryableErrors: [AITimeoutError, AINetworkError, AIRateLimitError],
@@ -874,8 +874,8 @@ export class ClaudeOrchestrator extends EventEmitter {
         success: true,
         result: {
           generatedTests: retryResult.result.output,
-          tokensUsed: retryResult.result.tokensUsed || task.estimatedTokens,
-          actualCost: retryResult.result.cost || task.estimatedCost,
+          tokensUsed: retryResult.result.tokensUsed ?? task.estimatedTokens,
+          actualCost: retryResult.result.cost ?? task.estimatedCost,
           duration: Date.now() - startTime,
         },
       };
@@ -921,7 +921,7 @@ export class ClaudeOrchestrator extends EventEmitter {
       const processResult: ProcessResult = {
         taskId: task.id,
         success: false,
-        error: retryResult.error?.message || 'Unknown error',
+        error: retryResult.error?.message ?? 'Unknown error',
       };
 
       // Fail checkpoint if enabled
@@ -1037,11 +1037,11 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
 
     const progressCheckInterval = Math.min(timeoutMs / 10, 10000); // Check every 10% or 10s, whichever is smaller
     heartbeat.timeoutProgress = setInterval(() => {
-      const elapsed = Date.now() - (heartbeat.startTime?.getTime() || Date.now());
+      const elapsed = Date.now() - (heartbeat.startTime?.getTime() ?? Date.now());
       const progress = Math.floor((elapsed / timeoutMs) * 100);
 
       // Check warning thresholds
-      for (const threshold of heartbeat.warningThresholds || []) {
+      for (const threshold of heartbeat.warningThresholds ?? []) {
         if (progress >= threshold && heartbeat.warningThresholds?.has(threshold)) {
           heartbeat.warningThresholds.delete(threshold); // Only emit once per threshold
 
@@ -1279,7 +1279,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
                 elapsedTime:
                   Date.now() -
                   (Date.now() -
-                    (this.processHeartbeats.get(task.id)?.startTime?.getTime() || Date.now())),
+                    (this.processHeartbeats.get(task.id)?.startTime?.getTime() ?? Date.now())),
               },
             });
           }
@@ -1560,7 +1560,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
     return {
       isHealthy: !this.isGracefullyDegraded && successRate >= 0.8,
       isDegraded: this.isGracefullyDegraded,
-      circuitBreakerState: circuitBreakerState?.state || undefined,
+      circuitBreakerState: circuitBreakerState?.state ?? undefined,
       failureRate,
       successRate,
     };
@@ -1664,7 +1664,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
       `- Health Status: ${reliabilityStatus.isHealthy ? '✅ Healthy' : '⚠️ Degraded'}`,
       `- Degraded Mode: ${reliabilityStatus.isDegraded ? 'Yes (Placeholder tests only)' : 'No'}`,
       `- Success Rate: ${(reliabilityStatus.successRate * 100).toFixed(1)}%`,
-      `- Circuit Breaker: ${reliabilityStatus.circuitBreakerState || 'Disabled'}`,
+      `- Circuit Breaker: ${reliabilityStatus.circuitBreakerState ?? 'Disabled'}`,
       '',
       '## Process Monitoring',
       `- Monitored Processes: ${processMonitoringStatus.activeProcesses.length}`,
@@ -1676,7 +1676,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
             '### Zombie Processes',
             ...processMonitoringStatus.zombieProcesses.map(
               (zombie) =>
-                `- PID ${zombie.pid}: ${zombie.command || 'unknown'} (Parent: ${zombie.ppid || 'unknown'})`
+                `- PID ${zombie.pid}: ${zombie.command ?? 'unknown'} (Parent: ${zombie.ppid ?? 'unknown'})`
             ),
           ]
         : []),
@@ -1712,7 +1712,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
       '',
       '## Configuration',
       `- Model: ${this.config.model}`,
-      `- Fallback Model: ${this.config.fallbackModel || 'None'}`,
+      `- Fallback Model: ${this.config.fallbackModel ?? 'None'}`,
       `- Max Concurrent: ${this.config.maxConcurrent}`,
       `- Retry Attempts: ${this.config.retryAttempts}`,
       `- Exponential Backoff: ${this.config.exponentialBackoff ? 'Enabled' : 'Disabled'}`,

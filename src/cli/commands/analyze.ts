@@ -1,5 +1,5 @@
 import { chalk, ora, logger } from '../../utils/common-imports';
-import { ProjectAnalyzer } from '../../utils/analyzer-imports';
+import { ProjectAnalyzer, ProjectAnalysis, DetectedLanguage, DetectedFramework, DetectedPackageManager, TestingSetup, ComplexityMetrics, ProjectStructure } from '../../utils/analyzer-imports';
 import { ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 import {
@@ -20,7 +20,7 @@ interface AnalyzeOptions {
 export async function analyzeCommand(
   projectPath: string,
   options: AnalyzeOptions = {},
-  command?: any
+  command?: { parent?: { opts: () => { showConfigSources?: boolean } } }
 ): Promise<void> {
   // Access global options from parent command
   const globalOptions = command?.parent?.opts() || {};
@@ -166,7 +166,7 @@ export async function analyzeCommand(
         // Capture console output for file writing
         const originalLog = console.log;
         let consoleOutput = '';
-        console.log = (...args: any[]) => {
+        console.log = (...args: unknown[]) => {
           consoleOutput +=
             args
               .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
@@ -199,7 +199,7 @@ export async function analyzeCommand(
   }
 }
 
-function displayConsoleResults(analysis: any, verbose = false): void {
+function displayConsoleResults(analysis: ProjectAnalysis, verbose = false): void {
   console.log(chalk.green('\n✓ Project Analysis Complete\n'));
   console.log(chalk.cyan('📁 Project:'), analysis.projectPath);
 
@@ -219,19 +219,19 @@ function displayConsoleResults(analysis: any, verbose = false): void {
   );
 }
 
-function displayLanguages(languages: any[]): void {
+function displayLanguages(languages: DetectedLanguage[]): void {
   if (languages.length > 0) {
     console.log(chalk.cyan('\n🔤 Languages:'));
-    languages.forEach((lang: any) => {
+    languages.forEach((lang) => {
       console.log(`  • ${lang.name} (${Math.round(lang.confidence * 100)}% confidence)`);
     });
   }
 }
 
-function displayFrameworks(frameworks: any[]): void {
+function displayFrameworks(frameworks: DetectedFramework[]): void {
   if (frameworks.length > 0) {
     console.log(chalk.cyan('\n🚀 Frameworks:'));
-    frameworks.forEach((framework: any) => {
+    frameworks.forEach((framework) => {
       const version = framework.version ? ` v${framework.version}` : '';
       console.log(
         `  • ${framework.name}${version} (${Math.round(framework.confidence * 100)}% confidence)`
@@ -240,16 +240,16 @@ function displayFrameworks(frameworks: any[]): void {
   }
 }
 
-function displayPackageManagers(packageManagers: any[]): void {
+function displayPackageManagers(packageManagers: DetectedPackageManager[]): void {
   if (packageManagers.length > 0) {
     console.log(chalk.cyan('\n📦 Package Managers:'));
-    packageManagers.forEach((pm: any) => {
+    packageManagers.forEach((pm) => {
       console.log(`  • ${pm.name} (${Math.round(pm.confidence * 100)}% confidence)`);
     });
   }
 }
 
-function displayTestingSetup(testingSetup: any): void {
+function displayTestingSetup(testingSetup: TestingSetup): void {
   console.log(chalk.cyan('\n🧪 Testing Setup:'));
   console.log(`  • Has tests: ${testingSetup.hasTests ? '✅' : '❌'}`);
   if (testingSetup.testFrameworks.length > 0) {
@@ -260,14 +260,14 @@ function displayTestingSetup(testingSetup: any): void {
   }
 }
 
-function displayComplexityMetrics(complexity: any): void {
+function displayComplexityMetrics(complexity: ComplexityMetrics): void {
   console.log(chalk.cyan('\n📊 Project Complexity:'));
   console.log(`  • Total files: ${complexity.totalFiles}`);
   console.log(`  • Total lines: ${complexity.totalLines.toLocaleString()}`);
   console.log(`  • Average file size: ${Math.round(complexity.averageFileSize)} lines`);
 }
 
-function displayProjectStructure(projectStructure: any): void {
+function displayProjectStructure(projectStructure: ProjectStructure): void {
   console.log(chalk.cyan('\n📂 Project Structure:'));
   if (projectStructure.srcDirectory) {
     console.log(`  • Source directory: ${projectStructure.srcDirectory}`);
@@ -280,10 +280,10 @@ function displayProjectStructure(projectStructure: any): void {
   }
 }
 
-function displayLargestFiles(largestFiles: any[]): void {
+function displayLargestFiles(largestFiles: Array<{ path: string; lines: number }>): void {
   if (largestFiles.length > 0) {
     console.log(chalk.cyan('\n📈 Largest Files:'));
-    largestFiles.slice(0, 5).forEach((file: any) => {
+    largestFiles.slice(0, 5).forEach((file) => {
       console.log(`  • ${file.path} (${file.lines} lines)`);
     });
   }

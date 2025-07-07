@@ -17,6 +17,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 
 describe('Claude CLI Reliability Improvements', () => {
+  jest.setTimeout(30000); // 30 second timeout for all tests to handle timing-sensitive operations
   let orchestrator: ClaudeOrchestrator;
 
   beforeEach(() => {

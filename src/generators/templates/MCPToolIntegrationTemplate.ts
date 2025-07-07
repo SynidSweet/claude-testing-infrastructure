@@ -1,6 +1,21 @@
 import { MCPTool } from '../../analyzers/ProjectAnalyzer';
 import { MCPProjectAnalysis } from '../../types/mcp-types';
 
+// JSON Schema type definitions for tool input validation
+interface JSONSchemaProperty {
+  type?: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'null';
+  description?: string;
+  default?: unknown;
+  enum?: unknown[];
+  required?: string[];
+}
+
+interface JSONSchema {
+  type?: string;
+  properties?: Record<string, JSONSchemaProperty>;
+  required?: string[];
+}
+
 export class MCPToolIntegrationTemplate {
   generateToolTests(
     tools: MCPTool[],
@@ -282,11 +297,11 @@ ${toolTests}
       return '{}';
     }
 
-    const schema = tool.inputSchema as any;
-    const sampleArgs: any = {};
+    const schema = tool.inputSchema as JSONSchema;
+    const sampleArgs: Record<string, unknown> = {};
 
     if (schema.properties) {
-      Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
+      Object.entries(schema.properties).forEach(([key, prop]) => {
         switch (prop.type) {
           case 'string':
             sampleArgs[key] = 'test string';

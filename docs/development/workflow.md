@@ -2,7 +2,7 @@
 
 *Complete setup and development practices for the Claude Testing Infrastructure*
 
-*Last updated: 2025-07-06 | Continued systematic code quality improvements - fixed duplicate imports and async method signatures*
+*Last updated: 2025-07-06 | Test Suite Execution Strategy Implementation - Added three test execution modes for different development scenarios*
 
 ## 🔒 CRITICAL: Infrastructure Usage
 
@@ -43,6 +43,56 @@ node dist/cli/index.js analyze /path/to/any/project
 node dist/cli/index.js test /path/to/any/project --only-structural
 node dist/cli/index.js run /path/to/any/project
 ```
+
+## Test Execution Strategy
+
+### Test Suite Categories
+The test suite is organized into three execution modes for different development scenarios:
+
+#### 1. Fast Tests (`npm run test:fast`)
+- **Purpose**: Quick feedback during development
+- **Scope**: Unit tests for utils, generators, analyzers, and config modules
+- **Timeout**: 5 seconds per test
+- **Target time**: < 1 minute
+- **Use when**: Making code changes, need rapid validation
+
+#### 2. Core Tests (`npm run test:core`)
+- **Purpose**: Infrastructure validation before commits
+- **Scope**: All tests except AI validation and large fixture tests
+- **Timeout**: 10 seconds per test
+- **Target time**: < 2 minutes
+- **Use when**: Before committing changes, validating functionality
+
+#### 3. Full Tests (`npm run test:full`)
+- **Purpose**: Comprehensive validation
+- **Scope**: All tests including AI validation
+- **Timeout**: 30 seconds per test
+- **Target time**: < 10 minutes
+- **Use when**: Before releases, after major changes
+
+### Test Execution Guidelines
+```bash
+# During development - quick feedback
+npm run test:fast
+
+# Before commits - ensure stability (automatically run by pre-commit hooks)
+npm run test:core
+
+# Before releases - full validation
+npm run test:full
+
+# For AI validation specifically
+npm run test:ai-validation
+
+# Watch mode during development
+npm run test:watch
+```
+
+### Timing-Sensitive Tests
+Tests involving process monitoring and heartbeat detection have been configured with appropriate timeouts:
+- Heartbeat monitoring tests: 30-second timeout
+- Process reliability tests: 30-second timeout
+- Standard tests: 10-second timeout (core) or 5-second timeout (fast)
 
 ## Production CLI Commands
 

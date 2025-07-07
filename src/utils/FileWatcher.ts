@@ -12,6 +12,7 @@ import type { FSWatcher } from 'chokidar';
 import { watch } from 'chokidar';
 import { EventEmitter } from 'events';
 import path from 'path';
+import type { Stats } from 'fs';
 import { logger } from './logger';
 
 export interface FileChangeEvent {
@@ -235,7 +236,7 @@ export class FileWatcher extends EventEmitter {
   /**
    * Handle individual file change events
    */
-  private handleFileChange(type: FileChangeEvent['type'], filePath: string, stats?: any): void {
+  private handleFileChange(type: FileChangeEvent['type'], filePath: string, stats?: Stats): void {
     const absolutePath = path.resolve(this.projectPath, filePath);
     const relativePath = path.relative(this.projectPath, absolutePath);
     const extension = path.extname(filePath);

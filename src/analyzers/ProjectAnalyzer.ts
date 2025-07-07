@@ -245,7 +245,7 @@ export class ProjectAnalyzer {
     const pythonDeps = await this.readPythonDependencies();
 
     // React detection
-    if (await this.hasReact(packageJsonContent)) {
+    if (this.hasReact(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/.babelrc*',
@@ -262,7 +262,7 @@ export class ProjectAnalyzer {
     }
 
     // Vue detection
-    if (await this.hasVue(packageJsonContent)) {
+    if (this.hasVue(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/vue.config.*',
@@ -279,7 +279,7 @@ export class ProjectAnalyzer {
     }
 
     // Angular detection
-    if (await this.hasAngular(packageJsonContent)) {
+    if (this.hasAngular(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/angular.json',
         '**/package.json',
@@ -296,7 +296,7 @@ export class ProjectAnalyzer {
     }
 
     // Express detection
-    if (await this.hasExpress(packageJsonContent)) {
+    if (this.hasExpress(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/app.js',
@@ -314,7 +314,7 @@ export class ProjectAnalyzer {
     }
 
     // Next.js detection
-    if (await this.hasNextJs(packageJsonContent)) {
+    if (this.hasNextJs(packageJsonContent)) {
       const configFiles = await this.findFiles(['**/next.config.*', '**/package.json']);
       frameworks.push({
         name: 'nextjs',
@@ -327,7 +327,7 @@ export class ProjectAnalyzer {
     }
 
     // FastAPI detection
-    if (await this.hasFastAPI(pythonDeps)) {
+    if (this.hasFastAPI(pythonDeps)) {
       const configFiles = await this.findFiles([
         '**/main.py',
         '**/app.py',
@@ -342,7 +342,7 @@ export class ProjectAnalyzer {
     }
 
     // Django detection
-    if (await this.hasDjango(pythonDeps)) {
+    if (this.hasDjango(pythonDeps)) {
       const configFiles = await this.findFiles([
         '**/manage.py',
         '**/settings.py',
@@ -357,7 +357,7 @@ export class ProjectAnalyzer {
     }
 
     // Flask detection
-    if (await this.hasFlask(pythonDeps)) {
+    if (this.hasFlask(pythonDeps)) {
       const configFiles = await this.findFiles([
         '**/app.py',
         '**/main.py',
@@ -372,7 +372,7 @@ export class ProjectAnalyzer {
     }
 
     // MCP Server detection
-    if (await this.hasMCPServer(packageJsonContent)) {
+    if (this.hasMCPServer(packageJsonContent)) {
       const configFiles = await this.findFiles([
         '**/mcp.json',
         '**/.mcp/**',
@@ -382,7 +382,7 @@ export class ProjectAnalyzer {
         '**/server.ts',
       ]);
 
-      const framework = await this.detectMCPFramework(packageJsonContent);
+      const framework = this.detectMCPFramework(packageJsonContent);
       if (framework === 'fastmcp') {
         const fastmcpVersion =
           packageJsonContent?.dependencies?.fastmcp ?? packageJsonContent?.devDependencies?.fastmcp;
@@ -552,9 +552,9 @@ export class ProjectAnalyzer {
     const pythonDeps = await this.readPythonDependencies();
 
     return {
-      production: packageJsonContent?.dependencies || {},
-      development: packageJsonContent?.devDependencies || {},
-      python: pythonDeps || undefined,
+      production: packageJsonContent?.dependencies ?? {},
+      development: packageJsonContent?.devDependencies ?? {},
+      python: pythonDeps ?? undefined,
     };
   }
 
@@ -570,8 +570,8 @@ export class ProjectAnalyzer {
 
     // Detect test frameworks from dependencies
     const allDeps = {
-      ...(packageJsonContent?.dependencies || {}),
-      ...(packageJsonContent?.devDependencies || {}),
+      ...(packageJsonContent?.dependencies ?? {}),
+      ...(packageJsonContent?.devDependencies ?? {}),
     };
 
     if (allDeps?.jest) testFrameworks.push('jest');
@@ -632,63 +632,66 @@ export class ProjectAnalyzer {
   }
 
   // Helper methods for framework detection
-  private async hasReact(packageJson: any): Promise<boolean> {
+  private hasReact(packageJson: PackageJsonContent | null): boolean {
     if (!packageJson) return false;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.react || deps?.['@types/react']);
+    return !!(deps?.react ?? deps?.['@types/react']);
   }
 
-  private async hasVue(packageJson: any): Promise<boolean> {
+  private hasVue(packageJson: PackageJsonContent | null): boolean {
     if (!packageJson) return false;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.vue || deps?.['@vue/cli']);
+    return !!(deps?.vue ?? deps?.['@vue/cli']);
   }
 
-  private async hasAngular(packageJson: any): Promise<boolean> {
+  private hasAngular(packageJson: PackageJsonContent | null): boolean {
     if (!packageJson) return false;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.['@angular/core'] || deps?.['@angular/cli']);
+    return !!(deps?.['@angular/core'] ?? deps?.['@angular/cli']);
   }
 
-  private async hasExpress(packageJson: any): Promise<boolean> {
+  private hasExpress(packageJson: PackageJsonContent | null): boolean {
     if (!packageJson) return false;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
     return !!deps?.express;
   }
 
-  private async hasNextJs(packageJson: any): Promise<boolean> {
+  private hasNextJs(packageJson: PackageJsonContent | null): boolean {
     if (!packageJson) return false;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
     return !!deps?.next;
   }
 
-  private async hasFastAPI(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.fastapi || pythonDeps?.['fastapi[all]']);
+  private hasFastAPI(pythonDeps: Record<string, string> | null): boolean {
+    if (!pythonDeps) return false;
+    return !!(pythonDeps?.fastapi ?? pythonDeps?.['fastapi[all]']);
   }
 
-  private async hasDjango(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.django || pythonDeps?.Django);
+  private hasDjango(pythonDeps: Record<string, string> | null): boolean {
+    if (!pythonDeps) return false;
+    return !!(pythonDeps?.django ?? pythonDeps?.Django);
   }
 
-  private async hasFlask(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.flask || pythonDeps?.Flask);
+  private hasFlask(pythonDeps: Record<string, string> | null): boolean {
+    if (!pythonDeps) return false;
+    return !!(pythonDeps?.flask ?? pythonDeps?.Flask);
   }
 
-  private async hasMCPServer(packageJson: any): Promise<boolean> {
+  private hasMCPServer(packageJson: PackageJsonContent | null): boolean {
     if (!packageJson) return false;
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(
-      deps?.['@modelcontextprotocol/sdk'] ||
-      deps?.['@modelcontextprotocol/server'] ||
-      deps?.fastmcp ||
-      deps?.['mcp-framework'] ||
-      deps?.['@anthropic/mcp']
+    return Boolean(
+      deps?.['@modelcontextprotocol/sdk'] ??
+        deps?.['@modelcontextprotocol/server'] ??
+        deps?.fastmcp ??
+        deps?.['mcp-framework'] ??
+        deps?.['@anthropic/mcp']
     );
   }
 
-  private async detectMCPFramework(
-    packageJson: any
-  ): Promise<'fastmcp' | 'official-sdk' | 'custom'> {
+  private detectMCPFramework(
+    packageJson: PackageJsonContent | null
+  ): 'fastmcp' | 'official-sdk' | 'custom' {
     if (!packageJson) return 'custom';
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
 
@@ -703,7 +706,7 @@ export class ProjectAnalyzer {
 
   private async analyzeMCPCapabilities(): Promise<MCPCapabilities> {
     const packageJson = await this.readPackageJson();
-    const framework = await this.detectMCPFramework(packageJson);
+    const framework = this.detectMCPFramework(packageJson);
 
     // Basic capability detection - would be enhanced with actual AST parsing
     const capabilities: MCPCapabilities = {
@@ -741,27 +744,33 @@ export class ProjectAnalyzer {
 
         // Extract capabilities from config if available
         if (config.tools) {
-          capabilities.tools = config.tools.map((tool: any) => ({
-            name: tool.name || 'unknown',
-            description: tool.description,
-            inputSchema: tool.inputSchema,
-          }));
+          capabilities.tools = config.tools.map(
+            (tool: { name?: string; description?: string; inputSchema?: unknown }) => ({
+              name: tool.name || 'unknown',
+              description: tool.description,
+              inputSchema: tool.inputSchema,
+            })
+          );
         }
 
         if (config.resources) {
-          capabilities.resources = config.resources.map((resource: any) => ({
-            name: resource.name || 'unknown',
-            uri: resource.uri || '',
-            mimeType: resource.mimeType,
-          }));
+          capabilities.resources = config.resources.map(
+            (resource: { name?: string; uri?: string; mimeType?: string }) => ({
+              name: resource.name || 'unknown',
+              uri: resource.uri || '',
+              mimeType: resource.mimeType,
+            })
+          );
         }
 
         if (config.prompts) {
-          capabilities.prompts = config.prompts.map((prompt: any) => ({
-            name: prompt.name || 'unknown',
-            description: prompt.description,
-            arguments: prompt.arguments,
-          }));
+          capabilities.prompts = config.prompts.map(
+            (prompt: { name?: string; description?: string; arguments?: unknown }) => ({
+              name: prompt.name || 'unknown',
+              description: prompt.description,
+              arguments: prompt.arguments,
+            })
+          );
         }
       } catch (error) {
         logger.debug('Could not parse MCP config file:', error);
@@ -775,7 +784,11 @@ export class ProjectAnalyzer {
   private async findFiles(
     patterns: string[],
     ignore: string[] = [],
-    options: any = {}
+    options: {
+      absolute?: boolean;
+      onlyFiles?: boolean;
+      deep?: number;
+    } = {}
   ): Promise<string[]> {
     // Use FileDiscoveryService if available, otherwise fall back to direct implementation
     if (this.fileDiscovery) {
@@ -785,7 +798,7 @@ export class ProjectAnalyzer {
           include: patterns,
           exclude: ignore,
           type: FileDiscoveryType.CUSTOM,
-          absolute: options.absolute,
+          absolute: options.absolute ?? false,
           includeDirectories: options.onlyFiles === false,
           useCache: true,
         });
@@ -806,7 +819,7 @@ export class ProjectAnalyzer {
         cwd: this.projectPath,
         ignore,
         onlyFiles: options.onlyFiles !== false,
-        deep: options.deep,
+        deep: options.deep ?? 10,
         dot: false,
       });
     } catch (error) {

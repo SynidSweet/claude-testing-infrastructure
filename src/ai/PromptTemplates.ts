@@ -48,7 +48,7 @@ ${outputInstructions}`;
   private getBasePrompt(context: PromptContext): string {
     const frameworkName = this.getFrameworkName(context);
 
-    return `You are an expert test engineer specializing in ${context.language} and ${context.testFramework}. Your task is to write comprehensive ${context.testType || 'logical'} tests for a ${frameworkName} application.
+    return `You are an expert test engineer specializing in ${context.language} and ${context.testFramework}. Your task is to write comprehensive ${context.testType ?? 'logical'} tests for a ${frameworkName} application.
 
 **CONTEXT**
 - Language: ${context.language}
@@ -325,7 +325,7 @@ Generate the complete test file:`;
     };
 
     return (
-      frameworkNames[context.projectType || ('unknown' as keyof typeof frameworkNames)] ||
+      frameworkNames[context.projectType ?? ('unknown' as keyof typeof frameworkNames)] ??
       context.language
     );
   }

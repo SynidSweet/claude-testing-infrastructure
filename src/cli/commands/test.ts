@@ -267,7 +267,7 @@ export async function testCommand(
 
 async function loadConfiguration(
   projectPath: string,
-  analysis: any,
+  analysis: ProjectAnalysis,
   options: TestOptions,
   showConfigSources: boolean = false
 ): Promise<TestGeneratorConfig> {
