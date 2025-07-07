@@ -2,6 +2,7 @@ import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
 import { ConfigurationService } from '../../config/ConfigurationService';
 import {
   ProjectAnalyzer,
+  ProjectAnalysis,
   StructuralTestGenerator,
   TestGeneratorConfig,
   TestGapAnalyzer,
@@ -15,6 +16,7 @@ import { displayConfigurationSources } from '../../utils/config-display';
 import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../../ai';
 import { ProgressReporter } from '../../utils/ProgressReporter';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
+import { TestFramework } from '../../types/config';
 
 interface TestOptions {
   config?: string;
@@ -346,7 +348,7 @@ async function loadConfiguration(
 
   if (testFramework === 'auto') {
     if (analysis.testingSetup.testFrameworks.length > 0) {
-      testFramework = analysis.testingSetup.testFrameworks[0];
+      testFramework = analysis.testingSetup.testFrameworks[0] as TestFramework;
     } else if (analysis.frameworks.some((f: any) => f.name === 'react')) {
       testFramework = 'jest';
     } else if (analysis.languages.some((l: any) => l.name === 'python')) {

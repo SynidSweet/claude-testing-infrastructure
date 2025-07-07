@@ -1,5 +1,5 @@
 import { logger } from '../../../utils/common-imports';
-import type { DetectedFramework } from '../../../analyzers/ProjectAnalyzer';
+import type { DetectedFramework, PackageJsonContent } from '../../../analyzers/ProjectAnalyzer';
 
 /**
  * Enhanced JavaScript/TypeScript framework detector
@@ -12,10 +12,10 @@ import type { DetectedFramework } from '../../../analyzers/ProjectAnalyzer';
  * - Build tools (Vite, Webpack, etc.)
  */
 export class JSFrameworkDetector {
-  private packageJson: any;
+  private packageJson: PackageJsonContent;
 
-  constructor(_projectPath: string, packageJson: any) {
-    this.packageJson = packageJson;
+  constructor(_projectPath: string, packageJson: PackageJsonContent | null = null) {
+    this.packageJson = packageJson ?? {} as PackageJsonContent;
   }
 
   /**

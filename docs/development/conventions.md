@@ -1,6 +1,6 @@
 # Development Patterns & Conventions
 
-*Last updated: 2025-06-30 | Updated by: /document-all command | Discriminated union types patterns added*
+*Last updated: 2025-07-07 | Updated by: /document command | TypeScript type safety improvements and nullish coalescing patterns added*
 
 ## Naming Conventions
 
@@ -250,6 +250,85 @@ export class ProjectAnalyzer {
   async analyze(path: string): Promise<ProjectAnalysis> {
     // Implementation
   }
+}
+```
+
+### TypeScript Type Safety Standards (Updated 2025-07-07)
+
+#### Eliminating `any` Types
+The codebase maintains strict type safety by systematically replacing `any` types with proper interfaces:
+
+```typescript
+// BEFORE - Unsafe any type
+private askQuestion(rl: any, question: string): Promise<string> {
+  // Implementation
+}
+
+// AFTER - Proper interface type
+private askQuestion(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
+  // Implementation
+}
+```
+
+#### CLI Command Type Safety
+CLI commands should use properly typed option interfaces instead of `any`:
+
+```typescript
+// BEFORE - Unsafe any parameter
+.action(async (targetPath: string, options: any) => {
+  // Implementation
+})
+
+// AFTER - Typed option interface
+interface CommandOptions {
+  template?: string;
+  force?: boolean;
+  interactive?: boolean;
+  list?: boolean;
+}
+
+.action(async (targetPath: string, options: CommandOptions) => {
+  // Implementation
+})
+```
+
+#### Framework Detection Type Safety
+Framework detectors should use proper package.json interfaces:
+
+```typescript
+// Import proper types
+import type { DetectedFramework, PackageJsonContent } from '../analyzers/ProjectAnalyzer';
+
+// Constructor with null safety
+constructor(_projectPath: string, packageJson: PackageJsonContent | null = null) {
+  this.packageJson = packageJson ?? {} as PackageJsonContent;
+}
+```
+
+#### Nullish Coalescing Operator Usage
+Prefer nullish coalescing (`??`) over logical OR (`||`) for safer undefined/null handling:
+
+```typescript
+// BEFORE - Logical OR (less safe)
+const value = config.option || defaultValue;
+
+// AFTER - Nullish coalescing (safer)
+const value = config.option ?? defaultValue;
+```
+
+#### Configuration Type Safety
+Complex configuration objects should use proper type assertions instead of `any`:
+
+```typescript
+// BEFORE - Unsafe any type
+private processConfig(coverageData: any): Record<string, number[]> {
+  return (coverageData as any).files;
+}
+
+// AFTER - Safe type assertion with guards
+private processConfig(coverageData: Record<string, unknown>): Record<string, number[]> {
+  const files = coverageData.files as Record<string, unknown>;
+  return this.validateAndExtractFiles(files);
 }
 ```
 

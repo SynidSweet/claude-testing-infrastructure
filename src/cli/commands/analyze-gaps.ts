@@ -1,13 +1,14 @@
 import { fs, path, logger } from '../../utils/common-imports';
 import { Command } from 'commander';
+import type { TestGeneratorConfig } from '../../utils/analyzer-imports';
 import {
   ProjectAnalyzer,
   TestGapAnalyzer,
   GapReportGenerator,
   StructuralTestGenerator,
-  TestGeneratorConfig,
 } from '../../utils/analyzer-imports';
 import type { ReportOptions } from '../../analyzers/GapReportGenerator';
+import type { TestGapAnalysisResult } from '../../analyzers/TestGapAnalyzer';
 import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 
@@ -68,13 +69,13 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
 
       // Apply configuration to logger
       if (
-        options.verbose ||
-        config.output?.logLevel === 'debug' ||
+        options.verbose ??
+        config.output?.logLevel === 'debug' ??
         config.output?.logLevel === 'verbose'
       ) {
         logger.level = 'debug';
       } else if (config.output?.logLevel) {
-        logger.level = config.output.logLevel as any;
+        logger.level = config.output.logLevel as 'error' | 'warn' | 'info' | 'debug';
       }
 
       logger.info('Starting test gap analysis', {
@@ -146,8 +147,8 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
 
       // Configure report options
       const reportOptions: ReportOptions = {
-        includeDetails: options.includeDetails || false,
-        includeCodeSnippets: options.includeCodeSnippets || false,
+        includeDetails: options.includeDetails ?? false,
+        includeCodeSnippets: options.includeCodeSnippets ?? false,
         useColors: !options.noColors,
         includeTiming: true,
         maxGapsToShow: 50,
@@ -159,7 +160,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         await outputResults(
           analysisWithTiming,
           options.output,
-          options.format || 'json',
+          options.format ?? 'json',
           reportGenerator
         );
         logger.info('Gap analysis results saved', {
@@ -168,7 +169,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
         });
       } else {
         // Output to console with enhanced visualization
-        outputToConsole(analysisWithTiming, options.format || 'text', reportGenerator);
+        outputToConsole(analysisWithTiming, options.format ?? 'text', reportGenerator);
       }
 
       // Log summary
@@ -198,7 +199,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
   });
 
 async function outputResults(
-  analysis: any,
+  analysis: TestGapAnalysisResult,
   outputPath: string,
   format: string,
   reportGenerator: GapReportGenerator
@@ -229,7 +230,11 @@ async function outputResults(
   await fs.writeFile(outputPath, content);
 }
 
-function outputToConsole(analysis: any, format: string, reportGenerator: GapReportGenerator): void {
+function outputToConsole(
+  analysis: TestGapAnalysisResult,
+  format: string,
+  reportGenerator: GapReportGenerator
+): void {
   switch (format) {
     case 'json':
       console.log(reportGenerator.generateJsonReport(analysis));

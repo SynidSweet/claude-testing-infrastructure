@@ -39,7 +39,7 @@ export async function analyzeCommand(
         ...(options.config && { customConfigPath: options.config }),
         includeEnvVars: true,
         includeUserConfig: true,
-        cliArgs: options,
+        cliArgs: options as Record<string, unknown>,
       });
 
       const configResult = await configService.loadConfiguration();
@@ -90,7 +90,7 @@ export async function analyzeCommand(
         ...(options.config && { customConfigPath: options.config }),
         includeEnvVars: true,
         includeUserConfig: true,
-        cliArgs: options,
+        cliArgs: options as Record<string, unknown>,
       });
 
       const configResult = await configService.loadConfiguration();
@@ -110,7 +110,7 @@ export async function analyzeCommand(
           ...(options.config && { customConfigPath: options.config }),
           includeEnvVars: true,
           includeUserConfig: true,
-          cliArgs: options,
+          cliArgs: options as Record<string, unknown>,
         });
 
         // Load configuration before creating FileDiscoveryService

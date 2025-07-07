@@ -4,7 +4,7 @@ import type { TestRunnerConfig, TestResult, TestFailure, CoverageResult } from '
 import { TestRunner } from './TestRunner';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
-import type { CoverageReporter } from './CoverageReporter';
+import type { CoverageReporter, CoverageReporterConfig } from './CoverageReporter';
 import { CoverageReporterFactory } from './CoverageReporter';
 import type { FileDiscoveryService } from '../types/file-discovery-types';
 import { FileDiscoveryType } from '../types/file-discovery-types';
@@ -24,8 +24,9 @@ export class PytestRunner extends TestRunner {
 
     // Initialize coverage reporter if coverage is enabled
     if (config.coverage?.enabled) {
-      const reporterConfig: any = {
-        outputDir: config.coverage.outputDir,
+      const reporterConfig: Partial<CoverageReporterConfig> = {
+        projectPath: config.projectPath,
+        framework: 'pytest',
         failOnThreshold: false, // Don't fail here, let the runner handle it
       };
 
@@ -181,7 +182,7 @@ export class PytestRunner extends TestRunner {
           functions: coverageReport.data.summary.functions,
           lines: coverageReport.data.summary.lines,
           meetsThreshold: coverageReport.meetsThreshold,
-          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data),
+          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data as unknown as Record<string, unknown>),
         };
 
         logger.info('Pytest coverage processing completed', {
@@ -291,15 +292,16 @@ export class PytestRunner extends TestRunner {
     };
   }
 
-  private extractUncoveredLinesFromReport(coverageData: any): Record<string, number[]> {
+  private extractUncoveredLinesFromReport(coverageData: Record<string, unknown>): Record<string, number[]> {
     const uncoveredLines: Record<string, number[]> = {};
 
     if (coverageData && typeof coverageData === 'object' && 'files' in coverageData) {
-      for (const [filePath, fileData] of Object.entries(coverageData.files)) {
+      const files = coverageData.files as Record<string, unknown>;
+      for (const [filePath, fileData] of Object.entries(files)) {
         if (fileData && typeof fileData === 'object' && 'uncoveredLines' in fileData) {
-          const lines = (fileData as any).uncoveredLines;
+          const lines = (fileData as Record<string, unknown>).uncoveredLines;
           if (Array.isArray(lines) && lines.length > 0) {
-            uncoveredLines[filePath] = lines;
+            uncoveredLines[filePath] = lines as number[];
           }
         }
       }

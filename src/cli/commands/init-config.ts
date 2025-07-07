@@ -20,6 +20,24 @@ interface TemplateInfo {
   testFramework: string;
 }
 
+interface PackageJsonContent {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}
+
+interface ClaudeTestingConfig {
+  ai?: {
+    maxCost?: number;
+  };
+  coverage?: {
+    thresholds?: {
+      global?: {
+        lines?: number;
+      };
+    };
+  };
+}
+
 const AVAILABLE_TEMPLATES: TemplateInfo[] = [
   {
     name: 'React TypeScript',
@@ -199,7 +217,7 @@ export class ConfigInitializer {
       // Check for package.json
       const packageJsonPath = path.join(this.targetPath, 'package.json');
       if (await this.fileExists(packageJsonPath)) {
-        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8')) as PackageJsonContent;
         const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
 
         // Check for specific frameworks
@@ -285,7 +303,7 @@ export class ConfigInitializer {
     console.log('🔧 Configuration Customization (press Enter to keep defaults):\n');
 
     try {
-      const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+      const config = JSON.parse(await fs.readFile(configPath, 'utf-8')) as ClaudeTestingConfig;
 
       // Customize key settings interactively
       const maxCost = await this.askQuestion(
@@ -302,7 +320,15 @@ export class ConfigInitializer {
         `Coverage lines threshold % (current: ${config.coverage?.thresholds?.global?.lines || 80}): `
       );
       if (coverageLines.trim()) {
-        config.coverage = config.coverage || { thresholds: { global: {} } };
+        if (!config.coverage) {
+          config.coverage = { thresholds: { global: {} } };
+        }
+        if (!config.coverage.thresholds) {
+          config.coverage.thresholds = { global: {} };
+        }
+        if (!config.coverage.thresholds.global) {
+          config.coverage.thresholds.global = {};
+        }
         config.coverage.thresholds.global.lines = parseInt(coverageLines);
       }
 
@@ -315,7 +341,7 @@ export class ConfigInitializer {
     }
   }
 
-  private askQuestion(rl: any, question: string): Promise<string> {
+  private askQuestion(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
     return new Promise((resolve) => {
       rl.question(question, (answer: string) => {
         resolve(answer);
@@ -354,14 +380,19 @@ export function createInitConfigCommand(): Command {
     .option('-f, --force', 'Overwrite existing configuration file')
     .option('-i, --interactive', 'Interactive template selection and customization')
     .option('-l, --list', 'List available templates')
-    .action(async (targetPath: string, options: any) => {
-      if (options.list) {
-        const initializer = new ConfigInitializer();
-        initializer['listTemplates']();
-        return;
-      }
+    .action(
+      async (
+        targetPath: string,
+        options: { template?: string; force?: boolean; interactive?: boolean; list?: boolean }
+      ) => {
+        if (options.list) {
+          const initializer = new ConfigInitializer();
+          initializer['listTemplates']();
+          return;
+        }
 
-      const initializer = new ConfigInitializer(targetPath);
-      await initializer.run(options);
-    });
+        const initializer = new ConfigInitializer(targetPath);
+        await initializer.run(options);
+      }
+    );
 }

@@ -653,8 +653,9 @@ export class ConfigurationService {
 
     // Map OUTPUT_COLORS to output.colors
     if (upperPath === 'OUTPUT_COLORS') {
-      if (!obj.output) obj.output = {};
-      obj.output.colors = value;
+      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
+      const output = obj.output as Record<string, unknown>;
+      output.colors = value;
       return;
     }
 
@@ -690,42 +691,44 @@ export class ConfigurationService {
 
     // Handle special mappings for AI_OPTIONS fields
     if (upperPath.startsWith('AI_OPTIONS_')) {
-      if (!obj.aiOptions) obj.aiOptions = {};
+      if (!obj.aiOptions || typeof obj.aiOptions !== 'object') obj.aiOptions = {};
+      const aiOptions = obj.aiOptions as Record<string, unknown>;
       const aiOptionKey = upperPath.substring('AI_OPTIONS_'.length);
 
       if (aiOptionKey === 'MAX_TOKENS') {
-        obj.aiOptions.maxTokens = value;
+        aiOptions.maxTokens = value;
         return;
       }
       if (aiOptionKey === 'TEMPERATURE') {
-        obj.aiOptions.temperature = value;
+        aiOptions.temperature = value;
         return;
       }
       if (aiOptionKey === 'MAX_COST') {
-        obj.aiOptions.maxCost = value;
+        aiOptions.maxCost = value;
         return;
       }
     }
 
     // Handle special mappings for GENERATION fields
     if (upperPath.startsWith('GENERATION_')) {
-      if (!obj.generation) obj.generation = {};
+      if (!obj.generation || typeof obj.generation !== 'object') obj.generation = {};
+      const generation = obj.generation as Record<string, unknown>;
       const generationKey = upperPath.substring('GENERATION_'.length);
 
       if (generationKey === 'MAX_RETRIES') {
-        obj.generation.maxRetries = value;
+        generation.maxRetries = value;
         return;
       }
       if (generationKey === 'TIMEOUT_MS') {
-        obj.generation.timeoutMs = value;
+        generation.timeoutMs = value;
         return;
       }
       if (generationKey === 'MAX_TEST_TO_SOURCE_RATIO') {
-        obj.generation.maxTestToSourceRatio = value;
+        generation.maxTestToSourceRatio = value;
         return;
       }
       if (generationKey === 'BATCH_SIZE') {
-        obj.generation.batchSize = value;
+        generation.batchSize = value;
         return;
       }
     }
@@ -767,7 +770,7 @@ export class ConfigurationService {
     }
 
     // Handle special cases for mapping
-    this.handleEnvMappingSpecialCases(obj, path, value);
+    this.handleEnvMappingSpecialCases(obj, path, value as string);
   }
 
   /**
@@ -854,34 +857,39 @@ export class ConfigurationService {
 
     // Map LOG_LEVEL to output.logLevel
     if (upperPath === 'LOG_LEVEL') {
-      if (!obj.output) obj.output = {};
-      obj.output.logLevel = value;
+      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
+      const output = obj.output as Record<string, unknown>;
+      output.logLevel = value;
       delete obj.log; // Remove nested structure if created
     }
 
     // Map OUTPUT_FORMATS (plural) to output.formats array
     if (upperPath === 'OUTPUT_FORMATS' && Array.isArray(value)) {
-      if (!obj.output) obj.output = {};
-      obj.output.formats = value;
+      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
+      const output = obj.output as Record<string, unknown>;
+      output.formats = value;
     }
 
     // Map coverage.enabled properly
     if (upperPath === 'COVERAGE_ENABLED') {
-      if (!obj.coverage) obj.coverage = {};
-      obj.coverage.enabled = value;
+      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
+      const coverage = obj.coverage as Record<string, unknown>;
+      coverage.enabled = value;
       // Don't delete the nested structure, keep it
     }
 
     // Map coverage reporters
     if (upperPath === 'COVERAGE_REPORTERS' && Array.isArray(value)) {
-      if (!obj.coverage) obj.coverage = {};
-      obj.coverage.reporters = value;
+      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
+      const coverage = obj.coverage as Record<string, unknown>;
+      coverage.reporters = value;
     }
 
     // Map INCREMENTAL_SHOW_STATS to incremental.showStats
     if (upperPath === 'INCREMENTAL_SHOW_STATS') {
-      if (!obj.incremental) obj.incremental = {};
-      obj.incremental.showStats = value;
+      if (!obj.incremental || typeof obj.incremental !== 'object') obj.incremental = {};
+      const incremental = obj.incremental as Record<string, unknown>;
+      incremental.showStats = value;
     }
 
     // Ensure proper nesting for generation options
@@ -891,14 +899,15 @@ export class ConfigurationService {
 
     // Ensure proper nesting for aiOptions
     if (path[0] === 'ai' && path[1] === 'options' && path.length >= 3) {
-      if (!obj.aiOptions) obj.aiOptions = {};
+      if (!obj.aiOptions || typeof obj.aiOptions !== 'object') obj.aiOptions = {};
+      const aiOptions = obj.aiOptions as Record<string, unknown>;
       // Map from ai.options.* to aiOptions.*
       const aiOptionKey = path
         .slice(2)
         .map((seg, idx) => (idx === 0 ? seg : seg.charAt(0).toUpperCase() + seg.slice(1)))
         .join('');
       if (aiOptionKey) {
-        obj.aiOptions[aiOptionKey] = value;
+        aiOptions[aiOptionKey] = value;
       }
       // Clean up the ai.options structure
       if (obj.ai && typeof obj.ai === 'object' && 'options' in obj.ai) {
@@ -1174,7 +1183,7 @@ export class ConfigurationService {
     for (const source of this.sources) {
       if (source.loaded) {
         logger.debug(`Merging source: ${source.type}`, { data: source.data });
-        mergedConfig = this.deepMerge(mergedConfig, source.data as Record<string, unknown>);
+        mergedConfig = this.deepMerge(mergedConfig as Record<string, unknown>, source.data as Record<string, unknown>) as PartialClaudeTestingConfig;
       }
       allErrors.push(...source.errors);
       allWarnings.push(...source.warnings);
