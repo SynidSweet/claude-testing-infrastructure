@@ -719,10 +719,10 @@ export class ProjectAnalyzer {
 
     // Check for HTTP+SSE transport indicators
     const hasHttpIndicators =
-      packageJson?.dependencies?.express ||
-      packageJson?.dependencies?.fastify ||
-      packageJson?.dependencies?.['@fastify/sse'] ||
-      packageJson?.devDependencies?.express ||
+      packageJson?.dependencies?.express ??
+      packageJson?.dependencies?.fastify ??
+      packageJson?.dependencies?.['@fastify/sse'] ??
+      packageJson?.devDependencies?.express ??
       packageJson?.devDependencies?.fastify;
 
     if (hasHttpIndicators) {
@@ -746,7 +746,7 @@ export class ProjectAnalyzer {
         if (config.tools) {
           capabilities.tools = config.tools.map(
             (tool: { name?: string; description?: string; inputSchema?: unknown }) => ({
-              name: tool.name || 'unknown',
+              name: tool.name ?? 'unknown',
               description: tool.description,
               inputSchema: tool.inputSchema,
             })
@@ -756,8 +756,8 @@ export class ProjectAnalyzer {
         if (config.resources) {
           capabilities.resources = config.resources.map(
             (resource: { name?: string; uri?: string; mimeType?: string }) => ({
-              name: resource.name || 'unknown',
-              uri: resource.uri || '',
+              name: resource.name ?? 'unknown',
+              uri: resource.uri ?? '',
               mimeType: resource.mimeType,
             })
           );
@@ -766,7 +766,7 @@ export class ProjectAnalyzer {
         if (config.prompts) {
           capabilities.prompts = config.prompts.map(
             (prompt: { name?: string; description?: string; arguments?: unknown }) => ({
-              name: prompt.name || 'unknown',
+              name: prompt.name ?? 'unknown',
               description: prompt.description,
               arguments: prompt.arguments,
             })
@@ -898,7 +898,7 @@ export class ProjectAnalyzer {
         if (line && !line.startsWith('#')) {
           const match = line.match(/^([a-zA-Z0-9_-]+)([>=<~!]+.*)?$/);
           if (match?.[1]) {
-            deps[match[1]] = match[2] || '*';
+            deps[match[1]] = match[2] ?? '*';
           }
         }
       });

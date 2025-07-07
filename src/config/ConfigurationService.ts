@@ -180,7 +180,7 @@ export class ConfigurationService {
         ttl: config.fileDiscovery?.cache?.ttl ?? 300000, // 5 minutes
         maxSize: config.fileDiscovery?.cache?.maxSize ?? 1000,
       },
-      patterns: config.fileDiscovery?.patterns || {},
+      patterns: config.fileDiscovery?.patterns ?? {},
       performance: {
         enableStats: config.fileDiscovery?.performance?.enableStats ?? false,
         logSlowOperations: config.fileDiscovery?.performance?.logSlowOperations ?? true,
@@ -404,7 +404,7 @@ export class ConfigurationService {
   }
 
   private discoverUserConfig(): string[] {
-    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+    const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
     return [
       path.join(homeDir, '.claude-testing.config.json'),
       path.join(homeDir, '.config', 'claude-testing', 'config.json'),
@@ -424,7 +424,7 @@ export class ConfigurationService {
       .filter(([key]) => key.startsWith(prefix))
       .map(([key, value]) => ({
         key: key.substring(prefix.length), // Remove prefix
-        value: value || '',
+        value: value ?? '',
       }));
 
     // Debug logging
@@ -1183,7 +1183,10 @@ export class ConfigurationService {
     for (const source of this.sources) {
       if (source.loaded) {
         logger.debug(`Merging source: ${source.type}`, { data: source.data });
-        mergedConfig = this.deepMerge(mergedConfig as Record<string, unknown>, source.data as Record<string, unknown>) as PartialClaudeTestingConfig;
+        mergedConfig = this.deepMerge(
+          mergedConfig as Record<string, unknown>,
+          source.data as Record<string, unknown>
+        ) as PartialClaudeTestingConfig;
       }
       allErrors.push(...source.errors);
       allWarnings.push(...source.warnings);
