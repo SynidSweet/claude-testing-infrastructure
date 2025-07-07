@@ -1598,10 +1598,17 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
     taskMetrics: { complexity: string; count: number; avgSuccessTime: number }[];
     totalTasksWithMetrics: number;
   } {
-    const patterns = this.failurePatternDetector.getPatternStats() as Map<
-      string,
-      { count: number; lastSeen: string; suggestion: string }
-    >;
+    const rawPatterns = this.failurePatternDetector.getPatternStats();
+    const patterns = new Map<string, { count: number; lastSeen: string; suggestion: string }>();
+
+    // Transform the pattern data to match expected interface
+    for (const [key, value] of rawPatterns) {
+      patterns.set(key, {
+        count: value.count,
+        lastSeen: value.lastSeen.toISOString(),
+        suggestion: `Consider using ${value.successfulRetryStrategies.length > 0 ? value.successfulRetryStrategies[0] : 'default'} strategy`,
+      });
+    }
 
     // Aggregate task metrics by complexity
     const complexityGroups = new Map<string, { times: number[]; count: number }>();

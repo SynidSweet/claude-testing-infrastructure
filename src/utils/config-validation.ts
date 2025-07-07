@@ -431,7 +431,7 @@ export class ConfigurationManager {
             );
             errors.push(error);
           } else {
-            (mergedConfig.features as any)[key] = value;
+            (mergedConfig.features as Record<string, boolean>)[key] = value;
           }
         } else {
           const similarFields = findSimilarFields(key, booleanFeatures);
@@ -598,7 +598,7 @@ export class ConfigurationManager {
   }
 
   private validateNamingConventions(
-    naming: any,
+    naming: unknown,
     mergedConfig: ClaudeTestingConfig,
     errors: string[]
   ): void {
@@ -607,33 +607,35 @@ export class ConfigurationManager {
       return;
     }
 
-    if (naming.testFileSuffix !== undefined) {
-      if (typeof naming.testFileSuffix !== 'string') {
+    const namingObj = naming as Record<string, unknown>;
+
+    if (namingObj.testFileSuffix !== undefined) {
+      if (typeof namingObj.testFileSuffix !== 'string') {
         errors.push('generation.naming.testFileSuffix must be a string');
       } else {
-        mergedConfig.generation.naming!.testFileSuffix = naming.testFileSuffix;
+        mergedConfig.generation.naming!.testFileSuffix = namingObj.testFileSuffix;
       }
     }
 
-    if (naming.testDirectory !== undefined) {
-      if (typeof naming.testDirectory !== 'string') {
+    if (namingObj.testDirectory !== undefined) {
+      if (typeof namingObj.testDirectory !== 'string') {
         errors.push('generation.naming.testDirectory must be a string');
       } else {
-        mergedConfig.generation.naming!.testDirectory = naming.testDirectory;
+        mergedConfig.generation.naming!.testDirectory = namingObj.testDirectory;
       }
     }
 
-    if (naming.mockFileSuffix !== undefined) {
-      if (typeof naming.mockFileSuffix !== 'string') {
+    if (namingObj.mockFileSuffix !== undefined) {
+      if (typeof namingObj.mockFileSuffix !== 'string') {
         errors.push('generation.naming.mockFileSuffix must be a string');
       } else {
-        mergedConfig.generation.naming!.mockFileSuffix = naming.mockFileSuffix;
+        mergedConfig.generation.naming!.mockFileSuffix = namingObj.mockFileSuffix;
       }
     }
   }
 
   private validateTestTypes(
-    testTypes: any,
+    testTypes: unknown,
     mergedConfig: ClaudeTestingConfig,
     errors: string[]
   ): void {
@@ -744,7 +746,7 @@ export class ConfigurationManager {
   }
 
   private validateCoverageThresholds(
-    thresholds: any,
+    thresholds: unknown,
     mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
@@ -754,15 +756,18 @@ export class ConfigurationManager {
       return;
     }
 
+    const thresholdsObj = thresholds as Record<string, unknown>;
+
     // Validate global thresholds
-    if (thresholds.global !== undefined) {
-      if (typeof thresholds.global !== 'object' || thresholds.global === null) {
+    if (thresholdsObj.global !== undefined) {
+      if (typeof thresholdsObj.global !== 'object' || thresholdsObj.global === null) {
         errors.push('coverage.thresholds.global must be an object');
       } else {
+        const globalObj = thresholdsObj.global as Record<string, unknown>;
         const metrics = ['lines', 'functions', 'branches', 'statements'];
         for (const metric of metrics) {
-          if (thresholds.global[metric] !== undefined) {
-            const value = thresholds.global[metric];
+          if (globalObj[metric] !== undefined) {
+            const value = globalObj[metric];
             if (typeof value !== 'number') {
               const warning = ConfigErrorFormatter.formatError({
                 field: `coverage.thresholds.global.${metric}`,
@@ -782,7 +787,7 @@ export class ConfigurationManager {
               });
               warnings.push(warning);
             } else {
-              (mergedConfig.coverage.thresholds!.global as any)[metric] = value;
+              (mergedConfig.coverage.thresholds!.global as Record<string, number>)[metric] = value;
               if (value > 95) {
                 warnings.push(`Very high coverage threshold for ${metric}: ${value}%`);
               }
@@ -1017,7 +1022,7 @@ export class ConfigurationManager {
   }
 
   private validateLegacyAIOptions(
-    aiOptions: any,
+    aiOptions: unknown,
     mergedConfig: ClaudeTestingConfig,
     errors: string[],
     warnings: string[]
@@ -1027,14 +1032,19 @@ export class ConfigurationManager {
       return;
     }
 
+    const aiOptionsObj = aiOptions as Record<string, unknown>;
+
     // Validate fields that exist in AIOptions
-    if (aiOptions.maxTokens !== undefined) {
-      if (!Number.isInteger(aiOptions.maxTokens)) {
+    if (aiOptionsObj.maxTokens !== undefined) {
+      if (!Number.isInteger(aiOptionsObj.maxTokens)) {
         errors.push('aiOptions.maxTokens must be an integer');
-      } else if (aiOptions.maxTokens < 256 || aiOptions.maxTokens > 8192) {
+      } else if (
+        (aiOptionsObj.maxTokens as number) < 256 ||
+        (aiOptionsObj.maxTokens as number) > 8192
+      ) {
         const warning = ConfigErrorFormatter.formatError({
           field: 'aiOptions.maxTokens',
-          value: aiOptions.maxTokens,
+          value: aiOptionsObj.maxTokens,
           message: `Value should be between 256 and 8192`,
           suggestion: 'Use a value between 1000 and 4000 for optimal results',
           example: '2000',
@@ -1042,21 +1052,21 @@ export class ConfigurationManager {
         warnings.push(warning);
       } else {
         if (mergedConfig.aiOptions) {
-          mergedConfig.aiOptions.maxTokens = aiOptions.maxTokens;
+          mergedConfig.aiOptions.maxTokens = aiOptionsObj.maxTokens as number;
         }
       }
     }
 
     // Validate temperature
-    if (aiOptions.temperature !== undefined) {
+    if (aiOptionsObj.temperature !== undefined) {
       if (
-        typeof aiOptions.temperature !== 'number' ||
-        aiOptions.temperature < 0 ||
-        aiOptions.temperature > 1
+        typeof aiOptionsObj.temperature !== 'number' ||
+        aiOptionsObj.temperature < 0 ||
+        aiOptionsObj.temperature > 1
       ) {
         const warning = ConfigErrorFormatter.formatError({
           field: 'aiOptions.temperature',
-          value: aiOptions.temperature,
+          value: aiOptionsObj.temperature,
           message: `Value must be between 0.0 and 1.0`,
           suggestion: 'Use a value between 0.2 and 0.8 for balanced results',
           example: '0.7',
@@ -1066,14 +1076,14 @@ export class ConfigurationManager {
     }
 
     // Map other fields to their proper locations
-    if (aiOptions.model !== undefined) {
-      mergedConfig.aiModel = aiOptions.model;
+    if (aiOptionsObj.model !== undefined) {
+      mergedConfig.aiModel = aiOptionsObj.model as any;
     }
-    if (aiOptions.maxCost !== undefined) {
-      mergedConfig.ai.maxCost = aiOptions.maxCost;
+    if (aiOptionsObj.maxCost !== undefined) {
+      mergedConfig.ai.maxCost = aiOptionsObj.maxCost as number;
     }
-    if (aiOptions.temperature !== undefined) {
-      mergedConfig.ai.temperature = aiOptions.temperature;
+    if (aiOptionsObj.temperature !== undefined) {
+      mergedConfig.ai.temperature = aiOptionsObj.temperature as number;
     }
   }
 

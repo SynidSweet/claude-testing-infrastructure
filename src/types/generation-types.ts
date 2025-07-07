@@ -4,12 +4,53 @@
  */
 
 /**
+ * Gap analysis result for logical test generation
+ */
+export interface GapAnalysisResult {
+  fileGaps: FileGap[];
+  totalFiles: number;
+  coveragePercentage: number;
+  missingTests: string[];
+}
+
+/**
+ * File gap information
+ */
+export interface FileGap {
+  filePath: string;
+  hasTests: boolean;
+  testPath?: string;
+  coverage?: number;
+  complexity?: number;
+}
+
+/**
+ * File change information for incremental generation
+ */
+export interface FileChange {
+  filePath: string;
+  changeType: 'added' | 'modified' | 'deleted';
+  lines?: { added: number; removed: number };
+  functions?: string[];
+}
+
+/**
  * Discriminated union for test generation input types
  */
 export type GenerationInput =
   | { type: 'structural'; projectPath: string; config: StructuralGenerationConfig }
-  | { type: 'logical'; projectPath: string; config: LogicalGenerationConfig; gapAnalysis: any }
-  | { type: 'incremental'; projectPath: string; config: IncrementalGenerationConfig; changes: any };
+  | {
+      type: 'logical';
+      projectPath: string;
+      config: LogicalGenerationConfig;
+      gapAnalysis: GapAnalysisResult;
+    }
+  | {
+      type: 'incremental';
+      projectPath: string;
+      config: IncrementalGenerationConfig;
+      changes: FileChange[];
+    };
 
 /**
  * Configuration for structural test generation

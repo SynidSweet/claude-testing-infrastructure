@@ -169,7 +169,15 @@ export class FailurePatternDetector {
     return 'unknown';
   }
 
-  getPatternStats(): Map<string, any> {
+  getPatternStats(): Map<
+    string,
+    {
+      count: number;
+      lastSeen: Date;
+      successfulRetryStrategies: string[];
+      avgTimeToSuccess: number;
+    }
+  > {
     return new Map(this.patterns);
   }
 }
@@ -452,13 +460,13 @@ export async function withRetry<T>(
  */
 export function Retry(options: RetryOptions = {}) {
   return function (
-    _target: any,
+    _target: unknown,
     _propertyKey: string,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
-    const originalMethod = descriptor.value;
+    const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const result = await withRetry(() => originalMethod.apply(this, args), options);
 
       if (!result.success) {

@@ -182,7 +182,9 @@ export class PytestRunner extends TestRunner {
           functions: coverageReport.data.summary.functions,
           lines: coverageReport.data.summary.lines,
           meetsThreshold: coverageReport.meetsThreshold,
-          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data as unknown as Record<string, unknown>),
+          uncoveredLines: this.extractUncoveredLinesFromReport(
+            coverageReport.data as unknown as Record<string, unknown>
+          ),
         };
 
         logger.info('Pytest coverage processing completed', {
@@ -292,7 +294,9 @@ export class PytestRunner extends TestRunner {
     };
   }
 
-  private extractUncoveredLinesFromReport(coverageData: Record<string, unknown>): Record<string, number[]> {
+  private extractUncoveredLinesFromReport(
+    coverageData: Record<string, unknown>
+  ): Record<string, number[]> {
     const uncoveredLines: Record<string, number[]> = {};
 
     if (coverageData && typeof coverageData === 'object' && 'files' in coverageData) {

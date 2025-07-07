@@ -313,6 +313,9 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
       
+      // Simulate process termination after being killed
+      mockProcess.emit('close', 1);
+      
       const results = await processPromise;
       expect(results).toHaveLength(1);
       expect(results[0]?.success).toBe(false);
