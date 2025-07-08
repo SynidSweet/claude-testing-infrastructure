@@ -1,6 +1,6 @@
 # Development Patterns
 
-*Last updated: 2025-07-02 | Added Jest test mock sequencing patterns for asynchronous analyzer components*
+*Last updated: 2025-07-07 | Added advanced type safety patterns with comprehensive interfaces and type guards*
 
 ## Overview
 
@@ -460,6 +460,124 @@ it('should analyze project with files', async () => {
 ### Factory Pattern
 - For test runner selection
 - Already implemented in TestRunnerFactory
+
+## Advanced Type Safety Patterns
+
+### Overview
+Comprehensive type safety patterns for handling external data and unsafe operations. These patterns eliminate `any` types and provide robust validation for complex data structures.
+
+### Type Guard Pattern with External Data
+
+#### Problem Solved
+External data sources (Coverage.py JSON, Jest results, subprocess output) arrive as `unknown` but need safe property access.
+
+#### Implementation
+```typescript
+// 1. Define specific interfaces for expected data structure
+interface CoveragePyFileData {
+  filename?: string;
+  executed_lines?: number[];
+  missing_lines?: number[];
+  excluded_lines?: number[];
+  [key: string]: unknown;
+}
+
+// 2. Create type guard function
+private isCoveragePyFileData(data: unknown): data is CoveragePyFileData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    (typeof (data as Record<string, unknown>).executed_lines === 'undefined' ||
+      Array.isArray((data as Record<string, unknown>).executed_lines)) &&
+    (typeof (data as Record<string, unknown>).missing_lines === 'undefined' ||
+      Array.isArray((data as Record<string, unknown>).missing_lines))
+  );
+}
+
+// 3. Use type guard before accessing properties
+private parseCoverageFileData(fileData: unknown): FileCoverage | null {
+  if (!this.isCoveragePyFileData(fileData)) {
+    return null;
+  }
+  // Now TypeScript knows fileData is CoveragePyFileData
+  const executedLines = fileData.executed_lines ?? [];
+  const missingLines = fileData.missing_lines ?? [];
+  // Safe property access with full type checking
+}
+```
+
+#### Benefits
+- **Eliminates `any` types** - All external data properly typed
+- **Runtime validation** - Catches malformed data at runtime
+- **TypeScript compliance** - Full type checking throughout
+- **Maintainable** - Clear contracts for external data formats
+
+### Buffer and Subprocess Typing Pattern
+
+#### Problem Solved
+Node.js subprocess data events provide `Buffer` objects typed as `any`.
+
+#### Implementation
+```typescript
+// Type subprocess data handlers explicitly
+child.stdout?.on('data', (data: Buffer) => {
+  stdout += data.toString();
+});
+
+child.stderr?.on('data', (data: Buffer) => {
+  stderr += data.toString();
+});
+```
+
+### Configuration Interface Pattern
+
+#### Problem Solved
+Complex configuration objects with optional properties need comprehensive typing.
+
+#### Implementation
+```typescript
+interface JestConfig {
+  testEnvironment?: string;
+  testMatch?: string[];
+  passWithNoTests?: boolean;
+  setupFilesAfterEnv?: string[];
+  preset?: string;
+  extensionsToTreatAsEsm?: string[];
+  moduleNameMapping?: Record<string, string>;
+  transform?: Record<string, string>;
+  transformIgnorePatterns?: string[];
+  [key: string]: unknown; // Allow additional properties
+}
+
+// Use specific return types instead of 'any'
+private generateJestConfig(): JestConfig {
+  const config: JestConfig = {
+    testEnvironment: 'node',
+    testMatch: ['**/*.test.{js,ts,jsx,tsx}'],
+    // Full type safety for all properties
+  };
+  return config;
+}
+```
+
+### Nullish Coalescing Best Practices
+
+#### Pattern
+Replace logical OR (`||`) with nullish coalescing (`??`) for safer property access:
+
+```typescript
+// Before: unsafe for falsy values
+const value = object.property || defaultValue;
+
+// After: only null/undefined trigger default
+const value = object.property ?? defaultValue;
+```
+
+#### Files Using These Patterns
+- `src/runners/CoverageParser.ts` - External data validation
+- `src/runners/JestRunner.ts` - Subprocess typing and configuration
+- `src/runners/CoverageReporter.ts` - Import consolidation
+- Throughout codebase - Nullish coalescing improvements
 
 ## See Also
 - **Architecture Overview**: [`/docs/architecture/overview.md`](../architecture/overview.md)

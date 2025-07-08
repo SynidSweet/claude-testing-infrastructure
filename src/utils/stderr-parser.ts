@@ -159,7 +159,7 @@ export class StderrParser {
 
     // Split by lines but keep incomplete line in buffer
     const lines = this.buffer.split('\n');
-    this.buffer = lines.pop() || '';
+    this.buffer = lines.pop() ?? '';
 
     let warningError: ParsedError | null = null;
 

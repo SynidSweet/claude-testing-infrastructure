@@ -5,19 +5,17 @@
  * and pattern validation for consistent file discovery across components.
  */
 
-import { FileDiscoveryType } from '../types/file-discovery-types';
-
-import type {
-  PatternManager,
-  StandardPatterns,
-  LanguagePatterns,
-  PatternMergeOperation,
-  PatternValidationResult,
-  PatternValidationError,
-  PatternValidationWarning,
+import {
+  FileDiscoveryType,
+  type PatternManager,
+  type StandardPatterns,
+  type LanguagePatterns,
+  type PatternMergeOperation,
+  type PatternValidationResult,
+  type PatternValidationError,
+  type PatternValidationWarning,
+  type FileDiscoveryConfig,
 } from '../types/file-discovery-types';
-
-import type { FileDiscoveryConfig } from '../types/file-discovery-types';
 
 /**
  * Implementation of PatternManager with comprehensive pattern resolution
@@ -36,7 +34,7 @@ export class PatternManagerImpl implements PatternManager {
    */
   getIncludePatterns(type: FileDiscoveryType, languages?: string[]): string[] {
     const patterns = this.getTypePatterns(type);
-    let base = patterns?.includes || ['**/*'];
+    let base = patterns?.includes ?? ['**/*'];
 
     // Apply user configuration if available
     if (this.configService) {
@@ -60,7 +58,7 @@ export class PatternManagerImpl implements PatternManager {
   getExcludePatterns(type: FileDiscoveryType, languages?: string[]): string[] {
     const base = [...this.standardPatterns.baseExcludes];
     const patterns = this.getTypePatterns(type);
-    const typeSpecific = patterns?.excludes || [];
+    const typeSpecific = patterns?.excludes ?? [];
     const languageSpecific = this.getLanguageExcludes(languages);
 
     let allPatterns = [...base, ...typeSpecific, ...languageSpecific];
@@ -383,7 +381,7 @@ export class PatternManagerImpl implements PatternManager {
       return patterns.replaceExcludes;
     }
 
-    return patterns?.additionalExcludes || [];
+    return patterns?.additionalExcludes ?? [];
   }
 
   /**
@@ -397,7 +395,7 @@ export class PatternManagerImpl implements PatternManager {
       return patterns.replaceIncludes;
     }
 
-    return patterns?.additionalIncludes || [];
+    return patterns?.additionalIncludes ?? [];
   }
 
   /**
@@ -421,14 +419,14 @@ export class PatternManagerImpl implements PatternManager {
    */
   private hasInvalidGlobSyntax(pattern: string): boolean {
     // Check for unmatched brackets
-    const openBrackets = (pattern.match(/\[/g) || []).length;
-    const closeBrackets = (pattern.match(/\]/g) || []).length;
+    const openBrackets = (pattern.match(/\[/g) ?? []).length;
+    const closeBrackets = (pattern.match(/\]/g) ?? []).length;
 
     if (openBrackets !== closeBrackets) return true;
 
     // Check for unmatched braces
-    const openBraces = (pattern.match(/\{/g) || []).length;
-    const closeBraces = (pattern.match(/\}/g) || []).length;
+    const openBraces = (pattern.match(/\{/g) ?? []).length;
+    const closeBraces = (pattern.match(/\}/g) ?? []).length;
 
     if (openBraces !== closeBraces) return true;
 

@@ -12,13 +12,20 @@
 import { EventEmitter } from 'events';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { ProjectAnalyzer } from '../analyzers/ProjectAnalyzer';
+import { execSync } from 'child_process';
+import { ProjectAnalyzer, type ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 // import { TestGenerator } from '../generators/TestGenerator'; // Not currently used
-import { TestRunnerFactory } from '../runners/TestRunnerFactory';
-import { TestGapAnalyzer } from '../analyzers/TestGapAnalyzer';
+import { TestRunnerFactory, type TestRunnerConfig } from '../runners/TestRunnerFactory';
+import { TestGapAnalyzer, type TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
 // import { CoverageReporter } from '../runners/CoverageReporter'; // Not currently used
 import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../ai';
 import { logger } from '../utils/logger';
+import type { GapAnalysisResult } from '../types/generation-types';
+
+export interface TestRunResults {
+  results: unknown;
+  coverage?: unknown;
+}
 
 export interface WorkflowConfig {
   // Analysis options
@@ -45,22 +52,29 @@ export interface WorkflowConfig {
   verbose?: boolean;
 }
 
+interface AIGenerationResults {
+  successful: number;
+  failed: number;
+  totalCost: number;
+  totalTokens?: number;
+}
+
 export interface WorkflowResult {
   success: boolean;
-  projectAnalysis: any;
+  projectAnalysis: ProjectAnalysis;
   generatedTests: {
     structural: number;
     logical: number;
   };
-  testResults?: any;
-  coverage?: any;
-  gaps?: any;
-  aiResults?: any;
+  testResults?: unknown;
+  coverage?: unknown;
+  gaps?: GapAnalysisResult;
+  aiResults?: AIGenerationResults;
   totalCost?: number;
   duration: number;
   reports: {
     summary: string;
-    detailed: any;
+    detailed: unknown;
   };
 }
 
@@ -124,21 +138,23 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       // Phase 4: Gap Analysis
       this.emit('phase:start', { phase: 'gap-analysis' });
       const gapReport = await this.analyzeTestGaps(projectPath);
-      result.gaps = gapReport;
-      this.emit('phase:complete', { phase: 'gap-analysis', gaps: gapReport.gaps.length });
+      result.gaps = this.convertToGapAnalysisResult(gapReport);
+      this.emit('phase:complete', { phase: 'gap-analysis', gaps: gapReport.gaps?.length ?? 0 });
 
       // Phase 5: AI Logical Test Generation (if enabled and gaps exist)
-      if (this.config.enableAI && gapReport.gaps.length > 0) {
+      if (this.config.enableAI && gapReport.gaps && gapReport.gaps.length > 0) {
         this.emit('phase:start', { phase: 'ai-generation' });
         const aiResults = await this.generateLogicalTests(gapReport);
         result.aiResults = aiResults;
-        result.generatedTests!.logical = aiResults.successful;
+        if (result.generatedTests) {
+          result.generatedTests.logical = aiResults.successful;
+        }
         result.totalCost = aiResults.totalCost;
         this.emit('phase:complete', { phase: 'ai-generation', results: aiResults });
       }
 
       // Phase 6: Final Test Execution (if AI generated new tests)
-      if (this.config.runTests && result.generatedTests!.logical > 0) {
+      if (this.config.runTests && (result.generatedTests?.logical ?? 0) > 0) {
         this.emit('phase:start', { phase: 'final-execution' });
         const finalResults = await this.runTests(projectPath);
         result.testResults = finalResults.results;
@@ -157,7 +173,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       this.emit('workflow:error', { error });
       result.duration = (Date.now() - this.startTime) / 1000;
       result.reports = {
-        summary: `Workflow failed: ${error}`,
+        summary: `Workflow failed: ${String(error)}`,
         detailed: { error: error instanceof Error ? error.stack : error },
       };
       return result as WorkflowResult;
@@ -167,31 +183,34 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   /**
    * Phase 1: Analyze project
    */
-  private async analyzeProject(projectPath: string): Promise<any> {
+  private async analyzeProject(projectPath: string): Promise<ProjectAnalysis> {
     const analyzer = new ProjectAnalyzer(projectPath);
     const analysis = await analyzer.analyzeProject();
 
-    logger.info(`Analyzed project with ${analysis.languages?.length || 0} languages`);
+    logger.info(`Analyzed project with ${analysis.languages?.length ?? 0} languages`);
     return analysis;
   }
 
   /**
    * Phase 2: Generate structural tests
    */
-  private async generateStructuralTests(projectPath: string, analysis: any): Promise<any[]> {
+  private async generateStructuralTests(
+    projectPath: string,
+    analysis: ProjectAnalysis
+  ): Promise<unknown[]> {
     // Import StructuralTestGenerator since TestGenerator is abstract
     const { StructuralTestGenerator } = await import('../generators/StructuralTestGenerator');
     const config = {
       projectPath,
       outputPath: path.join(projectPath, '.claude-testing', 'tests'),
-      testFramework: this.config.testFramework || 'jest',
+      testFramework: this.config.testFramework ?? 'jest',
       options: {
-        generateMocks: this.config.generateMocks || false,
+        generateMocks: this.config.generateMocks ?? false,
       },
     };
 
     const generator = new StructuralTestGenerator(config, analysis, {
-      generateMocks: this.config.generateMocks || false,
+      generateMocks: this.config.generateMocks ?? false,
     });
 
     const generatedTests = await generator.generateAllTests();
@@ -211,21 +230,21 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     }
 
     logger.info(`Generated ${testCount} structural test files`);
-    return generatedTests.tests || [];
+    return generatedTests.tests ?? [];
   }
 
   /**
    * Phase 3: Run tests
    */
-  private async runTests(projectPath: string): Promise<any> {
+  private async runTests(projectPath: string): Promise<TestRunResults> {
     // Create a temporary ProjectAnalysis for the runner
     const analyzer = new ProjectAnalyzer(projectPath);
     const analysis = await analyzer.analyzeProject();
 
-    const config: any = {
+    const config: TestRunnerConfig = {
       projectPath,
       testPath: path.join(projectPath, '.claude-testing', 'tests'),
-      framework: this.config.testFramework || 'jest',
+      framework: this.config.testFramework ?? 'jest',
     };
 
     if (this.config.coverage) {
@@ -239,13 +258,16 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     const runner = TestRunnerFactory.createRunner(config, analysis);
     const results = await runner.run();
 
-    return { results, coverage: results.coverage };
+    return {
+      results: results as unknown,
+      coverage: (results as { coverage?: unknown }).coverage,
+    };
   }
 
   /**
    * Phase 4: Analyze gaps
    */
-  private async analyzeTestGaps(projectPath: string): Promise<any> {
+  private async analyzeTestGaps(projectPath: string): Promise<TestGapAnalysisResult> {
     const projectAnalyzer = new ProjectAnalyzer(projectPath);
     const projectAnalysis = await projectAnalyzer.analyzeProject();
 
@@ -267,17 +289,42 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
 
     const gapReport = await analyzer.analyzeTestGaps(testGenerationResult);
 
-    logger.info(`Found ${gapReport.gaps?.length || 0} files needing logical tests`);
+    logger.info(`Found ${gapReport.gaps?.length ?? 0} files needing logical tests`);
     return gapReport;
+  }
+
+  /**
+   * Convert TestGapAnalysisResult to GapAnalysisResult for AI
+   */
+  private convertToGapAnalysisResult(testGapResult: TestGapAnalysisResult): GapAnalysisResult {
+    return {
+      fileGaps: testGapResult.gaps.map((gap) => ({
+        filePath: gap.sourceFile,
+        hasTests: gap.currentCoverage.structuralCoverage.estimatedPercentage > 0,
+        testPath: gap.testFile,
+        coverage: gap.currentCoverage.structuralCoverage.estimatedPercentage,
+        complexity:
+          typeof gap.complexity === 'object' &&
+          gap.complexity !== null &&
+          'overall' in gap.complexity
+            ? (gap.complexity as { overall: number }).overall
+            : 0,
+      })),
+      totalFiles: testGapResult.summary.totalFiles,
+      coveragePercentage:
+        (testGapResult.summary.filesWithTests / testGapResult.summary.totalFiles) * 100,
+      missingTests: testGapResult.gaps.map((gap) => gap.sourceFile),
+    };
   }
 
   /**
    * Phase 5: Generate logical tests with AI
    */
-  private async generateLogicalTests(gapReport: any): Promise<any> {
+  private async generateLogicalTests(
+    gapAnalysis: TestGapAnalysisResult
+  ): Promise<AIGenerationResults> {
     // Check if Claude is available
     try {
-      const { execSync } = require('child_process') as typeof import('child_process');
       execSync('which claude', { stdio: 'ignore' });
     } catch {
       logger.warn('Claude CLI not found - skipping AI generation');
@@ -287,17 +334,17 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     // Prepare AI tasks with chunking support
     const taskPrep = new ChunkedAITaskPreparation({
       model: `claude-3-${this.config.aiModel}`,
-      maxConcurrentTasks: this.config.aiConcurrency || 3,
-      minComplexityForAI: this.config.minComplexityForAI || 5,
+      maxConcurrentTasks: this.config.aiConcurrency ?? 3,
+      minComplexityForAI: this.config.minComplexityForAI ?? 5,
       enableChunking: true,
     });
 
-    const batch = await taskPrep.prepareTasks(gapReport);
+    const batch = await taskPrep.prepareTasks(gapAnalysis);
 
     // Apply budget optimization if specified
     if (this.config.aiBudget) {
       const estimator = new CostEstimator(`claude-3-${this.config.aiModel}`);
-      const optimization = estimator.optimizeForBudget(gapReport, this.config.aiBudget);
+      const optimization = estimator.optimizeForBudget(gapAnalysis, this.config.aiBudget);
 
       batch.tasks = batch.tasks.filter((task) => {
         const allocation = optimization.allocations.find((a) => a.file === task.sourceFile);
@@ -307,14 +354,14 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
 
     // Execute AI generation
     const orchestrator = new ClaudeOrchestrator({
-      maxConcurrent: this.config.aiConcurrency || 3,
+      maxConcurrent: this.config.aiConcurrency ?? 3,
       model: `claude-3-${this.config.aiModel}`,
-      verbose: this.config.verbose || false,
+      verbose: this.config.verbose ?? false,
     });
 
     // Track progress
     orchestrator.on('task:complete', ({ task }) => {
-      this.emit('ai:task-complete', { file: task.sourceFile });
+      this.emit('ai:task-complete', { file: (task as { sourceFile?: string }).sourceFile });
     });
 
     const results = await orchestrator.processBatch(batch);
@@ -326,9 +373,8 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     return {
       successful,
       failed,
-      totalCost: stats.totalCost,
-      totalTokens: stats.totalTokensUsed,
-      duration: stats.totalDuration,
+      totalCost: (stats as { totalCost?: number }).totalCost ?? 0,
+      totalTokens: (stats as { totalTokensUsed?: number }).totalTokensUsed ?? 0,
     };
   }
 
@@ -338,7 +384,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   private async generateReports(
     projectPath: string,
     result: Partial<WorkflowResult>
-  ): Promise<{ summary: string; detailed: any }> {
+  ): Promise<{ summary: string; detailed: unknown }> {
     const summary = this.generateSummaryReport(result);
     const detailed = {
       timestamp: new Date().toISOString(),
@@ -379,28 +425,22 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       '## Results',
       '',
       '### Test Generation',
-      `- Structural tests: ${result.generatedTests?.structural || 0}`,
-      `- Logical tests (AI): ${result.generatedTests?.logical || 0}`,
-      `- Total tests: ${(result.generatedTests?.structural || 0) + (result.generatedTests?.logical || 0)}`,
+      `- Structural tests: ${result.generatedTests?.structural ?? 0}`,
+      `- Logical tests (AI): ${result.generatedTests?.logical ?? 0}`,
+      `- Total tests: ${(result.generatedTests?.structural ?? 0) + (result.generatedTests?.logical ?? 0)}`,
       '',
     ];
 
     if (result.coverage) {
-      lines.push(
-        '### Coverage',
-        `- Line coverage: ${result.coverage.summary.lines.percentage.toFixed(1)}%`,
-        `- Branch coverage: ${result.coverage.summary.branches.percentage.toFixed(1)}%`,
-        `- Function coverage: ${result.coverage.summary.functions.percentage.toFixed(1)}%`,
-        ''
-      );
+      lines.push('### Coverage', `- Coverage data available`, '');
     }
 
     if (result.gaps) {
       lines.push(
         '### Gap Analysis',
         `- Files analyzed: ${result.gaps.totalFiles}`,
-        `- Files with gaps: ${result.gaps.gaps.length}`,
-        `- Average complexity: ${result.gaps.averageComplexity.toFixed(1)}`,
+        `- Files with gaps: ${result.gaps.fileGaps.length}`,
+        `- Coverage: ${result.gaps.coveragePercentage.toFixed(1)}%`,
         ''
       );
     }
@@ -410,8 +450,8 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
         '### AI Generation',
         `- Successful: ${result.aiResults.successful}`,
         `- Failed: ${result.aiResults.failed}`,
-        `- Total cost: $${result.totalCost?.toFixed(2) || '0.00'}`,
-        `- Tokens used: ${result.aiResults.totalTokens?.toLocaleString() || 0}`,
+        `- Total cost: $${result.totalCost?.toFixed(2) ?? '0.00'}`,
+        `- Tokens used: ${result.aiResults.totalTokens?.toLocaleString() ?? 0}`,
         ''
       );
     }
@@ -419,10 +459,10 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     if (result.projectAnalysis) {
       lines.push(
         '### Project Analysis',
-        `- Language: ${result.projectAnalysis.language}`,
-        `- Framework: ${result.projectAnalysis.framework || 'None detected'}`,
-        `- Total files: ${result.projectAnalysis.metrics.totalFiles}`,
-        `- Total lines: ${result.projectAnalysis.metrics.totalLines}`,
+        `- Languages: ${result.projectAnalysis.languages.map((l) => l.name).join(', ')}`,
+        `- Frameworks: ${result.projectAnalysis.frameworks.map((f) => f.name).join(', ') || 'None detected'}`,
+        `- Total files: ${result.projectAnalysis.complexity.totalFiles}`,
+        `- Total lines: ${result.projectAnalysis.complexity.totalLines}`,
         ''
       );
     }

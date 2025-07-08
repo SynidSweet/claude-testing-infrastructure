@@ -65,7 +65,8 @@ describe('Claude CLI Reliability Improvements', () => {
       const result = await withRetry(operation, {
         maxAttempts: 2,
         initialDelay: 100,
-        maxDelay: 500
+        maxDelay: 500,
+        contextAware: false  // Disable adaptive retry to get predictable behavior
       });
 
       expect(result.success).toBe(false);
@@ -157,7 +158,7 @@ describe('Claude CLI Reliability Improvements', () => {
 
     test('should return placeholder tests when Claude CLI unavailable', async () => {
       // Mock validateClaudeAuth to simulate CLI unavailable
-      jest.spyOn(orchestrator as any, 'validateClaudeAuth').mockResolvedValue({
+      jest.spyOn(orchestrator as any, 'validateClaudeAuth').mockReturnValue({
         authenticated: false,
         error: 'Claude CLI not found',
         canDegrade: true
@@ -205,7 +206,7 @@ describe('Claude CLI Reliability Improvements', () => {
     });
 
     test('should generate Python placeholder tests in degraded mode', async () => {
-      jest.spyOn(orchestrator as any, 'validateClaudeAuth').mockResolvedValue({
+      jest.spyOn(orchestrator as any, 'validateClaudeAuth').mockReturnValue({
         authenticated: false,
         error: 'Not authenticated',
         canDegrade: true

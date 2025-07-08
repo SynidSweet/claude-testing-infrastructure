@@ -3,18 +3,23 @@
  */
 
 import { fs, path, logger } from './common-imports';
-import type {
-  ClaudeTestingConfig,
-  PartialClaudeTestingConfig,
-  ConfigValidationResult,
-  TestFramework,
-  AIModel,
-  CoverageFormat,
-  LogLevel,
-  OutputFormat,
+import {
+  DEFAULT_CONFIG,
+  TestType,
+  type ClaudeTestingConfig,
+  type PartialClaudeTestingConfig,
+  type ConfigValidationResult,
+  type TestFramework,
+  type AIModel,
+  type CoverageFormat,
+  type LogLevel,
+  type OutputFormat,
 } from '../types/config';
-import { DEFAULT_CONFIG, TestType } from '../types/config';
-import { ConfigErrorFormatter, findSimilarFields } from './config-error-messages';
+import {
+  ConfigErrorFormatter,
+  findSimilarFields,
+  type ConfigErrorDetails,
+} from './config-error-messages';
 
 /**
  * Configuration loader and validator
@@ -44,7 +49,7 @@ export class ConfigurationManager {
       configExists = true;
 
       const configContent = await fs.readFile(this.configPath, 'utf8');
-      userConfig = JSON.parse(configContent);
+      userConfig = JSON.parse(configContent) as Record<string, unknown>;
       logger.debug(`Loaded configuration from: ${this.configPath}`);
     } catch (error) {
       if (configExists) {
@@ -113,7 +118,7 @@ export class ConfigurationManager {
     // Start with default configuration or use the provided config if already merged
     const mergedConfig: ClaudeTestingConfig = isAlreadyMerged
       ? (JSON.parse(JSON.stringify(userConfig)) as ClaudeTestingConfig)
-      : JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      : (JSON.parse(JSON.stringify(DEFAULT_CONFIG)) as ClaudeTestingConfig);
 
     try {
       // If already merged, we need to validate the complete config
@@ -372,7 +377,7 @@ export class ConfigurationManager {
           ? `Use '${modelAliases[userConfig.aiModel.toLowerCase()]}' or configure model aliases`
           : undefined;
 
-        const errorDetails: import('./config-error-messages').ConfigErrorDetails = {
+        const errorDetails: ConfigErrorDetails = {
           field: 'aiModel',
           value: userConfig.aiModel,
           message: `Invalid AI model identifier. Valid options: ${validModels.join(', ')}`,
@@ -646,13 +651,13 @@ export class ConfigurationManager {
 
     const validTypes = Object.values(TestType);
     for (const type of testTypes) {
-      if (!validTypes.includes(type)) {
+      if (!validTypes.includes(type as TestType)) {
         errors.push(`Invalid test type: ${type}. Valid options: ${validTypes.join(', ')}`);
       }
     }
 
     if (errors.length === 0) {
-      mergedConfig.generation.testTypes = testTypes;
+      mergedConfig.generation.testTypes = testTypes as TestType[];
     }
   }
 
@@ -1077,7 +1082,7 @@ export class ConfigurationManager {
 
     // Map other fields to their proper locations
     if (aiOptionsObj.model !== undefined) {
-      mergedConfig.aiModel = aiOptionsObj.model as any;
+      mergedConfig.aiModel = aiOptionsObj.model as AIModel;
     }
     if (aiOptionsObj.maxCost !== undefined) {
       mergedConfig.ai.maxCost = aiOptionsObj.maxCost as number;
@@ -1116,7 +1121,10 @@ export class ConfigurationManager {
       warnings.push(warning);
     }
     // Check if AI features are enabled but AI generation is disabled
-    if (!config.features.aiGeneration && (config.features.edgeCases || config.ai.enabled)) {
+    if (
+      !config.features.aiGeneration &&
+      (config.features.edgeCases ?? (false || config.ai.enabled) ?? false)
+    ) {
       const warning = ConfigErrorFormatter.formatError(
         ConfigErrorFormatter.templates.conflictingValues(
           'features.aiGeneration',

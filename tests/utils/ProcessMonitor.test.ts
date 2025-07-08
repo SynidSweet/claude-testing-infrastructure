@@ -1,5 +1,6 @@
 import { ProcessMonitor } from '../../src/utils/ProcessMonitor';
 import { execSync } from 'child_process';
+import { AsyncTestUtils } from '../../src/utils/AsyncTestUtils';
 
 // Mock execSync for testing
 jest.mock('child_process');
@@ -7,9 +8,18 @@ const mockedExecSync = execSync as jest.MockedFunction<typeof execSync>;
 
 describe('ProcessMonitor', () => {
   let processMonitor: ProcessMonitor;
+  let timerUtils: ReturnType<typeof AsyncTestUtils.setupAsyncTesting>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Use AsyncTestUtils for reliable timer setup
+    timerUtils = AsyncTestUtils.setupAsyncTesting({
+      useFakeTimers: true,
+      defaultTimeout: 30000,
+      defaultEventLoopTicks: 3
+    });
+    
     processMonitor = new ProcessMonitor({
       cpuThreshold: 80,
       memoryThreshold: 80,
@@ -21,6 +31,7 @@ describe('ProcessMonitor', () => {
 
   afterEach(() => {
     processMonitor.stopAll();
+    timerUtils.cleanup();
   });
 
   describe('constructor', () => {
@@ -269,8 +280,8 @@ describe('ProcessMonitor', () => {
 
       processMonitor.startMonitoring(12345);
       
-      // Wait for at least one monitoring cycle
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // Wait for at least one monitoring cycle using fake timers
+      await timerUtils.advance(1100);
       
       const history = processMonitor.getHistory(12345);
       expect(history.length).toBeGreaterThan(0);
@@ -287,8 +298,8 @@ describe('ProcessMonitor', () => {
       const monitor = new ProcessMonitor({ maxHistory: 2, checkInterval: 100 });
       monitor.startMonitoring(12345);
       
-      // Wait for multiple cycles
-      await new Promise(resolve => setTimeout(resolve, 350));
+      // Wait for multiple cycles using fake timers
+      await timerUtils.advance(350);
       
       const history = monitor.getHistory(12345);
       expect(history.length).toBeLessThanOrEqual(2);

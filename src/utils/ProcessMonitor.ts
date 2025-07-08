@@ -111,7 +111,7 @@ export class ProcessMonitor {
       const usage = this.captureResourceUsage(pid);
       return usage;
     } catch (error) {
-      logger.debug(`Failed to get resource usage for PID ${pid}: ${error}`);
+      logger.debug(`Failed to get resource usage for PID ${pid}: ${String(error)}`);
       return null;
     }
   }
@@ -121,7 +121,7 @@ export class ProcessMonitor {
    */
   getHealthMetrics(pid: number): ProcessHealthMetrics {
     const resourceUsage = this.getResourceUsage(pid);
-    const history = this.history.get(pid) || [];
+    const history = this.history.get(pid) ?? [];
 
     if (!resourceUsage) {
       return {
@@ -142,7 +142,7 @@ export class ProcessMonitor {
    * Get historical data for a process
    */
   getHistory(pid: number): HistoryEntry[] {
-    return [...(this.history.get(pid) || [])];
+    return [...(this.history.get(pid) ?? [])];
   }
 
   /**
@@ -163,7 +163,7 @@ export class ProcessMonitor {
 
       return zombies;
     } catch (error) {
-      logger.debug(`Failed to detect zombie processes: ${error}`);
+      logger.debug(`Failed to detect zombie processes: ${String(error)}`);
       return [];
     }
   }
@@ -210,7 +210,7 @@ export class ProcessMonitor {
         return;
       }
 
-      const history = this.history.get(pid) || [];
+      const history = this.history.get(pid) ?? [];
       const healthMetrics = this.analyzeHealth(resourceUsage, history);
 
       // Add to history
@@ -245,7 +245,7 @@ export class ProcessMonitor {
         logger.error(`Process ${pid} is in zombie state`);
       }
     } catch (error) {
-      logger.debug(`Error checking process ${pid}: ${error}`);
+      logger.debug(`Error checking process ${pid}: ${String(error)}`);
       // Process might have terminated
       this.stopMonitoring(pid);
     }
@@ -296,11 +296,11 @@ export class ProcessMonitor {
       const parsedMemory = fields[3] ? parseFloat(fields[3]) : 0;
       const parsedRss = fields[4] ? parseInt(fields[4]) : undefined;
       const parsedVsz = fields[5] ? parseInt(fields[5]) : undefined;
-      const parsedState = fields[6] || undefined;
-      const parsedCommand = fields.slice(7).join(' ') || undefined;
+      const parsedState = fields[6] ?? undefined;
+      const parsedCommand = fields.slice(7).join(' ') ?? undefined;
 
       return {
-        pid: parsedPid || pid,
+        pid: parsedPid ?? pid,
         cpu: parsedCpu,
         memory: parsedMemory,
         ...(parsedPpid !== undefined && { ppid: parsedPpid }),
@@ -310,7 +310,7 @@ export class ProcessMonitor {
         ...(parsedCommand && { command: parsedCommand }),
       };
     } catch (error) {
-      logger.debug(`Failed to capture detailed resource usage for PID ${pid}: ${error}`);
+      logger.debug(`Failed to capture detailed resource usage for PID ${pid}: ${String(error)}`);
       // Fallback to basic resource usage
       return this.getBasicResourceUsage(pid);
     }
@@ -344,7 +344,7 @@ export class ProcessMonitor {
 
       return null;
     } catch (error) {
-      logger.debug(`Failed to get basic resource usage for PID ${pid}: ${error}`);
+      logger.debug(`Failed to get basic resource usage for PID ${pid}: ${String(error)}`);
       return null;
     }
   }
@@ -379,8 +379,8 @@ export class ProcessMonitor {
           const parsedPpid = fields[1] ? parseInt(fields[1]) : undefined;
           const parsedCpu = fields[2] ? parseFloat(fields[2]) : 0;
           const parsedMemory = fields[3] ? parseFloat(fields[3]) : 0;
-          const parsedState = fields[4] || 'Z';
-          const parsedCommand = fields.slice(5).join(' ') || 'zombie';
+          const parsedState = fields[4] ?? 'Z';
+          const parsedCommand = fields.slice(5).join(' ') ?? 'zombie';
 
           zombies.push({
             pid: parsedPid,
@@ -396,7 +396,7 @@ export class ProcessMonitor {
       return zombies;
     } catch (error) {
       // ps command might fail if no zombies or insufficient permissions
-      logger.debug(`Failed to find zombie processes: ${error}`);
+      logger.debug(`Failed to find zombie processes: ${String(error)}`);
       return [];
     }
   }
@@ -426,7 +426,7 @@ export class ProcessMonitor {
     }
 
     // Check for zombie state
-    const isZombie = current.state === 'Z' || current.state?.includes('Z') || false;
+    const isZombie = (current.state === 'Z' || current.state?.includes('Z')) ?? false;
     if (isZombie) {
       healthScore -= 50;
       warnings.push('Process is in zombie state');

@@ -1,13 +1,20 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import type { TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
-import { TestRunner } from './TestRunner';
+import {
+  TestRunner,
+  type TestRunnerConfig,
+  type TestResult,
+  type TestFailure,
+  type CoverageResult,
+} from './TestRunner';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
-import type { CoverageReporter, CoverageReporterConfig } from './CoverageReporter';
-import { CoverageReporterFactory } from './CoverageReporter';
-import type { FileDiscoveryService } from '../types/file-discovery-types';
-import { FileDiscoveryType } from '../types/file-discovery-types';
+import {
+  CoverageReporterFactory,
+  type CoverageReporter,
+  type CoverageReporterConfig,
+} from './CoverageReporter';
+import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
 
 /**
  * Pytest test runner implementation
@@ -63,7 +70,7 @@ export class PytestRunner extends TestRunner {
   protected async executeTests(): Promise<TestResult> {
     const { command, args } = this.getRunCommand();
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
 
@@ -73,18 +80,17 @@ export class PytestRunner extends TestRunner {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      child.stdout?.on('data', (data) => {
+      child.stdout?.on('data', (data: Buffer) => {
         stdout += data.toString();
       });
 
-      child.stderr?.on('data', (data) => {
+      child.stderr?.on('data', (data: Buffer) => {
         stderr += data.toString();
       });
 
-      child.on('close', async (code) => {
-        const exitCode = code || 0;
-        const result = await this.parseOutput(stdout, stderr, exitCode);
-        resolve(result);
+      child.on('close', (code) => {
+        const exitCode = code ?? 0;
+        void this.parseOutput(stdout, stderr, exitCode).then(resolve).catch(reject);
       });
 
       child.on('error', (error) => {
@@ -224,9 +230,9 @@ export class PytestRunner extends TestRunner {
         /=+\s*(?:(\d+)\s+passed[,\s]*)?(?:(\d+)\s+failed[,\s]*)?(?:(\d+)\s+skipped[,\s]*)?.*?in\s+[\d.]+s\s*=+/
       );
       if (summaryMatch) {
-        passed = parseInt(summaryMatch[1] || '0');
-        failed = parseInt(summaryMatch[2] || '0');
-        skipped = parseInt(summaryMatch[3] || '0');
+        passed = parseInt(summaryMatch[1] ?? '0');
+        failed = parseInt(summaryMatch[2] ?? '0');
+        skipped = parseInt(summaryMatch[3] ?? '0');
         tests = passed + failed + skipped;
       }
 
@@ -235,9 +241,9 @@ export class PytestRunner extends TestRunner {
         const failureMatch = line.match(/FAILED\s+(.+?)::(.*?)\s+-\s*(.*)/);
         if (failureMatch) {
           failures.push({
-            suite: failureMatch[1] || 'Unknown Suite',
-            test: failureMatch[2] || 'Unknown Test',
-            message: failureMatch[3] || 'Test failed',
+            suite: failureMatch[1] ?? 'Unknown Suite',
+            test: failureMatch[2] ?? 'Unknown Test',
+            message: failureMatch[3] ?? 'Test failed',
           });
         }
       }

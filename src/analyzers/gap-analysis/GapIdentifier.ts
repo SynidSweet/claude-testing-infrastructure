@@ -1,5 +1,7 @@
-import { IdentifiedGap, GapPriority, CoverageAnalysis } from '../TestGapAnalyzer';
-import { GeneratedTest, TestType } from '../../generators/TestGenerator';
+import type { IdentifiedGap, CoverageAnalysis } from '../TestGapAnalyzer';
+import { GapPriority } from '../TestGapAnalyzer';
+import type { GeneratedTest } from '../../generators/TestGenerator';
+import { TestType } from '../../generators/TestGenerator';
 
 /**
  * Gap Identifier - Identifies specific gaps requiring AI generation

@@ -1,4 +1,8 @@
-import { GapReportSchema, ActionableInsight, VisualizationConfig } from '../GapReportGenerator';
+import type {
+  GapReportSchema,
+  ActionableInsight,
+  VisualizationConfig,
+} from '../GapReportGenerator';
 
 /**
  * Report Visualization Service - Creates ASCII art and visual formatting

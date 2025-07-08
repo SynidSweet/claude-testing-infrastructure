@@ -174,7 +174,7 @@ export class ChunkedAITaskPreparation {
     const frameworkInfo = this.detectFrameworkInfo(gap.sourceFile, sourceCode);
 
     // Chunk the file
-    const chunks = await FileChunker.chunkFile(sourceCode, {
+    const chunks = FileChunker.chunkFile(sourceCode, {
       maxTokensPerChunk: this.chunkedConfig.chunkTokenLimit,
       overlapTokens: 200,
       preserveContext: true,

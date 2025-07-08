@@ -7,8 +7,11 @@
 
 import type { ChildProcess } from 'child_process';
 import { logger } from './logger';
-import type { ProcessResourceUsage, ProcessHealthMetrics } from './ProcessMonitor';
-import { ProcessMonitor } from './ProcessMonitor';
+import {
+  ProcessMonitor,
+  type ProcessResourceUsage,
+  type ProcessHealthMetrics,
+} from './ProcessMonitor';
 
 export interface ResourceLimitConfig {
   /** Maximum CPU usage percentage before warning (default: 80) */
@@ -80,7 +83,6 @@ export class ResourceLimitWrapper {
     const warnings: string[] = [];
     let terminated = false;
     let terminationReason: string | undefined;
-    let finalResourceUsage: ProcessResourceUsage | undefined;
 
     if (!pid) {
       return {
@@ -160,7 +162,7 @@ export class ResourceLimitWrapper {
     // Wait for process completion
     const exitResult = await new Promise<{ exitCode: number }>((resolve) => {
       process.on('exit', (code) => {
-        resolve({ exitCode: code || 0 });
+        resolve({ exitCode: code ?? 0 });
       });
 
       process.on('error', (error) => {
@@ -175,8 +177,7 @@ export class ResourceLimitWrapper {
     clearInterval(resourceCheckInterval);
 
     // Get final resource usage
-    const resourceUsage = this.processMonitor.getResourceUsage(pid);
-    finalResourceUsage = resourceUsage || undefined;
+    const finalResourceUsage = this.processMonitor.getResourceUsage(pid);
     this.processMonitor.stopMonitoring(pid);
 
     const success = !terminated && exitResult.exitCode === 0;
@@ -193,8 +194,8 @@ export class ResourceLimitWrapper {
     return {
       success,
       exitCode: exitResult.exitCode,
-      terminationReason: terminationReason || undefined,
-      finalResourceUsage,
+      terminationReason: terminationReason ?? undefined,
+      finalResourceUsage: finalResourceUsage ?? undefined,
       violations,
       warnings,
     };

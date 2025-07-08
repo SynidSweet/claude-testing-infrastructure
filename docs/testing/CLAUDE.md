@@ -13,10 +13,12 @@ This guide helps AI agents understand testing documentation, validation systems,
 ### Document Organization
 ```
 testing/
-├── ai-agent-validation.md    # AI agent validation framework
-├── test-strategy.md          # Testing strategy (future)
-├── validation-guide.md       # Validation procedures (future)
-└── quality-gates.md          # Quality standards (future)
+├── ai-agent-validation.md       # AI agent validation framework
+├── timer-testing-patterns.md    # Timer/async testing patterns guide
+├── timer-testing-troubleshooting.md # Timer test issue resolution
+├── test-strategy.md             # Testing strategy (future)
+├── validation-guide.md          # Validation procedures (future)
+└── quality-gates.md             # Quality standards (future)
 ```
 
 ### Current Documents Overview
@@ -25,6 +27,16 @@ testing/
 **Purpose**: Comprehensive validation framework for AI agent functionality  
 **When to reference**: Validating AI features or setting up quality gates  
 **Key content**: Validation procedures, quality metrics, automated testing
+
+#### Timer Testing Patterns (`timer-testing-patterns.md`)
+**Purpose**: Standardized patterns for testing timer-based and async operations  
+**When to reference**: Writing tests involving timers, async operations, or process lifecycle  
+**Key content**: Jest fake timer patterns, event loop coordination, process testing
+
+#### Timer Testing Troubleshooting (`timer-testing-troubleshooting.md`)
+**Purpose**: Solutions for common timer test issues and debugging techniques  
+**When to reference**: Debugging flaky tests, timeouts, or timer-related failures  
+**Key content**: Issue diagnosis, solutions, debugging tools, emergency fixes
 
 ### Future Testing Documents
 - **Test Strategy**: Overall testing approach and methodologies
@@ -269,6 +281,18 @@ Validate that AI-generated tests contain meaningful assertions
 2. Run appropriate validation test suite
 3. Review quality metrics and reports
 4. Address any failing validation criteria
+
+### Writing timer/async tests?
+1. Check `timer-testing-patterns.md` for standardized patterns
+2. Use proper Jest fake timer configuration
+3. Add event loop coordination with Promise.resolve()
+4. Reference troubleshooting guide for common issues
+
+### Debugging timer test issues?
+1. Check `timer-testing-troubleshooting.md` for solutions
+2. Verify timer mocking and cleanup
+3. Add proper event loop coordination
+4. Use debugging techniques for diagnosis
 
 ### Adding new tests?
 1. Follow established test structure patterns

@@ -1,4 +1,4 @@
-import { ComplexityScore } from '../TestGapAnalyzer';
+import type { ComplexityScore } from '../TestGapAnalyzer';
 
 /**
  * Complexity Calculator - Calculates code complexity metrics

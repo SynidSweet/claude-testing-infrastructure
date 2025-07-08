@@ -1,10 +1,13 @@
 /**
  * Tests for ClaudeOrchestrator heartbeat monitoring functionality
+ * Updated to use AsyncTestUtils framework for improved reliability
  */
 
 import { ClaudeOrchestrator } from '../../src/ai/ClaudeOrchestrator';
 import type { AITaskBatch, TaskContext } from '../../src/ai/AITaskPreparation';
 import { EventEmitter } from 'events';
+import { TimerTestUtils } from '../../src/utils/TimerTestUtils';
+import { createRealTimer } from '../../src/utils/TimerFactory';
 
 // Mock child_process
 jest.mock('child_process', () => ({
@@ -58,7 +61,9 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
+    
+    // Setup fake timers for deterministic timer testing
+    TimerTestUtils.setupFakeTimers();
     
     // Mock Claude CLI availability check
     mockExecSync.mockImplementation((cmd: string) => {
@@ -80,11 +85,13 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
     orchestrator = new ClaudeOrchestrator({
       timeout: 60000, // 1 minute for testing
       maxConcurrent: 1,
+      timerService: createRealTimer(), // Use RealTimer so Jest can fake the native timers
     });
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
+  afterEach(async () => {
+    await orchestrator.killAll();
+    TimerTestUtils.cleanupTimers();
   });
 
   describe('Heartbeat Initialization', () => {
@@ -100,7 +107,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const batchPromise = orchestrator.processBatch(batch);
       
       // Wait for process to be spawned
-      await Promise.resolve();
+      await TimerTestUtils.waitForEvents();
       
       // Verify process is spawned
       expect(mockSpawn).toHaveBeenCalled();
@@ -175,25 +182,16 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const batchPromise = orchestrator.processBatch(batch);
       
       // Wait for process to be spawned and heartbeat monitoring to start
-      await Promise.resolve();
-      await Promise.resolve(); // Extra tick to ensure heartbeat is fully set up
+      await TimerTestUtils.waitForEvents();
+      await TimerTestUtils.waitForEvents(); // Extra wait to ensure heartbeat is fully set up
       
       // Advance past heartbeat intervals to trigger dead process check
       // Heartbeat interval is 30 seconds, dead threshold is 120 seconds
-      jest.advanceTimersByTime(30000); // First interval
-      await Promise.resolve();
-      
-      jest.advanceTimersByTime(30000); // Second interval (60s total)
-      await Promise.resolve();
-      
-      jest.advanceTimersByTime(30000); // Third interval (90s total)
-      await Promise.resolve();
-      
-      jest.advanceTimersByTime(30000); // Fourth interval (120s total)
-      await Promise.resolve();
-      
-      jest.advanceTimersByTime(1000); // Just past the dead process threshold
-      await Promise.resolve();
+      await TimerTestUtils.advanceTimersAndFlush(30000); // First interval
+      await TimerTestUtils.advanceTimersAndFlush(30000); // Second interval (60s total)
+      await TimerTestUtils.advanceTimersAndFlush(30000); // Third interval (90s total)
+      await TimerTestUtils.advanceTimersAndFlush(30000); // Fourth interval (120s total)
+      await TimerTestUtils.advanceTimersAndFlush(1000); // Just past the dead process threshold
 
       // Verify dead process event was emitted
       expect(processDeadHandler).toHaveBeenCalledWith(
@@ -207,7 +205,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
       
       // Wait for SIGKILL timeout
-      jest.advanceTimersByTime(5000);
+      await TimerTestUtils.advanceTimersAndFlush(5000);
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGKILL');
 
       // Complete the process with timeout
@@ -235,16 +233,17 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const batchPromise = orchestrator.processBatch(batch);
       
       // Wait for process to be spawned and heartbeat monitoring to start
-      await Promise.resolve();
+      await TimerTestUtils.waitForEvents();
+      
+      // Allow heartbeat monitoring to be set up
+      await TimerTestUtils.waitForEvents();
       
       // Since the initial check happens immediately, we need to wait
       // for the first actual interval to trigger
-      jest.advanceTimersByTime(30000); // First interval (should not trigger slow yet)
-      await Promise.resolve();
+      await TimerTestUtils.advanceTimersAndFlush(30000); // First interval (should not trigger slow yet)
       
       // Now advance past the heartbeat interval threshold (30s) from last activity
-      jest.advanceTimersByTime(30000); // Second interval - 60s total, should detect slow
-      await Promise.resolve();
+      await TimerTestUtils.advanceTimersAndFlush(30000); // Second interval - 60s total, should detect slow
 
       // Verify slow process event was emitted
       expect(processSlowHandler).toHaveBeenCalledWith(
@@ -288,7 +287,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const processDeadHandler = jest.fn();
       orchestrator.on('process:dead', processDeadHandler);
       
-      jest.advanceTimersByTime(180000); // 3 minutes
+      await TimerTestUtils.advanceTimersAndFlush(180000); // 3 minutes
       
       expect(processDeadHandler).not.toHaveBeenCalled();
     });
@@ -318,7 +317,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const processDeadHandler = jest.fn();
       orchestrator.on('process:dead', processDeadHandler);
       
-      jest.advanceTimersByTime(180000); // 3 minutes
+      await TimerTestUtils.advanceTimersAndFlush(180000); // 3 minutes
       
       expect(processDeadHandler).not.toHaveBeenCalled();
     });
@@ -334,12 +333,14 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
 
       const batchPromise = orchestrator.processBatch(batch);
       
-      // Allow process to start
+      // Allow process to start and heartbeat monitoring to be set up
       await Promise.resolve();
       await Promise.resolve();
       
-      // Trigger timeout (60 seconds in test config)
-      jest.advanceTimersByTime(60000);
+      // Trigger timeout (300 seconds in test config, so advance much further)
+      await TimerTestUtils.advanceTimersAndFlush(300000);
+      await Promise.resolve();
+      jest.runOnlyPendingTimers();
       
       // Give event loop a chance to process timeout
       await Promise.resolve();
@@ -359,11 +360,12 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const processDeadHandler = jest.fn();
       orchestrator.on('process:dead', processDeadHandler);
       
-      jest.advanceTimersByTime(180000); // 3 minutes
+      await TimerTestUtils.advanceTimersAndFlush(180000); // 3 minutes
       await Promise.resolve();
+      jest.runOnlyPendingTimers();
       
       expect(processDeadHandler).not.toHaveBeenCalled();
-    }, 45000);
+    }, 10000);
 
     it('should cleanup all heartbeats when batch completes', async () => {
       const batch: AITaskBatch = {
@@ -412,7 +414,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const processDeadHandler = jest.fn();
       orchestrator.on('process:dead', processDeadHandler);
       
-      jest.advanceTimersByTime(180000); // 3 minutes
+      await TimerTestUtils.advanceTimersAndFlush(180000); // 3 minutes
       await Promise.resolve();
       
       expect(processDeadHandler).not.toHaveBeenCalled();
@@ -435,8 +437,11 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       const batchPromise = orchestrator.processBatch(batch);
       await Promise.resolve();
 
+      // Wait for the timeout progress tracking to be set up
+      await TimerTestUtils.waitForEvents(3);
+      
       // Advance to 50% of timeout (30 seconds of 60 second timeout)
-      jest.advanceTimersByTime(30000);
+      await TimerTestUtils.advanceTimersAndFlush(30000);
 
       expect(timeoutWarningHandler).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -471,21 +476,21 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       await Promise.resolve();
 
       // Advance to 50% of timeout
-      jest.advanceTimersByTime(31000); // A bit past 50% to ensure trigger
+      await TimerTestUtils.advanceTimersAndFlush(31000); // A bit past 50% to ensure trigger
       expect(timeoutWarningHandler).toHaveBeenCalledTimes(1);
       expect(timeoutWarningHandler).toHaveBeenLastCalledWith(
         expect.objectContaining({ threshold: 50 })
       );
 
       // Advance to 75% of timeout
-      jest.advanceTimersByTime(20000); // Total 51 seconds (well past 75% to ensure trigger)
+      await TimerTestUtils.advanceTimersAndFlush(20000); // Total 51 seconds (well past 75% to ensure trigger)
       expect(timeoutWarningHandler).toHaveBeenCalledTimes(2);
       expect(timeoutWarningHandler).toHaveBeenLastCalledWith(
         expect.objectContaining({ threshold: 75 })
       );
 
       // Advance to 90% of timeout (but not past it)
-      jest.advanceTimersByTime(5000); // Total 56 seconds (93% of 60s timeout)
+      await TimerTestUtils.advanceTimersAndFlush(5000); // Total 56 seconds (93% of 60s timeout)
       expect(timeoutWarningHandler).toHaveBeenCalledTimes(3);
       expect(timeoutWarningHandler).toHaveBeenLastCalledWith(
         expect.objectContaining({ threshold: 90 })
@@ -528,7 +533,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       mockProcess.stderr.emit('data', Buffer.from('Some warnings'));
 
       // Advance to 50% of timeout
-      jest.advanceTimersByTime(30000);
+      await TimerTestUtils.advanceTimersAndFlush(30000);
 
       expect(timeoutWarningHandler).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -568,7 +573,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       progressHandler.mockClear();
 
       // Advance to 50% of timeout
-      jest.advanceTimersByTime(30000);
+      await TimerTestUtils.advanceTimersAndFlush(30000);
 
       // Find the warning progress event
       const warningCall = progressHandler.mock.calls.find(
@@ -612,7 +617,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       await batchPromise;
 
       // Advance time past all warning thresholds
-      jest.advanceTimersByTime(60000);
+      await TimerTestUtils.advanceTimersAndFlush(60000);
 
       // No warnings should have been emitted
       expect(timeoutWarningHandler).not.toHaveBeenCalled();
@@ -634,7 +639,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       await Promise.resolve();
 
       // Advance to 55% of timeout (past 50% threshold)
-      jest.advanceTimersByTime(33000);
+      await TimerTestUtils.advanceTimersAndFlush(33000);
 
       // Should only have one warning for 50%
       expect(timeoutWarningHandler).toHaveBeenCalledTimes(1);
@@ -643,7 +648,7 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       );
 
       // Advance more but stay below 75%
-      jest.advanceTimersByTime(5000); // Total 38 seconds (63%)
+      await TimerTestUtils.advanceTimersAndFlush(5000); // Total 38 seconds (63%)
 
       // Still only one warning
       expect(timeoutWarningHandler).toHaveBeenCalledTimes(1);
@@ -673,9 +678,9 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       await Promise.resolve();
       
       // Trigger slow process warning - advance past heartbeat interval
-      jest.advanceTimersByTime(30000); // First interval
+      await TimerTestUtils.advanceTimersAndFlush(30000); // First interval
       await Promise.resolve();
-      jest.advanceTimersByTime(5000); // Past the interval to trigger slow
+      await TimerTestUtils.advanceTimersAndFlush(5000); // Past the interval to trigger slow
       await Promise.resolve();
       
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -683,11 +688,11 @@ describe('ClaudeOrchestrator Heartbeat Monitoring', () => {
       );
 
       // Trigger dead process warning - advance past dead threshold
-      jest.advanceTimersByTime(30000); // Second interval (65s total)
+      await TimerTestUtils.advanceTimersAndFlush(30000); // Second interval (65s total)
       await Promise.resolve();
-      jest.advanceTimersByTime(30000); // Third interval (95s total)
+      await TimerTestUtils.advanceTimersAndFlush(30000); // Third interval (95s total)
       await Promise.resolve();
-      jest.advanceTimersByTime(30000); // Fourth interval (125s total, past 120s threshold)
+      await TimerTestUtils.advanceTimersAndFlush(30000); // Fourth interval (125s total, past 120s threshold)
       await Promise.resolve();
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Process task-1 appears to be dead')

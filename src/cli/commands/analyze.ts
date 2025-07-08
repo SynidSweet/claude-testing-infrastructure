@@ -1,5 +1,14 @@
 import { chalk, ora, logger } from '../../utils/common-imports';
-import { ProjectAnalyzer, ProjectAnalysis, DetectedLanguage, DetectedFramework, DetectedPackageManager, TestingSetup, ComplexityMetrics, ProjectStructure } from '../../utils/analyzer-imports';
+import type {
+  ProjectAnalysis,
+  DetectedLanguage,
+  DetectedFramework,
+  DetectedPackageManager,
+  TestingSetup,
+  ComplexityMetrics,
+  ProjectStructure,
+} from '../../utils/analyzer-imports';
+import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 import { ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 import {
@@ -9,7 +18,7 @@ import {
 } from '../../utils/error-handling';
 import { displayConfigurationSources } from '../../utils/config-display';
 
-interface AnalyzeOptions {
+export interface AnalyzeOptions {
   output?: string;
   format?: 'json' | 'markdown' | 'console';
   verbose?: boolean;

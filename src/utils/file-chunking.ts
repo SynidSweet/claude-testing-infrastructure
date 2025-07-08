@@ -71,11 +71,11 @@ export class FileChunker {
     overhead += lines.length * 0.5;
 
     // Code blocks and strings often tokenize differently
-    const codeBlocks = (text.match(/```[\s\S]*?```/g) || []).length;
+    const codeBlocks = (text.match(/```[\s\S]*?```/g) ?? []).length;
     overhead += codeBlocks * 10;
 
     // Long strings and comments
-    const longStrings = (text.match(/["'`][\s\S]{50,}?["'`]/g) || []).length;
+    const longStrings = (text.match(/["'`][\s\S]{50,}?["'`]/g) ?? []).length;
     overhead += longStrings * 5;
 
     return Math.ceil(overhead);
@@ -84,7 +84,7 @@ export class FileChunker {
   /**
    * Split a file into chunks based on token limits
    */
-  static async chunkFile(content: string, options: ChunkingOptions = {}): Promise<FileChunk[]> {
+  static chunkFile(content: string, options: ChunkingOptions = {}): FileChunk[] {
     const {
       maxTokensPerChunk = this.DEFAULT_MAX_TOKENS,
       overlapTokens = this.DEFAULT_OVERLAP_TOKENS,
@@ -111,7 +111,7 @@ export class FileChunker {
       // Check if adding this line would exceed limit
       if (currentTokens + lineTokens > maxTokensPerChunk && currentChunk.length > 0) {
         // Create chunk with overlap from previous chunk
-        const chunkContent = (previousOverlap || '') + currentChunk.join('\n');
+        const chunkContent = (previousOverlap ?? '') + currentChunk.join('\n');
 
         const chunk: FileChunk = {
           chunkIndex: chunks.length,
@@ -132,7 +132,7 @@ export class FileChunker {
 
         // Reset for next chunk
         currentChunk = [];
-        currentTokens = this.countTokens(previousOverlap || '');
+        currentTokens = this.countTokens(previousOverlap ?? '');
         chunkStartLine = i;
       }
 
@@ -142,7 +142,7 @@ export class FileChunker {
 
     // Add final chunk
     if (currentChunk.length > 0) {
-      const chunkContent = (previousOverlap || '') + currentChunk.join('\n');
+      const chunkContent = (previousOverlap ?? '') + currentChunk.join('\n');
       const finalChunk: FileChunk = {
         chunkIndex: chunks.length,
         totalChunks: chunks.length + 1,
@@ -229,11 +229,11 @@ export class FileChunker {
     const imports: string[] = [];
 
     // ES6 imports
-    const es6Imports = content.match(/^import\s+.*?from\s+['"`].*?['"`]/gm) || [];
+    const es6Imports = content.match(/^import\s+.*?from\s+['"`].*?['"`]/gm) ?? [];
     imports.push(...es6Imports);
 
     // CommonJS requires
-    const cjsImports = content.match(/^const\s+\w+\s*=\s*require\s*\(['"`].*?['"`]\)/gm) || [];
+    const cjsImports = content.match(/^const\s+\w+\s*=\s*require\s*\(['"`].*?['"`]\)/gm) ?? [];
     imports.push(...cjsImports);
 
     return imports;
@@ -247,11 +247,11 @@ export class FileChunker {
 
     // Named exports
     const namedExports =
-      content.match(/^export\s+(const|let|function|class|interface|type)\s+\w+/gm) || [];
+      content.match(/^export\s+(const|let|function|class|interface|type)\s+\w+/gm) ?? [];
     exports.push(...namedExports.map((e) => e.replace(/^export\s+/, '')));
 
     // Default export
-    const defaultExport = content.match(/^export\s+default\s+\w+/gm) || [];
+    const defaultExport = content.match(/^export\s+default\s+\w+/gm) ?? [];
     exports.push(...defaultExport);
 
     return exports;
@@ -261,7 +261,7 @@ export class FileChunker {
    * Extract JavaScript/TypeScript classes
    */
   private static extractJSClasses(content: string): string[] {
-    const classes = content.match(/class\s+\w+/g) || [];
+    const classes = content.match(/class\s+\w+/g) ?? [];
     return classes.map((c) => c.replace('class ', ''));
   }
 
@@ -272,16 +272,16 @@ export class FileChunker {
     const functions: string[] = [];
 
     // Regular functions
-    const regularFuncs = content.match(/function\s+\w+\s*\(/g) || [];
+    const regularFuncs = content.match(/function\s+\w+\s*\(/g) ?? [];
     functions.push(...regularFuncs.map((f) => f.replace(/function\s+/, '').replace(/\s*\(/, '')));
 
     // Arrow functions assigned to const/let
-    const arrowFuncs = content.match(/(const|let)\s+\w+\s*=\s*(\(.*?\)|[^=])\s*=>/g) || [];
+    const arrowFuncs = content.match(/(const|let)\s+\w+\s*=\s*(\(.*?\)|[^=])\s*=>/g) ?? [];
     functions.push(
       ...arrowFuncs
         .map((f) => {
           const parts = f.split(/\s+/);
-          return parts[1] || '';
+          return parts[1] ?? '';
         })
         .filter(Boolean)
     );
@@ -296,11 +296,11 @@ export class FileChunker {
     const imports: string[] = [];
 
     // import statements
-    const importStmts = content.match(/^import\s+.+$/gm) || [];
+    const importStmts = content.match(/^import\s+.+$/gm) ?? [];
     imports.push(...importStmts);
 
     // from imports
-    const fromImports = content.match(/^from\s+.+\s+import\s+.+$/gm) || [];
+    const fromImports = content.match(/^from\s+.+\s+import\s+.+$/gm) ?? [];
     imports.push(...fromImports);
 
     return imports;
@@ -310,7 +310,7 @@ export class FileChunker {
    * Extract Python classes
    */
   private static extractPythonClasses(content: string): string[] {
-    const classes = content.match(/^class\s+\w+/gm) || [];
+    const classes = content.match(/^class\s+\w+/gm) ?? [];
     return classes.map((c) => c.replace(/^class\s+/, ''));
   }
 
@@ -318,7 +318,7 @@ export class FileChunker {
    * Extract Python functions
    */
   private static extractPythonFunctions(content: string): string[] {
-    const functions = content.match(/^def\s+\w+/gm) || [];
+    const functions = content.match(/^def\s+\w+/gm) ?? [];
     return functions.map((f) => f.replace(/^def\s+/, ''));
   }
 
@@ -359,7 +359,7 @@ export class FileChunker {
 
     for (const result of results) {
       // Extract imports from each chunk result
-      const importMatches = result.match(/^(import|const|from)\s+.+$/gm) || [];
+      const importMatches = result.match(/^(import|const|from)\s+.+$/gm) ?? [];
       importMatches.forEach((imp) => imports.add(imp));
 
       // Extract test body (everything after imports)

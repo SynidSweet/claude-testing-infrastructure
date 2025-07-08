@@ -10,8 +10,10 @@
 
 import { Command } from 'commander';
 import { chalk, ora, path, fs, logger } from '../../utils/common-imports';
-import { FileWatcher, FileChangeEvent } from '../../utils/FileWatcher';
-import { FileChangeDebouncer, DebouncedEvent } from '../../utils/Debouncer';
+import type { FileChangeEvent } from '../../utils/FileWatcher';
+import { FileWatcher } from '../../utils/FileWatcher';
+import type { DebouncedEvent } from '../../utils/Debouncer';
+import { FileChangeDebouncer } from '../../utils/Debouncer';
 import { IncrementalGenerator } from '../../state/IncrementalGenerator';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
@@ -55,7 +57,7 @@ export const watchCommand = new Command('watch')
   .option('--exclude <patterns...>', 'File patterns to exclude from watching')
   .option('--stats-interval <seconds>', 'Show statistics every N seconds', '30')
   .action(async (projectPath: string, options: WatchOptions) => {
-    let spinner = ora('Initializing watch mode...').start();
+    const spinner = ora('Initializing watch mode...').start();
     let fileWatcher: FileWatcher | null = null;
     let debouncer: FileChangeDebouncer | null = null;
     let incrementalGenerator: IncrementalGenerator | null = null;

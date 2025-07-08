@@ -18,6 +18,13 @@ export interface TestGeneratorConfig {
     include: string[];
     exclude: string[];
   };
+  /** Test generation engine configuration */
+  testGeneration?: TestGenerationEngineConfig;
+}
+
+export interface TestGenerationEngineConfig {
+  /** Test generation engine to use */
+  engine?: 'structural' | 'language-specific';
 }
 
 export interface TestGeneratorOptions {
@@ -33,6 +40,10 @@ export interface TestGeneratorOptions {
   testTypes?: TestType[];
   /** Custom naming conventions */
   namingConventions?: NamingConventions;
+  /** Skip validation checks */
+  skipValidation?: boolean;
+  /** Maximum test-to-source file ratio */
+  maxTestToSourceRatio?: number;
 }
 
 export interface NamingConventions {
@@ -263,8 +274,8 @@ export abstract class TestGenerator {
    * Validate test-to-source file ratio before generation
    */
   protected async validateTestGenerationRatio(filesToTest: string[]): Promise<void> {
-    const config = this.config as any;
-    const skipValidation = config.skipValidation || (this as any).options?.skipValidation;
+    // Check if validation should be skipped via options
+    const skipValidation = this.config.options?.skipValidation === true;
 
     if (skipValidation) {
       logger.debug('Skipping test generation validation due to --force flag');
@@ -283,11 +294,7 @@ export abstract class TestGenerator {
     const ratio = testFileCount / sourceFileCount;
 
     // Use configured threshold or CLI override, with fallback to default
-    const maxRatio =
-      config.maxRatio ||
-      config.generation?.maxTestToSourceRatio ||
-      (this as any).options?.maxRatio ||
-      10; // Default fallback
+    const maxRatio = this.config.options?.maxTestToSourceRatio ?? 10; // Default fallback
 
     logger.debug(
       `Test generation ratio check: ${testFileCount} tests for ${sourceFileCount} source files (ratio: ${ratio.toFixed(2)}x, max: ${maxRatio}x)`
@@ -314,7 +321,7 @@ export abstract class TestGenerator {
         `   To proceed anyway, add the --force flag to your command.`,
       ].join('\n');
 
-      console.log(`\n${message}\n`);
+      logger.error(message);
       throw new Error('Test generation ratio exceeds configured maximum threshold');
     }
 
@@ -326,7 +333,7 @@ export abstract class TestGenerator {
         `   Generating ${testFileCount} tests for ${sourceFileCount} source files (${ratio.toFixed(1)}x ratio).`,
         `   This approaches the ${maxRatio}x limit. Consider reviewing your patterns.`,
       ].join('\n');
-      console.log(`\n${warning}\n`);
+      // Warning already logged below
       logger.warn(warning);
     }
   }

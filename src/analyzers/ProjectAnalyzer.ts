@@ -740,37 +740,50 @@ export class ProjectAnalyzer {
       try {
         const configPath = path.join(this.projectPath, mcpConfigFiles[0]);
         const configContent = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(configContent);
+
+        interface MCPConfig {
+          tools?: Array<{
+            name?: string;
+            description?: string;
+            inputSchema?: unknown;
+          }>;
+          resources?: Array<{
+            name?: string;
+            uri?: string;
+            mimeType?: string;
+          }>;
+          prompts?: Array<{
+            name?: string;
+            description?: string;
+            arguments?: unknown;
+          }>;
+        }
+
+        const config = JSON.parse(configContent) as MCPConfig;
 
         // Extract capabilities from config if available
         if (config.tools) {
-          capabilities.tools = config.tools.map(
-            (tool: { name?: string; description?: string; inputSchema?: unknown }) => ({
-              name: tool.name ?? 'unknown',
-              description: tool.description,
-              inputSchema: tool.inputSchema,
-            })
-          );
+          capabilities.tools = config.tools.map((tool) => ({
+            name: tool.name ?? 'unknown',
+            ...(tool.description ? { description: tool.description } : {}),
+            ...(tool.inputSchema ? { inputSchema: tool.inputSchema } : {}),
+          }));
         }
 
         if (config.resources) {
-          capabilities.resources = config.resources.map(
-            (resource: { name?: string; uri?: string; mimeType?: string }) => ({
-              name: resource.name ?? 'unknown',
-              uri: resource.uri ?? '',
-              mimeType: resource.mimeType,
-            })
-          );
+          capabilities.resources = config.resources.map((resource) => ({
+            name: resource.name ?? 'unknown',
+            uri: resource.uri ?? '',
+            ...(resource.mimeType ? { mimeType: resource.mimeType } : {}),
+          }));
         }
 
         if (config.prompts) {
-          capabilities.prompts = config.prompts.map(
-            (prompt: { name?: string; description?: string; arguments?: unknown }) => ({
-              name: prompt.name ?? 'unknown',
-              description: prompt.description,
-              arguments: prompt.arguments,
-            })
-          );
+          capabilities.prompts = config.prompts.map((prompt) => ({
+            name: prompt.name ?? 'unknown',
+            ...(prompt.description ? { description: prompt.description } : {}),
+            ...(prompt.arguments ? { arguments: prompt.arguments } : {}),
+          }));
         }
       } catch (error) {
         logger.debug('Could not parse MCP config file:', error);
@@ -846,7 +859,7 @@ export class ProjectAnalyzer {
     try {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
-      return JSON.parse(content);
+      return JSON.parse(content) as PackageJsonContent;
     } catch (error) {
       logger.debug('No package.json found or invalid JSON');
       return null;

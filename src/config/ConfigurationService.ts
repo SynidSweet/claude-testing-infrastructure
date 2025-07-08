@@ -18,6 +18,13 @@ import {
   type PartialClaudeTestingConfig,
   type ConfigValidationResult,
   type AIModel,
+  type IncrementalOptions,
+  type WatchOptions,
+  type BaselineOptions,
+  type OutputOptions,
+  type OutputFormat,
+  type TestFramework,
+  type GenerationOptions,
 } from '../types/config';
 import type { FileDiscoveryConfig } from '../types/file-discovery-types';
 
@@ -545,7 +552,7 @@ export class ConfigurationService {
     if (path.length === 0) return;
 
     // Handle special root-level mappings first
-    const upperPath = originalKey || path.join('_').toUpperCase();
+    const upperPath = originalKey ?? path.join('_').toUpperCase();
 
     // Direct root-level mappings
     if (upperPath === 'TEST_FRAMEWORK') {
@@ -911,7 +918,8 @@ export class ConfigurationService {
       }
       // Clean up the ai.options structure
       if (obj.ai && typeof obj.ai === 'object' && 'options' in obj.ai) {
-        delete (obj.ai as any).options;
+        const aiObj = obj.ai as Record<string, unknown>;
+        delete aiObj.options;
         if (Object.keys(obj.ai).length === 0) {
           delete obj.ai;
         }
@@ -920,18 +928,30 @@ export class ConfigurationService {
 
     // Handle baseline flag
     if (upperPath === 'INCREMENTAL_BASELINE') {
-      if (!obj.incremental) obj.incremental = {} as any;
-      (obj.incremental as any).baseline = value;
+      if (!obj.incremental) obj.incremental = {} as IncrementalOptions;
+      if (typeof value === 'string') {
+        try {
+          (obj.incremental as IncrementalOptions).baseline = JSON.parse(value) as BaselineOptions;
+        } catch {
+          // If not valid JSON, treat as autoCreate boolean
+          (obj.incremental as IncrementalOptions).baseline = {
+            autoCreate: value.toLowerCase() === 'true',
+          };
+        }
+      } else {
+        (obj.incremental as IncrementalOptions).baseline = value as BaselineOptions;
+      }
     }
 
     // Handle watch debounce
     if (upperPath === 'WATCH_DEBOUNCE_MS') {
-      if (!obj.watch) obj.watch = {} as any;
-      (obj.watch as any).debounceMs = value;
+      if (!obj.watch) obj.watch = {} as WatchOptions;
+      (obj.watch as WatchOptions).debounceMs =
+        typeof value === 'string' ? parseInt(value, 10) : (value as number);
     }
   }
 
-  private mapCliArgsToConfig(cliArgs: Record<string, any>): PartialClaudeTestingConfig {
+  private mapCliArgsToConfig(cliArgs: Record<string, unknown>): PartialClaudeTestingConfig {
     const config: PartialClaudeTestingConfig = {};
 
     // AI model mapping
@@ -956,50 +976,50 @@ export class ConfigurationService {
     if (cliArgs.quiet) {
       config.output = {
         logLevel: 'error',
-        ...(config.output || {}),
-      };
+        ...(config.output ?? {}),
+      } as OutputOptions;
     }
 
     if (cliArgs.format) {
       config.output = {
-        formats: [cliArgs.format],
-        format: cliArgs.format,
-        ...(config.output || {}),
-      };
+        formats: [cliArgs.format as OutputFormat],
+        format: cliArgs.format as OutputFormat,
+        ...(config.output ?? {}),
+      } as OutputOptions;
     }
 
     if (cliArgs.output) {
       config.output = {
-        file: cliArgs.output,
-        ...(config.output || {}),
-      };
+        file: cliArgs.output as string,
+        ...(config.output ?? {}),
+      } as OutputOptions;
     }
 
     // Test framework mapping
     if (cliArgs.framework) {
-      config.testFramework = cliArgs.framework;
+      config.testFramework = cliArgs.framework as TestFramework;
     }
 
     // Test generation configuration
     if (cliArgs.maxRatio !== undefined) {
       config.generation = {
-        maxTestToSourceRatio: cliArgs.maxRatio,
-        ...(config.generation || {}),
-      };
+        maxTestToSourceRatio: cliArgs.maxRatio as number,
+        ...(config.generation ?? {}),
+      } as GenerationOptions;
     }
 
     if (cliArgs.batchSize !== undefined) {
       config.generation = {
-        batchSize: cliArgs.batchSize,
-        ...(config.generation || {}),
-      };
+        batchSize: cliArgs.batchSize as number,
+        ...(config.generation ?? {}),
+      } as GenerationOptions;
     }
 
     if (cliArgs.maxRetries !== undefined) {
       config.generation = {
-        maxRetries: cliArgs.maxRetries,
-        ...(config.generation || {}),
-      };
+        maxRetries: cliArgs.maxRetries as number,
+        ...(config.generation ?? {}),
+      } as GenerationOptions;
     }
 
     // Features configuration based on test generation flags
@@ -1007,7 +1027,7 @@ export class ConfigurationService {
       config.features = {
         structuralTests: true,
         logicalTests: false,
-        ...(config.features || {}),
+        ...(config.features ?? {}),
       };
     }
 
@@ -1015,7 +1035,7 @@ export class ConfigurationService {
       config.features = {
         structuralTests: false,
         logicalTests: true,
-        ...(config.features || {}),
+        ...(config.features ?? {}),
       };
     }
 
@@ -1028,19 +1048,19 @@ export class ConfigurationService {
     // Coverage configuration
     if (cliArgs.coverage !== undefined) {
       config.coverage = {
-        enabled: cliArgs.coverage,
-        ...(config.coverage || {}),
+        enabled: cliArgs.coverage as boolean,
+        ...(config.coverage ?? {}),
       };
     }
 
     if (cliArgs.threshold) {
-      const parseResult = this.parseThresholds(cliArgs.threshold);
+      const parseResult = this.parseThresholds(cliArgs.threshold as string);
       if (parseResult.thresholds) {
         config.coverage = {
           thresholds: {
             global: parseResult.thresholds, // Only set the properties that were explicitly provided
           },
-          ...(config.coverage || {}),
+          ...(config.coverage ?? {}),
         };
       }
       // Store error to be handled in loadCliConfiguration
@@ -1049,49 +1069,61 @@ export class ConfigurationService {
 
     // Map reporter CLI argument to coverage.reporters
     if (cliArgs.reporter) {
-      const reporters = Array.isArray(cliArgs.reporter) ? cliArgs.reporter : [cliArgs.reporter];
-      config.coverage = {
-        reporters,
-        ...(config.coverage || {}),
-      };
+      const reporterValue = cliArgs.reporter;
+      let reporters: string[];
+
+      if (Array.isArray(reporterValue)) {
+        reporters = reporterValue.filter((r): r is string => typeof r === 'string');
+      } else if (typeof reporterValue === 'string') {
+        reporters = [reporterValue];
+      } else {
+        reporters = [];
+      }
+
+      if (reporters.length > 0) {
+        config.coverage = {
+          reporters,
+          ...(config.coverage ?? {}),
+        };
+      }
     }
 
     // Watch mode
     if (cliArgs.watch !== undefined) {
       config.watch = {
-        enabled: cliArgs.watch,
-        ...(config.watch || {}),
+        enabled: cliArgs.watch as boolean,
+        ...(config.watch ?? {}),
       };
     }
 
     if (cliArgs.debounce !== undefined) {
       config.watch = {
-        debounceMs: cliArgs.debounce,
-        ...(config.watch || {}),
+        debounceMs: cliArgs.debounce as number,
+        ...(config.watch ?? {}),
       };
     }
 
     // Incremental configuration
     if (cliArgs.stats !== undefined) {
       config.incremental = {
-        showStats: cliArgs.stats,
-        ...(config.incremental || {}),
+        showStats: cliArgs.stats as boolean,
+        ...(config.incremental ?? {}),
       };
     }
 
     if (cliArgs.baseline !== undefined) {
       config.incremental = {
-        baseline: cliArgs.baseline,
-        ...(config.incremental || {}),
+        baseline: cliArgs.baseline as BaselineOptions,
+        ...(config.incremental ?? {}),
       };
     }
 
     if (cliArgs.costLimit !== undefined) {
-      config.costLimit = cliArgs.costLimit;
+      config.costLimit = cliArgs.costLimit as number;
     }
 
     if (cliArgs.dryRun !== undefined) {
-      config.dryRun = cliArgs.dryRun;
+      config.dryRun = cliArgs.dryRun as boolean;
     }
 
     return config;
@@ -1117,7 +1149,7 @@ export class ConfigurationService {
         }
 
         for (const part of parts) {
-          const colonCount = (part.match(/:/g) || []).length;
+          const colonCount = (part.match(/:/g) ?? []).length;
           if (colonCount !== 1) {
             return {
               error: `Invalid threshold format: '${thresholdString}'. Each part must have exactly one colon.`,
@@ -1170,7 +1202,7 @@ export class ConfigurationService {
       }
     } catch (error) {
       logger.warn('Failed to parse threshold string', { thresholdString, error });
-      return { error: `Failed to parse threshold: ${error}` };
+      return { error: `Failed to parse threshold: ${String(error)}` };
     }
   }
 
@@ -1268,7 +1300,7 @@ export class ConfigurationService {
     const sourcesLoaded = this.sources.filter((s) => s.loaded).length;
     const sourcesWithErrors = this.sources.filter((s) => s.errors.length > 0).length;
     const totalErrors = this.sources.reduce((sum, s) => sum + s.errors.length, 0);
-    const totalWarnings = this.loadResult?.warnings.length || 0;
+    const totalWarnings = this.loadResult?.warnings.length ?? 0;
 
     return {
       sourcesLoaded,

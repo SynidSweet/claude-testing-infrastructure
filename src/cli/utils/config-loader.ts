@@ -3,7 +3,7 @@
  */
 
 import { ConfigurationService } from '../../config/ConfigurationService';
-import { ClaudeTestingConfig } from '../../types/config';
+import type { ClaudeTestingConfig } from '../../types/config';
 import { displayConfigurationSources } from '../../utils/config-display';
 import { logger } from '../../utils/logger';
 import chalk from 'chalk';

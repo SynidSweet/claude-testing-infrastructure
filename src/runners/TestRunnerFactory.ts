@@ -7,6 +7,8 @@ import type { FileDiscoveryService } from '../types/file-discovery-types';
 import { FileDiscoveryServiceFactory } from '../services/FileDiscoveryServiceFactory';
 import { ConfigurationService } from '../config/ConfigurationService';
 
+export type { TestRunnerConfig };
+
 /**
  * Factory for creating appropriate test runners based on framework
  */

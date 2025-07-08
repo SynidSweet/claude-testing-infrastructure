@@ -1,0 +1,877 @@
+
+> claude-testing-infrastructure@2.0.0 lint
+> eslint src/**/*.ts
+
+
+/code/personal/claude-testing/src/analyzers/ProjectAnalyzer.ts
+  743:15  error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  746:20  error  Unsafe member access .tools on an `any` value      @typescript-eslint/no-unsafe-member-access
+  747:11  error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  747:32  error  Unsafe call of an `any` typed value                @typescript-eslint/no-unsafe-call
+  747:39  error  Unsafe member access .tools on an `any` value      @typescript-eslint/no-unsafe-member-access
+  756:20  error  Unsafe member access .resources on an `any` value  @typescript-eslint/no-unsafe-member-access
+  757:11  error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  757:36  error  Unsafe call of an `any` typed value                @typescript-eslint/no-unsafe-call
+  757:43  error  Unsafe member access .resources on an `any` value  @typescript-eslint/no-unsafe-member-access
+  766:20  error  Unsafe member access .prompts on an `any` value    @typescript-eslint/no-unsafe-member-access
+  767:11  error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  767:34  error  Unsafe call of an `any` typed value                @typescript-eslint/no-unsafe-call
+  767:41  error  Unsafe member access .prompts on an `any` value    @typescript-eslint/no-unsafe-member-access
+  849:7   error  Unsafe return of an `any` typed value              @typescript-eslint/no-unsafe-return
+
+/code/personal/claude-testing/src/cli/index.ts
+   50:61  error    Unsafe argument of type `any` assigned to a parameter of type `string`                                                                       @typescript-eslint/no-unsafe-argument
+   50:74  error    Unsafe argument of type `any` assigned to a parameter of type `AnalyzeOptions`                                                               @typescript-eslint/no-unsafe-argument
+   50:83  error    Unsafe argument of type `any` assigned to a parameter of type `{ parent?: { opts: () => { showConfigSources?: boolean; }; }; } | undefined`  @typescript-eslint/no-unsafe-argument
+   73:58  error    Unsafe argument of type `any` assigned to a parameter of type `string`                                                                       @typescript-eslint/no-unsafe-argument
+   73:71  error    Unsafe argument of type `any` assigned to a parameter of type `TestOptions`                                                                  @typescript-eslint/no-unsafe-argument
+   90:57  error    Unsafe argument of type `any` assigned to a parameter of type `string`                                                                       @typescript-eslint/no-unsafe-argument
+   90:70  error    Unsafe argument of type `any` assigned to a parameter of type `RunOptions`                                                                   @typescript-eslint/no-unsafe-argument
+  118:17  error    Unexpected any. Specify a different type                                                                                                     @typescript-eslint/no-explicit-any
+  119:13  error    Unsafe member access .code on an `any` value                                                                                                 @typescript-eslint/no-unsafe-member-access
+  120:55  error    Unsafe member access .command on an `any` value                                                                                              @typescript-eslint/no-unsafe-member-access
+  121:5   warning  Unexpected console statement                                                                                                                 no-console
+  122:5   warning  Unexpected console statement                                                                                                                 no-console
+  123:5   warning  Unexpected console statement                                                                                                                 no-console
+  124:5   warning  Unexpected console statement                                                                                                                 no-console
+  125:5   warning  Unexpected console statement                                                                                                                 no-console
+  126:5   warning  Unexpected console statement                                                                                                                 no-console
+  127:5   warning  Unexpected console statement                                                                                                                 no-console
+  128:5   warning  Unexpected console statement                                                                                                                 no-console
+  129:5   warning  Unexpected console statement                                                                                                                 no-console
+  130:5   warning  Unexpected console statement                                                                                                                 no-console
+  131:5   warning  Unexpected console statement                                                                                                                 no-console
+  132:5   warning  Unexpected console statement                                                                                                                 no-console
+  133:20  error    Unsafe member access .code on an `any` value                                                                                                 @typescript-eslint/no-unsafe-member-access
+  133:55  error    Unsafe member access .code on an `any` value                                                                                                 @typescript-eslint/no-unsafe-member-access
+  136:20  error    Unsafe member access .code on an `any` value                                                                                                 @typescript-eslint/no-unsafe-member-access
+
+/code/personal/claude-testing/src/config/ConfigurationService.ts
+   548:35  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   914:27  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   914:32  error    Unsafe member access .options on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+   923:53  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   924:27  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   924:32  error    Unsafe member access .baseline on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+   929:41  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   930:21  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   930:26  error    Unsafe member access .debounceMs on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+   934:54  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   959:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   965:9   error    Unsafe assignment of type `any[]` to a variable of type `OutputFormat[]`                                   @typescript-eslint/no-unsafe-assignment
+   966:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   967:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   973:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   974:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   980:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   986:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   987:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   993:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   994:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1000:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1001:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1010:29  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1018:29  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1031:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1032:29  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1037:48  error    Unsafe argument of type `any` assigned to a parameter of type `string`                                     @typescript-eslint/no-unsafe-argument
+  1043:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1054:9   error    Unsafe assignment of type `any[]` to a variable of type `string[]`                                         @typescript-eslint/no-unsafe-assignment
+  1055:29  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1062:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1063:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1069:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1070:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1077:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1078:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1084:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1085:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1090:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1094:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1120:48  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  1173:53  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  1271:60  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/generators/StructuralTestGenerator.ts
+    3:1   error    './TestGenerator' import is duplicated                                                                     no-duplicate-imports
+    5:1   error    '../utils/common-imports' import is duplicated                                                             no-duplicate-imports
+    7:1   error    './templates/TestTemplateEngine' import is duplicated                                                      no-duplicate-imports
+   15:1   error    '../types/file-discovery-types' import is duplicated                                                       no-duplicate-imports
+   73:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   73:61  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   75:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   75:61  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  139:44  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  221:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  276:3   error    Async method 'generateTestFileContent' has no 'await' expression                                           @typescript-eslint/require-await
+  286:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  334:3   error    Async method 'generateMockFileForDependencies' has no 'await' expression                                   @typescript-eslint/require-await
+  409:24  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  478:46  error    Unnecessary escape character: \(                                                                           no-useless-escape
+  538:50  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  538:75  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  546:48  warning  Prefer using an optional chain expression instead, as it's more concise and easier to read                 @typescript-eslint/prefer-optional-chain
+  565:82  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  566:80  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  589:38  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  787:9   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  792:9   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  804:58  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  805:58  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  807:79  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/generators/TestGenerator.ts
+  266:11  error    Unsafe assignment of an `any` value                     @typescript-eslint/no-unsafe-assignment
+  266:35  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  267:11  error    Unsafe assignment of an `any` value                     @typescript-eslint/no-unsafe-assignment
+  267:35  error    Unsafe member access .skipValidation on an `any` value  @typescript-eslint/no-unsafe-member-access
+  267:62  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  267:67  error    Unsafe member access .options on an `any` value         @typescript-eslint/no-unsafe-member-access
+  286:11  error    Unsafe assignment of an `any` value                     @typescript-eslint/no-unsafe-assignment
+  287:14  error    Unsafe member access .maxRatio on an `any` value        @typescript-eslint/no-unsafe-member-access
+  288:14  error    Unsafe member access .generation on an `any` value      @typescript-eslint/no-unsafe-member-access
+  289:16  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  289:21  error    Unsafe member access .options on an `any` value         @typescript-eslint/no-unsafe-member-access
+  317:7   warning  Unexpected console statement                            no-console
+  329:7   warning  Unexpected console statement                            no-console
+
+/code/personal/claude-testing/src/generators/TestGeneratorFactory.ts
+    6:1   error    './StructuralTestGenerator' import is duplicated                                                           no-duplicate-imports
+   67:68  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   79:11  error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   79:40  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   79:45  error    Unsafe member access .testGeneration on an `any` value                                                     @typescript-eslint/no-unsafe-member-access
+   80:26  error    Unsafe member access .engine on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+   83:26  error    Unsafe member access .engine on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  125:58  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  151:3   error    Static async method 'buildLanguageContext' has no 'await' expression                                       @typescript-eslint/require-await
+  290:3   error    Static async method 'createCompatibilityAdapter' has no 'await' expression                                 @typescript-eslint/require-await
+
+/code/personal/claude-testing/src/generators/index.ts
+  54:28  error  Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+  64:8   error  Async function 'generateTestsDeprecated' has no 'await' expression  @typescript-eslint/require-await
+
+/code/personal/claude-testing/src/runners/CoverageAggregator.ts
+   46:29  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   87:78  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   92:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  106:87  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  247:48  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  294:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  402:77  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/runners/CoverageParser.ts
+  190:25  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  200:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  217:24  error    Unsafe member access .coverageMap on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  217:52  error    Unsafe member access [''] on an `any` value                                                                     @typescript-eslint/no-unsafe-member-access
+  222:24  error    Unsafe member access .coverageMap on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  227:24  error    Unsafe member access .summary on an `any` value                                                                 @typescript-eslint/no-unsafe-member-access
+  227:48  error    Unsafe member access .files on an `any` value                                                                   @typescript-eslint/no-unsafe-member-access
+  227:70  error    Unsafe member access .uncoveredAreas on an `any` value                                                          @typescript-eslint/no-unsafe-member-access
+  229:15  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  230:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  230:33  error    Unsafe member access .summary on an `any` value                                                                 @typescript-eslint/no-unsafe-member-access
+  231:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  231:31  error    Unsafe member access .files on an `any` value                                                                   @typescript-eslint/no-unsafe-member-access
+  232:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  232:40  error    Unsafe member access .uncoveredAreas on an `any` value                                                          @typescript-eslint/no-unsafe-member-access
+  233:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  233:40  error    Unsafe member access .meetsThreshold on an `any` value                                                          @typescript-eslint/no-unsafe-member-access
+  234:28  error    Unsafe member access .thresholds on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  234:44  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  234:69  error    Unsafe member access .thresholds on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  235:48  error    Unsafe member access .thresholds on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  247:30  error    Unsafe argument of type `any` assigned to a parameter of type `{}`                                              @typescript-eslint/no-unsafe-argument
+  261:3   error    Async method 'parseIstanbulFormat' has no 'await' expression                                                    @typescript-eslint/require-await
+  261:51  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  271:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  271:40  error    Unsafe member access .coverageMap on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  278:57  error    Unsafe argument of type `any` assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`  @typescript-eslint/no-unsafe-argument
+  283:67  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  330:43  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  332:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  332:35  error    Unsafe member access .s on an `any` value                                                                       @typescript-eslint/no-unsafe-member-access
+  333:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  333:33  error    Unsafe member access .b on an `any` value                                                                       @typescript-eslint/no-unsafe-member-access
+  334:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  334:34  error    Unsafe member access .f on an `any` value                                                                       @typescript-eslint/no-unsafe-member-access
+  335:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  335:37  error    Unsafe member access .statementMap on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  336:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  336:34  error    Unsafe member access .branchMap on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  337:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  337:30  error    Unsafe member access .fnMap on an `any` value                                                                   @typescript-eslint/no-unsafe-member-access
+  340:54  error    Unsafe argument of type `any` assigned to a parameter of type `Record<string, number>`                          @typescript-eslint/no-unsafe-argument
+  341:52  error    Unsafe argument of type `any` assigned to a parameter of type `Record<string, number>`                          @typescript-eslint/no-unsafe-argument
+  342:53  error    Unsafe argument of type `any` assigned to a parameter of type `Record<string, number>`                          @typescript-eslint/no-unsafe-argument
+  347:55  error    Unsafe argument of type `any` assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`  @typescript-eslint/no-unsafe-argument
+  348:44  error    Unsafe member access [stmtId] on an `any` value                                                                 @typescript-eslint/no-unsafe-member-access
+  349:17  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  349:42  error    Unsafe member access [stmtId] on an `any` value                                                                 @typescript-eslint/no-unsafe-member-access
+  350:53  error    Unsafe argument of type `any` assigned to a parameter of type `number`                                          @typescript-eslint/no-unsafe-argument
+  351:33  error    Unsafe argument of type `any` assigned to a parameter of type `number`                                          @typescript-eslint/no-unsafe-argument
+  358:59  error    Unsafe argument of type `any` assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`  @typescript-eslint/no-unsafe-argument
+  359:52  error    Unsafe member access [branchId] on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  360:17  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  360:40  error    Unsafe member access [branchId] on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  364:17  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  364:34  error    Unsafe member access .loc on an `any` value                                                                     @typescript-eslint/no-unsafe-member-access
+  365:17  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  365:36  error    Unsafe member access .loc on an `any` value                                                                     @typescript-eslint/no-unsafe-member-access
+  366:17  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  366:34  error    Unsafe member access .type on an `any` value                                                                    @typescript-eslint/no-unsafe-member-access
+  375:53  error    Unsafe argument of type `any` assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`  @typescript-eslint/no-unsafe-argument
+  376:37  error    Unsafe member access [fnId] on an `any` value                                                                   @typescript-eslint/no-unsafe-member-access
+  377:35  error    Unsafe argument of type `any` assigned to a parameter of type `string`                                          @typescript-eslint/no-unsafe-argument
+  377:41  error    Unsafe member access [fnId] on an `any` value                                                                   @typescript-eslint/no-unsafe-member-access
+  382:9   error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  382:24  error    Unsafe member access .path on an `any` value                                                                    @typescript-eslint/no-unsafe-member-access
+  399:41  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  401:46  error    Unsafe member access .coverageMap on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  404:3   error    Async method 'parseJestTextOutput' has no 'await' expression                                                    @typescript-eslint/require-await
+  422:48  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+  423:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+  424:47  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+  425:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+  492:3   error    Async method 'parseCoverageJson' has no 'await' expression                                                      @typescript-eslint/require-await
+  492:49  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  495:22  error    Unsafe member access .files on an `any` value                                                                   @typescript-eslint/no-unsafe-member-access
+  496:57  error    Unsafe argument of type `any` assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`  @typescript-eslint/no-unsafe-argument
+  496:70  error    Unsafe member access .files on an `any` value                                                                   @typescript-eslint/no-unsafe-member-access
+  498:65  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  506:34  error    Unsafe member access .totals on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  508:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  508:36  error    Unsafe member access .totals on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  509:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  509:34  error    Unsafe member access .totals on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  510:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  510:35  error    Unsafe member access .totals on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  511:11  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  511:31  error    Unsafe member access .totals on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  532:43  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  534:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  534:38  error    Unsafe member access .executed_lines on an `any` value                                                          @typescript-eslint/no-unsafe-member-access
+  535:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  535:37  error    Unsafe member access .missing_lines on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+  538:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  538:40  error    Unsafe member access .length on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  538:62  error    Unsafe member access .length on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  539:13  error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  539:42  error    Unsafe member access .length on an `any` value                                                                  @typescript-eslint/no-unsafe-member-access
+  551:9   error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  551:24  error    Unsafe member access .filename on an `any` value                                                                @typescript-eslint/no-unsafe-member-access
+  553:9   error    Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  553:25  error    Unsafe call of an `any` typed value                                                                             @typescript-eslint/no-unsafe-call
+  553:38  error    Unsafe member access .sort on an `any` value                                                                    @typescript-eslint/no-unsafe-member-access
+  561:3   error    Async method 'parsePytestTextOutput' has no 'await' expression                                                  @typescript-eslint/require-await
+  569:42  error    Unnecessary escape character: \/                                                                                no-useless-escape
+  572:41  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+  576:60  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+  596:67  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/runners/CoverageReporter.ts
+    2:1   error    './CoverageParser' import is duplicated                                                                    no-duplicate-imports
+    4:1   error    './CoverageAggregator' import is duplicated                                                                no-duplicate-imports
+    6:1   error    './CoverageVisualizer' import is duplicated                                                                no-duplicate-imports
+  155:33  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  295:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  425:47  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/runners/CoverageVisualizer.ts
+   29:29  error  Unexpected any. Specify a different type             @typescript-eslint/no-explicit-any
+  248:55  error  Invalid type "never" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+/code/personal/claude-testing/src/runners/JestRunner.ts
+    3:1   error    './TestRunner' import is duplicated                                                                                                                  no-duplicate-imports
+    7:1   error    './CoverageReporter' import is duplicated                                                                                                            no-duplicate-imports
+    9:1   error    '../types/file-discovery-types' import is duplicated                                                                                                 no-duplicate-imports
+   26:29  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+   32:24  error    Unsafe member access .thresholds on an `any` value                                                                                                   @typescript-eslint/no-unsafe-member-access
+   37:9   error    Unsafe argument of type `any` assigned to a parameter of type `{ thresholds?: CoverageThresholds; outputDir?: string; failOnThreshold?: boolean; }`  @typescript-eslint/no-unsafe-argument
+   74:19  error    Unsafe call of an `any` typed value                                                                                                                  @typescript-eslint/no-unsafe-call
+   74:24  error    Unsafe member access .toString on an `any` value                                                                                                     @typescript-eslint/no-unsafe-member-access
+   78:19  error    Unsafe call of an `any` typed value                                                                                                                  @typescript-eslint/no-unsafe-call
+   78:24  error    Unsafe member access .toString on an `any` value                                                                                                     @typescript-eslint/no-unsafe-member-access
+   81:25  error    Promise returned in function argument where a void return was expected                                                                               @typescript-eslint/no-misused-promises
+   82:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                            @typescript-eslint/prefer-nullish-coalescing
+  116:11  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  198:17  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  199:22  error    Unsafe member access .numTotalTests on an `any` value                                                                                                @typescript-eslint/no-unsafe-member-access
+  209:15  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  221:17  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+  229:20  error    Unsafe member access .testResults on an `any` value                                                                                                  @typescript-eslint/no-unsafe-member-access
+  230:43  error    Unsafe member access .testResults on an `any` value                                                                                                  @typescript-eslint/no-unsafe-member-access
+  231:24  error    Unsafe member access .message on an `any` value                                                                                                      @typescript-eslint/no-unsafe-member-access
+  233:52  error    Unsafe member access .assertionResults on an `any` value                                                                                             @typescript-eslint/no-unsafe-member-access
+  234:33  error    Unsafe member access .status on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  236:17  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  236:35  error    Unsafe member access .name on an `any` value                                                                                                         @typescript-eslint/no-unsafe-member-access
+  237:17  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  237:39  error    Unsafe member access .title on an `any` value                                                                                                        @typescript-eslint/no-unsafe-member-access
+  238:17  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  238:26  error    Unsafe call of an `any` typed value                                                                                                                  @typescript-eslint/no-unsafe-call
+  238:42  error    Unsafe member access .failureMessages on an `any` value                                                                                              @typescript-eslint/no-unsafe-member-access
+  239:17  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  239:24  error    Unsafe call of an `any` typed value                                                                                                                  @typescript-eslint/no-unsafe-call
+  239:40  error    Unsafe member access .failureMessages on an `any` value                                                                                              @typescript-eslint/no-unsafe-member-access
+  249:20  error    Unsafe member access .coverageMap on an `any` value                                                                                                  @typescript-eslint/no-unsafe-member-access
+  251:88  error    Unsafe argument of type `any` assigned to a parameter of type `string | object`                                                                      @typescript-eslint/no-unsafe-argument
+  273:50  error    Unsafe member access .coverageMap on an `any` value                                                                                                  @typescript-eslint/no-unsafe-member-access
+  275:27  error    Unsafe member access .coverageMap on an `any` value                                                                                                  @typescript-eslint/no-unsafe-member-access
+  277:48  error    Unsafe member access .coverageMap on an `any` value                                                                                                  @typescript-eslint/no-unsafe-member-access
+  283:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  283:30  error    Unsafe member access .numTotalTestSuites on an `any` value                                                                                           @typescript-eslint/no-unsafe-member-access
+  284:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  284:25  error    Unsafe member access .numTotalTests on an `any` value                                                                                                @typescript-eslint/no-unsafe-member-access
+  285:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  285:26  error    Unsafe member access .numPassedTests on an `any` value                                                                                               @typescript-eslint/no-unsafe-member-access
+  286:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  286:26  error    Unsafe member access .numFailedTests on an `any` value                                                                                               @typescript-eslint/no-unsafe-member-access
+  287:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  287:27  error    Unsafe member access .numPendingTests on an `any` value                                                                                              @typescript-eslint/no-unsafe-member-access
+  289:20  error    Unsafe member access .startTime on an `any` value                                                                                                    @typescript-eslint/no-unsafe-member-access
+  289:44  error    Unsafe member access .endTime on an `any` value                                                                                                      @typescript-eslint/no-unsafe-member-access
+  289:65  error    Unsafe member access .endTime on an `any` value                                                                                                      @typescript-eslint/no-unsafe-member-access
+  289:86  error    Unsafe member access .startTime on an `any` value                                                                                                    @typescript-eslint/no-unsafe-member-access
+  318:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                            @typescript-eslint/prefer-nullish-coalescing
+  319:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                            @typescript-eslint/prefer-nullish-coalescing
+  320:41  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                            @typescript-eslint/prefer-nullish-coalescing
+  321:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                            @typescript-eslint/prefer-nullish-coalescing
+  346:38  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+  353:21  error    Unsafe member access .global on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  354:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  354:32  error    Unsafe member access .global on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  355:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  355:30  error    Unsafe member access .global on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  356:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  356:31  error    Unsafe member access .global on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  357:7   error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  357:27  error    Unsafe member access .global on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  378:33  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+  382:19  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+  391:14  error    Unsafe member access .preset on an `any` value                                                                                                       @typescript-eslint/no-unsafe-member-access
+  392:14  error    Unsafe member access .extensionsToTreatAsEsm on an `any` value                                                                                       @typescript-eslint/no-unsafe-member-access
+  393:14  error    Unsafe member access .moduleNameMapper on an `any` value                                                                                             @typescript-eslint/no-unsafe-member-access
+  396:14  error    Unsafe member access .transform on an `any` value                                                                                                    @typescript-eslint/no-unsafe-member-access
+  401:14  error    Unsafe member access .transform on an `any` value                                                                                                    @typescript-eslint/no-unsafe-member-access
+  406:14  error    Unsafe member access .collectCoverage on an `any` value                                                                                              @typescript-eslint/no-unsafe-member-access
+  409:16  error    Unsafe member access .coverageDirectory on an `any` value                                                                                            @typescript-eslint/no-unsafe-member-access
+  413:16  error    Unsafe member access .coverageReporters on an `any` value                                                                                            @typescript-eslint/no-unsafe-member-access
+  417:16  error    Unsafe member access .coverageThreshold on an `any` value                                                                                            @typescript-eslint/no-unsafe-member-access
+  431:57  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+  435:57  error    Unsafe argument of type `any` assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`                                       @typescript-eslint/no-unsafe-argument
+  435:70  error    Unsafe member access .files on an `any` value                                                                                                        @typescript-eslint/no-unsafe-member-access
+  437:17  error    Unsafe assignment of an `any` value                                                                                                                  @typescript-eslint/no-unsafe-assignment
+  437:38  error    Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+  437:43  error    Unsafe member access .uncoveredLines on an `any` value                                                                                               @typescript-eslint/no-unsafe-member-access
+  439:13  error    Unsafe assignment of type `any[]` to a variable of type `number[]`                                                                                   @typescript-eslint/no-unsafe-assignment
+
+/code/personal/claude-testing/src/runners/PytestRunner.ts
+    4:1   error    './TestRunner' import is duplicated                                                                        no-duplicate-imports
+    8:1   error    './CoverageReporter' import is duplicated                                                                  no-duplicate-imports
+   10:1   error    '../types/file-discovery-types' import is duplicated                                                       no-duplicate-imports
+   77:19  error    Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+   77:24  error    Unsafe member access .toString on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+   81:19  error    Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+   81:24  error    Unsafe member access .toString on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+   84:25  error    Promise returned in function argument where a void return was expected                                     @typescript-eslint/no-misused-promises
+   85:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  227:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  228:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  229:44  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  238:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  239:35  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  240:38  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/runners/TestRunner.ts
+  133:47  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  134:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/services/FileDiscoveryCache.ts
+   55:3   error    Async method 'get' has no 'await' expression                                                               @typescript-eslint/require-await
+   97:3   error    Async method 'set' has no 'await' expression                                                               @typescript-eslint/require-await
+  104:53  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  129:3   error    Async method 'invalidate' has no 'await' expression                                                        @typescript-eslint/require-await
+  158:3   error    Async method 'clear' has no 'await' expression                                                             @typescript-eslint/require-await
+  286:3   error    Async method 'get' has no 'await' expression                                                               @typescript-eslint/require-await
+
+/code/personal/claude-testing/src/services/FileDiscoveryService.ts
+   13:1   error    '../types/file-discovery-types' import is duplicated                                                                                                                no-duplicate-imports
+   42:59  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+   74:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+   89:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+   96:74  error    Invalid type "unknown" of template literal expression                                                                                                               @typescript-eslint/restrict-template-expressions
+  132:7   warning  Unexpected console statement                                                                                                                                        no-console
+  182:7   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  184:7   error    Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  191:3   warning  Missing return type on function                                                                                                                                     @typescript-eslint/explicit-function-return-type
+  211:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  212:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  214:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  216:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  217:56  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  227:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  289:55  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+  289:81  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator                                                           @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/services/FileDiscoveryServiceFactory.ts
+  9:1  error  './FileDiscoveryService' import is duplicated  no-duplicate-imports
+
+/code/personal/claude-testing/src/services/PatternManager.ts
+   10:1   error    '../types/file-discovery-types' import is duplicated                                                       no-duplicate-imports
+   20:1   error    '../types/file-discovery-types' import is duplicated                                                       no-duplicate-imports
+   39:35  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   63:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  386:41  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  400:41  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  424:48  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  425:49  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  430:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  431:47  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/state/ChangeDetector.ts
+  38:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  68:3   error    Async method 'detectChangesFromFilesystem' has no 'await' expression                                       @typescript-eslint/require-await
+
+/code/personal/claude-testing/src/state/HistoryManager.ts
+    8:1   error    './ManifestManager' import is duplicated                                                                   no-duplicate-imports
+  150:64  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  163:74  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  176:17  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  222:11  error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  233:74  error    Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  235:52  error    Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  236:74  error    Unsafe member access .tests on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  238:52  error    Unsafe member access .tests on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  316:7   error    Unsafe return of an `any` typed value                                                                      @typescript-eslint/no-unsafe-return
+  352:5   error    Unsafe return of an `any` typed value                                                                      @typescript-eslint/no-unsafe-return
+  358:67  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  361:5   error    Unsafe return of an `any` typed value                                                                      @typescript-eslint/no-unsafe-return
+
+/code/personal/claude-testing/src/state/IncrementalGenerator.ts
+    8:1   error    './ManifestManager' import is duplicated                                                                   no-duplicate-imports
+   10:1   error    './ChangeDetector' import is duplicated                                                                    no-duplicate-imports
+  144:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  146:92  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  148:41  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  149:37  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  156:3   error    Async method 'performFullRegeneration' has no 'await' expression                                           @typescript-eslint/require-await
+  338:3   error    Async method 'generateTestsForFile' has no 'await' expression                                              @typescript-eslint/require-await
+  348:3   error    Async method 'updateTestsForFile' has no 'await' expression                                                @typescript-eslint/require-await
+  363:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/state/ManifestManager.ts
+  107:5  error  Unsafe return of an `any` typed value                          @typescript-eslint/no-unsafe-return
+  110:9  error  Unsafe return of an `any` typed value                          @typescript-eslint/no-unsafe-return
+  251:3  error  Async method 'calculateProjectHash' has no 'await' expression  @typescript-eslint/require-await
+
+/code/personal/claude-testing/src/state/TaskCheckpointManager.ts
+  420:5  error  Unsafe return of an `any` typed value  @typescript-eslint/no-unsafe-return
+  423:9  error  Unsafe return of an `any` typed value  @typescript-eslint/no-unsafe-return
+  525:7  error  Unsafe return of an `any` typed value  @typescript-eslint/no-unsafe-return
+
+/code/personal/claude-testing/src/utils/AsyncTestUtils.ts
+   14:1   error    'stream' import is duplicated                                                                              no-duplicate-imports
+  146:7   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  181:20  error    Promise returned in function argument where a void return was expected                                     @typescript-eslint/no-misused-promises
+  332:47  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  372:7   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  433:39  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  443:24  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  458:38  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  488:7   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  598:50  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  600:41  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  601:58  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  611:55  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  687:39  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  715:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  716:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  718:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  723:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  732:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  734:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  736:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  741:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  749:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  750:3   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+
+/code/personal/claude-testing/src/utils/Debouncer.ts
+   67:7   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+   68:7   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+   84:9   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   86:25  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   86:30  error    Unsafe member access .type on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  264:46  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  264:65  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  266:48  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  267:30  error    Require statement not part of import statement                                                             @typescript-eslint/no-var-requires
+  267:56  error    `import()` type annotations are forbidden                                                                  @typescript-eslint/consistent-type-imports
+  271:50  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  272:20  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  274:94  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+
+/code/personal/claude-testing/src/utils/FileWatcher.ts
+   12:1   error    'chokidar' import is duplicated                                                                            no-duplicate-imports
+   97:47  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   98:76  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  279:24  warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+  282:63  error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+
+/code/personal/claude-testing/src/utils/MockTimer.ts
+   18:1   error    '../types/timer-types' import is duplicated                                                                no-duplicate-imports
+   95:7   warning  Unexpected console statement                                                                               no-console
+  159:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  167:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  191:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  200:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  222:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  230:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  302:74  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/ProcessMonitor.ts
+  114:68  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  124:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  145:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  166:58  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  213:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  248:54  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  299:37  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  313:81  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  347:74  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  382:41  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  399:56  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  429:76  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/ProgressReporter.ts
+    4:1   error    'ora' import is duplicated                                                                                 no-duplicate-imports
+   52:7   warning  Unexpected console statement                                                                               no-console
+   53:7   warning  Unexpected console statement                                                                               no-console
+   83:7   warning  Unexpected console statement                                                                               no-console
+  105:7   warning  Unexpected console statement                                                                               no-console
+  110:7   warning  Unexpected console statement                                                                               no-console
+  127:7   warning  Unexpected console statement                                                                               no-console
+  145:38  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  147:35  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  152:7   warning  Unexpected console statement                                                                               no-console
+  153:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  158:7   warning  Unexpected console statement                                                                               no-console
+  159:7   warning  Unexpected console statement                                                                               no-console
+  160:7   warning  Unexpected console statement                                                                               no-console
+  163:9   warning  Unexpected console statement                                                                               no-console
+  166:9   warning  Unexpected console statement                                                                               no-console
+  172:24  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/RealTimer.ts
+   18:1   error    '../types/timer-types' import is duplicated                                                                no-duplicate-imports
+   50:68  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   50:73  error    Unsafe member access .close on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  149:21  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  149:26  error    Unsafe member access ._active on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  183:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  207:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  229:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/ResourceLimitWrapper.ts
+   11:1   error    './ProcessMonitor' import is duplicated                                                                    no-duplicate-imports
+  163:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  179:5   error    'finalResourceUsage' is never reassigned. Use 'const' instead                                              prefer-const
+  179:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  196:44  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/TimerFactory.ts
+   19:1   error    '../types/timer-types' import is duplicated                                                                no-duplicate-imports
+  146:7   warning  Unexpected console statement                                                                               no-console
+  169:35  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  188:63  error    Invalid type "never" of template literal expression                                                        @typescript-eslint/restrict-template-expressions
+  219:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/TimerTestUtils.ts
+   91:26  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+   97:21  error  Unsafe member access .doNotFake on an `any` value                                                                                                                                                               @typescript-eslint/no-unsafe-member-access
+  100:26  error  Unsafe argument of type `any` assigned to a parameter of type `FakeTimersConfig | LegacyFakeTimersConfig | undefined`                                                                                           @typescript-eslint/no-unsafe-argument
+  181:61  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  182:11  error  Unsafe assignment of an `any` value                                                                                                                                                                             @typescript-eslint/no-unsafe-assignment
+  182:47  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  185:17  error  Unsafe member access .stdout on an `any` value                                                                                                                                                                  @typescript-eslint/no-unsafe-member-access
+  186:17  error  Unsafe member access .stderr on an `any` value                                                                                                                                                                  @typescript-eslint/no-unsafe-member-access
+  187:17  error  Unsafe member access .kill on an `any` value                                                                                                                                                                    @typescript-eslint/no-unsafe-member-access
+  188:17  error  Unsafe member access .pid on an `any` value                                                                                                                                                                     @typescript-eslint/no-unsafe-member-access
+  189:17  error  Unsafe member access .killed on an `any` value                                                                                                                                                                  @typescript-eslint/no-unsafe-member-access
+  190:17  error  Unsafe member access .exitCode on an `any` value                                                                                                                                                                @typescript-eslint/no-unsafe-member-access
+  194:19  error  Unsafe member access .stdin on an `any` value                                                                                                                                                                   @typescript-eslint/no-unsafe-member-access
+  195:19  error  Unsafe member access .stdin on an `any` value                                                                                                                                                                   @typescript-eslint/no-unsafe-member-access
+  196:19  error  Unsafe member access .stdin on an `any` value                                                                                                                                                                   @typescript-eslint/no-unsafe-member-access
+  200:17  error  Unsafe member access .removeAllListeners on an `any` value                                                                                                                                                      @typescript-eslint/no-unsafe-member-access
+  200:52  error  Unsafe return of an `any` typed value                                                                                                                                                                           @typescript-eslint/no-unsafe-return
+  201:17  error  Unsafe member access .setMaxListeners on an `any` value                                                                                                                                                         @typescript-eslint/no-unsafe-member-access
+  201:49  error  Unsafe return of an `any` typed value                                                                                                                                                                           @typescript-eslint/no-unsafe-return
+  244:18  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  250:9   error  Unsafe call of an `any` typed value                                                                                                                                                                             @typescript-eslint/no-unsafe-call
+  250:21  error  Unsafe member access .emit on an `any` value                                                                                                                                                                    @typescript-eslint/no-unsafe-member-access
+  356:49  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  364:51  error  Unsafe return of an `any` typed value                                                                                                                                                                           @typescript-eslint/no-unsafe-return
+  382:9   error  Unsafe assignment of an `any` value                                                                                                                                                                             @typescript-eslint/no-unsafe-assignment
+  382:25  error  Unsafe call of an `any` typed value                                                                                                                                                                             @typescript-eslint/no-unsafe-call
+  382:34  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  382:39  error  Unsafe member access .getTimerCount on an `any` value                                                                                                                                                           @typescript-eslint/no-unsafe-member-access
+  495:56  error  Unsafe argument of type `any` assigned to a parameter of type `{ callback: () => void; delay: number; isInterval: boolean; scheduled: number; }`                                                                @typescript-eslint/no-unsafe-argument
+  539:17  error  '_id' is assigned a value but never used                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  553:13  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  559:15  error  Unexpected any. Specify a different type                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  582:10  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  583:12  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  584:12  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  585:9   error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  586:9   error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  587:16  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  588:18  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  589:17  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  590:18  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  591:18  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  592:15  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  593:16  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  594:10  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  595:13  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+  596:13  error  Avoid referencing unbound methods which may cause unintentional scoping of `this`.
+If your function does not access `this`, you can annotate it with `this: void`, or consider using an arrow function instead  @typescript-eslint/unbound-method
+
+/code/personal/claude-testing/src/utils/config-display.ts
+   12:3   warning  Unexpected console statement                                        no-console
+   13:3   warning  Unexpected console statement                                        no-console
+   16:3   warning  Unexpected console statement                                        no-console
+   17:3   warning  Unexpected console statement                                        no-console
+   18:3   warning  Unexpected console statement                                        no-console
+   19:3   warning  Unexpected console statement                                        no-console
+   20:3   warning  Unexpected console statement                                        no-console
+   25:3   warning  Unexpected console statement                                        no-console
+   26:3   warning  Unexpected console statement                                        no-console
+   35:5   warning  Unexpected console statement                                        no-console
+   39:7   warning  Unexpected console statement                                        no-console
+   45:7   warning  Unexpected console statement                                        no-console
+   46:37  error    Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+   47:9   warning  Unexpected console statement                                        no-console
+   47:85  error    Unsafe member access .message on an `any` value                     @typescript-eslint/no-unsafe-member-access
+   55:7   warning  Unexpected console statement                                        no-console
+   60:3   warning  Unexpected console statement                                        no-console
+   65:5   warning  Unexpected console statement                                        no-console
+   67:7   warning  Unexpected console statement                                        no-console
+   72:5   warning  Unexpected console statement                                        no-console
+   74:7   warning  Unexpected console statement                                        no-console
+   78:3   warning  Unexpected console statement                                        no-console
+   84:34  error    Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+   85:28  error    Unsafe argument of type `any` assigned to a parameter of type `{}`  @typescript-eslint/no-unsafe-argument
+   89:11  error    Unsafe assignment of an `any` value                                 @typescript-eslint/no-unsafe-assignment
+   89:24  error    Unsafe member access [key] on an `any` value                        @typescript-eslint/no-unsafe-member-access
+   93:7   warning  Unexpected console statement                                        no-console
+   95:7   warning  Unexpected console statement                                        no-console
+   97:13  error    Unsafe assignment of an `any` value                                 @typescript-eslint/no-unsafe-assignment
+   99:7   warning  Unexpected console statement                                        no-console
+  104:5   warning  Unexpected console statement                                        no-console
+  111:35  error    Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+  113:32  error    Unsafe assignment of an `any` value                                 @typescript-eslint/no-unsafe-assignment
+  113:46  error    Unsafe member access .testFramework on an `any` value               @typescript-eslint/no-unsafe-member-access
+  114:26  error    Unsafe assignment of an `any` value                                 @typescript-eslint/no-unsafe-assignment
+  114:40  error    Unsafe member access .aiModel on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  115:34  error    Unsafe assignment of an `any` value                                 @typescript-eslint/no-unsafe-assignment
+  115:41  error    Unsafe call of an `any` typed value                                 @typescript-eslint/no-unsafe-call
+  115:48  error    Unsafe member access .include on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  116:34  error    Unsafe assignment of an `any` value                                 @typescript-eslint/no-unsafe-assignment
+  116:41  error    Unsafe call of an `any` typed value                                 @typescript-eslint/no-unsafe-call
+  116:48  error    Unsafe member access .exclude on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  117:48  error    Unsafe member access .coverage on an `any` value                    @typescript-eslint/no-unsafe-member-access
+  118:39  error    Unsafe member access .dryRun on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  119:42  error    Unsafe member access .costLimit on an `any` value                   @typescript-eslint/no-unsafe-member-access
+  119:65  error    Unsafe member access .costLimit on an `any` value                   @typescript-eslint/no-unsafe-member-access
+  120:27  error    Unsafe assignment of an `any` value                                 @typescript-eslint/no-unsafe-assignment
+  120:41  error    Unsafe member access .output on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  125:7   warning  Unexpected console statement                                        no-console
+  148:35  error    Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+  149:29  error    Unsafe member access .type on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  150:39  error    Unsafe member access .loaded on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  151:16  error    Unsafe member access .path on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  151:54  error    Unsafe member access .path on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  152:16  error    Unsafe member access .errors on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  153:41  error    Unsafe member access .errors on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  154:7   error    Unsafe call of an `any` typed value                                 @typescript-eslint/no-unsafe-call
+  154:14  error    Unsafe member access .errors on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  154:35  error    Unexpected any. Specify a different type                            @typescript-eslint/no-explicit-any
+  155:68  error    Unsafe member access .message on an `any` value                     @typescript-eslint/no-unsafe-member-access
+  159:16  error    Unsafe member access .data on an `any` value                        @typescript-eslint/no-unsafe-member-access
+  160:49  error    Unsafe argument of type `any` assigned to a parameter of type `{}`  @typescript-eslint/no-unsafe-argument
+  160:56  error    Unsafe member access .data on an `any` value                        @typescript-eslint/no-unsafe-member-access
+
+/code/personal/claude-testing/src/utils/config-error-messages.ts
+    9:10  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   57:41  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   59:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   70:14  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   75:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   89:45  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   91:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   99:14  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  103:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  122:14  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  124:19  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  127:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  171:25  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  202:26  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  211:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/config-validation.ts
+    16:1   error    '../types/config' import is duplicated                                                                     no-duplicate-imports
+    47:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   114:11  error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   375:29  error    `import()` type annotations are forbidden                                                                  @typescript-eslint/consistent-type-imports
+   649:32  error    Unsafe argument of type `any` assigned to a parameter of type `TestType`                                   @typescript-eslint/no-unsafe-argument
+   655:7   error    Unsafe assignment of type `any[]` to a variable of type `TestType[]`                                       @typescript-eslint/no-unsafe-assignment
+  1080:7   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  1080:52  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  1119:69  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/file-chunking.ts
+   74:55  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   78:64  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   87:3   error    Static async method 'chunkFile' has no 'await' expression                                                  @typescript-eslint/require-await
+  114:47  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  135:58  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  145:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  232:77  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  236:90  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  250:84  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  254:70  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  264:51  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  275:64  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  279:86  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  284:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  299:58  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  303:70  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  313:53  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  321:53  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  362:74  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/logger.ts
+  24:79  error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  35:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  65:23  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  81:64  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  85:64  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  89:65  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+
+/code/personal/claude-testing/src/utils/model-mapping.ts
+  79:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  87:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/utils/retry-helper.ts
+   16:41   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   73:49   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  190:40   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  357:73   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  438:100  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  452:22   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  469:24   warning  Missing return type on function                                                                            @typescript-eslint/explicit-function-return-type
+
+/code/personal/claude-testing/src/utils/stderr-parser.ts
+  162:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/code/personal/claude-testing/src/workflows/AIEnhancedTestingWorkflow.ts
+   50:20   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   55:17   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   56:14   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   57:10   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   58:15   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+   63:15   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  100:7    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  101:56   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  118:15   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  119:9    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  119:42   error    Unsafe member access .results on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  120:9    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  120:39   error    Unsafe member access .coverage on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+  121:64   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  126:13   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  127:7    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  128:60   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  128:76   error    Unsafe member access .gaps on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  131:45   error    Unsafe member access .gaps on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  133:15   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  134:9    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  135:9    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  135:52   error    Unsafe member access .successful on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  136:9    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  136:38   error    Unsafe member access .totalCost on an `any` value                                                          @typescript-eslint/no-unsafe-member-access
+  137:63   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  143:15   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  144:9    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  144:43   error    Unsafe member access .results on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  145:9    error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  145:40   error    Unsafe member access .coverage on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+  146:65   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  160:38   error    Invalid type "unknown" of template literal expression                                                      @typescript-eslint/restrict-template-expressions
+  170:62   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  181:72   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  181:86   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  187:48   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  189:50   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  193:59   error    Unsafe argument of type `any` assigned to a parameter of type `ProjectAnalysis`                            @typescript-eslint/no-unsafe-argument
+  194:48   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  220:56   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  225:19   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  228:44   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  232:14   error    Unsafe member access .coverage on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+  239:51   error    Unsafe argument of type `any` assigned to a parameter of type `TestRunnerConfig`                           @typescript-eslint/no-unsafe-argument
+  248:63   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  277:49   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  277:63   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  280:28   error    Require statement not part of import statement                                                             @typescript-eslint/no-var-requires
+  280:63   error    `import()` type annotations are forbidden                                                                  @typescript-eslint/consistent-type-imports
+  290:53   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  291:58   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  295:47   error    Unsafe argument of type `any` assigned to a parameter of type `TestGapAnalysisResult`                      @typescript-eslint/no-unsafe-argument
+  300:56   error    Unsafe argument of type `any` assigned to a parameter of type `TestGapAnalysisResult`                      @typescript-eslint/no-unsafe-argument
+  310:48   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  312:36   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  317:39   error    Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  317:50   error    Unsafe member access .sourceFile on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  341:43   error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  382:64   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  383:63   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  384:60   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  384:100  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  391:29   error    Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+  391:45   error    Unsafe member access .summary on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  392:31   error    Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+  392:47   error    Unsafe member access .summary on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  393:33   error    Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+  393:49   error    Unsafe member access .summary on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  401:42   error    Unsafe member access .totalFiles on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  402:43   error    Unsafe member access .gaps on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  403:34   error    Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+  403:46   error    Unsafe member access .averageComplexity on an `any` value                                                  @typescript-eslint/no-unsafe-member-access
+  411:43   error    Unsafe member access .successful on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  412:39   error    Unsafe member access .failed on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  413:56   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  414:27   error    Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+  414:44   error    Unsafe member access .totalTokens on an `any` value                                                        @typescript-eslint/no-unsafe-member-access
+  422:47   error    Unsafe member access .language on an `any` value                                                           @typescript-eslint/no-unsafe-member-access
+  423:48   error    Unsafe member access .framework on an `any` value                                                          @typescript-eslint/no-unsafe-member-access
+  424:50   error    Unsafe member access .metrics on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  425:50   error    Unsafe member access .metrics on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+
+✖ 771 problems (518 errors, 253 warnings)
+

@@ -8,20 +8,24 @@
 import fg from 'fast-glob';
 import path from 'path';
 import { promises as fs } from 'fs';
+import debug from 'debug';
 
-import { FileDiscoveryType } from '../types/file-discovery-types';
-import type {
-  FileDiscoveryService,
-  FileDiscoveryRequest,
-  FileDiscoveryResult,
-  FileDiscoveryCache,
-  PatternManager,
-  CacheKey,
-  FileDiscoveryConfig,
+import {
+  FileDiscoveryType,
+  type FileDiscoveryService,
+  type FileDiscoveryRequest,
+  type FileDiscoveryResult,
+  type FileDiscoveryCache,
+  type PatternManager,
+  type CacheKey,
+  type FileDiscoveryConfig,
+  type CacheStats,
 } from '../types/file-discovery-types';
 
 import { PatternManagerImpl } from './PatternManager';
 import { MemoryFileDiscoveryCache, NullFileDiscoveryCache } from './FileDiscoveryCache';
+
+const logger: debug.Debugger = debug('claude-testing:file-discovery');
 
 /**
  * Service for configuration retrieval
@@ -39,7 +43,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   private config: FileDiscoveryConfig;
 
   constructor(configService?: ConfigurationService) {
-    this.config = configService?.getFileDiscoveryConfig() || this.getDefaultConfig();
+    this.config = configService?.getFileDiscoveryConfig() ?? this.getDefaultConfig();
     this.patternManager = new PatternManagerImpl(configService);
 
     if (this.config.cache.enabled) {
@@ -63,7 +67,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
 
     // Check cache if enabled
     if (effectiveRequest.useCache !== false) {
-      const cached = await this.cache.get(cacheKey);
+      const cached = this.cache.get(cacheKey);
       if (cached) {
         return cached.result;
       }
@@ -71,7 +75,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
 
     // Resolve patterns
     const includePatterns =
-      effectiveRequest.include ||
+      effectiveRequest.include ??
       this.patternManager.getIncludePatterns(effectiveRequest.type, effectiveRequest.languages);
     const excludePatterns = this.mergeExcludePatterns(effectiveRequest);
 
@@ -86,14 +90,14 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
       files = await fg(includePatterns, {
         cwd: effectiveRequest.baseDir,
         ignore: excludePatterns,
-        absolute: effectiveRequest.absolute || false,
+        absolute: effectiveRequest.absolute ?? false,
         onlyFiles: !effectiveRequest.includeDirectories,
         dot: false,
         followSymbolicLinks: false,
         suppressErrors: true,
       });
     } catch (error) {
-      return this.createEmptyResult(startTime, `File discovery failed: ${error}`);
+      return this.createEmptyResult(startTime, `File discovery failed: ${String(error)}`);
     }
 
     // Apply language filtering if needed
@@ -114,7 +118,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
 
     // Cache result if enabled
     if (effectiveRequest.useCache !== false) {
-      await this.cache.set(cacheKey, result);
+      this.cache.set(cacheKey, result);
     }
 
     // Log slow operations and performance stats
@@ -129,14 +133,14 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
 
     // Log performance statistics if enabled
     if (this.config.performance.enableStats) {
-      console.debug('File discovery stats', {
-        type: effectiveRequest.type,
-        duration: result.duration,
-        fileCount: result.files.length,
-        fromCache: result.fromCache,
-        baseDir: effectiveRequest.baseDir,
-        stats: result.stats,
-      });
+      logger(
+        'File discovery stats: type=%s duration=%dms files=%d fromCache=%s baseDir=%s',
+        effectiveRequest.type,
+        result.duration,
+        result.files.length,
+        result.fromCache,
+        effectiveRequest.baseDir
+      );
     }
 
     return result;
@@ -188,7 +192,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   /**
    * Get cache performance statistics
    */
-  getCacheStats() {
+  getCacheStats(): CacheStats {
     return this.cache.getStats();
   }
 
@@ -208,13 +212,13 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   private generateCacheKey(request: FileDiscoveryRequest): CacheKey {
     return {
       baseDir: request.baseDir,
-      include: request.include || [],
-      exclude: request.exclude || [],
+      include: request.include ?? [],
+      exclude: request.exclude ?? [],
       type: request.type,
-      languages: request.languages || [],
+      languages: request.languages ?? [],
       options: {
-        absolute: request.absolute || false,
-        includeDirectories: request.includeDirectories || false,
+        absolute: request.absolute ?? false,
+        includeDirectories: request.includeDirectories ?? false,
       },
     };
   }
@@ -224,7 +228,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
    */
   private mergeExcludePatterns(request: FileDiscoveryRequest): string[] {
     const defaultExcludes = this.patternManager.getExcludePatterns(request.type, request.languages);
-    const requestExcludes = request.exclude || [];
+    const requestExcludes = request.exclude ?? [];
 
     return [...defaultExcludes, ...requestExcludes];
   }
@@ -286,7 +290,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
       mocha: ['**/*.test.js', '**/*.spec.js', '**/test/**/*.js'],
     };
 
-    return frameworkPatterns[framework.toLowerCase()] || frameworkPatterns.jest || [];
+    return frameworkPatterns[framework.toLowerCase()] ?? frameworkPatterns.jest ?? [];
   }
 
   /**

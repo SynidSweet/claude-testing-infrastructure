@@ -159,22 +159,22 @@ export interface FileDiscoveryCache {
   /**
    * Get cached result for the given key
    */
-  get(key: CacheKey): Promise<CachedResult | null>;
+  get(key: CacheKey): CachedResult | null;
 
   /**
    * Store result in cache with optional TTL
    */
-  set(key: CacheKey, result: FileDiscoveryResult, ttl?: number): Promise<void>;
+  set(key: CacheKey, result: FileDiscoveryResult, ttl?: number): void;
 
   /**
    * Invalidate cache entries matching pattern
    */
-  invalidate(pattern: string | RegExp): Promise<void>;
+  invalidate(pattern: string | RegExp): void;
 
   /**
    * Clear all cache entries
    */
-  clear(): Promise<void>;
+  clear(): void;
 
   /**
    * Get cache performance statistics

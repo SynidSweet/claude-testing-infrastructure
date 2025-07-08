@@ -13,6 +13,7 @@ export interface RetryOptions {
   maxDelay?: number;
   backoffFactor?: number;
   jitter?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   retryableErrors?: Array<new (...args: any[]) => Error>;
   onRetry?: (error: Error, attempt: number, delay: number) => void;
   // Intelligent retry enhancements
@@ -70,7 +71,7 @@ export class FailurePatternDetector {
 
   recordFailure(error: Error, _taskContext?: TaskRetryContext): void {
     const pattern = this.categorizeError(error);
-    const existing = this.patterns.get(pattern) || {
+    const existing = this.patterns.get(pattern) ?? {
       count: 0,
       lastSeen: new Date(),
       successfulRetryStrategies: [],
@@ -187,7 +188,7 @@ export class FailurePatternDetector {
  */
 function isRetryableError(
   error: Error,
-  retryableErrors: Array<new (...args: any[]) => Error>,
+  retryableErrors: Array<{ new (...args: unknown[]): Error }>,
   context?: TaskRetryContext,
   patterns?: FailurePatternDetector
 ): boolean {
@@ -270,7 +271,7 @@ function calculateDelay(
         low: 0.8,
         medium: 1.0,
         high: 1.5,
-      }[context.complexity] || 1.0;
+      }[context.complexity] ?? 1.0;
 
     // Adjust based on estimated tokens (more tokens = potentially longer processing)
     const tokenMultiplier = Math.min(1 + context.estimatedTokens / 10000, 3.0);
@@ -354,7 +355,7 @@ export async function withRetry<T>(
 
         // Update task context with successful timing
         if (adaptedOptions.taskContext) {
-          const avgTime = adaptedOptions.taskContext.averageSuccessTime || 0;
+          const avgTime = adaptedOptions.taskContext.averageSuccessTime ?? 0;
           adaptedOptions.taskContext.averageSuccessTime = (avgTime + timeToSuccess) / 2;
         }
       }
@@ -435,7 +436,7 @@ export async function withRetry<T>(
 
       logger.info(
         `Intelligent retry: waiting ${delay}ms before attempt ${attempt + 1}/${adaptedOptions.maxAttempts} ` +
-          `(strategy: ${adaptedOptions.failurePatterns?.getRecommendedStrategy(lastError).strategy || 'default'})`
+          `(strategy: ${adaptedOptions.failurePatterns?.getRecommendedStrategy(lastError).strategy ?? 'default'})`
       );
 
       // Call retry callback
@@ -449,7 +450,7 @@ export async function withRetry<T>(
   // All attempts failed
   return {
     success: false,
-    error: lastError || new Error('All retry attempts failed'),
+    error: lastError ?? new Error('All retry attempts failed'),
     attempts: adaptedOptions.maxAttempts,
     totalDuration: Date.now() - startTime,
   };
@@ -466,7 +467,7 @@ export function Retry(options: RetryOptions = {}) {
   ): PropertyDescriptor {
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
-    descriptor.value = async function (...args: unknown[]) {
+    descriptor.value = async function (...args: unknown[]): Promise<unknown> {
       const result = await withRetry(() => originalMethod.apply(this, args), options);
 
       if (!result.success) {

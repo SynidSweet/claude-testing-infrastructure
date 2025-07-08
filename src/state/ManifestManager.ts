@@ -107,7 +107,7 @@ export class ManifestManager {
     return await handleFileOperation(
       async () => {
         const content = await fs.readFile(this.manifestPath, 'utf-8');
-        return JSON.parse(content);
+        return JSON.parse(content) as TestManifest;
       },
       'loading manifest file',
       this.manifestPath
@@ -135,7 +135,7 @@ export class ManifestManager {
     const manifest: TestManifest = {
       version: '1.0.0',
       projectPath: this.projectPath,
-      projectHash: await this.calculateProjectHash(),
+      projectHash: this.calculateProjectHash(),
       lastAnalysis: new Date().toISOString(),
       lastGeneration: new Date().toISOString(),
       framework: 'unknown',
@@ -248,7 +248,7 @@ export class ManifestManager {
   /**
    * Calculate hash of entire project structure
    */
-  private async calculateProjectHash(): Promise<string> {
+  private calculateProjectHash(): string {
     const hash = crypto.createHash('sha256');
     hash.update(this.projectPath);
     hash.update(new Date().toISOString());

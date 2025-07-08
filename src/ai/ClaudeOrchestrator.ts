@@ -36,6 +36,14 @@ import {
   type ProcessResourceUsage,
 } from '../utils/ProcessMonitor';
 import { TaskCheckpointManager } from '../state/TaskCheckpointManager';
+import { type TestableTimer, type TimerHandle } from '../types/timer-types';
+import { createAutoTimer } from '../utils/TimerFactory';
+import type { HeartbeatMonitor } from './heartbeat';
+import {
+  createHeartbeatMonitor,
+  setupEventMapping,
+  HeartbeatMonitorAdapter,
+} from './heartbeat/ClaudeOrchestratorIntegration';
 
 export interface ClaudeOrchestratorConfig {
   maxConcurrent?: number;
@@ -52,6 +60,7 @@ export interface ClaudeOrchestratorConfig {
   maxRetryDelay?: number;
   checkpointingEnabled?: boolean;
   projectPath?: string;
+  timerService?: TestableTimer;
 }
 
 export interface ProcessResult {
@@ -78,8 +87,8 @@ interface ProcessHeartbeat {
   lastActivity: Date;
   stdoutBytes: number;
   stderrBytes: number;
-  checkInterval?: NodeJS.Timeout;
-  timeoutProgress?: NodeJS.Timeout;
+  checkInterval?: TimerHandle;
+  timeoutProgress?: TimerHandle;
   warningThresholds?: Set<number>;
   startTime?: Date;
   resourceUsage?: ProcessResourceUsage;
@@ -114,6 +123,9 @@ export class ClaudeOrchestrator extends EventEmitter {
     string,
     { successTime: number; complexity: 'low' | 'medium' | 'high' }
   >(); // Task performance tracking
+  private timerService: TestableTimer;
+  private heartbeatMonitor: HeartbeatMonitor;
+  private heartbeatAdapter: HeartbeatMonitorAdapter;
 
   constructor(private config: ClaudeOrchestratorConfig = {}) {
     super();
@@ -133,6 +145,9 @@ export class ClaudeOrchestrator extends EventEmitter {
       checkpointingEnabled: true,
       ...config,
     };
+
+    // Initialize timer service (use provided or create auto-timer)
+    this.timerService = this.config.timerService ?? createAutoTimer();
 
     // Initialize checkpoint manager if enabled and project path provided
     if (this.config.checkpointingEnabled && this.config.projectPath) {
@@ -172,6 +187,29 @@ export class ClaudeOrchestrator extends EventEmitter {
       maxHistory: 50,
       zombieDetection: true,
     });
+
+    // Initialize new heartbeat monitoring system
+    this.heartbeatMonitor = createHeartbeatMonitor(this.timerService, {
+      scheduler: {
+        intervalMs: this.HEARTBEAT_INTERVAL,
+        timeoutMs: this.config.timeout ?? 900000,
+        progressIntervalMs: 10000,
+      },
+      analysis: {
+        cpuThreshold: 80,
+        memoryThresholdMB: 1000,
+        minOutputRate: 0.1,
+        maxSilenceDuration: this.DEAD_PROCESS_THRESHOLD,
+        maxErrorCount: 50,
+        progressMarkerPatterns: ['analyzing', 'processing', 'generating'],
+        minProgressMarkers: 1,
+        analysisWindowMs: 60000,
+      },
+    });
+    this.heartbeatAdapter = new HeartbeatMonitorAdapter(this.heartbeatMonitor);
+
+    // Set up event mapping between new heartbeat monitor and orchestrator
+    setupEventMapping(this.heartbeatMonitor, this);
 
     // Initialize circuit breaker if enabled
     if (this.config.circuitBreakerEnabled) {
@@ -241,41 +279,41 @@ export class ClaudeOrchestrator extends EventEmitter {
    * Start heartbeat monitoring for a process
    */
   private startHeartbeatMonitoring(taskId: string, process: ChildProcess): void {
+    // Use new heartbeat monitoring system
+    this.heartbeatAdapter.startMonitoring(taskId, process);
+
+    // Keep legacy heartbeat object for backward compatibility during transition
+    const currentTime = this.timerService.getCurrentTime();
     const heartbeat: ProcessHeartbeat = {
       taskId,
       process,
-      lastActivity: new Date(),
+      lastActivity: new Date(currentTime),
       stdoutBytes: 0,
       stderrBytes: 0,
-      startTime: new Date(),
+      startTime: new Date(currentTime),
       warningThresholds: new Set([50, 75, 90]),
-      lastStdinCheck: new Date(),
+      lastStdinCheck: new Date(currentTime),
       isWaitingForInput: false,
       consecutiveSlowChecks: 0,
       progressHistory: [],
     };
 
+    this.processHeartbeats.set(taskId, heartbeat);
+
     // Start process monitoring if we have a valid PID
     if (process.pid) {
       this.processMonitor.startMonitoring(process.pid);
     }
-
-    // Set up periodic heartbeat checks
-    const intervalFn = (): void => {
-      this.checkProcessHealth(taskId);
-    };
-    heartbeat.checkInterval = setInterval(intervalFn, this.HEARTBEAT_INTERVAL);
-
-    this.processHeartbeats.set(taskId, heartbeat);
-
-    // Run initial check immediately (after heartbeat is stored)
-    intervalFn();
   }
 
   /**
    * Stop heartbeat monitoring for a process
    */
   private stopHeartbeatMonitoring(taskId: string): void {
+    // Use new heartbeat monitoring system
+    this.heartbeatAdapter.stopMonitoring(taskId);
+
+    // Clean up legacy heartbeat object
     const heartbeat = this.processHeartbeats.get(taskId);
     if (heartbeat) {
       // Stop process monitoring if we have a valid PID
@@ -284,10 +322,10 @@ export class ClaudeOrchestrator extends EventEmitter {
       }
 
       if (heartbeat.checkInterval) {
-        clearInterval(heartbeat.checkInterval);
+        heartbeat.checkInterval.cancel();
       }
       if (heartbeat.timeoutProgress) {
-        clearInterval(heartbeat.timeoutProgress);
+        heartbeat.timeoutProgress.cancel();
       }
       this.processHeartbeats.delete(taskId);
     }
@@ -302,6 +340,10 @@ export class ClaudeOrchestrator extends EventEmitter {
     isStdout: boolean,
     data?: string
   ): void {
+    // Notify new heartbeat system
+    this.heartbeatAdapter.updateActivity(taskId, bytesReceived, isStdout, data);
+
+    // Update legacy heartbeat object for compatibility
     const heartbeat = this.processHeartbeats.get(taskId);
     if (heartbeat) {
       heartbeat.lastActivity = new Date();
@@ -370,244 +412,6 @@ export class ClaudeOrchestrator extends EventEmitter {
     if (!pid) return undefined;
 
     return this.processMonitor.getResourceUsage(pid) ?? undefined;
-  }
-
-  /**
-   * Check if a process is healthy
-   */
-  private checkProcessHealth(taskId: string): void {
-    const heartbeat = this.processHeartbeats.get(taskId);
-    if (!heartbeat) return;
-
-    const timeSinceLastActivity = Date.now() - heartbeat.lastActivity.getTime();
-    const timeSinceStart = Date.now() - (heartbeat.startTime?.getTime() ?? Date.now());
-
-    // Get health metrics from ProcessMonitor if available
-    let healthMetrics: ProcessHealthMetrics | undefined;
-    if (heartbeat.process.pid) {
-      healthMetrics = this.processMonitor.getHealthMetrics(heartbeat.process.pid);
-      heartbeat.healthMetrics = healthMetrics;
-      if (healthMetrics.resourceUsage) {
-        heartbeat.resourceUsage = healthMetrics.resourceUsage;
-      }
-    }
-
-    // Enhanced heuristics for determining process health
-    const processMetrics = this.analyzeProcessHealth(
-      heartbeat,
-      timeSinceLastActivity,
-      timeSinceStart
-    );
-
-    // Check for zombie processes
-    if (healthMetrics?.isZombie) {
-      logger.error(`Process ${taskId} is a zombie process`);
-
-      this.emit('process:zombie', {
-        taskId,
-        lastActivity: heartbeat.lastActivity,
-        bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
-        timeSinceLastActivity,
-        healthMetrics,
-        resourceUsage: heartbeat.resourceUsage,
-      });
-
-      // Kill zombie process and stop monitoring
-      if (heartbeat.process && !heartbeat.process.killed) {
-        logger.warn(`Attempting to kill zombie process ${taskId}`);
-        heartbeat.process.kill('SIGKILL'); // Use SIGKILL directly for zombies
-      }
-      this.stopHeartbeatMonitoring(taskId);
-      return;
-    }
-
-    // Check for high resource usage
-    if (healthMetrics?.isHighResource) {
-      logger.warn(`Process ${taskId} high resource usage: ${healthMetrics.warnings.join(', ')}`);
-
-      this.emit('process:high-resource', {
-        taskId,
-        lastActivity: heartbeat.lastActivity,
-        bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
-        timeSinceLastActivity,
-        healthMetrics,
-        resourceUsage: heartbeat.resourceUsage,
-        recommendations: healthMetrics.recommendations,
-      });
-    }
-
-    // Check if process might be waiting for input
-    if (this.checkForInputWait(heartbeat, timeSinceLastActivity)) {
-      logger.warn(
-        `Process ${taskId} may be waiting for input - no activity for ${timeSinceLastActivity / 1000}s`
-      );
-
-      this.emit('process:waiting-input', {
-        taskId,
-        lastActivity: heartbeat.lastActivity,
-        bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
-        timeSinceLastActivity,
-        healthMetrics,
-        resourceUsage: heartbeat.resourceUsage,
-      });
-
-      // Don't kill processes that might be waiting for input yet
-      return;
-    }
-
-    // Check if process appears to be dead
-    if (processMetrics.isDead) {
-      logger.warn(`Process ${taskId} appears to be dead - ${processMetrics.reason}`);
-
-      // Emit warning event with enhanced metrics
-      this.emit('process:dead', {
-        taskId,
-        lastActivity: heartbeat.lastActivity,
-        bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
-        timeSinceLastActivity,
-        reason: processMetrics.reason,
-        metrics: processMetrics,
-        healthMetrics,
-        resourceUsage: heartbeat.resourceUsage,
-      });
-
-      // Try to kill the process if it's still running
-      if (heartbeat.process && !heartbeat.process.killed) {
-        logger.warn(`Attempting to kill dead process ${taskId}`);
-        heartbeat.process.kill('SIGTERM');
-        setTimeout(() => {
-          if (heartbeat.process && !heartbeat.process.killed) {
-            heartbeat.process.kill('SIGKILL');
-          }
-        }, 5000);
-      }
-
-      // Stop monitoring this process
-      this.stopHeartbeatMonitoring(taskId);
-    } else if (processMetrics.isSlow) {
-      // Process is slow but not dead yet
-      heartbeat.consecutiveSlowChecks = (heartbeat.consecutiveSlowChecks ?? 0) + 1;
-
-      logger.info(`Process ${taskId} is slow - ${processMetrics.reason}`);
-
-      this.emit('process:slow', {
-        taskId,
-        lastActivity: heartbeat.lastActivity,
-        bytesReceived: heartbeat.stdoutBytes + heartbeat.stderrBytes,
-        timeSinceLastActivity,
-        consecutiveSlowChecks: heartbeat.consecutiveSlowChecks,
-        reason: processMetrics.reason,
-        metrics: processMetrics,
-        healthMetrics,
-        resourceUsage: heartbeat.resourceUsage,
-      });
-    }
-  }
-
-  /**
-   * Analyze process health with multiple metrics
-   */
-  private analyzeProcessHealth(
-    heartbeat: ProcessHeartbeat,
-    timeSinceLastActivity: number,
-    timeSinceStart: number
-  ): {
-    isDead: boolean;
-    isSlow: boolean;
-    reason: string;
-    hasProgressMarkers: boolean;
-    bytesPerSecond: number;
-    isEarlyPhase: boolean;
-  } {
-    const bytesReceived = heartbeat.stdoutBytes + heartbeat.stderrBytes;
-    const bytesPerSecond = timeSinceStart > 0 ? (bytesReceived / timeSinceStart) * 1000 : 0;
-    const isEarlyPhase = timeSinceStart < 60000; // First minute
-
-    // Check if we've seen progress markers recently
-    const recentProgressMarkers =
-      heartbeat.progressHistory?.filter(
-        (entry) => entry.marker && Date.now() - entry.timestamp.getTime() < 60000
-      ).length ?? 0;
-
-    // Enhanced dead detection heuristics
-    let isDead = false;
-    let isSlow = false;
-    let reason = '';
-
-    if (timeSinceLastActivity > this.DEAD_PROCESS_THRESHOLD) {
-      // But be more lenient if we've seen progress markers
-      if (recentProgressMarkers > 0) {
-        isDead = false;
-        isSlow = true;
-        reason = `no activity for ${timeSinceLastActivity / 1000}s but recent progress markers detected`;
-      } else if (isEarlyPhase && bytesReceived === 0) {
-        // Early phase with no output might be normal startup
-        isDead = false;
-        isSlow = true;
-        reason = `early phase with no output yet (${timeSinceStart / 1000}s since start)`;
-      } else {
-        isDead = true;
-        reason = `no activity for ${timeSinceLastActivity / 1000}s with no recent progress`;
-      }
-    } else if (timeSinceLastActivity > this.HEARTBEAT_INTERVAL) {
-      isSlow = true;
-
-      if (bytesPerSecond < 0.1 && !isEarlyPhase) {
-        reason = `very low output rate (${bytesPerSecond.toFixed(2)} bytes/sec)`;
-      } else if (heartbeat.consecutiveSlowChecks && heartbeat.consecutiveSlowChecks > 3) {
-        reason = `consistently slow (${heartbeat.consecutiveSlowChecks} consecutive slow checks)`;
-      } else {
-        reason = `no activity for ${timeSinceLastActivity / 1000}s`;
-      }
-    }
-
-    return {
-      isDead,
-      isSlow,
-      reason,
-      hasProgressMarkers: recentProgressMarkers > 0,
-      bytesPerSecond,
-      isEarlyPhase,
-    };
-  }
-
-  /**
-   * Check if process might be waiting for input
-   */
-  private checkForInputWait(heartbeat: ProcessHeartbeat, timeSinceLastActivity: number): boolean {
-    // Only check if we haven't had activity in a while
-    if (timeSinceLastActivity < 30000) return false;
-
-    // Check if the last output might indicate waiting for input
-    const recentHistory = heartbeat.progressHistory?.slice(-5) ?? [];
-
-    // Look for actual input prompt patterns, not progress markers
-    const hasInputPrompt = recentHistory.some((entry) => {
-      if (!entry.marker || entry.bytes > 20) return false; // Input prompts are very short
-
-      const text = entry.marker.toLowerCase();
-      // Common input prompt patterns
-      const inputPatterns = [
-        />\s*$/, // "> "
-        /:\s*$/, // ": "
-        /\?\s*$/, // "? "
-        /enter\s*$/, // "enter"
-        /input\s*$/, // "input"
-        /password\s*$/, // "password"
-        /continue\s*$/, // "continue"
-      ];
-
-      return inputPatterns.some((pattern) => pattern.test(text));
-    });
-
-    // Only flag as waiting for input if we detect actual prompt patterns
-    if (hasInputPrompt && heartbeat.stdoutBytes < 1000) {
-      heartbeat.isWaitingForInput = true;
-      heartbeat.lastStdinCheck = new Date();
-      return true;
-    }
-
-    return false;
   }
 
   /**
@@ -1036,8 +840,10 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
     if (!heartbeat) return;
 
     const progressCheckInterval = Math.min(timeoutMs / 10, 10000); // Check every 10% or 10s, whichever is smaller
-    heartbeat.timeoutProgress = setInterval(() => {
-      const elapsed = Date.now() - (heartbeat.startTime?.getTime() ?? Date.now());
+
+    const timerHandle = this.timerService.scheduleInterval(() => {
+      const currentTime = this.timerService.getCurrentTime();
+      const elapsed = currentTime - (heartbeat.startTime?.getTime() ?? currentTime);
       const progress = Math.floor((elapsed / timeoutMs) * 100);
 
       // Check warning thresholds
@@ -1080,6 +886,8 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
         }
       }
     }, progressCheckInterval);
+
+    heartbeat.timeoutProgress = timerHandle;
   }
 
   /**
@@ -1152,15 +960,45 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
           BASH_MAX_TIMEOUT_MS: String(this.config.timeout),
         };
 
-        const claude = spawn('claude', args, {
+        let stdout = '';
+        let stderr = '';
+        let timeout: TimerHandle | undefined;
+        let killed = false;
+        let claude: ChildProcess | undefined; // eslint-disable-line prefer-const
+
+        // Set up early error detection handler BEFORE spawning process
+        const errorHandler = (error: ParsedError): void => {
+          if (error.severity === 'fatal' && !killed) {
+            logger.error(`Early fatal error detected for task ${task.id}: ${error.type}`);
+
+            // Kill the process immediately on fatal errors
+            killed = true;
+            if (timeout) timeout.cancel();
+            this.stopHeartbeatMonitoring(task.id);
+            this.activeProcesses.delete(task.id);
+
+            // Kill the process if it exists
+            if (claude) {
+              claude.kill('SIGTERM');
+              this.timerService.schedule(() => {
+                if (claude && !claude.killed) {
+                  claude.kill('SIGKILL');
+                }
+              }, 1000);
+            }
+
+            // Reject with the specific error
+            reject(error.error);
+          }
+        };
+
+        // Listen for early error detection BEFORE spawning
+        this.on('error:detected', errorHandler);
+
+        claude = spawn('claude', args, {
           env: claudeEnv,
           shell: false,
         });
-
-        let stdout = '';
-        let stderr = '';
-        let timeout: NodeJS.Timeout;
-        let killed = false;
 
         // Create stderr parser for early error detection
         const stderrParser = createStderrParser(this);
@@ -1168,40 +1006,13 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
         // Store active process
         this.activeProcesses.set(task.id, claude);
 
-        // Set up early error detection handler
-        const errorHandler = (error: ParsedError): void => {
-          if (error.severity === 'fatal' && !killed) {
-            logger.error(`Early fatal error detected for task ${task.id}: ${error.type}`);
-
-            // Kill the process immediately on fatal errors
-            killed = true;
-            if (timeout) clearTimeout(timeout);
-            this.stopHeartbeatMonitoring(task.id);
-            this.activeProcesses.delete(task.id);
-
-            // Kill the process
-            claude.kill('SIGTERM');
-            setTimeout(() => {
-              if (!claude.killed) {
-                claude.kill('SIGKILL');
-              }
-            }, 1000);
-
-            // Reject with the specific error
-            reject(error.error);
-          }
-        };
-
-        // Listen for early error detection
-        this.once('error:detected', errorHandler);
-
         // Set up timeout with more descriptive error
         if (this.config.timeout) {
           // Create a more aggressive timeout handling
           const timeoutMs = this.config.timeout ?? 900000;
 
           // Set main timeout
-          timeout = setTimeout(() => {
+          timeout = this.timerService.schedule(() => {
             if (!killed) {
               killed = true;
               // Stop heartbeat monitoring before killing
@@ -1209,7 +1020,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
 
               // Try SIGTERM first, then SIGKILL after 5 seconds
               claude.kill('SIGTERM');
-              setTimeout(() => {
+              this.timerService.schedule(() => {
                 if (claude.killed === false) {
                   claude.kill('SIGKILL');
                 }
@@ -1228,7 +1039,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
           }, timeoutMs);
 
           // Set progress timeout (if no output for 30 seconds, consider it stuck)
-          setTimeout(() => {
+          this.timerService.schedule(() => {
             if (!stdout && !killed) {
               logger.warn(`No output from Claude CLI after 30 seconds for task ${task.id}`);
               this.emit('progress', {
@@ -1255,7 +1066,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
           );
         }
 
-        claude.stdout.on('data', (data: Buffer) => {
+        claude.stdout?.on('data', (data: Buffer) => {
           const dataStr = data.toString();
           const bytes = data.length;
           stdout += dataStr;
@@ -1293,7 +1104,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
           } as AIProgressUpdate);
         });
 
-        claude.stderr.on('data', (data: Buffer) => {
+        claude.stderr?.on('data', (data: Buffer) => {
           const dataStr = data.toString();
           const bytes = data.length;
           stderr += dataStr;
@@ -1311,7 +1122,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
 
         claude.on('error', (error) => {
           if (!killed) {
-            clearTimeout(timeout);
+            if (timeout) timeout.cancel();
             this.activeProcesses.delete(task.id);
             this.stopHeartbeatMonitoring(task.id);
 
@@ -1331,10 +1142,10 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
 
         claude.on('close', (code) => {
           // Clean up error handler
-          this.off('error:detected', errorHandler);
+          this.removeListener('error:detected', errorHandler);
 
           if (!killed) {
-            clearTimeout(timeout);
+            if (timeout) timeout.cancel();
             this.activeProcesses.delete(task.id);
             this.stopHeartbeatMonitoring(task.id);
 
@@ -1752,5 +1563,32 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
       totalDuration: 0,
       startTime: new Date(),
     };
+  }
+
+  /**
+   * Clean up resources and cancel all active timers
+   */
+  cleanup(): void {
+    // Cancel all heartbeat monitoring timers
+    for (const [, heartbeat] of this.processHeartbeats) {
+      if (heartbeat.checkInterval) {
+        heartbeat.checkInterval.cancel();
+      }
+      if (heartbeat.timeoutProgress) {
+        heartbeat.timeoutProgress.cancel();
+      }
+    }
+
+    // Cancel all active timers in the timer service
+    this.timerService.cancelAll();
+
+    // Clean up process monitoring
+    this.processMonitor.stopAll();
+
+    // Clear all collections
+    this.processHeartbeats.clear();
+    this.activeProcesses.clear();
+    this.taskQueue = [];
+    this.results = [];
   }
 }

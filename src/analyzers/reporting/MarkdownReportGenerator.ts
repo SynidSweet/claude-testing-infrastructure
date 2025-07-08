@@ -1,6 +1,6 @@
 import { path } from '../../utils/common-imports';
 import { GapPriority } from '../TestGapAnalyzer';
-import { GapReportSchema, ReportOptions } from '../GapReportGenerator';
+import type { GapReportSchema, ReportOptions } from '../GapReportGenerator';
 
 /**
  * Markdown Report Generator - Creates enhanced markdown reports

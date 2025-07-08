@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 import chalk from 'chalk';
-import type { Ora } from 'ora';
-import ora from 'ora';
+import ora, { type Ora } from 'ora';
 
 export interface ProgressEvent {
   type: 'start' | 'progress' | 'complete' | 'error' | 'warning';
@@ -49,7 +48,9 @@ export class ProgressReporter extends EventEmitter {
         spinner: 'dots',
       }).start();
     } else {
+      // eslint-disable-next-line no-console
       console.log(chalk.blue(`\n${message}`));
+      // eslint-disable-next-line no-console
       console.log(chalk.gray(`Total files to process: ${totalFiles}`));
     }
 
@@ -80,6 +81,7 @@ export class ProgressReporter extends EventEmitter {
         this.spinner.text += chalk.gray(` - ${this.getShortPath(file)}`);
       }
     } else {
+      // eslint-disable-next-line no-console
       console.log(
         chalk.cyan(`[${current}/${this.stats.totalFiles}] ${percentage}%`) +
           (file ? chalk.gray(` - Processing: ${this.getShortPath(file)}`) : '')
@@ -102,11 +104,13 @@ export class ProgressReporter extends EventEmitter {
     if (!this.verbose && this.spinner) {
       // Temporarily stop spinner to show error
       this.spinner.stop();
+      // eslint-disable-next-line no-console
       console.log(
         chalk.red(`✗ Error${file ? ` in ${this.getShortPath(file)}` : ''}: ${errorMessage}`)
       );
       this.spinner.start();
     } else {
+      // eslint-disable-next-line no-console
       console.log(
         chalk.red(`✗ Error${file ? ` in ${this.getShortPath(file)}` : ''}: ${errorMessage}`)
       );
@@ -124,6 +128,7 @@ export class ProgressReporter extends EventEmitter {
     this.stats.warnings++;
 
     if (this.verbose) {
+      // eslint-disable-next-line no-console
       console.log(
         chalk.yellow(`⚠️  Warning${file ? ` in ${this.getShortPath(file)}` : ''}: ${warning}`)
       );
@@ -142,19 +147,21 @@ export class ProgressReporter extends EventEmitter {
 
     if (!this.verbose && this.spinner) {
       if (success) {
-        this.spinner.succeed(message || 'Test generation completed');
+        this.spinner.succeed(message ?? 'Test generation completed');
       } else {
-        this.spinner.fail(message || 'Test generation failed');
+        this.spinner.fail(message ?? 'Test generation failed');
       }
     } else {
       const icon = success ? '✓' : '✗';
       const color = success ? chalk.green : chalk.red;
+      // eslint-disable-next-line no-console
       console.log(
-        color(`\n${icon} ${message || 'Test generation ' + (success ? 'completed' : 'failed')}`)
+        color(`\n${icon} ${message ?? 'Test generation ' + (success ? 'completed' : 'failed')}`)
       );
     }
 
     if (this.verbose || success) {
+      /* eslint-disable no-console */
       console.log(chalk.cyan('\n📊 Generation Summary:'));
       console.log(`  • Files processed: ${this.stats.filesProcessed}/${this.stats.totalFiles}`);
       console.log(`  • Time elapsed: ${elapsedSeconds}s`);
@@ -165,11 +172,12 @@ export class ProgressReporter extends EventEmitter {
       if (this.stats.warnings > 0) {
         console.log(chalk.yellow(`  • Warnings: ${this.stats.warnings}`));
       }
+      /* eslint-enable no-console */
     }
 
     this.emit('complete', {
       type: 'complete',
-      message: message || (success ? 'Completed' : 'Failed'),
+      message: message ?? (success ? 'Completed' : 'Failed'),
       current: this.stats.filesProcessed,
       total: this.stats.totalFiles,
     });

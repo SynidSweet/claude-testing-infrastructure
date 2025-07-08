@@ -1,6 +1,6 @@
 import { logger, path } from '../../utils/common-imports';
 import type { ProjectAnalysis } from '../../analyzers/ProjectAnalyzer';
-import { ProgressReporter } from '../../utils/ProgressReporter';
+import type { ProgressReporter } from '../../utils/ProgressReporter';
 import type {
   TestGeneratorConfig,
   GeneratedTest,

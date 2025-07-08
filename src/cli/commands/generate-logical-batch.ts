@@ -14,7 +14,7 @@ import ora from 'ora';
 import { TestGapAnalyzer } from '../../analyzers/TestGapAnalyzer';
 import { ProjectAnalyzer } from '../../analyzers/ProjectAnalyzer';
 import { StructuralTestGenerator } from '../../generators/StructuralTestGenerator';
-import { TestGeneratorConfig } from '../../generators/TestGenerator';
+import type { TestGeneratorConfig } from '../../generators/TestGenerator';
 import { AITaskPreparation } from '../../ai';
 import {
   BatchedLogicalTestGenerator,

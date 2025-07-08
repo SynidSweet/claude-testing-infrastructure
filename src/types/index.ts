@@ -8,3 +8,5 @@ export * from './coverage-types';
 export * from './generation-types';
 export * from './reporting-types';
 export * from './mcp-types';
+export * from './timer-types';
+export * from './async-test-types';

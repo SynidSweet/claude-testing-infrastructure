@@ -5,9 +5,9 @@
  * instance usage across all components in the CLI application.
  */
 
-import type { ConfigurationService } from './FileDiscoveryService';
 import { FileDiscoveryServiceImpl } from './FileDiscoveryService';
 import type { FileDiscoveryService } from '../types/file-discovery-types';
+import type { ConfigurationService } from '../config/ConfigurationService';
 
 /**
  * Factory class for creating FileDiscoveryService instances

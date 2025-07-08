@@ -439,7 +439,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     // Extract default exports
     // Handle export default class Name pattern
     const defaultClassMatch = content.match(/export\s+default\s+class\s+(\w+)/);
-    if (defaultClassMatch && defaultClassMatch[1]) {
+    if (defaultClassMatch?.[1]) {
       exports.push({
         name: defaultClassMatch[1],
         type: 'class',
@@ -448,7 +448,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     } else {
       // Handle other export default patterns
       const defaultExportMatch = content.match(/export\s+default\s+(\w+)/);
-      if (defaultExportMatch && defaultExportMatch[1]) {
+      if (defaultExportMatch?.[1]) {
         exports.push({
           name: defaultExportMatch[1],
           type: this.detectExportType(content, defaultExportMatch[1]),
@@ -498,9 +498,9 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
     ) {
       // Check for module.exports = { ... } pattern
       const objectExportsMatch = content.match(/module\.exports\s*=\s*{\s*([^}]+)\s*}/);
-      if (objectExportsMatch && objectExportsMatch[1]) {
+      if (objectExportsMatch?.[1]) {
         // Parse the exported properties
-        const exportedProps = objectExportsMatch[1]!.split(',').map((prop) => prop.trim());
+        const exportedProps = objectExportsMatch[1].split(',').map((prop) => prop.trim());
         for (const prop of exportedProps) {
           const propName = prop.split(':')[0]?.trim();
           if (propName) {
@@ -515,7 +515,7 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
       } else {
         // Check for module.exports = something pattern
         const moduleExportsMatch = content.match(/module\.exports\s*=\s*(\w+)/);
-        if (moduleExportsMatch && moduleExportsMatch[1]) {
+        if (moduleExportsMatch?.[1]) {
           exports.push({
             name: moduleExportsMatch[1],
             type: this.detectExportType(content, moduleExportsMatch[1]),

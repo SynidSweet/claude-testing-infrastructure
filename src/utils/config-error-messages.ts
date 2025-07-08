@@ -6,7 +6,7 @@ import chalk from 'chalk';
 
 export interface ConfigErrorDetails {
   field: string;
-  value: any;
+  value: unknown;
   message: string;
   suggestion?: string | undefined;
   example?: string | undefined;
@@ -54,7 +54,7 @@ export class ConfigErrorFormatter {
    * Common error message templates
    */
   static readonly templates = {
-    invalidEnum: (field: string, value: any, validOptions: string[]): ConfigErrorDetails => ({
+    invalidEnum: (field: string, value: unknown, validOptions: string[]): ConfigErrorDetails => ({
       field,
       value,
       message: `Invalid value. Must be one of: ${validOptions.join(', ')}`,
@@ -67,7 +67,7 @@ export class ConfigErrorFormatter {
 
     invalidType: (
       field: string,
-      value: any,
+      value: unknown,
       expectedType: string,
       actualType: string
     ): ConfigErrorDetails => ({
@@ -86,7 +86,7 @@ export class ConfigErrorFormatter {
       example: suggestRangeValue(value, min, max),
     }),
 
-    deprecatedField: (field: string, value: any, alternative?: string): ConfigErrorDetails => ({
+    deprecatedField: (field: string, value: unknown, alternative?: string): ConfigErrorDetails => ({
       field,
       value,
       message: `This field is deprecated`,
@@ -96,7 +96,7 @@ export class ConfigErrorFormatter {
 
     unknownField: (
       field: string,
-      value: any,
+      value: unknown,
       similarFields: string[] = []
     ): ConfigErrorDetails => ({
       field,
@@ -119,13 +119,13 @@ export class ConfigErrorFormatter {
 
     conflictingValues: (
       field: string,
-      value: any,
+      value: unknown,
       conflictsWith: string,
-      otherValue: any
+      otherValue: unknown
     ): ConfigErrorDetails => ({
       field,
       value,
-      message: `Conflicts with '${conflictsWith}' (${otherValue})`,
+      message: `Conflicts with '${conflictsWith}' (${String(otherValue)})`,
       suggestion: `Either remove '${field}' or adjust '${conflictsWith}'`,
       documentation: 'https://docs.anthropic.com/claude-testing/configuration#conflicts',
     }),
@@ -168,7 +168,7 @@ function getTypeExample(type: string): string {
     array: '["item1", "item2"]',
     object: '{ "key": "value" }',
   };
-  return examples[type] || type;
+  return examples[type] ?? type;
 }
 
 function formatRange(min?: number, max?: number): string {
@@ -199,7 +199,7 @@ function getFieldExample(field: string): string {
     exclude: '["**/*.test.js"]',
     costLimit: '50.00',
   };
-  return examples[field] || '""';
+  return examples[field] ?? '""';
 }
 
 function getPatternExample(patternType: string): string {
@@ -208,7 +208,7 @@ function getPatternExample(patternType: string): string {
     regex: '"/test\\w+\\.js$/"',
     path: '"./src/components"',
   };
-  return examples[patternType] || '"pattern"';
+  return examples[patternType] ?? '"pattern"';
 }
 
 /**

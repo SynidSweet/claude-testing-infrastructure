@@ -1,4 +1,4 @@
-import { MCPProjectAnalysis } from '../../types/mcp-types';
+import type { MCPProjectAnalysis } from '../../types/mcp-types';
 
 export class MCPProtocolComplianceTemplate {
   generateComplianceTests(analysis: MCPProjectAnalysis): { path: string; content: string } {

@@ -1,12 +1,19 @@
 import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
+import type { Command } from 'commander';
 import { ConfigurationService } from '../../config/ConfigurationService';
+import type {
+  ProjectAnalysis,
+  TestGeneratorConfig,
+  DetectedLanguage,
+  DetectedFramework,
+} from '../../utils/analyzer-imports';
 import {
   ProjectAnalyzer,
-  ProjectAnalysis,
   StructuralTestGenerator,
-  TestGeneratorConfig,
   TestGapAnalyzer,
 } from '../../utils/analyzer-imports';
+import type { StructuralTestGeneratorOptions } from '../../generators/StructuralTestGenerator';
+import type { GeneratedTest, GeneratedFile } from '../../generators/TestGenerator';
 import {
   handleAnalysisOperation,
   handleValidation,
@@ -16,9 +23,9 @@ import { displayConfigurationSources } from '../../utils/config-display';
 import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../../ai';
 import { ProgressReporter } from '../../utils/ProgressReporter';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
-import { TestFramework } from '../../types/config';
+import type { TestFramework } from '../../types/config';
 
-interface TestOptions {
+export interface TestOptions {
   config?: string;
   onlyStructural?: boolean;
   onlyLogical?: boolean;
@@ -30,13 +37,13 @@ interface TestOptions {
   enableChunking?: boolean;
   chunkSize?: number;
   dryRun?: boolean;
-  parent?: any; // Parent command for accessing global options
+  parent?: { opts(): Record<string, unknown> }; // Parent command for accessing global options
 }
 
 export async function testCommand(
   projectPath: string,
   options: TestOptions = {},
-  command?: any
+  command?: Command
 ): Promise<void> {
   // Access global options from parent command
   const globalOptions = command?.parent?.opts() || {};
@@ -92,12 +99,12 @@ export async function testCommand(
       console.log(chalk.gray(`\n📋 Analysis Results:`));
       console.log(
         chalk.gray(
-          `  • Languages detected: ${analysis.languages.map((l: any) => l.name).join(', ')}`
+          `  • Languages detected: ${analysis.languages.map((l: DetectedLanguage) => l.name).join(', ')}`
         )
       );
       console.log(
         chalk.gray(
-          `  • Frameworks detected: ${analysis.frameworks.map((f: any) => f.name).join(', ')}`
+          `  • Frameworks detected: ${analysis.frameworks.map((f: DetectedFramework) => f.name).join(', ')}`
         )
       );
       console.log(chalk.gray(`  • Total files: ${analysis.complexity.totalFiles}`));
@@ -137,7 +144,7 @@ export async function testCommand(
         console.log(chalk.gray(`  • Skip existing tests: ${!options.update}`));
       }
 
-      const generatorOptions: any = {
+      const generatorOptions: StructuralTestGeneratorOptions = {
         generateMocks: true,
         generateSetup: true,
         skipExistingTests: !options.update,
@@ -349,33 +356,34 @@ async function loadConfiguration(
   if (testFramework === 'auto') {
     if (analysis.testingSetup.testFrameworks.length > 0) {
       testFramework = analysis.testingSetup.testFrameworks[0] as TestFramework;
-    } else if (analysis.frameworks.some((f: any) => f.name === 'react')) {
+    } else if (analysis.frameworks.some((f: DetectedFramework) => f.name === 'react')) {
       testFramework = 'jest';
-    } else if (analysis.languages.some((l: any) => l.name === 'python')) {
+    } else if (analysis.languages.some((l: DetectedLanguage) => l.name === 'python')) {
       testFramework = 'pytest';
     } else {
       testFramework = 'jest';
     }
   }
 
-  const config: TestGeneratorConfig & { generation?: any; maxRatio?: number } = {
-    projectPath,
-    outputPath,
-    testFramework,
-    options: {
-      generateMocks: true,
-      includeSetupTeardown: true,
-      generateTestData: false,
-      addCoverage: options.coverage || false,
-    },
-    // Include patterns from configuration
-    patterns: {
-      include: fullConfig.include,
-      exclude: fullConfig.exclude,
-    },
-    // Include full configuration for validation
-    generation: fullConfig.generation,
-  };
+  const config: TestGeneratorConfig & { generation?: Record<string, unknown>; maxRatio?: number } =
+    {
+      projectPath,
+      outputPath,
+      testFramework,
+      options: {
+        generateMocks: true,
+        includeSetupTeardown: true,
+        generateTestData: false,
+        addCoverage: options.coverage || false,
+      },
+      // Include patterns from configuration
+      patterns: {
+        include: fullConfig.include,
+        exclude: fullConfig.exclude,
+      },
+      // Include full configuration for validation
+      generation: fullConfig.generation,
+    };
 
   // Add maxRatio only if it's defined to avoid TypeScript strict checking issues
   if (options.maxRatio !== undefined) {
@@ -385,7 +393,7 @@ async function loadConfiguration(
   return config;
 }
 
-async function writeGeneratedTests(tests: any[], verbose = false): Promise<void> {
+async function writeGeneratedTests(tests: GeneratedTest[], verbose = false): Promise<void> {
   for (const test of tests) {
     try {
       // Create directory if it doesn't exist
@@ -418,11 +426,15 @@ async function writeGeneratedTests(tests: any[], verbose = false): Promise<void>
   }
 }
 
-async function showDryRunPreview(tests: any[], config: any, verbose = false): Promise<void> {
+async function showDryRunPreview(
+  tests: GeneratedTest[],
+  config: TestGeneratorConfig,
+  verbose = false
+): Promise<void> {
   console.log(chalk.blue('\n🔍 Dry Run Preview:\n'));
 
   // Group tests by directory for better organization
-  const testsByDirectory = new Map<string, any[]>();
+  const testsByDirectory = new Map<string, GeneratedTest[]>();
   let totalAdditionalFiles = 0;
 
   tests.forEach((test) => {
@@ -455,7 +467,7 @@ async function showDryRunPreview(tests: any[], config: any, verbose = false): Pr
         );
 
         if (verbose && test.additionalFiles) {
-          test.additionalFiles.forEach((additionalFile: any) => {
+          test.additionalFiles.forEach((additionalFile: GeneratedFile) => {
             const addFileName = path.basename(additionalFile.path);
             const addFileSize = Math.round((additionalFile.content.length / 1024) * 10) / 10;
             console.log(
@@ -482,7 +494,7 @@ async function showDryRunPreview(tests: any[], config: any, verbose = false): Pr
     let testSize = test.content.length;
     if (test.additionalFiles) {
       testSize += test.additionalFiles.reduce(
-        (addSum: number, file: any) => addSum + file.content.length,
+        (addSum: number, file: GeneratedFile) => addSum + file.content.length,
         0
       );
     }
@@ -505,12 +517,14 @@ async function showDryRunPreview(tests: any[], config: any, verbose = false): Pr
     console.log(chalk.cyan('\n📄 Sample Test File Preview:'));
     if (tests.length > 0) {
       const sampleTest = tests[0];
-      const preview = sampleTest.content.split('\n').slice(0, 10).join('\n');
-      console.log(chalk.gray(`File: ${path.basename(sampleTest.testPath)}`));
-      console.log(chalk.gray('Content preview (first 10 lines):'));
-      console.log(chalk.gray(preview));
-      if (sampleTest.content.split('\n').length > 10) {
-        console.log(chalk.gray(`... (${sampleTest.content.split('\n').length - 10} more lines)`));
+      if (sampleTest) {
+        const preview = sampleTest.content.split('\n').slice(0, 10).join('\n');
+        console.log(chalk.gray(`File: ${path.basename(sampleTest.testPath)}`));
+        console.log(chalk.gray('Content preview (first 10 lines):'));
+        console.log(chalk.gray(preview));
+        if (sampleTest.content.split('\n').length > 10) {
+          console.log(chalk.gray(`... (${sampleTest.content.split('\n').length - 10} more lines)`));
+        }
       }
     }
   }
@@ -518,7 +532,7 @@ async function showDryRunPreview(tests: any[], config: any, verbose = false): Pr
 
 async function generateLogicalTests(
   projectPath: string,
-  analysis: any,
+  analysis: ProjectAnalysis,
   config: TestGeneratorConfig,
   options: TestOptions
 ): Promise<void> {

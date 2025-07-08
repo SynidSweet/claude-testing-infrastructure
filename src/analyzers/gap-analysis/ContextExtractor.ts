@@ -1,5 +1,5 @@
 import { fs, path, logger } from '../../utils/common-imports';
-import { TestContext, CodeSnippet } from '../TestGapAnalyzer';
+import type { TestContext, CodeSnippet } from '../TestGapAnalyzer';
 
 /**
  * Context Extractor - Extracts AI context information

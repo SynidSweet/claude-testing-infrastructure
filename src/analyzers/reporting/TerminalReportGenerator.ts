@@ -1,6 +1,6 @@
 import { path } from '../../utils/common-imports';
 import { GapPriority } from '../TestGapAnalyzer';
-import {
+import type {
   GapReportSchema,
   ActionableInsight,
   ReportOptions,

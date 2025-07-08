@@ -1,4 +1,4 @@
-import { CoverageAnalysis, CoveredElement } from '../TestGapAnalyzer';
+import type { CoverageAnalysis, CoveredElement } from '../TestGapAnalyzer';
 
 /**
  * Coverage Analyzer - Analyzes structural test coverage

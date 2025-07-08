@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-07-02 | Updated by: /document command | Integrated centralized model mapping system and fixed framework auto-detection for reliable CI/CD pipeline*
+*Last updated: 2025-07-08 | Updated by: /document command | Added Heartbeat Monitoring refactoring with separation of concerns architecture*
 
 ## Architecture Summary
 
@@ -265,6 +265,103 @@ enum FileDiscoveryType {
 - **Singleton pattern**: Ensures consistent cache usage across entire CLI session
 
 This architecture has been fully implemented across all CLI commands, providing consistent file operations and measurable performance improvements throughout the infrastructure.
+
+## TestableTimer Abstraction Architecture
+
+### Systematic Timer Testing Foundation
+
+The TestableTimer system provides a comprehensive abstraction layer for timer operations, enabling dependency injection and deterministic testing of time-based functionality throughout the infrastructure.
+
+#### Core Components
+
+##### Timer Abstractions (`src/types/timer-types.ts`)
+- **TestableTimer Interface**: Core abstraction for schedule/cancel operations
+- **MockTimerController Interface**: Extended test-time control capabilities
+- **TimerFactory Interface**: Environment-aware timer creation
+- **Comprehensive Types**: TimerHandle, TimerOptions, validation errors, metrics
+
+##### Production Implementation (`src/utils/RealTimer.ts`)
+- **Native Timer Wrapper**: setTimeout/setInterval/setImmediate with cross-platform support
+- **Metrics Tracking**: Execution times, completion rates, active timer counts
+- **Error Handling**: Graceful callback error catching and parameter validation
+- **Memory Management**: Automatic cleanup and handle lifecycle management
+
+##### Test Implementation (`src/utils/MockTimer.ts`)
+- **Complete Time Control**: Manual advancement, jump to next timer, run all pending
+- **Deterministic Execution**: Precise chronological ordering without real time dependencies
+- **Debug Capabilities**: Pending timer inspection, execution logging, state tracking
+- **Test Isolation**: Independent mock instances for parallel test execution
+
+##### Factory System (`src/utils/TimerFactory.ts`)
+- **Environment Detection**: Automatic Jest/test environment recognition
+- **Configuration Validation**: Type-safe timer configuration with error reporting
+- **Singleton Support**: Optional shared factory instances for consistency
+- **Convenience APIs**: createTimer, createMockTimer, createRealTimer helpers
+
+#### Architecture Benefits
+
+- **Dependency Injection**: Clean separation between timer logic and timer implementation
+- **Test Determinism**: Eliminates flaky timer-based tests through controlled time advancement
+- **Type Safety**: Full TypeScript support with comprehensive interface validation
+- **Production Ready**: Native timer performance with enhanced error handling and metrics
+
+#### Integration Strategy
+
+This abstraction serves as the foundation for systematic timer testing improvements across:
+- **ClaudeOrchestrator**: AI process timeout and heartbeat monitoring
+- **Process Monitoring**: Resource usage polling and health checks
+- **Test Infrastructure**: Reliable timing control in async test scenarios
+
+The system uses composition over inheritance and dependency injection to provide clean, testable timer operations throughout the Claude Testing Infrastructure.
+
+## Heartbeat Monitoring Architecture
+
+### Separation of Concerns Design
+
+The heartbeat monitoring system has been refactored to separate timer concerns from business logic, enabling deterministic testing and improved maintainability.
+
+#### Core Components
+
+##### ProcessHealthAnalyzer (`src/ai/heartbeat/ProcessHealthAnalyzer.ts`)
+- **Pure Functions**: No side effects, timers, or external dependencies
+- **Health Analysis**: CPU, memory, output rate, error analysis
+- **Progress Detection**: Pattern matching for progress markers
+- **Input Wait Detection**: Identifies processes waiting for user input
+- **Complete Test Coverage**: 100% coverage with deterministic tests
+
+##### HeartbeatScheduler (`src/ai/heartbeat/HeartbeatScheduler.ts`)
+- **Timer Management**: All scheduling operations using injected TestableTimer
+- **No Business Logic**: Only handles interval/timeout scheduling
+- **Multiple Timer Types**: Health checks, timeouts, progress reporting
+- **Cancellation Support**: Clean lifecycle management
+- **Test Control**: Full control over timing in tests
+
+##### HeartbeatMonitor (`src/ai/heartbeat/HeartbeatMonitor.ts`)
+- **Orchestration Facade**: Coordinates scheduler and analyzer
+- **Event-Based**: Maintains backward compatibility through events
+- **Process Lifecycle**: Manages monitoring from start to termination
+- **Resource Tracking**: Integrates with ProcessMonitor for metrics
+
+#### Architecture Benefits
+
+- **Testability**: Health logic can be tested without any timing dependencies
+- **Maintainability**: Clear separation of responsibilities
+- **Reliability**: Eliminates timing-related test failures
+- **Extensibility**: Easy to add new health metrics or scheduling patterns
+
+#### Integration Strategy
+
+```
+ClaudeOrchestrator
+    ├── HeartbeatMonitor (Facade)
+    │   ├── HeartbeatScheduler (Timer Management)
+    │   │   └── TestableTimer (Injected Dependency)
+    │   └── ProcessHealthAnalyzer (Business Logic)
+    │       └── Pure Functions (No Dependencies)
+    └── ProcessMonitor (Resource Metrics)
+```
+
+This architecture demonstrates best practices for separating concerns in timer-based systems, serving as a pattern for similar refactoring throughout the codebase.
 
 ## Design Principles
 

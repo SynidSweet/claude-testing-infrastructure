@@ -51,7 +51,7 @@ export interface GeneratorConfig {
   // Add configuration properties
   targetPath?: string;
   framework?: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 export interface GeneratorResult {
@@ -61,7 +61,7 @@ export interface GeneratorResult {
 }
 
 // Placeholder function (deprecated - use TestGenerator instead)
-export async function generateTestsDeprecated(_config: GeneratorConfig): Promise<GeneratorResult> {
+export function generateTestsDeprecated(_config: GeneratorConfig): GeneratorResult {
   // TODO: Implement test generation logic
   return {
     success: true,

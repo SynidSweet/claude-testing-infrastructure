@@ -1,6 +1,6 @@
-import { CoverageData } from '../CoverageParser';
-import { AggregatedCoverageData } from '../CoverageAggregator';
-import { CoverageGapAnalysis } from '../CoverageVisualizer';
+import type { CoverageData } from '../CoverageParser';
+import type { AggregatedCoverageData } from '../CoverageAggregator';
+import type { CoverageGapAnalysis } from '../CoverageVisualizer';
 
 /**
  * Base template data interface containing common properties

@@ -7,6 +7,8 @@ import type { AITaskBatch } from '../../src/ai/AITaskPreparation';
 import { EventEmitter } from 'events';
 import * as child_process from 'child_process';
 import * as fs from 'fs/promises';
+import { TimerTestUtils } from '../../src/utils/TimerTestUtils';
+import { RealTimer } from '../../src/utils/RealTimer';
 // AI error types are imported to ensure they exist but not directly used in assertions
 
 // Mock child_process and fs
@@ -27,8 +29,14 @@ function createMockProcess() {
 describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
   jest.setTimeout(30000); // 30 second timeout for all tests to handle timing-sensitive operations
   let orchestrator: ClaudeOrchestrator;
+  // let mockTimer: ReturnType<typeof createMockTimer>;
   
   beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Setup fake timers for deterministic timer testing
+    jest.useFakeTimers();
+    
     // Mock execSync for auth validation
     jest.spyOn(child_process, 'execSync').mockImplementation((cmd: string) => {
       if (cmd.includes('--version')) {
@@ -48,18 +56,24 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
     orchestrator = new ClaudeOrchestrator({
       maxConcurrent: 1,
       timeout: 5000,
-      retryAttempts: 1, // Reduce retries for faster tests
+      retryAttempts: 0, // Disable retries for faster error detection tests
+      timerService: new RealTimer(), // Use RealTimer which works with Jest fake timers
+      gracefulDegradation: false, // Disable graceful degradation for these tests
+      checkpointingEnabled: false, // Disable checkpointing for simpler tests
+      circuitBreakerEnabled: false, // Disable circuit breaker for simpler tests
     });
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    // Clean up orchestrator and timers
+    orchestrator.cleanup();
+    TimerTestUtils.cleanupTimers();
   });
 
   describe('Early Authentication Error Detection', () => {
     it('should terminate immediately on authentication error', async () => {
       const mockProcess = createMockProcess();
-      jest.spyOn(child_process, 'spawn').mockReturnValue(mockProcess);
+      const spawnSpy = jest.spyOn(child_process, 'spawn').mockReturnValue(mockProcess);
 
       const batch: AITaskBatch = {
         id: 'test-batch',
@@ -93,13 +107,22 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
       const processPromise = orchestrator.processBatch(batch);
       
-      // Simulate immediate auth error on stderr
-      await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: Authentication failed. Please login first.\n');
+      // Wait for process setup and spawn using TimerTestUtils
+      await TimerTestUtils.waitForEvents(); // Wait for initial setup
+      await TimerTestUtils.waitForEvents(); // Wait for process spawn
+      
+      // Verify spawn was called
+      expect(spawnSpy).toHaveBeenCalled();
+      
+      // Simulate auth error on stderr
+      mockProcess.stderr.emit('data', Buffer.from('Error: Authentication failed. Please login first.\n'));
       
       // Process should be killed immediately
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      
+      // Emit close event to complete the process
+      mockProcess.emit('close', 1);
       
       // Should complete with error result
       const results = await processPromise;
@@ -155,7 +178,11 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
         const processPromise = orchestrator.processBatch(batch);
         
         await new Promise(resolve => setImmediate(resolve));
-        mockProcess.stderr.emit('data', `${errorPattern}\n`);
+        mockProcess.stderr.emit('data', Buffer.from(`${errorPattern}\n`));
+        
+        // Process should be killed, emit close event
+        await new Promise(resolve => setTimeout(resolve, 100));
+        mockProcess.emit('close', 1);
         
         const results = await processPromise;
         expect(results).toHaveLength(1);
@@ -203,10 +230,13 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       const processPromise = orchestrator.processBatch(batch);
       
       await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: connect ECONNREFUSED api.anthropic.com:443\n');
+      mockProcess.stderr.emit('data', Buffer.from('Error: connect ECONNREFUSED api.anthropic.com:443\n'));
       
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      
+      // Emit close event to resolve the process promise
+      mockProcess.emit('close', 1);
       
       const results = await processPromise;
       expect(results).toHaveLength(1);
@@ -260,7 +290,13 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
         const processPromise = orchestrator.processBatch(batch);
         
         await new Promise(resolve => setImmediate(resolve));
-        mockProcess.stderr.emit('data', `${errorPattern}\n`);
+        mockProcess.stderr.emit('data', Buffer.from(`${errorPattern}\n`));
+        
+        // Allow time for error processing
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Emit close event to resolve the process promise
+        mockProcess.emit('close', 1);
         
         const results = await processPromise;
       expect(results).toHaveLength(1);
@@ -308,7 +344,7 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       const processPromise = orchestrator.processBatch(batch);
       
       await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: Rate limit exceeded. Please try again later.\n');
+      mockProcess.stderr.emit('data', Buffer.from('Error: Rate limit exceeded. Please try again later.\n'));
       
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
@@ -363,14 +399,17 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       await new Promise(resolve => setImmediate(resolve));
       
       // Send progress messages first
-      mockProcess.stderr.emit('data', 'Loading model...\n');
-      mockProcess.stderr.emit('data', 'Processing: 25%\n');
+      mockProcess.stderr.emit('data', Buffer.from('Loading model...\n'));
+      mockProcess.stderr.emit('data', Buffer.from('Processing: 25%\n'));
       
       // Then send error
-      mockProcess.stderr.emit('data', 'Error: Authentication failed\n');
+      mockProcess.stderr.emit('data', Buffer.from('Error: Authentication failed\n'));
       
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      
+      // Emit close event to complete the process
+      mockProcess.emit('close', 1);
       
       const results = await processPromise;
       expect(results).toHaveLength(1);
@@ -419,7 +458,7 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       await new Promise(resolve => setImmediate(resolve));
       
       // Send warning-level error
-      mockProcess.stderr.emit('data', 'Warning: Service temporarily unavailable, retrying...\n');
+      mockProcess.stderr.emit('data', Buffer.from('Warning: Service temporarily unavailable, retrying...\n'));
       
       // Process should not be killed
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -478,7 +517,11 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       const processPromise = orchestrator.processBatch(batch);
       
       await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: Authentication failed\n');
+      mockProcess.stderr.emit('data', Buffer.from('Error: Authentication failed\n'));
+      
+      // Allow process to be killed and emit close event
+      await new Promise(resolve => setTimeout(resolve, 100));
+      mockProcess.emit('close', 1);
       
       await processPromise.catch(() => {}); // Ignore error
       

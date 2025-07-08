@@ -2,6 +2,8 @@
  * Configuration display utilities for developer debugging
  */
 
+/* eslint-disable no-console */
+
 import chalk from 'chalk';
 import type { ConfigurationLoadResult } from '../config/ConfigurationService';
 
@@ -37,14 +39,14 @@ export function displayConfigurationSources(result: ConfigurationLoadResult): vo
     // Show loaded configuration data
     if (isLoaded && source.data && Object.keys(source.data).length > 0) {
       console.log(chalk.gray('     Configuration provided:'));
-      displayConfigData(source.data, '       ');
+      displayConfigData(source.data as Record<string, unknown>, '       ');
     }
 
     // Show errors
     if (source.errors.length > 0) {
       console.log(chalk.red('     Errors:'));
-      source.errors.forEach((error: any) => {
-        console.log(chalk.red(`       • ${typeof error === 'string' ? error : error.message}`));
+      source.errors.forEach((error: string) => {
+        console.log(chalk.red(`       • ${error}`));
       });
     }
 
@@ -58,7 +60,7 @@ export function displayConfigurationSources(result: ConfigurationLoadResult): vo
 
   // Show key resolved values
   console.log(chalk.cyan('\n🎯 Key Resolved Values:'));
-  displayKeyValues(result.config);
+  displayKeyValues(result.config as unknown as Record<string, unknown>);
 
   // Show all errors and warnings
   if (result.errors.length > 0) {
@@ -81,7 +83,7 @@ export function displayConfigurationSources(result: ConfigurationLoadResult): vo
 /**
  * Display configuration data with proper formatting
  */
-function displayConfigData(data: any, indent: string = ''): void {
+function displayConfigData(data: Record<string, unknown>, indent: string = ''): void {
   const keys = Object.keys(data);
   const maxKeys = 10; // Limit display to avoid overwhelming output
 
@@ -96,7 +98,7 @@ function displayConfigData(data: any, indent: string = ''): void {
     } else {
       const displayValue =
         typeof value === 'string' && value.length > 50 ? value.substring(0, 47) + '...' : value;
-      console.log(chalk.gray(`${indent}${key}: ${displayValue}`));
+      console.log(chalk.gray(`${indent}${key}: ${String(displayValue)}`));
     }
   });
 
@@ -108,16 +110,30 @@ function displayConfigData(data: any, indent: string = ''): void {
 /**
  * Display key configuration values that developers commonly need
  */
-function displayKeyValues(config: any): void {
+function displayKeyValues(config: Record<string, unknown>): void {
+  const include = Array.isArray(config.include) ? config.include.join(', ') : 'defaults';
+  const exclude = Array.isArray(config.exclude) ? config.exclude.join(', ') : 'defaults';
+  const coverage =
+    typeof config.coverage === 'object' && config.coverage !== null && 'enabled' in config.coverage
+      ? config.coverage.enabled
+        ? 'Yes'
+        : 'No'
+      : 'No';
+  const output =
+    typeof config.output === 'object' && config.output !== null && 'logLevel' in config.output
+      ? config.output.logLevel
+      : 'info';
+  const costLimit = typeof config.costLimit === 'number' ? `$${config.costLimit}` : 'None';
+
   const keyValues = [
     { label: 'Test Framework', value: config.testFramework },
     { label: 'AI Model', value: config.aiModel },
-    { label: 'Include Patterns', value: config.include?.join(', ') || 'defaults' },
-    { label: 'Exclude Patterns', value: config.exclude?.join(', ') || 'defaults' },
-    { label: 'Coverage Enabled', value: config.coverage?.enabled ? 'Yes' : 'No' },
+    { label: 'Include Patterns', value: include },
+    { label: 'Exclude Patterns', value: exclude },
+    { label: 'Coverage Enabled', value: coverage },
     { label: 'Dry Run', value: config.dryRun ? 'Yes' : 'No' },
-    { label: 'Cost Limit', value: config.costLimit ? `$${config.costLimit}` : 'None' },
-    { label: 'Log Level', value: config.output?.logLevel || 'info' },
+    { label: 'Cost Limit', value: costLimit },
+    { label: 'Log Level', value: output },
   ];
 
   keyValues.forEach(({ label, value }) => {
@@ -145,15 +161,13 @@ export function createConfigDebugReport(result: ConfigurationLoadResult): string
   report.push('');
 
   report.push('Sources (in load order):');
-  result.sources.forEach((source: any) => {
+  result.sources.forEach((source) => {
     report.push(`  ${source.type}:`);
     report.push(`    Loaded: ${source.loaded}`);
     if (source.path) report.push(`    Path: ${source.path}`);
     if (source.errors.length > 0) {
       report.push(`    Errors: ${source.errors.length}`);
-      source.errors.forEach((err: any) =>
-        report.push(`      - ${typeof err === 'string' ? err : err.message}`)
-      );
+      source.errors.forEach((err: string) => report.push(`      - ${err}`));
     }
     // ConfigurationSource doesn't have warnings property
     if (source.data) {

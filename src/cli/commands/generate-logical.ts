@@ -14,7 +14,7 @@ import ora from 'ora';
 import { TestGapAnalyzer } from '../../analyzers/TestGapAnalyzer';
 import { ProjectAnalyzer } from '../../analyzers/ProjectAnalyzer';
 import { StructuralTestGenerator } from '../../generators/StructuralTestGenerator';
-import { TestGeneratorConfig } from '../../generators/TestGenerator';
+import type { TestGeneratorConfig } from '../../generators/TestGenerator';
 import {
   AITaskPreparation,
   ClaudeOrchestrator,
@@ -142,7 +142,7 @@ export const generateLogicalCommand = new Command()
         minComplexityForAI: parseInt(options.minComplexity || '5'),
       });
 
-      let batch = await taskPrep.prepareTasks(gapReport);
+      const batch = await taskPrep.prepareTasks(gapReport);
 
       // Step 3: Cost estimation and budget optimization
       spinner.text = 'Estimating costs...';

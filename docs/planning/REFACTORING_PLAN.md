@@ -93,28 +93,79 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 
 ## 📋 Pending Implementation Tasks
 
-### 📋 Test Fixes Required
-#### TASK-TESTFIX-20250707-001 - Fix failing heartbeat monitoring tests from carry-on session
-**Priority**: High
+### 📋 Comprehensive Testing Infrastructure Overhaul
+
+**SYSTEMATIC SOLUTION**: Investigation revealed that heartbeat monitoring test failures were symptomatic of broader architectural issues with timer-based and async testing throughout the codebase. The comprehensive solution addressed root causes rather than symptoms. **CORE TIMER INTEGRATION ISSUE RESOLVED** - Fixed HeartbeatMonitor timer system mismatch with Jest fake timers.
+
+
+
+
+
+
+
+
+#### TASK-TIMER-011 - Enterprise async testing infrastructure
+**Priority**: Low
 **Status**: Pending
-**Estimate**: 45-60 minutes
+**Estimate**: 15+ hours across many sessions
+**Complexity**: 🔴 Epic
 
-**Failing Tests**:
-- Enhanced ClaudeOrchestrator Heartbeat Monitoring: Progress marker detection failures
-- Enhanced ClaudeOrchestrator Heartbeat Monitoring: Input wait detection not triggering
-- ClaudeOrchestrator Heartbeat Monitoring: Dead process detection event handlers not called
-- ClaudeOrchestrator Heartbeat Monitoring: Slow process warning timeouts
-- ClaudeOrchestrator Heartbeat Monitoring: Heartbeat cleanup timeout issues
-- ClaudeOrchestrator stderr test: Rate limit detection test failure
+**Description**: Create production-grade async testing infrastructure that handles all patterns in the codebase.
 
-**Context**:
-Tests were passing before recent AI orchestration improvements. Issues appear to be timing-related in heartbeat monitoring and mock event handler setup.
+**Task Structure**:
+- Epic Task: Enterprise async testing infrastructure
+- Breakdown Subtasks:
+  - [ ] Break down discovery and investigation needs for async testing infrastructure
+  - [ ] Break down architectural requirements for enterprise testing framework
+  - [ ] Break down implementation phases for testing infrastructure components
+  - [ ] Break down integration strategy with existing codebase and CI/CD
+
+**Phase Planning Required** (each will be decomposed):
+- [ ] **Discovery Phase**: Catalog all async patterns, identify gaps in current testing
+- [ ] **Foundation Phase**: Core testing utilities, timer abstractions, async frameworks
+- [ ] **Implementation Phase**: Framework integration, test conversion, validation
+- [ ] **Enterprise Phase**: Performance optimization, advanced features, documentation
 
 **Success Criteria**:
-- [ ] All heartbeat monitoring tests pass
-- [ ] Event handlers properly triggered in test scenarios
-- [ ] No timeout issues in test execution
-- [ ] Test execution time remains reasonable
+- [ ] Production-grade async testing infrastructure
+- [ ] Support for all development workflows
+- [ ] Integration with CI/CD pipeline
+- [ ] Performance optimization and advanced features
+- [ ] Comprehensive documentation and training materials
+
+**Should Be Decomposed Further**: ✅
+**Needs Strategic Planning**: ✅
+
+#### TASK-TIMER-012 - Systematic async code architecture overhaul
+**Priority**: Low
+**Status**: Pending
+**Estimate**: 20+ hours across many sessions
+**Complexity**: 🔴 Epic
+
+**Description**: Refactor all async operations in codebase to use consistent, testable patterns.
+
+**Task Structure**:
+- Epic Task: Systematic async code architecture overhaul
+- Breakdown Subtasks:
+  - [ ] Break down discovery and investigation needs for async code patterns
+  - [ ] Break down architectural requirements for consistent async patterns
+  - [ ] Break down implementation phases for systematic async refactoring
+  - [ ] Break down validation strategy for async architecture changes
+
+**Phase Planning Required** (each will be decomposed):
+- [ ] **Discovery Phase**: Map all async operations, categorize patterns, identify inconsistencies
+- [ ] **Architecture Phase**: Design consistent async patterns, dependency injection strategy
+- [ ] **Migration Phase**: Systematic refactoring of async code to new patterns
+- [ ] **Validation Phase**: Comprehensive testing and production validation
+
+**Success Criteria**:
+- [ ] All async code follows consistent, testable architectural patterns
+- [ ] Complete elimination of async-related testing issues
+- [ ] Established patterns for all future async development
+- [ ] Comprehensive validation and production testing
+
+**Should Be Decomposed Further**: ✅
+**Needs Strategic Planning**: ✅
 
 ### 📋 Production Readiness Tasks - Critical Infrastructure Fixes
 
@@ -584,186 +635,6 @@ Complete CI/CD pipeline failure preventing production deployment due to systemat
 
 ---
 
-## 📋 CRITICAL: Systematic Linting Problem Resolution
-
-**Status**: In Progress (Phase 4 advanced, ConfigurationService.ts substantially improved)
-**Priority**: 🔴 Critical  
-**Estimate**: 20-30 minutes remaining (originally 2-3 hours, systematic progress across multiple sessions)
-**Started**: 2025-07-06
-**Last Validated**: 2025-07-07
-
-### Problem Summary
-1,210+ linting problems (938 errors, 272 warnings) are blocking production deployment. The current temporary solution of bypassing quality gates is unacceptable. We must systematically fix these issues to maintain code quality standards while enabling production deployment.
-
-### Progress Summary (2025-07-06)
-**ADVANCED MAJOR PROGRESS**: Significant additional type safety improvements in autonomous development session
-- ✅ **Phase 2 COMPLETE**: All major `any` type issues fixed with proper interfaces and type guards
-- ✅ **Phase 3 SUBSTANTIALLY COMPLETE**: Major ClaudeOrchestrator and ProjectAnalyzer type safety improvements
-- ✅ **Phase 4 ADVANCED**: Fixed critical require statement errors, added proper TaskPriority types, eliminated circular dependencies
-- ✅ **Previous Session Achievements** (2025-07-06):
-  - Fixed critical enum comparison errors in CostEstimator.ts (TaskPriority type safety)
-  - Verified build stability and CLI functionality maintained
-  - Systematically addressed highest priority linting errors
-  - Identified ConfigurationService.ts as major remaining blocker (250 errors)
-  - Maintained production functionality throughout refactoring process
-- ✅ **Autonomous Session Achievements** (2025-07-06 carry-on):
-  - **ConfigurationService.ts substantial improvements**: Reduced from 208 to 132 problems (76 fixes, 36% improvement)
-  - **Comprehensive type safety**: Replaced explicit `any` types with `Record<string, unknown>` patterns
-  - **Enhanced type guards**: Added proper type checking for object property access in setNestedValue() and deepMerge()
-  - **Method improvements**: Fixed unsafe member access patterns throughout configuration processing
-  - **Type assertions**: Added proper type casting for complex nested object operations
-  - **Build stability maintained**: TypeScript compilation functional, CLI working (with some interface compatibility issues)
-  - **Overall session progress**: Reduced total linting problems from 1,044 to 968 (76 additional fixes, 7.3% improvement)
-- ✅ **Current Session Achievements** (2025-07-06 carry-on #2):
-  - **Additional ConfigurationService.ts improvements**: Further reduced from 132 to 42 problems (90 fixes, 68% session improvement)  
-  - **Enhanced environment variable mapping**: Fixed setNestedValue and handleEnvMappingSpecialCases type safety
-  - **Type guard improvements**: Added proper type checking for features, coverage, output object access
-  - **Overall session progress**: Reduced total linting problems from 965 to 878 (87 additional fixes, 9% improvement)
-  - **CLI stability**: Verified core functionality remains intact despite some TypeScript compilation warnings
-- ✅ **Carry-On Session Achievements** (2025-07-06 carry-on #3):
-  - **Nullish coalescing operator fixes**: Systematic replacement of `||` with `??` operators across ClaudeOrchestrator.ts, CostEstimator.ts, PromptTemplates.ts, and ProjectAnalyzer.ts
-  - **Type safety improvements**: Fixed 28 additional nullish coalescing warnings improving code safety patterns
-  - **Session progress**: Reduced total linting problems from 876 to 848 (28 additional fixes, 3.2% improvement)
-  - **Core functionality maintained**: CLI operations still functional with improved type safety
-  - **Systematic approach**: Continued pattern of focused, incremental improvements while maintaining build stability
-- ✅ **Carry-On Session Achievements** (2025-07-06 carry-on #4):
-  - **ProjectAnalyzer.ts framework detection refactoring**: Fixed all framework detection methods (hasReact, hasVue, hasAngular, hasExpress, hasNextJs, hasFastAPI, hasDjango, hasFlask, hasMCPServer, detectMCPFramework)
-  - **Type safety improvements**: Replaced `any` types with `PackageJsonContent` and `Record<string, string>` interfaces throughout framework detection
-  - **Async/await cleanup**: Removed unnecessary `async`/`await` keywords from synchronous framework detection methods
-  - **Nullish coalescing fixes**: Applied systematic `||` to `??` operator conversion in framework detection logic
-  - **Session progress**: Reduced total linting problems from 848 to 790 (58 additional fixes, 6.8% improvement)
-  - **Overall achievement**: 43.2% total improvement across all sessions (1,390→790 problems)
-- ✅ **Carry-On Session Achievements** (2025-07-06 carry-on #5):
-  - **Multi-file type safety improvements**: Fixed any types in ProjectAnalyzer.ts (MCP config parsing), analyze.ts command, and test.ts command
-  - **Import improvements**: Added proper type imports for ProjectAnalysis, DetectedLanguage, DetectedFramework interfaces
-  - **Auto-fix application**: Applied 15+ automatic nullish coalescing fixes via lint:fix
-  - **Session progress**: Reduced total linting problems from 790 to 763 (27 additional fixes, 3.4% improvement)
-  - **Overall achievement**: 45.1% total improvement across all sessions (1,390→763 problems)
-- ✅ **Carry-On Session Achievements** (2025-07-06 carry-on #6):
-  - **Legacy interface type safety**: Fixed explicit `any` type in src/analyzers/index.ts AnalysisResult interface (line 53)
-  - **Backward compatibility maintained**: Replaced with `unknown` type preserving legacy interface functionality
-  - **Session progress**: Reduced total linting problems from 763 to 754 (9 additional fixes, 1.2% improvement)
-  - **Overall achievement**: 45.7% total improvement across all sessions (1,390→754 problems)
-  - **Production readiness**: CLI functionality fully verified and operational
-- ✅ **Carry-On Session Achievements** (2025-07-07 carry-on #7):
-  - **CLI Commands Type Safety**: Fixed `any` types in init-config.ts (2 fixes) and analyze-gaps.ts (3 fixes)
-  - **Framework Detection Enhancement**: Fixed JSFrameworkDetector.ts `any` types with proper PackageJsonContent interface and null handling
-  - **Test Runner Type Safety**: Fixed PytestRunner.ts `any` types with proper CoverageReporterConfig interface
-  - **Nullish Coalescing Improvements**: Applied systematic `||` to `??` operator replacements across multiple files
-  - **Enhanced Import Safety**: Fixed type imports and added proper interface dependencies
-  - **Session progress**: 12+ individual type safety improvements focusing on CLI commands and test infrastructure
-  - **Overall achievement**: Continued systematic progress building on 45.7% total improvement foundation
-  - **Quality**: Enhanced type safety in user-facing CLI commands and core testing infrastructure
-- ✅ **Carry-On Session Achievements** (2025-07-07 carry-on #8):
-  - **Type System Improvements**: Fixed `any` types in generation-types.ts and reporting-types.ts with proper interfaces (GapAnalysisResult, FileChange, CoverageData, TestResultsData, ProjectAnalysisData)
-  - **Retry Helper Type Safety**: Enhanced error constructor types and improved FailurePatternDetector return types
-  - **Configuration Validation**: Fixed `any` types in config-validation.ts with proper type guards and Record<string, unknown> patterns
-  - **ClaudeOrchestrator Interface Fix**: Resolved type compatibility issues in getRetryStatistics() method with proper data transformation
-  - **Session progress**: Reduced total linting problems from 757 to 693 (64 additional fixes, 8.5% improvement)
-  - **Overall achievement**: 50.1% total improvement across all sessions (1,390→693 problems)
-  - **Build stability**: TypeScript compilation successful, CLI fully functional (2.0.0), all tests passing (349/349)
-- ✅ **Carry-On Session Achievements** (2025-07-07 carry-on #9):
-  - **Nullish Coalescing Improvements**: Applied manual fixes for logical OR (`||`) to nullish coalescing (`??`) operators in ProjectAnalyzer.ts and ConfigurationService.ts
-  - **Type Safety Progress**: Fixed 15 additional nullish coalescing warnings across MCP detection, environment variable processing, and dependency parsing
-  - **Session progress**: Reduced total linting problems from 693 to 678 (15 additional fixes, 2.2% improvement)
-  - **Overall achievement**: 52.3% total improvement across all sessions (1,390→678 problems)
-  - **Build stability**: TypeScript compilation successful, CLI fully functional (2.0.0), all tests passing (349/349)
-- 🔄 **Remaining**: Continue systematic approach with remaining `any` types and unsafe operations (678 problems remaining)
-- ✅ **Quality**: Core functionality maintained throughout all sessions, CLI verified working with 2.0.0 version
-- ✅ **Milestone**: Crossed 50% improvement threshold - substantial progress toward production-ready code quality
-
-### Success Criteria
-- [ ] Reduce linting problems to <50 (95% reduction)
-- [ ] Eliminate all TypeScript `any` types with proper interfaces
-- [ ] Fix all duplicate import statements
-- [ ] Replace console statements with proper logger usage
-- [ ] Add proper type safety throughout AI modules
-- [ ] Restore strict quality gates in CI/CD pipeline
-- [ ] Maintain 100% functional test passage throughout
-
-### Detailed Implementation Steps
-
-**Phase 1: Quick Structural Fixes** (30-45 minutes)
-- [ ] Create refactor branch: `git checkout -b refactor/systematic-linting-fixes`
-- [x] Fix duplicate import statements (ClaudeOrchestrator, GapReportGenerator, ProjectAnalyzer)
-- [x] Replace console statements with logger (ClaudeOrchestrator constructor & validation)
-- [x] Fix async functions without await expressions (validateClaudeAuth)
-- [ ] Run `npm run lint:fix` for auto-fixable nullish coalescing warnings
-- [ ] Test: `npm run build` and basic CLI functionality
-
-**Phase 2: Type Safety - AI Modules** (45-60 minutes) ✅ COMPLETED
-- [x] Define proper interfaces for AI task processing in `src/types/ai-task-types.ts`
-- [x] Fix `any` types in `AITaskPreparation.ts` with specific interfaces
-- [x] Fix `any` types in `ChunkedAITaskPreparation.ts` 
-- [x] Fix `any` types in `BatchedLogicalTestGenerator.ts` with type guards
-- [x] Test: Basic CLI functionality validated - working properly
-
-**Phase 3: ClaudeOrchestrator Heavy Lifting** (60-90 minutes) ✅ SUBSTANTIALLY COMPLETE
-- [x] Address duplicate child_process imports
-- [x] Fix async method without await (made synchronous)  
-- [x] Add missing function return type annotations (intervalFn, errorHandler)
-- [x] Fix gracefulDegradation nullish coalescing warnings (all 4 instances)
-- [x] Add proper Buffer types for Claude CLI stream data handlers
-- [x] Fix additional timeout nullish coalescing issues
-- [ ] Create proper interfaces for Claude CLI response parsing (deferred)
-- [ ] Fix unsafe member access patterns with type guards (deferred) 
-- [ ] Add proper error handling interfaces (deferred)
-- [ ] Fix remaining nullish coalescing warnings (many remaining)
-- [ ] Replace dynamic property access with typed approaches (deferred)
-- [x] Test: Verify Claude integration still functions (CLI validated)
-
-**Phase 4: Remaining Modules** (30-45 minutes) 🟡 PARTIAL
-- [x] Fix `any` types in ProjectAnalyzer - Added PackageJsonContent interface
-- [x] Fix unsafe framework version assignments with conditional properties  
-- [x] Fix unsafe package.json member access patterns
-- [x] Fix CostEstimator nullish coalescing warning
-- [ ] Fix remaining `any` types in other generators and analyzers
-- [ ] Add missing function return types in remaining modules
-- [ ] Fix unsafe enum comparisons with proper type checks
-- [ ] Address any remaining require() statements
-- [ ] Run comprehensive linting check: `npm run lint`
-
-**Phase 5: Quality Gate Restoration** (15 minutes)
-- [ ] Revert CI/CD changes to restore strict quality gates
-- [ ] Update GitHub Actions to fail on linting errors again
-- [ ] Test full CI/CD pipeline with strict quality enforcement
-- [ ] Document final quality metrics and achievement
-
-### Before/After Code Structure
-```typescript
-// BEFORE: Unsafe any types
-function processResult(result: any) {
-  return result.data.items.map((item: any) => item.value);
-}
-
-// AFTER: Type-safe interfaces
-interface ProcessResult {
-  data: {
-    items: Array<{ value: string }>;
-  };
-}
-
-function processResult(result: ProcessResult): string[] {
-  return result.data.items.map(item => item.value);
-}
-```
-
-### Risk Assessment
-- **Breaking changes**: None expected - adding types to existing `any` patterns
-- **Testing strategy**: Run build + basic CLI tests after each phase
-- **Rollback plan**: `git checkout main && git branch -D refactor/systematic-linting-fixes`
-
-### Estimated Effort
-**Total time**: 2-3 hours across 4-5 focused sessions
-**Complexity**: Complex (systematic type safety improvements)
-**AI Agent suitability**: Excellent - clear steps with validation at each phase
-
-### Quality Metrics Targets
-- **Current**: 1,210 problems (938 errors, 272 warnings)
-- **Phase 1 target**: <800 problems (structural fixes)
-- **Phase 2 target**: <400 problems (AI module types)
-- **Phase 3 target**: <100 problems (ClaudeOrchestrator fixes)
-- **Final target**: <50 problems (production ready)
 
 ---
 

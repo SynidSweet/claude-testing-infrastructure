@@ -420,7 +420,7 @@ export class TaskCheckpointManager {
     return await handleFileOperation(
       async () => {
         const content = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(content);
+        return JSON.parse(content) as TaskCheckpoint;
       },
       'loading checkpoint',
       filePath
@@ -522,7 +522,7 @@ Continue generating tests from where you left off.`;
 
     try {
       const content = await fs.readFile(indexPath, 'utf-8');
-      return JSON.parse(content);
+      return JSON.parse(content) as { checkpointId: string; taskId: string; timestamp: string }[];
     } catch {
       return [];
     }

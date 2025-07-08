@@ -15,7 +15,7 @@ export class JSFrameworkDetector {
   private packageJson: PackageJsonContent;
 
   constructor(_projectPath: string, packageJson: PackageJsonContent | null = null) {
-    this.packageJson = packageJson ?? {} as PackageJsonContent;
+    this.packageJson = packageJson ?? ({} as PackageJsonContent);
   }
 
   /**

@@ -1,5 +1,5 @@
-import { MCPTool } from '../../analyzers/ProjectAnalyzer';
-import { MCPProjectAnalysis } from '../../types/mcp-types';
+import type { MCPTool } from '../../analyzers/ProjectAnalyzer';
+import type { MCPProjectAnalysis } from '../../types/mcp-types';
 
 // JSON Schema type definitions for tool input validation
 interface JSONSchemaProperty {

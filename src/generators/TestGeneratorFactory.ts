@@ -1,9 +1,11 @@
 import { logger } from '../utils/common-imports';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import type { TestGeneratorConfig } from './TestGenerator';
-import { StructuralTestGenerator } from './StructuralTestGenerator';
+import {
+  StructuralTestGenerator,
+  type StructuralTestGeneratorOptions,
+} from './StructuralTestGenerator';
 import type { BaseTestGenerator, LanguageContext } from './base/BaseTestGenerator';
-import type { StructuralTestGeneratorOptions } from './StructuralTestGenerator';
 import type { FileDiscoveryService } from '../types/file-discovery-types';
 
 /**
@@ -50,12 +52,12 @@ export class TestGeneratorFactory {
   /**
    * Create appropriate test generator based on configuration
    */
-  static async createGenerator(
+  static createGenerator(
     config: TestGeneratorConfig,
     analysis: ProjectAnalysis,
     options?: StructuralTestGeneratorOptions,
     fileDiscovery?: FileDiscoveryService
-  ): Promise<StructuralTestGenerator | BaseTestGenerator> {
+  ): StructuralTestGenerator | BaseTestGenerator {
     // Check if language-specific generators are enabled
     const useLanguageSpecific = this.shouldUseLanguageSpecificGenerator(config, analysis);
 
@@ -64,7 +66,7 @@ export class TestGeneratorFactory {
       return this.createLanguageSpecificGenerator(config, analysis);
     } else {
       logger.info('Using structural test generator');
-      return new StructuralTestGenerator(config, analysis, options || {}, fileDiscovery);
+      return new StructuralTestGenerator(config, analysis, options ?? {}, fileDiscovery);
     }
   }
 
@@ -76,7 +78,7 @@ export class TestGeneratorFactory {
     analysis: ProjectAnalysis
   ): boolean {
     // Check configuration override first (highest priority)
-    const generatorConfig = (config as any).testGeneration;
+    const generatorConfig = config.testGeneration;
     if (generatorConfig?.engine === 'structural') {
       return false;
     }
@@ -97,10 +99,10 @@ export class TestGeneratorFactory {
   /**
    * Create a language-specific generator
    */
-  private static async createLanguageSpecificGenerator(
+  private static createLanguageSpecificGenerator(
     config: TestGeneratorConfig,
     analysis: ProjectAnalysis
-  ): Promise<BaseTestGenerator> {
+  ): BaseTestGenerator {
     const primaryLanguage = this.detectPrimaryLanguage(analysis);
     const GeneratorClass = this.languageGenerators.get(primaryLanguage.toLowerCase());
 
@@ -109,7 +111,7 @@ export class TestGeneratorFactory {
     }
 
     // Build language context
-    const languageContext = await this.buildLanguageContext(primaryLanguage, analysis, config);
+    const languageContext = this.buildLanguageContext(primaryLanguage, analysis, config);
 
     return new GeneratorClass(config, analysis, languageContext);
   }
@@ -122,7 +124,7 @@ export class TestGeneratorFactory {
     const languageCounts = new Map<string, number>();
 
     for (const lang of analysis.languages) {
-      const currentCount = languageCounts.get(lang.name) || 0;
+      const currentCount = languageCounts.get(lang.name) ?? 0;
       languageCounts.set(lang.name, currentCount + lang.files.length);
     }
 
@@ -148,11 +150,11 @@ export class TestGeneratorFactory {
   /**
    * Build language context for a specific language
    */
-  private static async buildLanguageContext(
+  private static buildLanguageContext(
     language: string,
     analysis: ProjectAnalysis,
     config: TestGeneratorConfig
-  ): Promise<LanguageContext> {
+  ): LanguageContext {
     switch (language.toLowerCase()) {
       case 'javascript':
       case 'typescript':
@@ -287,9 +289,7 @@ export class TestGeneratorFactory {
    * Create a compatibility adapter for existing code
    * This wraps language-specific generators to work with the existing interface
    */
-  static async createCompatibilityAdapter(
-    _generator: BaseTestGenerator
-  ): Promise<StructuralTestGenerator> {
+  static createCompatibilityAdapter(_generator: BaseTestGenerator): StructuralTestGenerator {
     // This would be implemented when we have the actual language-specific generators
     // For now, throw an error to indicate it's not yet implemented
     throw new Error('Compatibility adapter not yet implemented');

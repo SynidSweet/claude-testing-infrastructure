@@ -217,7 +217,9 @@ export class ConfigInitializer {
       // Check for package.json
       const packageJsonPath = path.join(this.targetPath, 'package.json');
       if (await this.fileExists(packageJsonPath)) {
-        const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8')) as PackageJsonContent;
+        const packageJson = JSON.parse(
+          await fs.readFile(packageJsonPath, 'utf-8')
+        ) as PackageJsonContent;
         const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
 
         // Check for specific frameworks
@@ -308,16 +310,16 @@ export class ConfigInitializer {
       // Customize key settings interactively
       const maxCost = await this.askQuestion(
         rl,
-        `AI maximum cost (current: $${config.ai?.maxCost || 3.0}): `
+        `AI maximum cost (current: $${config.ai?.maxCost ?? 3.0}): `
       );
       if (maxCost.trim()) {
-        config.ai = config.ai || {};
+        config.ai = config.ai ?? {};
         config.ai.maxCost = parseFloat(maxCost);
       }
 
       const coverageLines = await this.askQuestion(
         rl,
-        `Coverage lines threshold % (current: ${config.coverage?.thresholds?.global?.lines || 80}): `
+        `Coverage lines threshold % (current: ${config.coverage?.thresholds?.global?.lines ?? 80}): `
       );
       if (coverageLines.trim()) {
         if (!config.coverage) {

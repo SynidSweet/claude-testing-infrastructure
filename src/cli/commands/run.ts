@@ -1,12 +1,13 @@
 import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
-import { TestRunnerFactory, TestRunnerConfig } from '../../runners';
+import type { TestRunnerConfig } from '../../runners';
+import { TestRunnerFactory } from '../../runners';
 import { handleValidation, formatErrorMessage } from '../../utils/error-handling';
 import { ConfigurationService } from '../../config/ConfigurationService';
 import { displayConfigurationSources } from '../../utils/config-display';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 
-interface RunOptions {
+export interface RunOptions {
   config?: string;
   framework?: string;
   coverage?: boolean;

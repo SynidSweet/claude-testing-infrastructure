@@ -4,9 +4,9 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { version } from '../../package.json';
 import { logger } from '../utils/logger';
-import { analyzeCommand } from './commands/analyze';
-import { testCommand } from './commands/test';
-import { runCommand } from './commands/run';
+import { analyzeCommand, type AnalyzeOptions } from './commands/analyze';
+import { testCommand, type TestOptions } from './commands/test';
+import { runCommand, type RunOptions } from './commands/run';
 import { watchCommand } from './commands/watch';
 import { analyzeGapsCommand } from './commands/analyze-gaps';
 import { generateLogicalCommand } from './commands/generate-logical';
@@ -47,7 +47,15 @@ program
   .option('--format <format>', 'Output format (json|markdown|console)', 'console')
   .option('-v, --verbose', 'Show detailed analysis information')
   .option('--validate-config', 'Validate .claude-testing.config.json configuration')
-  .action((projectPath, options, command) => analyzeCommand(projectPath, options, command));
+  .action((projectPath: string, options: AnalyzeOptions, command: Command) =>
+    analyzeCommand(
+      projectPath,
+      options,
+      command.parent
+        ? { parent: { opts: (): Record<string, unknown> => command.parent!.opts() } }
+        : undefined
+    )
+  );
 
 // Test command
 program
@@ -70,7 +78,9 @@ program
   .option('--chunk-size <size>', 'Maximum tokens per chunk (default: 3500)', parseInt)
   .option('--dry-run', 'Preview test generation without creating files')
   .option('-v, --verbose', 'Show detailed test generation information')
-  .action((projectPath, options, command) => testCommand(projectPath, options, command));
+  .action((projectPath: string, options: TestOptions, command: Command) =>
+    testCommand(projectPath, options, command)
+  );
 
 // Run command
 program
@@ -87,7 +97,9 @@ program
     'Coverage threshold (e.g., "80" or "statements:80,branches:70")'
   )
   .option('-v, --verbose', 'Show detailed test execution information')
-  .action((projectPath, options, command) => runCommand(projectPath, options, command));
+  .action((projectPath: string, options: RunOptions, command: Command) =>
+    runCommand(projectPath, options, command)
+  );
 
 // Add the watch command
 program.addCommand(watchCommand);
@@ -115,25 +127,29 @@ program.exitOverride();
 
 try {
   program.parse();
-} catch (error: any) {
-  if (error.code === 'commander.unknownCommand') {
-    console.error(chalk.red(`Unknown command: ${error.command || 'undefined'}`));
-    console.log('\nAvailable commands:');
-    console.log('  analyze         - Analyze a project');
-    console.log('  test            - Generate tests');
-    console.log('  test-ai         - Complete AI-enhanced testing workflow');
-    console.log('  run             - Run generated tests');
-    console.log('  watch           - Watch for changes');
-    console.log('  analyze-gaps    - Analyze test gaps for AI generation');
-    console.log('  generate-logical - Generate logical tests using AI');
-    console.log('  generate-logical-batch - Generate logical tests in configurable batches');
-    console.log('  incremental     - Perform incremental test generation');
-    console.log('  init-config     - Initialize configuration with templates');
-    console.log('\nRun claude-testing --help for more information');
-  } else if (error.code === 'commander.help' || error.code === 'commander.helpDisplayed') {
+} catch (error) {
+  const commanderError = error as { code?: string; command?: string };
+  if (commanderError.code === 'commander.unknownCommand') {
+    logger.error(chalk.red(`Unknown command: ${commanderError.command ?? 'undefined'}`));
+    logger.info('\nAvailable commands:');
+    logger.info('  analyze         - Analyze a project');
+    logger.info('  test            - Generate tests');
+    logger.info('  test-ai         - Complete AI-enhanced testing workflow');
+    logger.info('  run             - Run generated tests');
+    logger.info('  watch           - Watch for changes');
+    logger.info('  analyze-gaps    - Analyze test gaps for AI generation');
+    logger.info('  generate-logical - Generate logical tests using AI');
+    logger.info('  generate-logical-batch - Generate logical tests in configurable batches');
+    logger.info('  incremental     - Perform incremental test generation');
+    logger.info('  init-config     - Initialize configuration with templates');
+    logger.info('\nRun claude-testing --help for more information');
+  } else if (
+    commanderError.code === 'commander.help' ||
+    commanderError.code === 'commander.helpDisplayed'
+  ) {
     // Help was displayed, exit normally
     process.exit(0);
-  } else if (error.code === 'commander.version') {
+  } else if (commanderError.code === 'commander.version') {
     // Version was displayed, exit normally
     process.exit(0);
   } else {

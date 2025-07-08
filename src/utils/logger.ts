@@ -16,12 +16,12 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
     debug: chalk.gray,
   };
 
-  const colorize = levelColors[level as keyof typeof levelColors] || chalk.white;
+  const colorize = levelColors[level as keyof typeof levelColors] ?? chalk.white;
   const formattedTime = chalk.gray(
     new Date(timestamp as string | number | Date).toLocaleTimeString()
   );
 
-  let output = `${formattedTime} ${colorize(level.toUpperCase().padEnd(5))} ${message}`;
+  let output = `${formattedTime} ${colorize(level.toUpperCase().padEnd(5))} ${String(message)}`;
 
   if (Object.keys(meta).length > 0) {
     output += chalk.gray(` ${JSON.stringify(meta)}`);
@@ -32,7 +32,7 @@ const consoleFormat = winston.format.printf(({ level, message, timestamp, ...met
 
 // Create logger instance
 export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL ?? 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
@@ -62,7 +62,7 @@ export const logger = winston.createLogger({
 });
 
 // Add debug file transport when in debug mode
-if (process.env.DEBUG || process.argv.includes('--debug')) {
+if (process.env.DEBUG ?? (false || process.argv.includes('--debug'))) {
   logger.add(
     new winston.transports.File({
       filename: path.join(logsDir, 'debug.log'),
@@ -78,15 +78,15 @@ export const logError = (message: string, error?: Error): void => {
   logger.error(message, { error: error?.message, stack: error?.stack });
 };
 
-export const logInfo = (message: string, meta?: Record<string, any>): void => {
+export const logInfo = (message: string, meta?: Record<string, unknown>): void => {
   logger.info(message, meta);
 };
 
-export const logWarn = (message: string, meta?: Record<string, any>): void => {
+export const logWarn = (message: string, meta?: Record<string, unknown>): void => {
   logger.warn(message, meta);
 };
 
-export const logDebug = (message: string, meta?: Record<string, any>): void => {
+export const logDebug = (message: string, meta?: Record<string, unknown>): void => {
   logger.debug(message, meta);
 };
 

@@ -1,6 +1,7 @@
-import { CoverageData } from '../CoverageParser';
-import { AggregatedCoverageData } from '../CoverageAggregator';
-import { BaseTemplateEngine, BaseTemplateData } from './BaseTemplateEngine';
+import type { CoverageData } from '../CoverageParser';
+import type { AggregatedCoverageData } from '../CoverageAggregator';
+import type { BaseTemplateData } from './BaseTemplateEngine';
+import { BaseTemplateEngine } from './BaseTemplateEngine';
 
 export interface XmlTemplateData extends BaseTemplateData {
   summary: {

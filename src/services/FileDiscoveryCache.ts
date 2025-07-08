@@ -52,7 +52,7 @@ export class MemoryFileDiscoveryCache implements FileDiscoveryCache {
   /**
    * Get cached result for the given key
    */
-  async get(key: CacheKey): Promise<CachedResult | null> {
+  get(key: CacheKey): CachedResult | null {
     this.stats.totalRequests++;
 
     if (!this.config.enabled) {
@@ -94,14 +94,14 @@ export class MemoryFileDiscoveryCache implements FileDiscoveryCache {
   /**
    * Store result in cache with optional TTL
    */
-  async set(key: CacheKey, result: FileDiscoveryResult, ttl?: number): Promise<void> {
+  set(key: CacheKey, result: FileDiscoveryResult, ttl?: number): void {
     if (!this.config.enabled) {
       return;
     }
 
     const cacheKey = this.generateCacheKey(key);
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + (ttl || this.config.ttl));
+    const expiresAt = new Date(now.getTime() + (ttl ?? this.config.ttl));
 
     const cachedResult: CachedResult = {
       result: {
@@ -126,7 +126,7 @@ export class MemoryFileDiscoveryCache implements FileDiscoveryCache {
   /**
    * Invalidate cache entries matching pattern
    */
-  async invalidate(pattern: string | RegExp): Promise<void> {
+  invalidate(pattern: string | RegExp): void {
     const keysToDelete: string[] = [];
 
     if (typeof pattern === 'string') {
@@ -155,7 +155,7 @@ export class MemoryFileDiscoveryCache implements FileDiscoveryCache {
   /**
    * Clear all cache entries
    */
-  async clear(): Promise<void> {
+  clear(): void {
     this.cache.clear();
     this.updateCacheSize();
 
@@ -283,21 +283,21 @@ export class NullFileDiscoveryCache implements FileDiscoveryCache {
     newestEntry: new Date(),
   };
 
-  async get(_key: CacheKey): Promise<CachedResult | null> {
+  get(_key: CacheKey): CachedResult | null {
     this.stats.totalRequests++;
     this.stats.cacheMisses++;
     return null;
   }
 
-  async set(_key: CacheKey, _result: FileDiscoveryResult, _ttl?: number): Promise<void> {
+  set(_key: CacheKey, _result: FileDiscoveryResult, _ttl?: number): void {
     // No-op
   }
 
-  async invalidate(_pattern: string | RegExp): Promise<void> {
+  invalidate(_pattern: string | RegExp): void {
     // No-op
   }
 
-  async clear(): Promise<void> {
+  clear(): void {
     // No-op
   }
 
