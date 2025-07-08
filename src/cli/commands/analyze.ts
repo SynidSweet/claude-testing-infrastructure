@@ -298,14 +298,14 @@ function displayLargestFiles(largestFiles: Array<{ path: string; lines: number }
   }
 }
 
-function formatAsMarkdown(analysis: any): string {
+function formatAsMarkdown(analysis: ProjectAnalysis): string {
   let markdown = `# Project Analysis Report\n\n`;
   markdown += `**Project:** ${analysis.projectPath}\n\n`;
 
   // Languages
   if (analysis.languages.length > 0) {
     markdown += `## Languages\n\n`;
-    analysis.languages.forEach((lang: any) => {
+    analysis.languages.forEach((lang: DetectedLanguage) => {
       markdown += `- **${lang.name}** (${Math.round(lang.confidence * 100)}% confidence)\n`;
     });
     markdown += '\n';
@@ -314,7 +314,7 @@ function formatAsMarkdown(analysis: any): string {
   // Frameworks
   if (analysis.frameworks.length > 0) {
     markdown += `## Frameworks\n\n`;
-    analysis.frameworks.forEach((framework: any) => {
+    analysis.frameworks.forEach((framework: DetectedFramework) => {
       const version = framework.version ? ` v${framework.version}` : '';
       markdown += `- **${framework.name}**${version} (${Math.round(framework.confidence * 100)}% confidence)\n`;
     });
@@ -341,9 +341,11 @@ function formatAsMarkdown(analysis: any): string {
   // Largest files
   if (analysis.complexity.largestFiles.length > 0) {
     markdown += `## Largest Files\n\n`;
-    analysis.complexity.largestFiles.slice(0, 10).forEach((file: any) => {
-      markdown += `- ${file.path} (${file.lines} lines)\n`;
-    });
+    analysis.complexity.largestFiles
+      .slice(0, 10)
+      .forEach((file: { path: string; lines: number }) => {
+        markdown += `- ${file.path} (${file.lines} lines)\n`;
+      });
     markdown += '\n';
   }
 

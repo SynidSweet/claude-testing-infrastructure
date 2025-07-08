@@ -1,6 +1,6 @@
-import type { CoverageData } from '../CoverageParser';
+import type { CoverageData, FileCoverage } from '../CoverageParser';
 import type { AggregatedCoverageData } from '../CoverageAggregator';
-import type { CoverageGapAnalysis } from '../CoverageVisualizer';
+import type { CoverageGapAnalysis, CoverageSuggestion } from '../CoverageVisualizer';
 
 /**
  * Base template data interface containing common properties
@@ -77,7 +77,7 @@ export abstract class BaseTemplateEngine<
    * Transform coverage files data to consistent format
    */
   protected transformFilesData(
-    files: Record<string, any>,
+    files: Record<string, FileCoverage>,
     format: 'formatted' | 'raw' = 'formatted'
   ): Array<{
     filename: string;
@@ -122,7 +122,7 @@ export abstract class BaseTemplateEngine<
   /**
    * Transform suggestions data to consistent format
    */
-  protected transformSuggestionsData(suggestions: any[]): Array<{
+  protected transformSuggestionsData(suggestions: CoverageSuggestion[]): Array<{
     index?: number;
     target: string;
     file: string;
@@ -144,7 +144,7 @@ export abstract class BaseTemplateEngine<
    * Transform coverage summary to common format
    */
   protected transformSummaryData(
-    summary: any,
+    summary: { statements: number; branches: number; functions: number; lines: number },
     format: 'formatted' | 'raw' = 'formatted'
   ): {
     statements: string | number;
@@ -165,7 +165,9 @@ export abstract class BaseTemplateEngine<
   /**
    * Transform uncovered areas data to consistent format
    */
-  protected transformUncoveredAreasData(uncoveredAreas: any[]): Array<{
+  protected transformUncoveredAreasData(
+    uncoveredAreas: Array<{ type: string; file: string; line: number; description: string }>
+  ): Array<{
     type: string;
     file: string;
     line: number;
@@ -194,24 +196,28 @@ export abstract class BaseTemplateEngine<
   /**
    * Common template rendering with variable substitution
    */
-  protected renderTemplate(template: string, data: any): string {
+  protected renderTemplate(
+    template: string,
+    data: Record<string, unknown> | BaseTemplateData
+  ): string {
     let result = template;
+    const templateData = data as Record<string, unknown>;
 
     // Handle simple variables
     result = result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-      return data[key] !== undefined ? String(data[key]) : match;
+      return templateData[key] !== undefined ? String(templateData[key]) : match;
     });
 
     // Handle conditionals {{#if variable}}...{{/if}}
     result = result.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_match, key, content) => {
-      return data[key] ? content : '';
+      return templateData[key] ? content : '';
     });
 
     // Handle loops {{#each array}}...{{/each}}
     result = result.replace(
       /\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g,
       (_match, key, content) => {
-        const array = data[key];
+        const array = templateData[key];
         if (!Array.isArray(array)) return '';
 
         return array
@@ -221,7 +227,7 @@ export abstract class BaseTemplateEngine<
             itemContent = itemContent.replace(
               /\{\{(\w+(?:\.\w+)*)\}\}/g,
               (m: string, path: string) => {
-                const value = this.getNestedValue(item, path);
+                const value = this.getNestedValue(item as Record<string, unknown>, path);
                 return value !== undefined ? String(value) : m;
               }
             );
@@ -237,12 +243,12 @@ export abstract class BaseTemplateEngine<
   /**
    * Get nested object value by path
    */
-  private getNestedValue(obj: any, path: string): any {
+  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     const parts = path.split('.');
-    let current = obj;
+    let current: unknown = obj;
     for (const part of parts) {
-      if (current && typeof current === 'object' && part in current) {
-        current = current[part];
+      if (current && typeof current === 'object' && current !== null && part in current) {
+        current = (current as Record<string, unknown>)[part];
       } else {
         return undefined;
       }
