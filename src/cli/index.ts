@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
 import { analyzeCommand, type AnalyzeOptions } from './commands/analyze';
 import { testCommand, type TestOptions } from './commands/test';
 import { runCommand, type RunOptions } from './commands/run';
+import { executeCLICommand } from '../utils/error-handling';
 import { watchCommand } from './commands/watch';
 import { analyzeGapsCommand } from './commands/analyze-gaps';
 import { generateLogicalCommand } from './commands/generate-logical';
@@ -15,6 +16,11 @@ import { testAICommand } from './commands/test-ai';
 import { createIncrementalCommand } from './commands/incremental';
 import { createInitConfigCommand } from './commands/init-config';
 import { initializeLanguageSpecificGenerators } from '../generators/registerLanguageGenerators';
+
+/** Type guard for Commander.js errors */
+function isCommanderError(error: unknown): error is { code?: string; command?: string } {
+  return error !== null && typeof error === 'object' && 'code' in error;
+}
 
 // Initialize language-specific generators
 initializeLanguageSpecificGenerators();
@@ -47,14 +53,12 @@ program
   .option('--format <format>', 'Output format (json|markdown|console)', 'console')
   .option('-v, --verbose', 'Show detailed analysis information')
   .option('--validate-config', 'Validate .claude-testing.config.json configuration')
+  .option('--show-patterns', 'Display suggested file discovery patterns')
   .action((projectPath: string, options: AnalyzeOptions, command: Command) =>
-    analyzeCommand(
-      projectPath,
-      options,
-      command.parent
-        ? { parent: { opts: (): Record<string, unknown> => command.parent!.opts() } }
-        : undefined
-    )
+    executeCLICommand('project analysis', () => analyzeCommand(projectPath, options, command), {
+      showStack: Boolean(options.verbose),
+      context: { projectPath, options },
+    })
   );
 
 // Test command
@@ -79,7 +83,10 @@ program
   .option('--dry-run', 'Preview test generation without creating files')
   .option('-v, --verbose', 'Show detailed test generation information')
   .action((projectPath: string, options: TestOptions, command: Command) =>
-    testCommand(projectPath, options, command)
+    executeCLICommand('test generation', () => testCommand(projectPath, options, command), {
+      showStack: Boolean(options.verbose),
+      context: { projectPath, options },
+    })
   );
 
 // Run command
@@ -98,7 +105,10 @@ program
   )
   .option('-v, --verbose', 'Show detailed test execution information')
   .action((projectPath: string, options: RunOptions, command: Command) =>
-    runCommand(projectPath, options, command)
+    executeCLICommand('test execution', () => runCommand(projectPath, options, command), {
+      showStack: Boolean(options.verbose),
+      context: { projectPath, options },
+    })
   );
 
 // Add the watch command
@@ -128,30 +138,41 @@ program.exitOverride();
 try {
   program.parse();
 } catch (error) {
-  const commanderError = error as { code?: string; command?: string };
-  if (commanderError.code === 'commander.unknownCommand') {
-    logger.error(chalk.red(`Unknown command: ${commanderError.command ?? 'undefined'}`));
-    logger.info('\nAvailable commands:');
-    logger.info('  analyze         - Analyze a project');
-    logger.info('  test            - Generate tests');
-    logger.info('  test-ai         - Complete AI-enhanced testing workflow');
-    logger.info('  run             - Run generated tests');
-    logger.info('  watch           - Watch for changes');
-    logger.info('  analyze-gaps    - Analyze test gaps for AI generation');
-    logger.info('  generate-logical - Generate logical tests using AI');
-    logger.info('  generate-logical-batch - Generate logical tests in configurable batches');
-    logger.info('  incremental     - Perform incremental test generation');
-    logger.info('  init-config     - Initialize configuration with templates');
-    logger.info('\nRun claude-testing --help for more information');
-  } else if (
-    commanderError.code === 'commander.help' ||
-    commanderError.code === 'commander.helpDisplayed'
-  ) {
-    // Help was displayed, exit normally
-    process.exit(0);
-  } else if (commanderError.code === 'commander.version') {
-    // Version was displayed, exit normally
-    process.exit(0);
+  if (isCommanderError(error)) {
+    switch (error.code) {
+      case 'commander.unknownCommand':
+        logger.error(chalk.red(`Unknown command: ${error.command ?? 'undefined'}`));
+        logger.info('\nAvailable commands:');
+        logger.info('  analyze         - Analyze a project');
+        logger.info('  test            - Generate tests');
+        logger.info('  test-ai         - Complete AI-enhanced testing workflow');
+        logger.info('  run             - Run generated tests');
+        logger.info('  watch           - Watch for changes');
+        logger.info('  analyze-gaps    - Analyze test gaps for AI generation');
+        logger.info('  generate-logical - Generate logical tests using AI');
+        logger.info('  generate-logical-batch - Generate logical tests in configurable batches');
+        logger.info('  incremental     - Perform incremental test generation');
+        logger.info('  init-config     - Initialize configuration with templates');
+        logger.info('\nRun claude-testing --help for more information');
+        break;
+      case 'commander.help':
+      case 'commander.helpDisplayed':
+        // Help was displayed, exit normally
+        process.exit(0);
+      // eslint-disable-next-line no-fallthrough
+      case 'commander.version':
+        // Version was displayed, exit normally
+        process.exit(0);
+      // eslint-disable-next-line no-fallthrough
+      case 'commander.unknownOption':
+        // Unknown option error
+        logger.error('Unknown option provided');
+        process.exit(1);
+      // eslint-disable-next-line no-fallthrough
+      default:
+        logger.error('Commander error:', error);
+        process.exit(1);
+    }
   } else {
     logger.error('Unexpected error:', error);
     process.exit(1);

@@ -8,9 +8,9 @@ export interface ConfigErrorDetails {
   field: string;
   value: unknown;
   message: string;
-  suggestion?: string | undefined;
-  example?: string | undefined;
-  documentation?: string | undefined;
+  suggestion?: string;
+  example?: string;
+  documentation?: string;
 }
 
 export class ConfigErrorFormatter {
@@ -54,16 +54,21 @@ export class ConfigErrorFormatter {
    * Common error message templates
    */
   static readonly templates = {
-    invalidEnum: (field: string, value: unknown, validOptions: string[]): ConfigErrorDetails => ({
-      field,
-      value,
-      message: `Invalid value. Must be one of: ${validOptions.join(', ')}`,
-      suggestion:
-        validOptions.length <= 5
-          ? `Choose from: ${validOptions.join(', ')}`
-          : `Choose from ${validOptions.length} valid options (see documentation)`,
-      example: validOptions[0],
-    }),
+    invalidEnum: (field: string, value: unknown, validOptions: string[]): ConfigErrorDetails => {
+      const result: ConfigErrorDetails = {
+        field,
+        value,
+        message: `Invalid value. Must be one of: ${validOptions.join(', ')}`,
+        suggestion:
+          validOptions.length <= 5
+            ? `Choose from: ${validOptions.join(', ')}`
+            : `Choose from ${validOptions.length} valid options (see documentation)`,
+      };
+      if (validOptions[0]) {
+        result.example = validOptions[0];
+      }
+      return result;
+    },
 
     invalidType: (
       field: string,

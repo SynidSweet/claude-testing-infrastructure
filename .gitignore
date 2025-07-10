@@ -19,6 +19,9 @@ htmlcov/
 .pytest_cache/
 .tox/
 
+# Jest cache directories
+.jest-cache-*/
+
 # Logs
 logs/
 *.log
@@ -68,6 +71,10 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# Session reports and analysis
+carry-on-session-report-*.md
+test-performance-investigation-report-*.md
 
 
 # OS files

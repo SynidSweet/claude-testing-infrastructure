@@ -11,53 +11,31 @@
  */
 
 import { fs, path, logger } from '../utils/common-imports';
-import { ConfigurationManager } from '../utils/config-validation';
 import {
-  DEFAULT_CONFIG,
   type ClaudeTestingConfig,
   type PartialClaudeTestingConfig,
   type ConfigValidationResult,
-  type AIModel,
-  type IncrementalOptions,
-  type WatchOptions,
-  type BaselineOptions,
-  type OutputOptions,
-  type OutputFormat,
-  type TestFramework,
-  type GenerationOptions,
 } from '../types/config';
 import type { FileDiscoveryConfig } from '../types/file-discovery-types';
+import {
+  ConfigurationSourceLoaderRegistry,
+  type ConfigurationSource,
+  ConfigurationSourceType,
+  type LoaderRegistryOptions,
+} from './loaders';
+import { EnvironmentVariableParser } from './EnvironmentVariableParser';
+import { CliArgumentMapper, type CliArguments } from './CliArgumentMapper';
+import { ConfigurationMerger } from './ConfigurationMerger';
+
+// Re-export CliArguments for backward compatibility
+export type { CliArguments } from './CliArgumentMapper';
+
 
 /**
- * Configuration source types
+ * Type for configuration object sections
  */
-export enum ConfigurationSourceType {
-  CLI_ARGS = 'cli-args',
-  ENV_VARS = 'env-vars',
-  PROJECT_CONFIG = 'project-config',
-  USER_CONFIG = 'user-config',
-  DEFAULTS = 'defaults',
-  CUSTOM_FILE = 'custom-file',
-}
-
-/**
- * Represents a configuration source with its data and metadata
- */
-export interface ConfigurationSource {
-  /** Type of configuration source */
-  type: ConfigurationSourceType;
-  /** Configuration data from this source */
-  data: PartialClaudeTestingConfig;
-  /** Path to configuration file (if applicable) */
-  path?: string;
-  /** Whether this source was successfully loaded */
-  loaded: boolean;
-  /** Any errors encountered loading this source */
-  errors: string[];
-  /** Warnings from configuration validation */
-  warnings: string[];
-  /** Load timestamp */
-  loadedAt: Date;
+export interface ConfigSection {
+  [key: string]: string | number | boolean | string[] | ConfigSection | undefined;
 }
 
 /**
@@ -73,7 +51,7 @@ export interface ConfigurationServiceOptions {
   /** Whether to include user configuration */
   includeUserConfig?: boolean;
   /** CLI arguments to merge */
-  cliArgs?: Record<string, unknown>;
+  cliArgs?: CliArguments;
 }
 
 /**
@@ -101,7 +79,10 @@ export class ConfigurationService {
   private sources: ConfigurationSource[] = [];
   private loadedConfig: ClaudeTestingConfig | null = null;
   private loadResult: ConfigurationLoadResult | null = null;
-  private thresholdParseError: string | undefined;
+  private loaderRegistry: ConfigurationSourceLoaderRegistry;
+  private envParser: EnvironmentVariableParser;
+  private cliMapper: CliArgumentMapper;
+  private merger: ConfigurationMerger;
 
   constructor(options: ConfigurationServiceOptions) {
     this.options = {
@@ -109,6 +90,27 @@ export class ConfigurationService {
       includeUserConfig: true,
       ...options,
     };
+    
+    // Initialize loader registry
+    const registryOptions: LoaderRegistryOptions = {
+      projectPath: this.options.projectPath,
+      includeUserConfig: this.options.includeUserConfig ?? true,
+    };
+    
+    if (this.options.customConfigPath) {
+      registryOptions.customConfigPath = this.options.customConfigPath;
+    }
+    
+    this.loaderRegistry = new ConfigurationSourceLoaderRegistry(registryOptions);
+    
+    // Initialize environment variable parser
+    this.envParser = new EnvironmentVariableParser();
+    
+    // Initialize CLI argument mapper
+    this.cliMapper = new CliArgumentMapper();
+    
+    // Initialize configuration merger
+    this.merger = new ConfigurationMerger({ projectPath: this.options.projectPath });
   }
 
   /**
@@ -122,19 +124,11 @@ export class ConfigurationService {
     this.loadedConfig = null;
     this.loadResult = null;
 
-    // Load from all sources in reverse priority order (lowest to highest)
-    this.loadDefaultConfiguration();
+    // Load from file sources using the loader registry
+    await this.loadFromSourceLoaders();
 
-    if (this.options.includeUserConfig) {
-      await this.loadUserConfiguration();
-    }
-
-    await this.loadProjectConfiguration();
-
-    if (this.options.customConfigPath) {
-      await this.loadCustomFileConfiguration();
-    }
-
+    // Load remaining sources (environment variables and CLI args)
+    // These will be handled by dedicated modules in future refactoring
     if (this.options.includeEnvVars) {
       this.loadEnvironmentConfiguration();
     }
@@ -144,7 +138,7 @@ export class ConfigurationService {
     }
 
     // Merge all configurations
-    const mergeResult = this.mergeConfigurations();
+    const mergeResult = this.merger.mergeConfigurations(this.sources);
 
     // Create final result
     this.loadResult = {
@@ -193,6 +187,11 @@ export class ConfigurationService {
         logSlowOperations: config.fileDiscovery?.performance?.logSlowOperations ?? true,
         slowThresholdMs: config.fileDiscovery?.performance?.slowThresholdMs ?? 1000,
       },
+      smartDetection: {
+        enabled: config.fileDiscovery?.smartDetection?.enabled ?? true,
+        confidenceThreshold: config.fileDiscovery?.smartDetection?.confidenceThreshold ?? 0.7,
+        cacheAnalysis: config.fileDiscovery?.smartDetection?.cacheAnalysis ?? true,
+      },
     };
   }
 
@@ -232,93 +231,28 @@ export class ConfigurationService {
 
   // Private methods for loading different configuration sources
 
-  private loadDefaultConfiguration(): void {
-    const source: ConfigurationSource = {
-      type: ConfigurationSourceType.DEFAULTS,
-      data: DEFAULT_CONFIG,
-      loaded: true,
-      errors: [],
-      warnings: [],
-      loadedAt: new Date(),
-    };
-
-    this.sources.push(source);
-    logger.debug('Loaded default configuration');
-  }
-
-  private async loadUserConfiguration(): Promise<void> {
-    const userConfigPaths = this.discoverUserConfig();
-
-    for (const configPath of userConfigPaths) {
+  /**
+   * Load configuration from file-based sources using the loader registry
+   */
+  private async loadFromSourceLoaders(): Promise<void> {
+    const loaders = this.loaderRegistry.getLoaders();
+    
+    for (const loader of loaders) {
       try {
-        await fs.access(configPath);
-        const configContent = await fs.readFile(configPath, 'utf8');
-        const userConfig = JSON.parse(configContent) as PartialClaudeTestingConfig;
-
-        // Validate the user configuration to get errors and warnings
-        const manager = new ConfigurationManager(this.options.projectPath);
-        const validationResult = manager.validateConfiguration(userConfig);
-
-        const source: ConfigurationSource = {
-          type: ConfigurationSourceType.USER_CONFIG,
-          data: userConfig,
-          path: configPath,
-          loaded: true,
-          errors: validationResult.errors,
-          warnings: validationResult.warnings,
-          loadedAt: new Date(),
-        };
-
-        this.sources.push(source);
-        logger.debug(`Loaded user configuration from: ${configPath}`);
-        return; // Use first found user config
+        const result = await loader.load();
+        this.sources.push(result.source);
+        
+        if (result.success && result.source.loaded) {
+          logger.debug(`Loaded configuration from: ${loader.getDescription()}`);
+        } else if (result.source.errors.length > 0) {
+          logger.warn(`Configuration source has errors: ${loader.getDescription()}`);
+        }
       } catch (error) {
-        // Try next path
-        continue;
+        logger.warn(`Failed to load configuration from: ${loader.getDescription()}`, error);
       }
     }
-
-    logger.debug('No user configuration found');
   }
 
-  private async loadProjectConfiguration(): Promise<void> {
-    const manager = new ConfigurationManager(this.options.projectPath);
-
-    try {
-      const result = await manager.loadConfiguration();
-
-      const source: ConfigurationSource = {
-        type: ConfigurationSourceType.PROJECT_CONFIG,
-        data: result.config,
-        path: manager.getConfigurationPath(),
-        loaded: result.valid,
-        errors: result.errors,
-        warnings: [],
-        loadedAt: new Date(),
-      };
-
-      this.sources.push(source);
-
-      if (result.valid) {
-        logger.debug(`Loaded project configuration from: ${manager.getConfigurationPath()}`);
-      } else {
-        logger.warn(`Project configuration has errors: ${result.errors.join(', ')}`);
-      }
-    } catch (error) {
-      const source: ConfigurationSource = {
-        type: ConfigurationSourceType.PROJECT_CONFIG,
-        data: {},
-        path: manager.getConfigurationPath(),
-        loaded: false,
-        errors: [`Failed to load project configuration: ${(error as Error).message}`],
-        warnings: [],
-        loadedAt: new Date(),
-      };
-
-      this.sources.push(source);
-      logger.debug('No project configuration found');
-    }
-  }
 
   private loadEnvironmentConfiguration(): void {
     const { config: envConfig, warnings } = this.extractEnvConfig();
@@ -344,19 +278,18 @@ export class ConfigurationService {
       return;
     }
 
-    const cliConfig = this.mapCliArgsToConfig(this.options.cliArgs);
+    const mappingResult = this.cliMapper.mapCliArgsToConfig(this.options.cliArgs);
 
     // Extract threshold error if present
     const errors: string[] = [];
-    if (this.thresholdParseError) {
-      errors.push(this.thresholdParseError);
-      this.thresholdParseError = undefined;
+    if (mappingResult.error) {
+      errors.push(mappingResult.error);
     }
 
     const source: ConfigurationSource = {
       type: ConfigurationSourceType.CLI_ARGS,
-      data: cliConfig,
-      loaded: Object.keys(cliConfig).length > 0,
+      data: mappingResult.config,
+      loaded: Object.keys(mappingResult.config).length > 0,
       errors,
       warnings: [],
       loadedAt: new Date(),
@@ -369,927 +302,32 @@ export class ConfigurationService {
     }
   }
 
-  private async loadCustomFileConfiguration(): Promise<void> {
-    if (!this.options.customConfigPath) {
-      return;
-    }
-
-    try {
-      const configContent = await fs.readFile(this.options.customConfigPath, 'utf8');
-      const customConfig = JSON.parse(configContent) as PartialClaudeTestingConfig;
-
-      // Validate the custom configuration to get errors and warnings
-      const manager = new ConfigurationManager(this.options.projectPath);
-      const validationResult = manager.validateConfiguration(customConfig);
-
-      const source: ConfigurationSource = {
-        type: ConfigurationSourceType.CUSTOM_FILE,
-        data: customConfig,
-        path: this.options.customConfigPath,
-        loaded: true,
-        errors: validationResult.errors,
-        warnings: validationResult.warnings,
-        loadedAt: new Date(),
-      };
-
-      this.sources.push(source);
-      logger.debug(`Loaded custom configuration from: ${this.options.customConfigPath}`);
-    } catch (error) {
-      const source: ConfigurationSource = {
-        type: ConfigurationSourceType.CUSTOM_FILE,
-        data: {},
-        path: this.options.customConfigPath,
-        loaded: false,
-        errors: [`Failed to load custom configuration: ${(error as Error).message}`],
-        warnings: [],
-        loadedAt: new Date(),
-      };
-
-      this.sources.push(source);
-      logger.warn(`Failed to load custom configuration from: ${this.options.customConfigPath}`);
-    }
-  }
-
-  private discoverUserConfig(): string[] {
-    const homeDir = process.env.HOME ?? process.env.USERPROFILE ?? '';
-    return [
-      path.join(homeDir, '.claude-testing.config.json'),
-      path.join(homeDir, '.config', 'claude-testing', 'config.json'),
-      path.join(homeDir, '.claude-testing', 'config.json'),
-    ];
-  }
 
   private extractEnvConfig(): { config: PartialClaudeTestingConfig; warnings: string[] } {
-    const config: PartialClaudeTestingConfig = {};
-    const warnings: string[] = [];
-
-    // Environment variable prefix
-    const prefix = 'CLAUDE_TESTING_';
-
-    // Get all environment variables with our prefix
-    const envVars = Object.entries(process.env)
-      .filter(([key]) => key.startsWith(prefix))
-      .map(([key, value]) => ({
-        key: key.substring(prefix.length), // Remove prefix
-        value: value ?? '',
-      }));
-
+    // Use the environment variable parser
+    const result = this.envParser.parseEnvironmentVariables(process.env);
+    
     // Debug logging
-    if (envVars.length > 0) {
-      logger.debug(`Found ${envVars.length} CLAUDE_TESTING_ environment variables`);
-    }
-
-    // Process each environment variable
-    for (const { key, value } of envVars) {
-      // Skip only null/undefined values, not empty strings (empty strings have meaning)
-      if (value === null || value === undefined) continue;
-
-      // Convert underscore-separated path to object path
-      const path = key.toLowerCase().split('_');
-      // Check if this is an array field before parsing
-      const isArrayField = this.isArrayField(key);
-      const { value: parsedValue, warning } = this.parseEnvValue(value, isArrayField, key);
-
-      if (warning) {
-        warnings.push(warning);
-      }
-
-      // Pass the parsed value with the original key for special case handling
-      this.setNestedValue(config as Record<string, unknown>, path, parsedValue, key);
-    }
-
-    return { config, warnings };
-  }
-
-  /**
-   * Check if a field should be treated as an array
-   */
-  private isArrayField(key: string): boolean {
-    const arrayFields = ['INCLUDE', 'EXCLUDE', 'COVERAGE_REPORTERS', 'OUTPUT_FORMATS'];
-    return arrayFields.some((field) => key === field || key.endsWith(`_${field}`));
-  }
-
-  /**
-   * Parse environment variable value to appropriate type
-   */
-  private parseEnvValue(
-    value: string,
-    isArrayField: boolean = false,
-    key?: string
-  ): { value: unknown; warning?: string } {
-    // Handle array fields specially
-    if (isArrayField) {
-      if (value === '') return { value: [] }; // Empty string = empty array for array fields
-      return {
-        value: value
-          .split(',')
-          .map((v) => v.trim())
-          .filter((v) => v !== ''),
-      };
-    }
-
-    // Empty string = undefined for non-array fields
-    if (value === '') return { value: undefined };
-
-    // Boolean values
-    const lowerValue = value.toLowerCase();
-    if (lowerValue === 'true' || lowerValue === '1' || lowerValue === 'yes') return { value: true };
-    if (lowerValue === 'false' || lowerValue === '0' || lowerValue === 'no')
-      return { value: false };
-
-    // Numeric values - check if it looks like a number
-    if (/^-?\d+$/.test(value)) {
-      const num = parseInt(value, 10);
-      if (!isNaN(num)) return { value: num };
-    }
-    if (/^-?\d*\.?\d+$/.test(value)) {
-      const num = parseFloat(value);
-      if (!isNaN(num)) return { value: num };
-    }
-
-    // Check if this was supposed to be numeric but failed
-    if (
-      key &&
-      (key.includes('RETRIES') ||
-        key.includes('TIMEOUT') ||
-        key.includes('TOKENS') ||
-        key.includes('TEMPERATURE') ||
-        key.includes('RATIO') ||
-        key.includes('SIZE') ||
-        key.includes('LIMIT') ||
-        key.includes('THRESHOLDS'))
-    ) {
-      // This should have been numeric but wasn't
-      return {
-        value: value, // Keep as string
-        warning: `Environment variable CLAUDE_TESTING_${key}: Invalid numeric value "${value}"`,
-      };
-    }
-
-    // Array values (comma-separated)
-    if (value.includes(',')) {
-      return {
-        value: value
-          .split(',')
-          .map((v) => v.trim())
-          .filter((v) => v !== ''),
-      };
-    }
-
-    // String value
-    return { value: value };
-  }
-
-  /**
-   * Set a nested value in an object using a path array
-   */
-  private setNestedValue(
-    obj: Record<string, unknown>,
-    path: string[],
-    value: unknown,
-    originalKey?: string
-  ): void {
-    if (path.length === 0) return;
-
-    // Handle special root-level mappings first
-    const upperPath = originalKey ?? path.join('_').toUpperCase();
-
-    // Direct root-level mappings
-    if (upperPath === 'TEST_FRAMEWORK') {
-      obj.testFramework = value;
-      return;
-    }
-    if (upperPath === 'AI_MODEL') {
-      obj.aiModel = value;
-      return;
-    }
-    if (upperPath === 'COST_LIMIT') {
-      obj.costLimit = value;
-      return;
-    }
-    if (upperPath === 'DRY_RUN') {
-      obj.dryRun = value;
-      return;
-    }
-    if (upperPath === 'INCLUDE') {
-      obj.include = value;
-      return;
-    }
-    if (upperPath === 'EXCLUDE') {
-      obj.exclude = value;
-      return;
-    }
-
-    // Handle CUSTOM_PROMPTS fields
-    if (upperPath.startsWith('CUSTOM_PROMPTS_')) {
-      if (!obj.customPrompts || typeof obj.customPrompts !== 'object') obj.customPrompts = {};
-      const customPrompts = obj.customPrompts as Record<string, unknown>;
-      const promptKey = upperPath.substring('CUSTOM_PROMPTS_'.length);
-
-      // Handle empty strings for custom prompts
-      if (value === '') {
-        // Don't set undefined prompts
-        return;
-      }
-
-      if (promptKey === 'TEST_GENERATION') {
-        customPrompts.testGeneration = value;
-        return;
-      }
-    }
-
-    // OUTPUT_FORMAT needs special handling - set both format and formats
-    if (upperPath === 'OUTPUT_FORMAT') {
-      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.format = value;
-      output.formats = [value];
-      return;
-    }
-
-    // Map FEATURES_COVERAGE to features.coverage
-    if (upperPath === 'FEATURES_COVERAGE') {
-      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
-      const features = obj.features as Record<string, unknown>;
-      features.coverage = value;
-      return;
-    }
-
-    // Map FEATURES_EDGE_CASES to features.edgeCases
-    if (upperPath === 'FEATURES_EDGE_CASES') {
-      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
-      const features = obj.features as Record<string, unknown>;
-      features.edgeCases = value;
-      return;
-    }
-
-    // Map FEATURES_INTEGRATION_TESTS to features.integrationTests
-    if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
-      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
-      const features = obj.features as Record<string, unknown>;
-      features.integrationTests = value;
-      return;
-    }
-
-    // Map FEATURES_MOCKING to features.mocks
-    if (upperPath === 'FEATURES_MOCKING') {
-      if (!obj.features || typeof obj.features !== 'object') obj.features = {};
-      const features = obj.features as Record<string, unknown>;
-      features.mocks = value;
-      return;
-    }
-
-    // Map OUTPUT_VERBOSE to output.verbose
-    if (upperPath === 'OUTPUT_VERBOSE') {
-      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.verbose = value;
-      if (value === true) {
-        output.logLevel = 'verbose';
-      }
-      return;
-    }
-
-    // Map OUTPUT_LOG_LEVEL to output.logLevel
-    if (upperPath === 'OUTPUT_LOG_LEVEL') {
-      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.logLevel = value;
-      return;
-    }
-
-    // Map OUTPUT_COLORS to output.colors
-    if (upperPath === 'OUTPUT_COLORS') {
-      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.colors = value;
-      return;
-    }
-
-    // Map COVERAGE_ENABLED to coverage.enabled
-    if (upperPath === 'COVERAGE_ENABLED') {
-      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
-      const coverage = obj.coverage as Record<string, unknown>;
-      coverage.enabled = value;
-      return;
-    }
-
-    // Map COVERAGE_REPORTERS to coverage.reporters
-    if (upperPath === 'COVERAGE_REPORTERS') {
-      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
-      const coverage = obj.coverage as Record<string, unknown>;
-      coverage.reporters = value;
-      return;
-    }
-
-    // Handle COVERAGE_THRESHOLDS_GLOBAL fields
-    if (upperPath.startsWith('COVERAGE_THRESHOLDS_GLOBAL_')) {
-      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
-      const coverage = obj.coverage as Record<string, unknown>;
-      if (!coverage.thresholds || typeof coverage.thresholds !== 'object') coverage.thresholds = {};
-      const thresholds = coverage.thresholds as Record<string, unknown>;
-      if (!thresholds.global || typeof thresholds.global !== 'object') thresholds.global = {};
-      const global = thresholds.global as Record<string, unknown>;
-
-      const thresholdKey = upperPath.substring('COVERAGE_THRESHOLDS_GLOBAL_'.length).toLowerCase();
-      global[thresholdKey] = value;
-      return;
-    }
-
-    // Handle special mappings for AI_OPTIONS fields
-    if (upperPath.startsWith('AI_OPTIONS_')) {
-      if (!obj.aiOptions || typeof obj.aiOptions !== 'object') obj.aiOptions = {};
-      const aiOptions = obj.aiOptions as Record<string, unknown>;
-      const aiOptionKey = upperPath.substring('AI_OPTIONS_'.length);
-
-      if (aiOptionKey === 'MAX_TOKENS') {
-        aiOptions.maxTokens = value;
-        return;
-      }
-      if (aiOptionKey === 'TEMPERATURE') {
-        aiOptions.temperature = value;
-        return;
-      }
-      if (aiOptionKey === 'MAX_COST') {
-        aiOptions.maxCost = value;
-        return;
-      }
-    }
-
-    // Handle special mappings for GENERATION fields
-    if (upperPath.startsWith('GENERATION_')) {
-      if (!obj.generation || typeof obj.generation !== 'object') obj.generation = {};
-      const generation = obj.generation as Record<string, unknown>;
-      const generationKey = upperPath.substring('GENERATION_'.length);
-
-      if (generationKey === 'MAX_RETRIES') {
-        generation.maxRetries = value;
-        return;
-      }
-      if (generationKey === 'TIMEOUT_MS') {
-        generation.timeoutMs = value;
-        return;
-      }
-      if (generationKey === 'MAX_TEST_TO_SOURCE_RATIO') {
-        generation.maxTestToSourceRatio = value;
-        return;
-      }
-      if (generationKey === 'BATCH_SIZE') {
-        generation.batchSize = value;
-        return;
-      }
-    }
-
-    // For nested paths, convert to appropriate case
-    // Keep configuration object keys lowercase (coverage.thresholds.global)
-    // Use camelCase only for property names within objects
-    const camelPath = path
-      .map((segment, index) => {
-        if (index === 0) return segment.toLowerCase();
-        return segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase();
-      })
-      .filter((seg) => seg !== ''); // Remove empty segments
-
-    if (camelPath.length === 0) return;
-
-    // Navigate to the parent object, creating nested objects as needed
-    let current: Record<string, unknown> = obj;
-    for (let i = 0; i < camelPath.length - 1; i++) {
-      const key = camelPath[i];
-      if (!key) continue;
-
-      if (current[key] === undefined) {
-        current[key] = {};
-      }
-      // Type guard to ensure we're working with an object
-      if (typeof current[key] === 'object' && current[key] !== null) {
-        current = current[key] as Record<string, unknown>;
-      } else {
-        current[key] = {};
-        current = current[key] as Record<string, unknown>;
-      }
-    }
-
-    // Set the final value
-    const finalKey = camelPath[camelPath.length - 1];
-    if (finalKey) {
-      current[finalKey] = value;
-    }
-
-    // Handle special cases for mapping
-    this.handleEnvMappingSpecialCases(obj, path, value as string);
-  }
-
-  /**
-   * Handle special cases for environment variable mapping
-   */
-  private handleEnvMappingSpecialCases(
-    obj: Record<string, unknown>,
-    path: string[],
-    value: string
-  ): void {
-    const upperPath = path.join('_').toUpperCase();
-
-    // Map FEATURES_MOCKING to features.mocks (not mocking)
-    if (upperPath === 'FEATURES_MOCKING') {
-      if (!obj.features) obj.features = {};
-      const features = obj.features as Record<string, unknown>;
-      features.mocks = value;
-      delete features.mocking;
-    }
-
-    // Map FEATURES_INTEGRATION_TESTS to features.integrationTests
-    if (upperPath === 'FEATURES_INTEGRATION_TESTS') {
-      if (!obj.features) obj.features = {};
-      const features = obj.features as Record<string, unknown>;
-      features.integrationTests = value;
-      // Clean up incorrectly parsed nested structure
-      if (features.Integration) {
-        delete features.Integration;
-      }
-    }
-
-    // Map COVERAGE_THRESHOLDS_GLOBAL_* to coverage.thresholds.global.*
-    if (upperPath.startsWith('COVERAGE_THRESHOLDS_GLOBAL_')) {
-      const thresholdType = path[path.length - 1]; // Get the last segment (e.g., 'functions')
-      if (thresholdType) {
-        if (!obj.coverage) obj.coverage = {};
-        const coverage = obj.coverage as Record<string, unknown>;
-        if (!coverage.thresholds) coverage.thresholds = {};
-        const thresholds = coverage.thresholds as Record<string, unknown>;
-        if (!thresholds.global) thresholds.global = {};
-        const global = thresholds.global as Record<string, unknown>;
-        global[thresholdType.toLowerCase()] = value;
-        // Clean up incorrectly parsed nested structure
-        if (coverage.Thresholds) {
-          delete coverage.Thresholds;
-        }
-      }
-    }
-
-    // Map OUTPUT_FORMAT to output.format AND formats array
-    if (upperPath === 'OUTPUT_FORMAT' && typeof value === 'string') {
-      if (!obj.output) obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.format = value;
-      // Also maintain formats array for compatibility
-      if (!output.formats) output.formats = [];
-      const formats = output.formats as string[];
-      if (!formats.includes(value)) {
-        formats.push(value);
-      }
-    }
-
-    // Map OUTPUT_VERBOSE to output.verbose AND logLevel
-    if (upperPath === 'OUTPUT_VERBOSE') {
-      if (!obj.output) obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.verbose = value;
-      if (value === 'true') {
-        output.logLevel = 'verbose';
-      }
-    }
-
-    // Map DRY_RUN to dryRun at root level
-    if (upperPath === 'DRY_RUN') {
-      obj.dryRun = value;
-      delete obj.dry; // Remove nested structure if created
-    }
-
-    // Map COST_LIMIT to costLimit at root level
-    if (upperPath === 'COST_LIMIT') {
-      obj.costLimit = value;
-      delete obj.cost; // Remove nested structure
-    }
-
-    // Map LOG_LEVEL to output.logLevel
-    if (upperPath === 'LOG_LEVEL') {
-      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.logLevel = value;
-      delete obj.log; // Remove nested structure if created
-    }
-
-    // Map OUTPUT_FORMATS (plural) to output.formats array
-    if (upperPath === 'OUTPUT_FORMATS' && Array.isArray(value)) {
-      if (!obj.output || typeof obj.output !== 'object') obj.output = {};
-      const output = obj.output as Record<string, unknown>;
-      output.formats = value;
-    }
-
-    // Map coverage.enabled properly
-    if (upperPath === 'COVERAGE_ENABLED') {
-      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
-      const coverage = obj.coverage as Record<string, unknown>;
-      coverage.enabled = value;
-      // Don't delete the nested structure, keep it
-    }
-
-    // Map coverage reporters
-    if (upperPath === 'COVERAGE_REPORTERS' && Array.isArray(value)) {
-      if (!obj.coverage || typeof obj.coverage !== 'object') obj.coverage = {};
-      const coverage = obj.coverage as Record<string, unknown>;
-      coverage.reporters = value;
-    }
-
-    // Map INCREMENTAL_SHOW_STATS to incremental.showStats
-    if (upperPath === 'INCREMENTAL_SHOW_STATS') {
-      if (!obj.incremental || typeof obj.incremental !== 'object') obj.incremental = {};
-      const incremental = obj.incremental as Record<string, unknown>;
-      incremental.showStats = value;
-    }
-
-    // Ensure proper nesting for generation options
-    if (path[0] === 'generation' && path.length >= 2) {
-      if (!obj.generation) obj.generation = {};
-    }
-
-    // Ensure proper nesting for aiOptions
-    if (path[0] === 'ai' && path[1] === 'options' && path.length >= 3) {
-      if (!obj.aiOptions || typeof obj.aiOptions !== 'object') obj.aiOptions = {};
-      const aiOptions = obj.aiOptions as Record<string, unknown>;
-      // Map from ai.options.* to aiOptions.*
-      const aiOptionKey = path
-        .slice(2)
-        .map((seg, idx) => (idx === 0 ? seg : seg.charAt(0).toUpperCase() + seg.slice(1)))
-        .join('');
-      if (aiOptionKey) {
-        aiOptions[aiOptionKey] = value;
-      }
-      // Clean up the ai.options structure
-      if (obj.ai && typeof obj.ai === 'object' && 'options' in obj.ai) {
-        const aiObj = obj.ai as Record<string, unknown>;
-        delete aiObj.options;
-        if (Object.keys(obj.ai).length === 0) {
-          delete obj.ai;
-        }
-      }
-    }
-
-    // Handle baseline flag
-    if (upperPath === 'INCREMENTAL_BASELINE') {
-      if (!obj.incremental) obj.incremental = {} as IncrementalOptions;
-      if (typeof value === 'string') {
-        try {
-          (obj.incremental as IncrementalOptions).baseline = JSON.parse(value) as BaselineOptions;
-        } catch {
-          // If not valid JSON, treat as autoCreate boolean
-          (obj.incremental as IncrementalOptions).baseline = {
-            autoCreate: value.toLowerCase() === 'true',
-          };
-        }
-      } else {
-        (obj.incremental as IncrementalOptions).baseline = value as BaselineOptions;
-      }
-    }
-
-    // Handle watch debounce
-    if (upperPath === 'WATCH_DEBOUNCE_MS') {
-      if (!obj.watch) obj.watch = {} as WatchOptions;
-      (obj.watch as WatchOptions).debounceMs =
-        typeof value === 'string' ? parseInt(value, 10) : (value as number);
-    }
-  }
-
-  private mapCliArgsToConfig(cliArgs: Record<string, unknown>): PartialClaudeTestingConfig {
-    const config: PartialClaudeTestingConfig = {};
-
-    // AI model mapping
-    if (cliArgs.aiModel && typeof cliArgs.aiModel === 'string') {
-      config.aiModel = cliArgs.aiModel as AIModel;
-    }
-
-    // Output configuration
-    if (cliArgs.verbose !== undefined && typeof cliArgs.verbose === 'boolean') {
-      if (!config.output) config.output = {};
-      config.output.verbose = cliArgs.verbose;
-      if (cliArgs.verbose) {
-        config.output.logLevel = 'verbose';
-      }
-    }
-
-    if (cliArgs.debug !== undefined && typeof cliArgs.debug === 'boolean') {
-      if (!config.output) config.output = {};
-      config.output.logLevel = 'debug';
-    }
-
-    if (cliArgs.quiet) {
-      config.output = {
-        logLevel: 'error',
-        ...(config.output ?? {}),
-      } as OutputOptions;
-    }
-
-    if (cliArgs.format) {
-      config.output = {
-        formats: [cliArgs.format as OutputFormat],
-        format: cliArgs.format as OutputFormat,
-        ...(config.output ?? {}),
-      } as OutputOptions;
-    }
-
-    if (cliArgs.output) {
-      config.output = {
-        file: cliArgs.output as string,
-        ...(config.output ?? {}),
-      } as OutputOptions;
-    }
-
-    // Test framework mapping
-    if (cliArgs.framework) {
-      config.testFramework = cliArgs.framework as TestFramework;
-    }
-
-    // Test generation configuration
-    if (cliArgs.maxRatio !== undefined) {
-      config.generation = {
-        maxTestToSourceRatio: cliArgs.maxRatio as number,
-        ...(config.generation ?? {}),
-      } as GenerationOptions;
-    }
-
-    if (cliArgs.batchSize !== undefined) {
-      config.generation = {
-        batchSize: cliArgs.batchSize as number,
-        ...(config.generation ?? {}),
-      } as GenerationOptions;
-    }
-
-    if (cliArgs.maxRetries !== undefined) {
-      config.generation = {
-        maxRetries: cliArgs.maxRetries as number,
-        ...(config.generation ?? {}),
-      } as GenerationOptions;
-    }
-
-    // Features configuration based on test generation flags
-    if (cliArgs.onlyStructural !== undefined) {
-      config.features = {
-        structuralTests: true,
-        logicalTests: false,
-        ...(config.features ?? {}),
-      };
-    }
-
-    if (cliArgs.onlyLogical !== undefined) {
-      config.features = {
-        structuralTests: false,
-        logicalTests: true,
-        ...(config.features ?? {}),
-      };
-    }
-
-    // Note: force flag doesn't map directly to config schema
-    // It's handled at the command level
-
-    // Note: chunking options are handled at implementation level
-    // They don't map directly to the config schema
-
-    // Coverage configuration
-    if (cliArgs.coverage !== undefined) {
-      config.coverage = {
-        enabled: cliArgs.coverage as boolean,
-        ...(config.coverage ?? {}),
-      };
-    }
-
-    if (cliArgs.threshold) {
-      const parseResult = this.parseThresholds(cliArgs.threshold as string);
-      if (parseResult.thresholds) {
-        config.coverage = {
-          thresholds: {
-            global: parseResult.thresholds, // Only set the properties that were explicitly provided
-          },
-          ...(config.coverage ?? {}),
-        };
-      }
-      // Store error to be handled in loadCliConfiguration
-      this.thresholdParseError = parseResult.error;
-    }
-
-    // Map reporter CLI argument to coverage.reporters
-    if (cliArgs.reporter) {
-      const reporterValue = cliArgs.reporter;
-      let reporters: string[];
-
-      if (Array.isArray(reporterValue)) {
-        reporters = reporterValue.filter((r): r is string => typeof r === 'string');
-      } else if (typeof reporterValue === 'string') {
-        reporters = [reporterValue];
-      } else {
-        reporters = [];
-      }
-
-      if (reporters.length > 0) {
-        config.coverage = {
-          reporters,
-          ...(config.coverage ?? {}),
-        };
-      }
-    }
-
-    // Watch mode
-    if (cliArgs.watch !== undefined) {
-      config.watch = {
-        enabled: cliArgs.watch as boolean,
-        ...(config.watch ?? {}),
-      };
-    }
-
-    if (cliArgs.debounce !== undefined) {
-      config.watch = {
-        debounceMs: cliArgs.debounce as number,
-        ...(config.watch ?? {}),
-      };
-    }
-
-    // Incremental configuration
-    if (cliArgs.stats !== undefined) {
-      config.incremental = {
-        showStats: cliArgs.stats as boolean,
-        ...(config.incremental ?? {}),
-      };
-    }
-
-    if (cliArgs.baseline !== undefined) {
-      config.incremental = {
-        baseline: cliArgs.baseline as BaselineOptions,
-        ...(config.incremental ?? {}),
-      };
-    }
-
-    if (cliArgs.costLimit !== undefined) {
-      config.costLimit = cliArgs.costLimit as number;
-    }
-
-    if (cliArgs.dryRun !== undefined) {
-      config.dryRun = cliArgs.dryRun as boolean;
-    }
-
-    return config;
-  }
-
-  private parseThresholds(thresholdString: string): {
-    thresholds?: { statements?: number; branches?: number; functions?: number; lines?: number };
-    error?: string;
-  } {
-    try {
-      const validTypes = ['statements', 'branches', 'functions', 'lines'];
-
-      // Parse threshold string like "80" or "statements:80,branches:70"
-      if (thresholdString.includes(':')) {
-        const thresholds: Record<string, number> = {};
-        const parts = thresholdString.split(',');
-
-        // Check for invalid format (multiple colons)
-        if (thresholdString.split(':').length - 1 > parts.length) {
-          return {
-            error: `Invalid threshold format: '${thresholdString}'. Expected format: 'type:value' or 'type1:value1,type2:value2'`,
-          };
-        }
-
-        for (const part of parts) {
-          const colonCount = (part.match(/:/g) ?? []).length;
-          if (colonCount !== 1) {
-            return {
-              error: `Invalid threshold format: '${thresholdString}'. Each part must have exactly one colon.`,
-            };
-          }
-
-          const [type, value] = part.split(':');
-          const trimmedType = type?.trim();
-
-          if (!trimmedType || !value) {
-            return {
-              error: `Invalid threshold format: '${thresholdString}'. Expected format: 'type:value'`,
-            };
-          }
-
-          if (!validTypes.includes(trimmedType)) {
-            return {
-              error: `Invalid threshold type: '${trimmedType}'. Valid types: ${validTypes.join(', ')}`,
-            };
-          }
-
-          const numValue = parseInt(value.trim());
-          if (isNaN(numValue) || numValue < 0 || numValue > 100) {
-            return {
-              error: `Invalid threshold value: '${value}'. Must be a number between 0 and 100.`,
-            };
-          }
-
-          thresholds[trimmedType] = numValue;
-        }
-
-        return { thresholds };
-      } else {
-        // Single threshold applies to all
-        const value = parseInt(thresholdString);
-        if (isNaN(value) || value < 0 || value > 100) {
-          return {
-            error: `Invalid threshold value: '${thresholdString}'. Must be a number between 0 and 100.`,
-          };
-        }
-
-        return {
-          thresholds: {
-            statements: value,
-            branches: value,
-            functions: value,
-            lines: value,
-          },
-        };
-      }
-    } catch (error) {
-      logger.warn('Failed to parse threshold string', { thresholdString, error });
-      return { error: `Failed to parse threshold: ${String(error)}` };
-    }
-  }
-
-  private mergeConfigurations(): ConfigValidationResult {
-    // Merge configurations in order (later sources override earlier ones)
-    let mergedConfig: PartialClaudeTestingConfig = {};
-    const allErrors: string[] = [];
-    const allWarnings: string[] = [];
-
-    for (const source of this.sources) {
-      if (source.loaded) {
-        logger.debug(`Merging source: ${source.type}`, { data: source.data });
-        mergedConfig = this.deepMerge(
-          mergedConfig as Record<string, unknown>,
-          source.data as Record<string, unknown>
-        ) as PartialClaudeTestingConfig;
-      }
-      allErrors.push(...source.errors);
-      allWarnings.push(...source.warnings);
-    }
-
-    logger.debug('Final merged configuration before validation', { mergedConfig });
-
-    // Validate the final merged configuration
-    const manager = new ConfigurationManager(this.options.projectPath);
-
-    // Check if we have a complete config (all required fields present)
-    const hasAllFields = [
-      'include',
-      'exclude',
-      'testFramework',
-      'aiModel',
-      'features',
-      'generation',
-      'coverage',
-      'incremental',
-      'watch',
-      'ai',
-      'output',
-    ].every((field) => field in mergedConfig);
-
-    let validationResult: ConfigValidationResult;
-    if (hasAllFields && mergedConfig.aiModel && mergedConfig.testFramework) {
-      // Use the validation-only method for complete configs
-      validationResult = manager.validateCompleteConfiguration(mergedConfig as ClaudeTestingConfig);
-    } else {
-      // Use the normal validation that merges with defaults
-      validationResult = manager.validateConfiguration(mergedConfig);
-    }
-
-    logger.debug('After validation:', { hasAllFields });
-
-    return {
-      valid: validationResult.valid && allErrors.length === 0,
-      errors: [...allErrors, ...validationResult.errors],
-      warnings: [...allWarnings, ...validationResult.warnings],
-      config: validationResult.config,
-    };
-  }
-
-  private deepMerge(
-    target: Record<string, unknown>,
-    source: Record<string, unknown>
-  ): Record<string, unknown> {
-    const result = { ...target };
-
-    for (const key in source) {
-      if (source[key] !== undefined) {
-        // Include null and false values
-        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-          // For objects, recursively merge
-          const targetValue = result[key];
-          const sourceValue = source[key];
-          const mergeTarget =
-            targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue)
-              ? (targetValue as Record<string, unknown>)
-              : {};
-          result[key] = this.deepMerge(mergeTarget, sourceValue as Record<string, unknown>);
-        } else {
-          // For primitives and arrays, override completely
-          result[key] = source[key];
-        }
-      }
+    const envVarCount = Object.keys(process.env).filter(key => key.startsWith('CLAUDE_TESTING_')).length;
+    if (envVarCount > 0) {
+      logger.debug(`Found ${envVarCount} CLAUDE_TESTING_ environment variables`);
     }
 
     return result;
   }
+
+
+
+  // Configuration object utilities moved to CliArgumentMapper
+
+  // Type-safe configuration utilities moved to CliArgumentMapper
+
+
+  // CLI argument mapping logic moved to CliArgumentMapper
+
+  // Threshold parsing logic moved to CliArgumentMapper
+
+
 
   private generateSummary(): {
     sourcesLoaded: number;

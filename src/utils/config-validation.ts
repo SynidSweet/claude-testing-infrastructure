@@ -381,7 +381,7 @@ export class ConfigurationManager {
           field: 'aiModel',
           value: userConfig.aiModel,
           message: `Invalid AI model identifier. Valid options: ${validModels.join(', ')}`,
-          suggestion,
+          ...(suggestion ? { suggestion } : {}),
           example: 'claude-3-5-sonnet-20241022',
           documentation: 'https://docs.anthropic.com/claude-testing/ai-models',
         };

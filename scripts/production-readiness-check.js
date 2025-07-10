@@ -68,6 +68,7 @@ class ProductionReadinessChecker {
       await this.checkBuildSuccess();
       await this.checkCLIResponsiveness();
       await this.checkTestSuite();
+      await this.checkCoreTestPerformance();
       await this.checkCoreCommands();
       await this.checkDocumentation();
       await this.checkAIIntegration();
@@ -173,6 +174,48 @@ class ProductionReadinessChecker {
         this.results.issues.push(`Test suite execution failed: ${error.message.substring(0, 200)}`);
         console.log('❌ Test suite check failed\n');
       }
+    }
+  }
+
+  async checkCoreTestPerformance() {
+    console.log('⚡ Checking core test performance...');
+    
+    try {
+      const startTime = Date.now();
+      const result = await execAsync('npm run test:core', { timeout: 60000 });
+      const duration = Date.now() - startTime;
+      
+      // Parse output for test results
+      const testResults = this.parseTestResults(result.stdout || '');
+      
+      this.results.coreTestPerformance = {
+        duration: duration,
+        passRate: testResults.passRate,
+        total: testResults.total,
+        passed: testResults.passed
+      };
+      
+      // Performance criteria: < 45 seconds for core tests, >95% pass rate
+      const performanceThreshold = 45000; // 45 seconds
+      const passRateThreshold = 0.95; // 95%
+      
+      if (duration < performanceThreshold && testResults.passRate >= passRateThreshold) {
+        console.log(`✅ Core test performance: ${(duration/1000).toFixed(1)}s, ${(testResults.passRate * 100).toFixed(1)}% pass rate\n`);
+      } else {
+        const issues = [];
+        if (duration >= performanceThreshold) {
+          issues.push(`slow execution (${(duration/1000).toFixed(1)}s)`);
+        }
+        if (testResults.passRate < passRateThreshold) {
+          issues.push(`low pass rate (${(testResults.passRate * 100).toFixed(1)}%)`);
+        }
+        this.results.issues.push(`Core test performance issues: ${issues.join(', ')}`);
+        console.log(`⚠️  Core test performance concerns: ${issues.join(', ')}\n`);
+      }
+    } catch (error) {
+      this.results.coreTestPerformance = { duration: 0, passRate: 0, total: 0, passed: 0 };
+      this.results.issues.push(`Core test performance check failed: ${error.message}`);
+      console.log('❌ Core test performance check failed\n');
     }
   }
 
@@ -323,6 +366,7 @@ class ProductionReadinessChecker {
     console.log(`  📦 Build Success: ${this.results.buildSuccess ? '✅' : '❌'}`);
     console.log(`  🖥️  CLI Responsive: ${this.results.cliResponsive ? '✅' : '❌'}`);
     console.log(`  🧪 Test Pass Rate: ${(this.results.testSuitePassRate * 100).toFixed(1)}% ${this.results.testSuitePassRate >= QUALITY_GATES.minTestPassRate ? '✅' : '❌'}`);
+    console.log(`  ⚡ Core Test Performance: ${this.results.coreTestPerformance && this.results.coreTestPerformance.duration < 45000 && this.results.coreTestPerformance.passRate >= 0.95 ? '✅' : '❌'}`);
     console.log(`  ⚙️  Core Commands: ${this.results.coreCommandsWorking ? '✅' : '❌'}`);
     console.log(`  📚 Documentation: ${this.results.documentationComplete ? '✅' : '❌'}`);
     console.log(`  🤖 AI Integration: ${this.results.aiIntegrationWorking ? '✅' : '⚠️  (Optional)'}`);

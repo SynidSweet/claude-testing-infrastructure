@@ -11,6 +11,7 @@ import { Command } from 'commander';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createInterface } from 'readline';
+import { executeCLICommand, handleCLIError } from '../../utils/error-handling';
 
 interface TemplateInfo {
   name: string;
@@ -128,11 +129,9 @@ export class ConfigInitializer {
 
       await this.showNextSteps(templateChoice);
     } catch (error) {
-      console.error(
-        '❌ Configuration setup failed:',
-        error instanceof Error ? error.message : String(error)
-      );
-      process.exit(1);
+      handleCLIError(error, 'configuration setup', {
+        context: { targetPath: this.targetPath, options },
+      });
     }
   }
 
@@ -387,14 +386,22 @@ export function createInitConfigCommand(): Command {
         targetPath: string,
         options: { template?: string; force?: boolean; interactive?: boolean; list?: boolean }
       ) => {
-        if (options.list) {
-          const initializer = new ConfigInitializer();
-          initializer['listTemplates']();
-          return;
-        }
+        await executeCLICommand(
+          'init-config',
+          async () => {
+            if (options.list) {
+              const initializer = new ConfigInitializer();
+              initializer['listTemplates']();
+              return;
+            }
 
-        const initializer = new ConfigInitializer(targetPath);
-        await initializer.run(options);
+            const initializer = new ConfigInitializer(targetPath);
+            await initializer.run(options);
+          },
+          {
+            context: { targetPath, options },
+          }
+        );
       }
     );
 }

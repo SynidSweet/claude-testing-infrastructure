@@ -6,6 +6,7 @@
 
 import chalk from 'chalk';
 import type { ConfigurationLoadResult } from '../config/ConfigurationService';
+import type { PartialClaudeTestingConfig, ClaudeTestingConfig } from '../types/config';
 
 /**
  * Display configuration sources and resolution details
@@ -39,13 +40,14 @@ export function displayConfigurationSources(result: ConfigurationLoadResult): vo
     // Show loaded configuration data
     if (isLoaded && source.data && Object.keys(source.data).length > 0) {
       console.log(chalk.gray('     Configuration provided:'));
-      displayConfigData(source.data as Record<string, unknown>, '       ');
+      // source.data is already typed as PartialClaudeTestingConfig which extends Record<string, unknown>
+      displayConfigData(source.data, '       ');
     }
 
     // Show errors
     if (source.errors.length > 0) {
       console.log(chalk.red('     Errors:'));
-      source.errors.forEach((error: string) => {
+      source.errors.forEach((error) => {
         console.log(chalk.red(`       • ${error}`));
       });
     }
@@ -60,19 +62,19 @@ export function displayConfigurationSources(result: ConfigurationLoadResult): vo
 
   // Show key resolved values
   console.log(chalk.cyan('\n🎯 Key Resolved Values:'));
-  displayKeyValues(result.config as unknown as Record<string, unknown>);
+  displayKeyValues(result.config);
 
   // Show all errors and warnings
   if (result.errors.length > 0) {
     console.log(chalk.red('\n❌ All Errors:'));
-    result.errors.forEach((error: string) => {
+    result.errors.forEach((error) => {
       console.log(chalk.red(`  • ${error}`));
     });
   }
 
   if (result.warnings.length > 0) {
     console.log(chalk.yellow('\n⚠️  All Warnings:'));
-    result.warnings.forEach((warning: string) => {
+    result.warnings.forEach((warning) => {
       console.log(chalk.yellow(`  • ${warning}`));
     });
   }
@@ -83,12 +85,13 @@ export function displayConfigurationSources(result: ConfigurationLoadResult): vo
 /**
  * Display configuration data with proper formatting
  */
-function displayConfigData(data: Record<string, unknown>, indent: string = ''): void {
+function displayConfigData(data: PartialClaudeTestingConfig, indent: string = ''): void {
   const keys = Object.keys(data);
   const maxKeys = 10; // Limit display to avoid overwhelming output
 
   keys.slice(0, maxKeys).forEach((key) => {
-    const value = data[key];
+    // Use type assertion for dynamic key access with proper type guard
+    const value = (data as Record<string, unknown>)[key];
     if (value === undefined || value === null) return;
 
     if (typeof value === 'object' && !Array.isArray(value)) {
@@ -110,20 +113,12 @@ function displayConfigData(data: Record<string, unknown>, indent: string = ''): 
 /**
  * Display key configuration values that developers commonly need
  */
-function displayKeyValues(config: Record<string, unknown>): void {
-  const include = Array.isArray(config.include) ? config.include.join(', ') : 'defaults';
-  const exclude = Array.isArray(config.exclude) ? config.exclude.join(', ') : 'defaults';
-  const coverage =
-    typeof config.coverage === 'object' && config.coverage !== null && 'enabled' in config.coverage
-      ? config.coverage.enabled
-        ? 'Yes'
-        : 'No'
-      : 'No';
-  const output =
-    typeof config.output === 'object' && config.output !== null && 'logLevel' in config.output
-      ? config.output.logLevel
-      : 'info';
-  const costLimit = typeof config.costLimit === 'number' ? `$${config.costLimit}` : 'None';
+function displayKeyValues(config: ClaudeTestingConfig): void {
+  const include = config.include.join(', ') || 'defaults';
+  const exclude = config.exclude.join(', ') || 'defaults';
+  const coverage = config.coverage.enabled ? 'Yes' : 'No';
+  const output = config.output.logLevel ?? 'info';
+  const costLimit = config.costLimit !== undefined ? `$${config.costLimit}` : 'None';
 
   const keyValues = [
     { label: 'Test Framework', value: config.testFramework },
@@ -167,7 +162,7 @@ export function createConfigDebugReport(result: ConfigurationLoadResult): string
     if (source.path) report.push(`    Path: ${source.path}`);
     if (source.errors.length > 0) {
       report.push(`    Errors: ${source.errors.length}`);
-      source.errors.forEach((err: string) => report.push(`      - ${err}`));
+      source.errors.forEach((err) => report.push(`      - ${err}`));
     }
     // ConfigurationSource doesn't have warnings property
     if (source.data) {

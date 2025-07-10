@@ -1,119 +1,134 @@
 import { chalk, ora, fs, path, logger } from '../../utils/common-imports';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
-import type { TestRunnerConfig } from '../../runners';
+import type { TestRunnerConfig, TestResult, TestFailure } from '../../runners';
 import { TestRunnerFactory } from '../../runners';
-import { handleValidation, formatErrorMessage } from '../../utils/error-handling';
+import { handleValidation } from '../../utils/error-handling';
 import { ConfigurationService } from '../../config/ConfigurationService';
 import { displayConfigurationSources } from '../../utils/config-display';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
+import type { ProjectAnalysis } from '../../analyzers/ProjectAnalyzer';
+import type { Command } from 'commander';
+import type { CoverageThresholds } from '../../types/config';
+import { type StandardCliOptions, executeCommand, type CommandContext } from '../utils';
 
-export interface RunOptions {
-  config?: string;
+export interface RunOptions extends StandardCliOptions {
   framework?: string;
   coverage?: boolean;
   watch?: boolean;
   reporter?: string;
   junit?: boolean;
   threshold?: string;
-  verbose?: boolean;
 }
 
 export async function runCommand(
   projectPath: string,
   options: RunOptions = {},
-  command?: any
+  command?: Command
 ): Promise<void> {
-  // Access global options from parent command
-  const globalOptions = command?.parent?.opts() || {};
-  const showConfigSources = globalOptions.showConfigSources || false;
-  let spinner = ora('Analyzing project...').start();
+  await executeCommand(
+    projectPath,
+    options,
+    command,
+    async (context: CommandContext) => {
+      const spinner = ora('Analyzing project...').start();
 
-  try {
-    logger.info(`Starting test execution for project: ${projectPath}`);
+      try {
+        logger.info(`Starting test execution for project: ${projectPath}`);
 
-    // Step 1: Validate project path
-    await handleValidation(
-      async () => {
-        const stats = await fs.stat(projectPath);
-        if (!stats.isDirectory()) {
-          throw new Error(`Path is not a directory: ${projectPath}`);
+        // Step 1: Validate project path
+        await handleValidation(
+          async () => {
+            const stats = await fs.stat(projectPath);
+            if (!stats.isDirectory()) {
+              throw new Error(`Path is not a directory: ${projectPath}`);
+            }
+          },
+          `validating project path`,
+          projectPath
+        );
+
+        // Step 2: Analyze project using loaded configuration
+        const configService = new ConfigurationService({
+          projectPath,
+        });
+        const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+        const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
+        const analysis = await analyzer.analyzeProject();
+
+        spinner.succeed('Project analysis complete');
+
+        // Step 3: Check for generated tests
+        const testPath = path.join(projectPath, '.claude-testing');
+        try {
+          await fs.stat(testPath);
+        } catch {
+          spinner.fail('No generated tests found');
+          console.log(chalk.yellow('\n⚠️  No tests found in .claude-testing directory'));
+          console.log(chalk.gray('Run the following command to generate tests first:'));
+          console.log(chalk.cyan(`  npx claude-testing test ${projectPath}`));
+          console.log();
+          return;
         }
-      },
-      `validating project path`,
-      projectPath
-    );
 
-    // Step 2: Analyze project
-    const configService = new ConfigurationService({ projectPath });
-    await configService.loadConfiguration();
-    const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
-    const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
-    const analysis = await analyzer.analyzeProject();
+        // Step 4: Load configuration
+        spinner.text = 'Loading test configuration...';
+        const config = await loadRunnerConfiguration(
+          projectPath,
+          testPath,
+          analysis,
+          options,
+          context.parentOptions.showConfigSources || false,
+          context
+        );
+        spinner.succeed('Configuration loaded');
 
-    spinner.succeed('Project analysis complete');
+        // Step 5: Create and validate test runner
+        spinner.text = 'Initializing test runner...';
+        const runner = TestRunnerFactory.createRunner(config, analysis, fileDiscovery);
+        spinner.succeed(`Test runner ready (${config.framework})`);
 
-    // Step 3: Check for generated tests
-    const testPath = path.join(projectPath, '.claude-testing');
-    try {
-      await fs.stat(testPath);
-    } catch {
-      spinner.fail('No generated tests found');
-      console.log(chalk.yellow('\n⚠️  No tests found in .claude-testing directory'));
-      console.log(chalk.gray('Run the following command to generate tests first:'));
-      console.log(chalk.cyan(`  npx claude-testing test ${projectPath}`));
-      console.log();
-      return;
+        // Step 6: Execute tests
+        spinner.text = 'Running tests...';
+
+        console.log(chalk.cyan(`\n🚀 Running tests with ${config.framework}...\n`));
+
+        const result = await runner.run();
+
+        if (result.success) {
+          spinner.succeed('Tests completed successfully');
+        } else {
+          spinner.fail('Tests failed');
+        }
+
+        // Step 7: Display results
+        displayTestResults(result, config);
+
+        // Exit with appropriate code
+        if (!result.success) {
+          process.exit(result.exitCode || 1);
+        }
+      } catch (error) {
+        spinner.fail('Test execution failed');
+        throw error;
+      }
+    },
+    {
+      commandName: 'run',
+      loadingText: 'Preparing test execution...',
+      showConfigSources: true,
+      validateConfig: true,
+      exitOnConfigError: false,
     }
-
-    // Step 4: Load configuration
-    spinner = ora('Loading test configuration...').start();
-    const config = await loadRunnerConfiguration(
-      projectPath,
-      testPath,
-      analysis,
-      options,
-      showConfigSources
-    );
-    spinner.succeed('Configuration loaded');
-
-    // Step 5: Create and validate test runner
-    spinner = ora('Initializing test runner...').start();
-    const runner = TestRunnerFactory.createRunner(config, analysis, fileDiscovery);
-    spinner.succeed(`Test runner ready (${config.framework})`);
-
-    // Step 6: Execute tests
-    spinner = ora('Running tests...').start();
-
-    console.log(chalk.cyan(`\n🚀 Running tests with ${config.framework}...\n`));
-
-    const result = await runner.run();
-
-    if (result.success) {
-      spinner.succeed('Tests completed successfully');
-    } else {
-      spinner.fail('Tests failed');
-    }
-
-    // Step 7: Display results
-    displayTestResults(result, config);
-
-    // Exit with appropriate code
-    if (!result.success) {
-      process.exit(result.exitCode || 1);
-    }
-  } catch (error) {
-    spinner.fail('Test execution failed');
-    console.error(chalk.red(`\n✗ ${formatErrorMessage(error)}`));
-    process.exit(1);
-  }
+  );
 }
 
 async function loadRunnerConfiguration(
   projectPath: string,
   testPath: string,
-  analysis: any,
+  analysis: ProjectAnalysis,
   options: RunOptions,
-  showConfigSources: boolean = false
+  showConfigSources: boolean = false,
+  context?: CommandContext
 ): Promise<TestRunnerConfig> {
   // Determine test framework
   let framework = options.framework;
@@ -160,24 +175,9 @@ async function loadRunnerConfiguration(
     }
   }
 
-  // Load configuration using ConfigurationService
-  try {
-    const configService = new ConfigurationService({
-      projectPath,
-      ...(options.config && { customConfigPath: options.config }),
-      includeEnvVars: true,
-      includeUserConfig: true,
-      cliArgs: {
-        framework: options.framework,
-        coverage: options.coverage,
-        watch: options.watch,
-        reporter: options.reporter,
-        junit: options.junit,
-        threshold: options.threshold,
-      },
-    });
-
-    const configResult = await configService.loadConfiguration();
+  // Use configuration from context if available, otherwise load it
+  if (context) {
+    const configResult = context.config.config;
 
     // Display configuration sources if requested
     if (showConfigSources) {
@@ -196,11 +196,15 @@ async function loadRunnerConfiguration(
       // Apply output configuration
       if (fullConfig.output) {
         if (fullConfig.output.formats && fullConfig.output.formats.length > 0 && config.reporter) {
-          config.reporter.console = fullConfig.output.formats[0] as any;
+          const format = fullConfig.output.formats[0];
+          // Map output formats to console reporter formats
+          if (format === 'console') {
+            config.reporter.console = 'normal';
+          }
         }
       }
 
-      logger.debug('Configuration applied via ConfigurationService', {
+      logger.debug('Configuration applied via CommandContext', {
         sourcesLoaded: configResult.summary.sourcesLoaded,
         framework: config.framework,
       });
@@ -209,16 +213,15 @@ async function loadRunnerConfiguration(
         errors: configResult.errors,
       });
     }
-  } catch (error) {
-    logger.warn('Failed to load configuration service, using defaults', { error });
+  } else {
+    // Fallback for backward compatibility
+    logger.debug('No CommandContext provided, using default configuration');
   }
 
   return config;
 }
 
-function parseThresholds(
-  thresholdString?: string
-): { statements?: number; branches?: number; functions?: number; lines?: number } | undefined {
+function parseThresholds(thresholdString?: string): CoverageThresholds['global'] | undefined {
   if (!thresholdString) {
     return undefined;
   }
@@ -226,15 +229,22 @@ function parseThresholds(
   try {
     // Parse threshold string like "80" or "statements:80,branches:70"
     if (thresholdString.includes(':')) {
-      const thresholds: any = {};
+      const thresholds: CoverageThresholds['global'] = {};
       const parts = thresholdString.split(',');
 
       for (const part of parts) {
         const [type, value] = part.split(':');
         if (type && value) {
           const numValue = parseInt(value);
-          if (!isNaN(numValue)) {
-            thresholds[type.trim()] = numValue;
+          const trimmedType = type.trim();
+          if (
+            !isNaN(numValue) &&
+            (trimmedType === 'statements' ||
+              trimmedType === 'branches' ||
+              trimmedType === 'functions' ||
+              trimmedType === 'lines')
+          ) {
+            thresholds[trimmedType] = numValue;
           }
         }
       }
@@ -259,7 +269,7 @@ function parseThresholds(
   return undefined;
 }
 
-function displayTestResults(result: any, config: TestRunnerConfig): void {
+function displayTestResults(result: TestResult, config: TestRunnerConfig): void {
   console.log();
 
   if (result.success) {
@@ -295,7 +305,7 @@ function displayTestResults(result: any, config: TestRunnerConfig): void {
     console.log();
     console.log(chalk.red('❌ Test Failures:'));
 
-    result.failures.slice(0, 5).forEach((failure: any) => {
+    result.failures.slice(0, 5).forEach((failure: TestFailure) => {
       console.log(chalk.red(`\n  • ${failure.suite} > ${failure.test}`));
       console.log(chalk.gray(`    ${failure.message}`));
     });

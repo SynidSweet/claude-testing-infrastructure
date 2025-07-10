@@ -1,8 +1,13 @@
 import { TestType } from '../TestGenerator';
+import type { JavaScriptContext, PythonContext, FrameworkDetectionResult } from '../types/contexts';
+import { TemplateRegistry } from './core/TemplateRegistry';
 
-export interface TemplateContext {
+/**
+ * Core template context interface with essential properties
+ */
+export interface BaseTemplateContext {
   moduleName: string;
-  modulePath?: string; // For Python: proper module path (e.g., 'src.utils.helpers')
+  modulePath?: string | undefined;
   imports: string[];
   exports: string[];
   hasDefaultExport: boolean;
@@ -12,15 +17,103 @@ export interface TemplateContext {
   isAsync: boolean;
   isComponent: boolean;
   dependencies: string[];
-  moduleSystem?: 'commonjs' | 'esm' | 'mixed'; // For JavaScript/TypeScript: module system to use
+  moduleSystem?: 'commonjs' | 'esm' | 'mixed' | undefined;
 }
 
+/**
+ * Enhanced template context with rich framework and language-specific metadata
+ */
+export interface EnhancedTemplateContext extends BaseTemplateContext {
+  /** Rich framework detection information */
+  frameworkInfo?: FrameworkDetectionResult | undefined;
+  /** Language-specific context data */
+  languageContext?: JavaScriptContext | PythonContext | undefined;
+  /** Additional metadata for enhanced templates */
+  metadata?: TemplateMetadata | undefined;
+}
+
+/**
+ * Template metadata for advanced template features
+ */
+export interface TemplateMetadata {
+  /** File path being tested */
+  sourceFilePath: string;
+  /** Output file path for the test */
+  outputFilePath: string;
+  /** Custom template variables */
+  variables?: Record<string, unknown>;
+  /** Framework-specific options */
+  frameworkOptions?: Record<string, unknown>;
+  /** Test generation options */
+  generationOptions?: TestGenerationOptions;
+}
+
+/**
+ * Test generation options for template customization
+ */
+export interface TestGenerationOptions {
+  /** Whether to generate setup/teardown methods */
+  includeSetup?: boolean;
+  /** Whether to generate mock utilities */
+  includeMocks?: boolean;
+  /** Whether to generate async test helpers */
+  includeAsyncHelpers?: boolean;
+  /** Maximum number of test cases to generate */
+  maxTestCases?: number;
+  /** Custom test patterns to include */
+  customPatterns?: string[];
+}
+
+/**
+ * Union type for backward compatibility
+ */
+export type TemplateContext = BaseTemplateContext | EnhancedTemplateContext;
+
+/**
+ * Type guard to check if context is enhanced
+ */
+export function isEnhancedTemplateContext(
+  context: TemplateContext
+): context is EnhancedTemplateContext {
+  return 'frameworkInfo' in context || 'languageContext' in context || 'metadata' in context;
+}
+
+/**
+ * Template interface with enhanced type safety
+ */
 export interface Template {
   name: string;
   language: 'javascript' | 'typescript' | 'python';
   framework?: string;
   testType?: TestType;
+  /** Generate test content from context */
   generate(context: TemplateContext): string;
+  /** Validate context before generation (optional) */
+  validateContext?(context: TemplateContext): ValidationResult;
+  /** Get template metadata (optional) */
+  getMetadata?(): TemplateInfo;
+}
+
+/**
+ * Template validation result
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errors?: string[] | undefined;
+  warnings?: string[] | undefined;
+}
+
+/**
+ * Template information for introspection
+ */
+export interface TemplateInfo {
+  name: string;
+  description: string;
+  language: string;
+  framework?: string | undefined;
+  testType?: TestType | undefined;
+  supportedFeatures: string[];
+  version: string;
 }
 
 /**
@@ -28,8 +121,10 @@ export interface Template {
  */
 export class TestTemplateEngine {
   private templates: Map<string, Template> = new Map();
+  private registry: TemplateRegistry;
 
   constructor() {
+    this.registry = new TemplateRegistry();
     this.registerDefaultTemplates();
   }
 
@@ -37,12 +132,16 @@ export class TestTemplateEngine {
    * Register a template
    */
   registerTemplate(template: Template): void {
+    // Register in both legacy Map and new TemplateRegistry for backward compatibility
     const key = this.getTemplateKey(template.language, template.framework, template.testType);
     this.templates.set(key, template);
+    
+    // Register in the new TemplateRegistry (ignore failures for backward compatibility)
+    this.registry.registerTemplate(template);
   }
 
   /**
-   * Generate test content using the most appropriate template
+   * Generate test content using the most appropriate template with validation
    */
   generateTest(context: TemplateContext): string {
     const template = this.findBestTemplate(context);
@@ -52,13 +151,139 @@ export class TestTemplateEngine {
       );
     }
 
+    // Validate context if template supports validation
+    if (template.validateContext) {
+      const validation = template.validateContext(context);
+      if (!validation.isValid) {
+        const errorMsg = validation.errors?.join(', ') || 'Context validation failed';
+        throw new Error(`Template validation failed: ${errorMsg}`);
+      }
+
+      // Log warnings if present
+      if (validation.warnings && validation.warnings.length > 0) {
+        console.warn(`Template warnings: ${validation.warnings.join(', ')}`);
+      }
+    }
+
     return template.generate(context);
+  }
+
+  /**
+   * Generate test with enhanced context validation and error handling
+   */
+  generateTestSafe(context: TemplateContext): {
+    success: boolean;
+    content?: string | undefined;
+    error?: string | undefined;
+    warnings?: string[] | undefined;
+  } {
+    try {
+      const template = this.findBestTemplate(context);
+      if (!template) {
+        return {
+          success: false,
+          error: `No template found for ${context.language}/${context.framework}/${context.testType}`,
+        };
+      }
+
+      // Validate context if template supports validation
+      let warnings: string[] | undefined;
+      if (template.validateContext) {
+        const validation = template.validateContext(context);
+        if (!validation.isValid) {
+          return {
+            success: false,
+            error: validation.errors?.join(', ') || 'Context validation failed',
+          };
+        }
+        warnings = validation.warnings;
+      }
+
+      const content = template.generate(context);
+      return { success: true, content, warnings: warnings || undefined };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get template information for a given context
+   */
+  getTemplateInfo(context: TemplateContext): TemplateInfo | undefined {
+    const template = this.findBestTemplate(context);
+    return template?.getMetadata?.();
+  }
+
+  /**
+   * Get access to the internal TemplateRegistry for advanced use cases
+   */
+  getRegistry(): TemplateRegistry {
+    return this.registry;
+  }
+
+  /**
+   * List all registered templates with their metadata
+   */
+  listTemplates(): TemplateInfo[] {
+    const templateInfos: TemplateInfo[] = [];
+    const registryTemplateInfos = this.registry.listTemplates();
+
+    // Convert registry template infos to legacy format
+    for (const registryInfo of registryTemplateInfos) {
+      templateInfos.push({
+        name: registryInfo.name,
+        description: registryInfo.description || `${registryInfo.language} template for ${registryInfo.framework || 'any framework'}`,
+        language: registryInfo.language,
+        framework: registryInfo.framework || undefined,
+        testType: (registryInfo.testType as TestType) || undefined,
+        supportedFeatures: ['basic-generation'],
+        version: '1.0.0',
+      });
+    }
+
+    // Add any legacy templates that might not be in the registry
+    for (const template of this.templates.values()) {
+      const existingInfo = templateInfos.find(info => 
+        info.name === template.name && 
+        info.language === template.language &&
+        info.framework === template.framework
+      );
+
+      if (!existingInfo) {
+        if (template.getMetadata) {
+          templateInfos.push(template.getMetadata());
+        } else {
+          // Fallback for templates without metadata
+          templateInfos.push({
+            name: template.name,
+            description: `${template.language} template for ${template.framework || 'any framework'}`,
+            language: template.language,
+            framework: template.framework || undefined,
+            testType: template.testType || undefined,
+            supportedFeatures: ['basic-generation'],
+            version: '1.0.0',
+          });
+        }
+      }
+    }
+
+    return templateInfos;
   }
 
   /**
    * Find the best matching template for the given context
    */
   private findBestTemplate(context: TemplateContext): Template | undefined {
+    // First try the new TemplateRegistry for improved matching
+    const registryTemplate = this.registry.findTemplate(context);
+    if (registryTemplate) {
+      return registryTemplate;
+    }
+
+    // Fallback to legacy template selection for backward compatibility
     // Try exact match first
     let key = this.getTemplateKey(context.language, context.framework, context.testType);
     let template = this.templates.get(key);
@@ -124,22 +349,178 @@ export class TestTemplateEngine {
    * Register enhanced templates with async pattern awareness and framework-specific features
    */
   private registerEnhancedTemplates(): void {
-    // Import enhanced templates dynamically to avoid circular dependencies
+    // Import enhanced templates from individual files
     try {
-      const enhancedTemplates = require('./JavaScriptEnhancedTemplates');
-
       // Enhanced JavaScript templates
-      this.registerTemplate(new enhancedTemplates.EnhancedJestJavaScriptTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedReactComponentTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedVueComponentTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedAngularComponentTemplate());
+      const { EnhancedJestJavaScriptTemplate } = require('./javascript/EnhancedJestJavaScriptTemplate');
+      const { EnhancedReactComponentTemplate } = require('./javascript/EnhancedReactComponentTemplate');
+      const { EnhancedVueComponentTemplate } = require('./javascript/EnhancedVueComponentTemplate');
+      const { EnhancedAngularComponentTemplate } = require('./javascript/EnhancedAngularComponentTemplate');
+      const { EnhancedTypeScriptTemplate } = require('./javascript/EnhancedTypeScriptTemplate');
 
-      // Enhanced TypeScript templates
-      this.registerTemplate(new enhancedTemplates.EnhancedTypeScriptTemplate());
+      this.registerTemplate(new EnhancedJestJavaScriptTemplate());
+      this.registerTemplate(new EnhancedReactComponentTemplate());
+      this.registerTemplate(new EnhancedVueComponentTemplate());
+      this.registerTemplate(new EnhancedAngularComponentTemplate());
+      this.registerTemplate(new EnhancedTypeScriptTemplate());
     } catch (error) {
       // Fallback to basic templates if enhanced templates fail to load
       console.warn('Enhanced templates failed to load, using basic templates:', error);
     }
+  }
+}
+
+/**
+ * Template context utilities for type-safe context creation and manipulation
+ */
+export class TemplateContextUtils {
+  /**
+   * Create an enhanced template context from base context and additional metadata
+   */
+  static createEnhancedContext(
+    baseContext: BaseTemplateContext,
+    frameworkInfo?: FrameworkDetectionResult | undefined,
+    languageContext?: JavaScriptContext | PythonContext | undefined,
+    metadata?: TemplateMetadata | undefined
+  ): EnhancedTemplateContext {
+    const enhanced: EnhancedTemplateContext = { ...baseContext };
+
+    if (frameworkInfo !== undefined) {
+      enhanced.frameworkInfo = frameworkInfo;
+    }
+
+    if (languageContext !== undefined) {
+      enhanced.languageContext = languageContext;
+    }
+
+    if (metadata !== undefined) {
+      enhanced.metadata = metadata;
+    }
+
+    return enhanced;
+  }
+
+  /**
+   * Convert any template context to base context for backward compatibility
+   */
+  static toBaseContext(context: TemplateContext): BaseTemplateContext {
+    const base: BaseTemplateContext = {
+      moduleName: context.moduleName,
+      imports: context.imports,
+      exports: context.exports,
+      hasDefaultExport: context.hasDefaultExport,
+      testType: context.testType,
+      framework: context.framework,
+      language: context.language,
+      isAsync: context.isAsync,
+      isComponent: context.isComponent,
+      dependencies: context.dependencies,
+    };
+
+    if (context.modulePath !== undefined) {
+      base.modulePath = context.modulePath;
+    }
+
+    if (context.moduleSystem !== undefined) {
+      base.moduleSystem = context.moduleSystem;
+    }
+
+    return base;
+  }
+
+  /**
+   * Validate base template context properties
+   */
+  static validateBaseContext(context: BaseTemplateContext): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Required field validation
+    if (!context.moduleName?.trim()) {
+      errors.push('moduleName is required and cannot be empty');
+    }
+
+    if (!Array.isArray(context.imports)) {
+      errors.push('imports must be an array');
+    }
+
+    if (!Array.isArray(context.exports)) {
+      errors.push('exports must be an array');
+    }
+
+    if (!Array.isArray(context.dependencies)) {
+      errors.push('dependencies must be an array');
+    }
+
+    if (!['javascript', 'typescript', 'python'].includes(context.language)) {
+      errors.push('language must be one of: javascript, typescript, python');
+    }
+
+    if (typeof context.hasDefaultExport !== 'boolean') {
+      errors.push('hasDefaultExport must be a boolean');
+    }
+
+    if (typeof context.isAsync !== 'boolean') {
+      errors.push('isAsync must be a boolean');
+    }
+
+    if (typeof context.isComponent !== 'boolean') {
+      errors.push('isComponent must be a boolean');
+    }
+
+    // Warning validations
+    if (context.exports.length === 0 && !context.hasDefaultExport) {
+      warnings.push('No exports detected - template may generate empty tests');
+    }
+
+    if (context.moduleSystem && !['commonjs', 'esm', 'mixed'].includes(context.moduleSystem)) {
+      warnings.push('Unknown module system - may affect import generation');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    } as ValidationResult;
+  }
+
+  /**
+   * Merge multiple template contexts with priority given to later contexts
+   */
+  static mergeContexts(first: TemplateContext, ...additional: TemplateContext[]): TemplateContext {
+    let merged: TemplateContext = first;
+
+    for (const context of additional) {
+      merged = { ...merged, ...context };
+    }
+
+    return merged;
+  }
+
+  /**
+   * Extract metadata from enhanced context safely
+   */
+  static getMetadata(context: TemplateContext): TemplateMetadata | undefined {
+    return isEnhancedTemplateContext(context) ? context.metadata : undefined;
+  }
+
+  /**
+   * Create default template metadata
+   */
+  static createDefaultMetadata(sourceFilePath: string, outputFilePath: string): TemplateMetadata {
+    return {
+      sourceFilePath,
+      outputFilePath,
+      variables: {},
+      frameworkOptions: {},
+      generationOptions: {
+        includeSetup: true,
+        includeMocks: true,
+        includeAsyncHelpers: true,
+        maxTestCases: 10,
+        customPatterns: [],
+      },
+    };
   }
 }
 
@@ -1339,3 +1720,15 @@ ${validExports
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 }
+
+// Export all template classes for use by factory classes and other modules
+export {
+  JestJavaScriptTemplate,
+  JestReactComponentTemplate,
+  JestExpressApiTemplate,
+  JestTypeScriptTemplate,
+  JestReactTypeScriptTemplate,
+  PytestTemplate,
+  PytestFastApiTemplate,
+  PytestDjangoTemplate,
+};

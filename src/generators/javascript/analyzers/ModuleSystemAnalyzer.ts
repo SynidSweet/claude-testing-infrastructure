@@ -1,6 +1,11 @@
 import { logger, fs, path } from '../../../utils/common-imports';
 import type { ModuleSystemInfo } from '../../../analyzers/ProjectAnalyzer';
 
+interface PackageJsonContent {
+  type?: 'module' | 'commonjs';
+  [key: string]: unknown;
+}
+
 export interface FileModuleSystemInfo extends ModuleSystemInfo {
   /** File-specific module type (may differ from project default) */
   fileModuleType?: 'commonjs' | 'esm' | 'mixed';
@@ -36,7 +41,7 @@ export interface ModuleAnalysisOptions {
  */
 export class ModuleSystemAnalyzer {
   private projectModuleSystem: ModuleSystemInfo | null = null;
-  private packageJsonCache: any = null;
+  private packageJsonCache: PackageJsonContent | undefined | null = null;
 
   constructor(private options: ModuleAnalysisOptions) {}
 
@@ -320,7 +325,7 @@ export class ModuleSystemAnalyzer {
   /**
    * Read and cache package.json
    */
-  private async readPackageJson(): Promise<any> {
+  private async readPackageJson(): Promise<PackageJsonContent | undefined> {
     if (this.packageJsonCache !== null) {
       return this.packageJsonCache;
     }
@@ -329,7 +334,7 @@ export class ModuleSystemAnalyzer {
       const packageJsonPath =
         this.options.packageJsonPath || path.join(this.options.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
-      this.packageJsonCache = JSON.parse(content);
+      this.packageJsonCache = JSON.parse(content) as PackageJsonContent;
       return this.packageJsonCache;
     } catch (error) {
       logger.debug('No package.json found or error reading it:', error);

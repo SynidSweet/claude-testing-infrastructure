@@ -5,8 +5,8 @@
  */
 
 // Export the base TestGenerator class and related types
-export {
-  TestGenerator,
+export { TestGenerator } from './TestGenerator';
+export type {
   TestGeneratorConfig,
   TestGeneratorOptions,
   TestGenerationResult,
@@ -18,11 +18,12 @@ export {
 } from './TestGenerator';
 
 // Export concrete implementations
-export { StructuralTestGenerator, StructuralTestGeneratorOptions } from './StructuralTestGenerator';
+export { StructuralTestGenerator } from './StructuralTestGenerator';
+export type { StructuralTestGeneratorOptions } from './StructuralTestGenerator';
 
 // Export base abstractions for language-specific generators
-export {
-  BaseTestGenerator,
+export { BaseTestGenerator } from './base/BaseTestGenerator';
+export type {
   LanguageContext,
   LanguageFeatures,
   ImportStyle,
@@ -39,7 +40,8 @@ export { TestGeneratorFactory } from './TestGeneratorFactory';
 export * from './types/contexts';
 
 // Export template engine
-export { TestTemplateEngine, Template, TemplateContext } from './templates/TestTemplateEngine';
+export { TestTemplateEngine } from './templates/TestTemplateEngine';
+export type { Template, TemplateContext } from './templates/TestTemplateEngine';
 
 // Legacy interfaces (deprecated - use TestGenerator instead)
 export interface Generator {

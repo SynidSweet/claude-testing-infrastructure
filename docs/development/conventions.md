@@ -1,6 +1,6 @@
 # Development Patterns & Conventions
 
-*Last updated: 2025-07-07 | Updated by: /document command | TypeScript type safety improvements and nullish coalescing patterns added*
+*Last updated: 2025-07-09 | Updated by: /document command | CLI standardization patterns and configuration loading conventions added*
 
 ## Naming Conventions
 
@@ -504,6 +504,131 @@ interface AITestGenerator {
   ): Promise<GeneratedTest[]>;
 }
 ```
+
+## CLI Standardization Patterns (Updated 2025-07-09)
+
+### Standardized CLI Utilities
+All CLI commands should use the standardized utilities from `src/cli/utils/` for consistent behavior:
+
+#### Configuration Loading
+```typescript
+import { loadStandardConfiguration, type StandardCliOptions } from '../utils';
+
+// Standard CLI options interface
+export interface MyCommandOptions extends StandardCliOptions {
+  // Command-specific options
+  output?: string;
+  format?: 'json' | 'markdown';
+}
+
+// Standardized configuration loading
+const configResult = await loadStandardConfiguration(projectPath, {
+  customConfigPath: options.config,
+  cliArgs: options,
+  validateConfig: true,
+  exitOnValidationError: true,
+  logValidationWarnings: true,
+});
+```
+
+#### Command Execution Patterns
+```typescript
+import { analysisCommand, generationCommand, simpleCommand } from '../utils';
+
+// For analysis commands
+export async function analyzeCommand(
+  projectPath: string,
+  options: AnalyzeOptions,
+  command?: Command
+): Promise<void> {
+  return analysisCommand(
+    projectPath,
+    options,
+    command,
+    async (context) => {
+      // Command implementation
+    },
+    'project analysis'
+  );
+}
+
+// For generation commands
+export async function generateCommand(
+  projectPath: string,
+  options: GenerateOptions,
+  command?: Command
+): Promise<void> {
+  return generationCommand(
+    projectPath,
+    options,
+    command,
+    async (context) => {
+      // Command implementation
+    },
+    'test generation'
+  );
+}
+```
+
+#### Error Handling
+```typescript
+import { handleConfigurationError, handleFileOperationError } from '../utils';
+
+// Configuration errors
+try {
+  const config = await loadConfig();
+} catch (error) {
+  handleConfigurationError(error, {
+    projectPath,
+    configPath: options.config,
+    suggestions: ['Check .claude-testing.config.json syntax']
+  });
+}
+
+// File operation errors
+try {
+  await fs.writeFile(path, content);
+} catch (error) {
+  handleFileOperationError(error, {
+    projectPath,
+    filePath: path,
+    operation: 'write test file'
+  });
+}
+```
+
+#### Parent Command Options
+```typescript
+import { getParentOptions } from '../utils';
+
+// Type-safe parent option access
+export async function myCommand(
+  projectPath: string,
+  options: MyOptions,
+  command?: Command
+): Promise<void> {
+  const parentOptions = getParentOptions(command);
+  const showConfigSources = parentOptions.showConfigSources || false;
+  
+  if (showConfigSources) {
+    // Display configuration sources
+  }
+}
+```
+
+### CLI Development Guidelines
+1. **Extend StandardCliOptions** for all command option interfaces
+2. **Use standardized utilities** for configuration loading and error handling
+3. **Apply consistent patterns** for parent command option access
+4. **Implement proper validation** with user-friendly error messages
+5. **Follow command execution patterns** (analysis, generation, simple) based on command type
+
+### Benefits of Standardization
+- **Consistent behavior** across all CLI commands
+- **Reduced code duplication** in configuration loading and error handling
+- **Better error messages** with suggestions and context
+- **Type safety** for parent command options
+- **Easier maintenance** and development of new commands
 
 ## See Also
 - 📖 **Development Workflow**: [`./workflow.md`](./workflow.md)

@@ -2,7 +2,7 @@
 
 *Comprehensive guide for testing timer-based and async operations in the Claude Testing Infrastructure*
 
-*Created: 2025-07-07 | TASK-TIMER-002 | Standardizes discovered timer synchronization patterns*
+*Last updated: 2025-07-08 | Added ClaudeOrchestrator proven configuration patterns*
 
 ## 🎯 Purpose
 
@@ -165,6 +165,67 @@ mockProcess.emit('close', 0);
 
 // Allow events to propagate
 await Promise.resolve();
+```
+
+### ClaudeOrchestrator Proven Configuration Pattern ⭐
+```typescript
+// PROVEN WORKING PATTERN - Use this exact configuration
+describe('ClaudeOrchestrator Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // CRITICAL: Use fake timers (NOT real timers)
+    jest.useFakeTimers();
+    
+    // Mock child_process.spawn and execSync
+    jest.spyOn(child_process, 'spawn').mockReturnValue(mockProcess);
+    jest.spyOn(child_process, 'execSync').mockImplementation((cmd: string) => {
+      if (cmd.includes('--version')) return 'claude version 1.0.0';
+      if (cmd.includes('config get')) return 'authenticated';
+      return '';
+    });
+    
+    // CRITICAL: Use RealTimer with fake timers (proven combination)
+    orchestrator = new ClaudeOrchestrator({
+      timeout: 300000, // Long timeout for testing
+      maxConcurrent: 1,
+      timerService: new RealTimer(), // RealTimer works with Jest fake timers
+      verbose: true, // Enable logging for debugging
+    });
+  });
+
+  afterEach(() => {
+    TimerTestUtils.cleanupTimers();
+  });
+
+  test('should handle async spawn correctly', async () => {
+    const processPromise = orchestrator.processBatch(batch);
+    
+    // CRITICAL: Use Promise.resolve() for async coordination
+    await Promise.resolve();
+    await Promise.resolve();
+    
+    // Verify spawn was called
+    expect(spawnSpy).toHaveBeenCalled();
+    
+    // Simulate process events and advance timers
+    mockProcess.stderr.emit('data', Buffer.from('Error: Authentication failed\n'));
+    
+    // CRITICAL: Use jest.advanceTimersByTime() with fake timers
+    jest.advanceTimersByTime(100);
+    await Promise.resolve();
+    
+    expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+    
+    // Complete the process
+    mockProcess.emit('close', 1);
+    jest.advanceTimersByTime(100);
+    await Promise.resolve();
+    
+    const results = await processPromise;
+    expect(results[0]?.success).toBe(false);
+  });
+});
 ```
 
 ### Mixed Timer/Promise Patterns

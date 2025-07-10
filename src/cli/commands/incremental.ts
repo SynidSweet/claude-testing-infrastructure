@@ -5,7 +5,20 @@
 import { Command } from 'commander';
 import { IncrementalGenerator, ChangeDetector, HistoryManager } from '../../state';
 import { logger } from '../../utils/common-imports';
-import { loadCommandConfig } from '../../config/ConfigurationService';
+import type { IncrementalUpdate, IncrementalOptions } from '../../state/IncrementalGenerator';
+import { type StandardCliOptions, executeCommand, type CommandContext } from '../utils';
+
+export interface IncrementalCommandOptions extends StandardCliOptions {
+  force?: boolean;
+  skipAi?: boolean;
+  dryRun?: boolean;
+  maxConcurrency?: string;
+  costLimit?: string;
+  baseline?: boolean;
+  compareBaseline?: string;
+  stats?: boolean;
+  cleanup?: string;
+}
 
 export function createIncrementalCommand(): Command {
   const command = new Command('incremental');
@@ -22,29 +35,33 @@ export function createIncrementalCommand(): Command {
     .option('--compare-baseline <id>', 'Compare with specific baseline')
     .option('--stats', 'Show incremental generation statistics')
     .option('--cleanup <days>', 'Clean up history older than specified days')
-    .action(async (projectPath: string, options) => {
-      try {
-        await handleIncrementalCommand(projectPath, options);
-      } catch (error) {
-        logger.error('Incremental generation failed', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        process.exit(1);
-      }
+    .action(async (projectPath: string, options: IncrementalCommandOptions, cmd: Command) => {
+      await executeCommand(
+        projectPath,
+        options,
+        cmd,
+        async (context: CommandContext) => handleIncrementalCommand(projectPath, options, context),
+        {
+          commandName: 'incremental',
+          loadingText: 'Initializing incremental test generation...',
+          showConfigSources: true,
+          validateConfig: true,
+          exitOnConfigError: false,
+        }
+      );
     });
 
   return command;
 }
 
-async function handleIncrementalCommand(projectPath: string, options: any): Promise<void> {
-  // Load configuration using ConfigurationService
-  const configResult = await loadCommandConfig(projectPath, {
-    cliArgs: {
-      verbose: options.verbose,
-      dryRun: options.dryRun,
-      force: options.force,
-    },
-  });
+async function handleIncrementalCommand(
+  projectPath: string,
+  options: IncrementalCommandOptions,
+  context: CommandContext
+): Promise<void> {
+  // Use configuration from context
+  const configResult = context.config.config;
+  const config = configResult.config;
 
   if (!configResult.valid) {
     logger.warn('Configuration validation warnings', {
@@ -52,11 +69,9 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
     });
   }
 
-  const config = configResult.config;
-
   // Apply configuration to logger
   if (config.output?.logLevel) {
-    logger.level = config.output.logLevel as any;
+    logger.level = config.output.logLevel;
   }
 
   const incrementalGenerator = new IncrementalGenerator(projectPath);
@@ -77,15 +92,16 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
   console.log('🔄 Starting incremental test generation...');
 
   // Use configuration values as defaults
-  const result = await incrementalGenerator.generateIncremental({
-    forceRegenerate: options.force,
-    skipAI: options.skipAi || !config.features?.aiGeneration,
-    dryRun: options.dryRun,
+  const incrementalOptions: IncrementalOptions = {
+    forceRegenerate: options.force ?? false,
+    skipAI: options.skipAi ?? !config.features?.aiGeneration ?? false,
+    dryRun: options.dryRun ?? false,
     maxConcurrency: parseInt(options.maxConcurrency || '3', 10),
     costLimit: parseFloat(
       options.costLimit || (config.incremental?.costLimit || config.ai?.maxCost || '5.0').toString()
     ),
-  });
+  };
+  const result = await incrementalGenerator.generateIncremental(incrementalOptions);
 
   // Display and record results
   displayIncrementalResults(result);
@@ -95,7 +111,7 @@ async function handleIncrementalCommand(projectPath: string, options: any): Prom
 }
 
 async function handleSpecialOperations(
-  options: any,
+  options: IncrementalCommandOptions,
   incrementalGenerator: IncrementalGenerator,
   historyManager: HistoryManager
 ): Promise<boolean> {
@@ -122,7 +138,7 @@ async function handleSpecialOperations(
 async function validateIncrementalGeneration(
   incrementalGenerator: IncrementalGenerator,
   changeDetector: ChangeDetector,
-  options: any
+  options: IncrementalCommandOptions
 ): Promise<boolean> {
   const shouldUseIncremental = await incrementalGenerator.shouldUseIncremental();
   if (!shouldUseIncremental && !options.force) {
@@ -140,7 +156,7 @@ async function validateIncrementalGeneration(
   return true;
 }
 
-function displayIncrementalResults(result: any): void {
+function displayIncrementalResults(result: IncrementalUpdate): void {
   console.log('\n📊 Incremental Generation Results:');
   console.log(`   Changed files: ${result.changedFiles.length}`);
   console.log(`   New tests: ${result.newTests.length}`);
@@ -152,14 +168,14 @@ function displayIncrementalResults(result: any): void {
 
   if (result.skippedFiles.length > 0) {
     console.log('\n⚠️  Skipped files:');
-    result.skippedFiles.forEach((file: string) => console.log(`   - ${file}`));
+    result.skippedFiles.forEach((file) => console.log(`   - ${file}`));
   }
 }
 
 async function recordResults(
   historyManager: HistoryManager,
-  result: any,
-  options: any
+  result: IncrementalUpdate,
+  options: IncrementalCommandOptions
 ): Promise<void> {
   if (!options.dryRun) {
     await historyManager.recordEntry({

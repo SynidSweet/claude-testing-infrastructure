@@ -10,6 +10,28 @@ import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
 import { CoverageReporterFactory, type CoverageReporter } from './CoverageReporter';
 import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
+import type { CoverageThresholds } from './CoverageParser';
+
+/**
+ * Jest coverage data structure
+ */
+interface JestCoverageData {
+  [filePath: string]: {
+    path?: string;
+    s: Record<string, number>;
+    b: Record<string, number[]>;
+    f: Record<string, number>;
+    statementMap: Record<
+      string,
+      { start: { line: number; column: number }; end: { line: number; column: number } }
+    >;
+    branchMap: Record<
+      string,
+      { loc?: { start?: { line: number; column: number } }; type?: string }
+    >;
+    fnMap: Record<string, { name?: string; decl?: { start: { line: number } } }>;
+  };
+}
 
 /**
  * Jest JSON result structure
@@ -22,7 +44,7 @@ interface JestJsonResult {
   numPendingTests?: number;
   startTime?: number;
   endTime?: number;
-  coverageMap?: unknown;
+  coverageMap?: JestCoverageData;
   testResults?: Array<{
     message?: string;
     name?: string;
@@ -32,7 +54,6 @@ interface JestJsonResult {
       failureMessages?: string[];
     }>;
   }>;
-  [key: string]: unknown;
 }
 
 /**
@@ -45,10 +66,20 @@ interface JestConfig {
   setupFilesAfterEnv?: string[];
   preset?: string;
   extensionsToTreatAsEsm?: string[];
-  moduleNameMapping?: Record<string, string>;
+  moduleNameMapper?: Record<string, string>;
   transform?: Record<string, string>;
   transformIgnorePatterns?: string[];
-  [key: string]: unknown;
+  collectCoverage?: boolean;
+  coverageDirectory?: string;
+  coverageReporters?: string[];
+  coverageThreshold?: {
+    global?: {
+      statements?: number;
+      branches?: number;
+      functions?: number;
+      lines?: number;
+    };
+  };
 }
 
 /**
@@ -61,7 +92,6 @@ interface JestCoverageMap {
     functions?: { pct?: number };
     lines?: { pct?: number };
   };
-  [key: string]: unknown;
 }
 
 /**
@@ -74,14 +104,6 @@ interface CoverageReportData {
       uncoveredLines?: number[];
     }
   >;
-  [key: string]: unknown;
-}
-
-/**
- * Type guard to check if unknown data is a JestJsonResult
- */
-function isJestJsonResult(data: unknown): data is JestJsonResult {
-  return typeof data === 'object' && data !== null;
 }
 
 /**
@@ -106,8 +128,12 @@ export class JestRunner extends TestRunner {
 
     // Initialize coverage reporter if coverage is enabled
     if (config.coverage?.enabled) {
-      const reporterConfig: Record<string, unknown> = {
-        outputDir: config.coverage.outputDir,
+      const reporterConfig: {
+        outputDir?: string;
+        failOnThreshold: boolean;
+        thresholds?: CoverageThresholds;
+      } = {
+        ...(config.coverage.outputDir ? { outputDir: config.coverage.outputDir } : {}),
         failOnThreshold: false, // Don't fail here, let the runner handle it
       };
 
@@ -284,7 +310,7 @@ export class JestRunner extends TestRunner {
         if (!line) continue;
 
         try {
-          const parsed: unknown = JSON.parse(line);
+          const parsed = JSON.parse(line) as JestJsonResult;
           if (this.isJestJsonResult(parsed)) {
             jsonOutput = line;
             break;
@@ -295,7 +321,7 @@ export class JestRunner extends TestRunner {
       }
 
       if (jsonOutput) {
-        const jestResult: unknown = JSON.parse(jsonOutput);
+        const jestResult = JSON.parse(jsonOutput) as JestJsonResult;
         return await this.parseJestJson(jestResult, stdout, stderr, exitCode);
       }
     } catch (error) {
@@ -307,16 +333,11 @@ export class JestRunner extends TestRunner {
   }
 
   private async parseJestJson(
-    jestResult: unknown,
+    jestResult: JestJsonResult,
     stdout: string,
     stderr: string,
     exitCode: number
   ): Promise<TestResult> {
-    if (!isJestJsonResult(jestResult)) {
-      logger.warn('Invalid Jest result format, falling back to text parsing');
-      return this.parseTextOutput(stdout, stderr, exitCode);
-    }
-
     const failures: TestFailure[] = [];
 
     // Extract test failures
@@ -358,7 +379,7 @@ export class JestRunner extends TestRunner {
           lines: coverageReport.data.summary.lines,
           meetsThreshold: coverageReport.meetsThreshold,
           uncoveredLines: this.extractUncoveredLinesFromReport(
-            coverageReport.data as unknown as CoverageReportData
+            coverageReport.data as CoverageReportData
           ),
         };
 

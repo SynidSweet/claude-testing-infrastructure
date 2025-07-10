@@ -16,15 +16,18 @@ import { execSync } from 'child_process';
 import { ProjectAnalyzer, type ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 // import { TestGenerator } from '../generators/TestGenerator'; // Not currently used
 import { TestRunnerFactory, type TestRunnerConfig } from '../runners/TestRunnerFactory';
+import { type TestResult, type CoverageResult } from '../runners/TestRunner';
 import { TestGapAnalyzer, type TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
 // import { CoverageReporter } from '../runners/CoverageReporter'; // Not currently used
 import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../ai';
 import { logger } from '../utils/logger';
 import type { GapAnalysisResult } from '../types/generation-types';
+import { AIWorkflowError } from '../types/ai-error-types';
+import { formatErrorMessage } from '../utils/error-handling';
 
 export interface TestRunResults {
-  results: unknown;
-  coverage?: unknown;
+  results: TestResult;
+  coverage?: CoverageResult | undefined;
 }
 
 export interface WorkflowConfig {
@@ -66,16 +69,26 @@ export interface WorkflowResult {
     structural: number;
     logical: number;
   };
-  testResults?: unknown;
-  coverage?: unknown;
+  testResults?: TestResult;
+  coverage?: CoverageResult;
   gaps?: GapAnalysisResult;
   aiResults?: AIGenerationResults;
   totalCost?: number;
   duration: number;
   reports: {
     summary: string;
-    detailed: unknown;
+    detailed: WorkflowDetailedReport;
   };
+}
+
+export interface WorkflowDetailedReport {
+  timestamp: string;
+  projectPath: string;
+  config: WorkflowConfig;
+  error?: AIWorkflowError | undefined;
+  stack?: string | undefined;
+  context?: Record<string, unknown> | undefined;
+  [key: string]: unknown;
 }
 
 export class AIEnhancedTestingWorkflow extends EventEmitter {
@@ -131,7 +144,9 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
         this.emit('phase:start', { phase: 'test-execution' });
         const testResults = await this.runTests(projectPath);
         result.testResults = testResults.results;
-        result.coverage = testResults.coverage;
+        if (testResults.coverage) {
+          result.coverage = testResults.coverage;
+        }
         this.emit('phase:complete', { phase: 'test-execution', results: testResults });
       }
 
@@ -158,7 +173,9 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
         this.emit('phase:start', { phase: 'final-execution' });
         const finalResults = await this.runTests(projectPath);
         result.testResults = finalResults.results;
-        result.coverage = finalResults.coverage;
+        if (finalResults.coverage) {
+          result.coverage = finalResults.coverage;
+        }
         this.emit('phase:complete', { phase: 'final-execution', results: finalResults });
       }
 
@@ -170,11 +187,27 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       this.emit('workflow:complete', { result });
       return result as WorkflowResult;
     } catch (error) {
-      this.emit('workflow:error', { error });
+      const workflowError =
+        error instanceof AIWorkflowError
+          ? error
+          : new AIWorkflowError(
+              formatErrorMessage(error),
+              'execution',
+              error instanceof Error ? error : undefined
+            );
+
+      this.emit('workflow:error', { error: workflowError });
       result.duration = (Date.now() - this.startTime) / 1000;
       result.reports = {
-        summary: `Workflow failed: ${String(error)}`,
-        detailed: { error: error instanceof Error ? error.stack : error },
+        summary: `Workflow failed: ${workflowError.message}`,
+        detailed: {
+          timestamp: new Date().toISOString(),
+          projectPath,
+          config: this.config,
+          error: workflowError,
+          stack: workflowError.stack,
+          context: workflowError.context,
+        },
       };
       return result as WorkflowResult;
     }
@@ -259,8 +292,8 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     const results = await runner.run();
 
     return {
-      results: results as unknown,
-      coverage: (results as { coverage?: unknown }).coverage,
+      results: results,
+      coverage: results.coverage,
     };
   }
 
@@ -326,8 +359,15 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     // Check if Claude is available
     try {
       execSync('which claude', { stdio: 'ignore' });
-    } catch {
-      logger.warn('Claude CLI not found - skipping AI generation');
+    } catch (error) {
+      const workflowError = new AIWorkflowError(
+        'Claude CLI not found - skipping AI generation',
+        'ai-generation',
+        error instanceof Error ? error : undefined,
+        { reason: 'claude-cli-unavailable' }
+      );
+      logger.warn(workflowError.message);
+      this.emit('ai:skipped', { reason: workflowError });
       return { successful: 0, failed: 0, totalCost: 0 };
     }
 
@@ -384,9 +424,9 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   private async generateReports(
     projectPath: string,
     result: Partial<WorkflowResult>
-  ): Promise<{ summary: string; detailed: unknown }> {
+  ): Promise<{ summary: string; detailed: WorkflowDetailedReport }> {
     const summary = this.generateSummaryReport(result);
-    const detailed = {
+    const detailed: WorkflowDetailedReport = {
       timestamp: new Date().toISOString(),
       projectPath,
       config: this.config,

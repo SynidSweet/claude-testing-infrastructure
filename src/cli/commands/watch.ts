@@ -16,14 +16,13 @@ import type { DebouncedEvent } from '../../utils/Debouncer';
 import { FileChangeDebouncer } from '../../utils/Debouncer';
 import { IncrementalGenerator } from '../../state/IncrementalGenerator';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
-import { loadCommandConfig, ConfigurationService } from '../../config/ConfigurationService';
+import { ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
+import { type StandardCliOptions, executeCommand, type CommandContext } from '../utils';
 
-interface WatchOptions {
+interface WatchOptions extends StandardCliOptions {
   /** Debounce delay for file changes in milliseconds */
   debounce?: string;
-  /** Enable verbose logging */
-  verbose?: boolean;
   /** Disable automatic test generation */
   noGenerate?: boolean;
   /** Enable automatic test execution */
@@ -56,170 +55,184 @@ export const watchCommand = new Command('watch')
   .option('--include <patterns...>', 'Additional file patterns to watch')
   .option('--exclude <patterns...>', 'File patterns to exclude from watching')
   .option('--stats-interval <seconds>', 'Show statistics every N seconds', '30')
-  .action(async (projectPath: string, options: WatchOptions) => {
-    const spinner = ora('Initializing watch mode...').start();
-    let fileWatcher: FileWatcher | null = null;
-    let debouncer: FileChangeDebouncer | null = null;
-    let incrementalGenerator: IncrementalGenerator | null = null;
+  .action(async (projectPath: string, options: WatchOptions, command: Command) => {
+    await executeCommand(
+      projectPath,
+      options,
+      command,
+      async (context: CommandContext) => watchModeHandler(projectPath, options, context),
+      {
+        commandName: 'watch',
+        loadingText: 'Initializing watch mode...',
+        showConfigSources: true,
+        validateConfig: true,
+        exitOnConfigError: false,
+      }
+    );
+  });
 
-    const stats: WatchStats = {
-      startTime: new Date(),
-      totalChangeEvents: 0,
-      totalBatches: 0,
-      totalGenerations: 0,
-      successfulGenerations: 0,
-      failedGenerations: 0,
-      lastActivity: new Date(),
-      filesWatched: 0,
-    };
+async function watchModeHandler(
+  projectPath: string,
+  options: WatchOptions,
+  context: CommandContext
+): Promise<void> {
+  const spinner = ora('Initializing watch mode...').start();
+  let fileWatcher: FileWatcher | null = null;
+  let debouncer: FileChangeDebouncer | null = null;
+  let incrementalGenerator: IncrementalGenerator | null = null;
+
+  const stats: WatchStats = {
+    startTime: new Date(),
+    totalChangeEvents: 0,
+    totalBatches: 0,
+    totalGenerations: 0,
+    successfulGenerations: 0,
+    failedGenerations: 0,
+    lastActivity: new Date(),
+    filesWatched: 0,
+  };
+
+  try {
+    // Validate project path
+    const resolvedPath = path.resolve(projectPath);
 
     try {
-      // Validate project path
-      const resolvedPath = path.resolve(projectPath);
-
-      try {
-        const projectStats = await fs.stat(resolvedPath);
-        if (!projectStats.isDirectory()) {
-          throw new Error(`Not a directory: ${resolvedPath}`);
-        }
-      } catch (error) {
-        throw new Error(`Project path does not exist: ${resolvedPath}`);
+      const projectStats = await fs.stat(resolvedPath);
+      if (!projectStats.isDirectory()) {
+        throw new Error(`Not a directory: ${resolvedPath}`);
       }
-
-      // Load configuration using ConfigurationService
-      spinner.text = 'Loading configuration...';
-      const configResult = await loadCommandConfig(resolvedPath, {
-        cliArgs: {
-          verbose: options.verbose,
-          watch: true,
-        },
-      });
-
-      if (!configResult.valid) {
-        logger.warn('Configuration validation warnings', {
-          warnings: configResult.warnings,
-        });
-      }
-
-      const config = configResult.config;
-
-      // Apply configuration to options
-      if (config.output?.logLevel && options.verbose) {
-        logger.level = 'debug';
-      } else if (config.output?.logLevel) {
-        logger.level = config.output.logLevel as any;
-      }
-
-      // Initialize project analysis (for future enhancements)
-      spinner.text = 'Analyzing project structure...';
-      const configService = new ConfigurationService({ projectPath: resolvedPath });
-      await configService.loadConfiguration();
-      const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
-      const projectAnalyzer = new ProjectAnalyzer(resolvedPath, fileDiscovery);
-      await projectAnalyzer.analyzeProject();
-
-      // Initialize incremental generator if test generation is enabled
-      if (!options.noGenerate) {
-        spinner.text = 'Setting up incremental test generation...';
-        incrementalGenerator = new IncrementalGenerator(resolvedPath);
-      }
-
-      // Set up file watcher
-      spinner.text = 'Setting up file watcher...';
-      const watcherConfig: any = {
-        projectPath: resolvedPath,
-        verbose: options.verbose || false,
-      };
-
-      // Use configuration for include/exclude patterns
-      if (options.include) {
-        watcherConfig.includePatterns = options.include;
-      } else if (config.include) {
-        watcherConfig.includePatterns = config.include;
-      }
-
-      if (options.exclude) {
-        watcherConfig.ignorePatterns = options.exclude;
-      } else if (config.exclude) {
-        watcherConfig.ignorePatterns = config.exclude;
-      }
-
-      fileWatcher = new FileWatcher(watcherConfig);
-
-      // Set up debouncer for file changes
-      const debounceDelay = parseInt(options.debounce || '500');
-      // Check if watch configuration has a debounce setting
-      const configDebounce = config.watch?.debounceMs || debounceDelay;
-
-      debouncer = new FileChangeDebouncer({
-        delay: options.debounce ? debounceDelay : configDebounce,
-        maxBatchSize: 10,
-        maxWaitTime: 3000,
-        groupBy: 'extension', // Group by file type for better batching
-        verbose: options.verbose || false,
-      });
-
-      // Set up event handlers
-      setupEventHandlers(fileWatcher, debouncer, incrementalGenerator, stats, options);
-
-      // Start watching
-      spinner.text = 'Starting file watcher...';
-      await fileWatcher.startWatching();
-
-      stats.filesWatched = fileWatcher.getWatchedFiles().length;
-
-      spinner.succeed(chalk.green('Watch mode started successfully!'));
-
-      // Display initial status
-      displayStatus(resolvedPath, stats, options);
-
-      // Set up periodic statistics if requested
-      const statsIntervalSeconds = parseInt(options.statsInterval || '30');
-      let statsTimer: NodeJS.Timeout | null = null;
-
-      if (statsIntervalSeconds > 0) {
-        statsTimer = setInterval(() => {
-          displayStats(stats);
-        }, statsIntervalSeconds * 1000);
-      }
-
-      // Set up graceful shutdown
-      const cleanup = async () => {
-        console.log('\n' + chalk.yellow('Shutting down watch mode...'));
-
-        if (statsTimer) {
-          clearInterval(statsTimer);
-        }
-
-        if (debouncer) {
-          debouncer.cancel();
-        }
-
-        if (fileWatcher) {
-          await fileWatcher.stopWatching();
-        }
-
-        displayFinalStats(stats);
-        process.exit(0);
-      };
-
-      process.on('SIGINT', cleanup);
-      process.on('SIGTERM', cleanup);
-
-      // Keep process alive
-      process.stdin.resume();
     } catch (error) {
-      spinner.fail('Failed to start watch mode');
-      logger.error('Watch mode initialization error:', error);
+      throw new Error(`Project path does not exist: ${resolvedPath}`);
+    }
 
-      // Cleanup on error
-      if (fileWatcher) {
-        await fileWatcher.stopWatching().catch(() => {});
+    // Use configuration from context
+    const configResult = context.config.config;
+    const config = configResult.config;
+
+    if (!configResult.valid) {
+      logger.warn('Configuration validation warnings', {
+        warnings: configResult.warnings,
+      });
+    }
+
+    // Apply configuration to options
+    if (config.output?.logLevel && options.verbose) {
+      logger.level = 'debug';
+    } else if (config.output?.logLevel) {
+      logger.level = config.output.logLevel as any;
+    }
+
+    // Initialize project analysis (for future enhancements)
+    spinner.text = 'Analyzing project structure...';
+    const configService = new ConfigurationService({
+      projectPath: resolvedPath,
+    });
+    const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+    const projectAnalyzer = new ProjectAnalyzer(resolvedPath, fileDiscovery);
+    await projectAnalyzer.analyzeProject();
+
+    // Initialize incremental generator if test generation is enabled
+    if (!options.noGenerate) {
+      spinner.text = 'Setting up incremental test generation...';
+      incrementalGenerator = new IncrementalGenerator(resolvedPath);
+    }
+
+    // Set up file watcher
+    spinner.text = 'Setting up file watcher...';
+    const watcherConfig: any = {
+      projectPath: resolvedPath,
+      verbose: options.verbose || false,
+    };
+
+    // Use configuration for include/exclude patterns
+    if (options.include) {
+      watcherConfig.includePatterns = options.include;
+    } else if (config.include) {
+      watcherConfig.includePatterns = config.include;
+    }
+
+    if (options.exclude) {
+      watcherConfig.ignorePatterns = options.exclude;
+    } else if (config.exclude) {
+      watcherConfig.ignorePatterns = config.exclude;
+    }
+
+    fileWatcher = new FileWatcher(watcherConfig);
+
+    // Set up debouncer for file changes
+    const debounceDelay = parseInt(options.debounce || '500');
+    // Check if watch configuration has a debounce setting
+    const configDebounce = config.watch?.debounceMs || debounceDelay;
+
+    debouncer = new FileChangeDebouncer({
+      delay: options.debounce ? debounceDelay : configDebounce,
+      maxBatchSize: 10,
+      maxWaitTime: 3000,
+      groupBy: 'extension', // Group by file type for better batching
+      verbose: options.verbose || false,
+    });
+
+    // Set up event handlers
+    setupEventHandlers(fileWatcher, debouncer, incrementalGenerator, stats, options);
+
+    // Start watching
+    spinner.text = 'Starting file watcher...';
+    await fileWatcher.startWatching();
+
+    stats.filesWatched = fileWatcher.getWatchedFiles().length;
+
+    spinner.succeed(chalk.green('Watch mode started successfully!'));
+
+    // Display initial status
+    displayStatus(resolvedPath, stats, options);
+
+    // Set up periodic statistics if requested
+    const statsIntervalSeconds = parseInt(options.statsInterval || '30');
+    let statsTimer: NodeJS.Timeout | null = null;
+
+    if (statsIntervalSeconds > 0) {
+      statsTimer = setInterval(() => {
+        displayStats(stats);
+      }, statsIntervalSeconds * 1000);
+    }
+
+    // Set up graceful shutdown
+    const cleanup = async () => {
+      console.log('\n' + chalk.yellow('Shutting down watch mode...'));
+
+      if (statsTimer) {
+        clearInterval(statsTimer);
       }
 
-      process.exit(1);
+      if (debouncer) {
+        debouncer.cancel();
+      }
+
+      if (fileWatcher) {
+        await fileWatcher.stopWatching();
+      }
+
+      displayFinalStats(stats);
+      process.exit(0);
+    };
+
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+
+    // Keep process alive
+    process.stdin.resume();
+  } catch (error) {
+    spinner.fail('Failed to start watch mode');
+    logger.error('Watch mode initialization error:', error);
+
+    // Cleanup on error
+    if (fileWatcher) {
+      await fileWatcher.stopWatching().catch(() => {});
     }
-  });
+
+    throw error; // Re-throw to be handled by executeCLICommand wrapper
+  }
+}
 
 /**
  * Set up all event handlers for watch mode

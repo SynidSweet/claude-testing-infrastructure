@@ -35,6 +35,11 @@ export interface FileDiscoveryService {
    * Get cache performance statistics
    */
   getCacheStats(): CacheStats;
+
+  /**
+   * Analyze project structure for smart pattern detection
+   */
+  analyzeProjectStructure?(projectPath: string): Promise<any>;
 }
 
 /**
@@ -378,6 +383,13 @@ export interface FileDiscoveryConfig {
     enableStats: boolean;
     logSlowOperations: boolean;
     slowThresholdMs: number;
+  };
+
+  /** Smart pattern detection configuration */
+  smartDetection?: {
+    enabled: boolean;
+    confidenceThreshold?: number; // minimum confidence to apply patterns (0-1)
+    cacheAnalysis?: boolean; // whether to cache structure analysis
   };
 }
 

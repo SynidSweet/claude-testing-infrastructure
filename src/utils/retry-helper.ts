@@ -13,8 +13,9 @@ export interface RetryOptions {
   maxDelay?: number;
   backoffFactor?: number;
   jitter?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  retryableErrors?: Array<new (...args: any[]) => Error>;
+  retryableErrors?: Array<
+    typeof AITimeoutError | typeof AINetworkError | typeof AIRateLimitError | typeof Error
+  >;
   onRetry?: (error: Error, attempt: number, delay: number) => void;
   // Intelligent retry enhancements
   adaptiveTimeout?: boolean;
@@ -188,7 +189,9 @@ export class FailurePatternDetector {
  */
 function isRetryableError(
   error: Error,
-  retryableErrors: Array<{ new (...args: unknown[]): Error }>,
+  retryableErrors: Array<
+    typeof AITimeoutError | typeof AINetworkError | typeof AIRateLimitError | typeof Error
+  >,
   context?: TaskRetryContext,
   patterns?: FailurePatternDetector
 ): boolean {

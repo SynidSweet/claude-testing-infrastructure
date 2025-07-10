@@ -1,5 +1,7 @@
 # Development Guide - AI Agent Guide
 
+*Last updated: 2025-07-10 | Build Verification Enhancement - Optimized pre-commit hooks for faster TypeScript validation*
+
 *Quick navigation for AI agents working on Claude Testing Infrastructure development*
 
 ## 🎯 Purpose
@@ -83,10 +85,11 @@ src/
 ### Common Development Tasks
 
 #### Adding a New Command
-1. Create command file in `src/cli/commands/`
-2. Register in `src/cli/index.ts`
-3. Add tests in `__tests__/cli/commands/`
-4. Update help text and documentation
+1. **Follow CLI Development Guidelines**: See [`cli-development-guidelines.md`](./cli-development-guidelines.md)
+2. **Use command templates**: See [`cli-command-templates.md`](./cli-command-templates.md)
+3. **Use standardized utilities**: `src/cli/utils/` for config loading, error handling, and command patterns
+4. **Test with patterns**: Follow test templates in CLI guidelines
+5. **Register in main CLI**: Add to `src/cli/index.ts`
 
 #### Adding Language Support
 1. Create new adapter in `src/adapters/`
@@ -223,6 +226,8 @@ async analyzeProject(projectPath: string): Promise<ProjectAnalysis> {
 
 ## 🔗 Related Documentation
 
+- **CLI Development**: [`cli-development-guidelines.md`](./cli-development-guidelines.md) - Comprehensive CLI development guide
+- **CLI Templates**: [`cli-command-templates.md`](./cli-command-templates.md) - Ready-to-use CLI command templates
 - **Architecture**: [`/docs/architecture/CLAUDE.md`](../architecture/CLAUDE.md) - System design
 - **Features**: [`/docs/features/CLAUDE.md`](../features/CLAUDE.md) - Component details
 - **Planning**: [`/docs/planning/CLAUDE.md`](../planning/CLAUDE.md) - Task management

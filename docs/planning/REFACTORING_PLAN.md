@@ -2,7 +2,7 @@
 
 *Comprehensive improvements to enhance maintainability, reduce complexity, and optimize for AI agent development*
 
-*Last updated: 2025-07-07 | MILESTONE ACHIEVED: 50% linting reduction threshold crossed (1,390→693 problems, 50.1% improvement) - enhanced type safety across multiple core modules*
+*Last updated: 2025-07-10 | Updated by: /document command | Completed Template System Architecture Redesign foundation, added 3 follow-up template tasks*
 **STATUS UPDATE (2025-07-02)**: **ALL CRITICAL USER FEEDBACK + CI/CD MAINTENANCE COMPLETED** - 
 1. Fixed AI Model Configuration Issues preventing "sonnet"/"haiku" model recognition with comprehensive model mapping system.
 2. Completed Logical Test Generation Implementation with full AI-powered workflow and removed token limits. 
@@ -96,6 +96,9 @@ This refactoring plan addresses critical issues identified in the Claude Testing
 ### 📋 Comprehensive Testing Infrastructure Overhaul
 
 **SYSTEMATIC SOLUTION**: Investigation revealed that heartbeat monitoring test failures were symptomatic of broader architectural issues with timer-based and async testing throughout the codebase. The comprehensive solution addressed root causes rather than symptoms. **CORE TIMER INTEGRATION ISSUE RESOLVED** - Fixed HeartbeatMonitor timer system mismatch with Jest fake timers.
+
+
+
 
 
 
@@ -621,242 +624,20 @@ Current tests are stubs. Need AST-based analysis for meaningful test generation.
 ## 📋 Simple Linting Tasks - Quick Type Safety Fixes
 
 
-### Fix analyze-gaps.ts Any Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 20 minutes
-**Started**: -
-
-#### Problem Summary
-2 `any` types in analyze-gaps CLI command need proper typing.
-
-#### Success Criteria
-- [ ] Replace both any types with proper interfaces
-- [ ] Gap analysis functionality maintained
-- [ ] CLI command works correctly
-
-#### Estimated Effort
-**Total time**: 20 minutes
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
-
-### Fix JSFrameworkDetector.ts Any Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 20 minutes
-**Started**: -
-
-#### Problem Summary
-2 `any` types in JSFrameworkDetector need proper typing.
-
-#### Success Criteria
-- [ ] Replace both any types with proper interfaces
-- [ ] Framework detection still accurate
-- [ ] No TypeScript errors
-
-#### Estimated Effort
-**Total time**: 20 minutes
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
-
-### Fix PytestRunner.ts Any Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 20 minutes
-**Started**: -
-
-#### Problem Summary
-2 `any` types in PytestRunner need proper typing.
-
-#### Success Criteria
-- [ ] Replace both any types with proper interfaces
-- [ ] Pytest execution still works
-- [ ] Test result parsing correct
-
-#### Estimated Effort
-**Total time**: 20 minutes
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
 
 
 
 
-### Fix reporting-types.ts Any Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 30 minutes
-**Started**: -
 
-#### Problem Summary
-4 `any` types in reporting type definitions need proper typing.
 
-#### Success Criteria
-- [ ] Replace all 4 any types with proper interfaces
-- [ ] Reporting functionality maintained
-- [ ] Type safety improved
+## 📋 Documentation and Cleanup Tasks
 
-#### Estimated Effort
-**Total time**: 30 minutes
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
 
 ## 📋 Moderate Linting Tasks - Multi-Type Fixes
 
-### Fix config-validation.ts Any Types
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 45 minutes
-**Started**: -
 
-#### Problem Summary
-4 `any` types in configuration validation logic need proper typing.
-
-#### Success Criteria
-- [ ] Analyze existing validation patterns
-- [ ] Create proper type interfaces for validation
-- [ ] Replace any types with specific interfaces
-- [ ] Test configuration loading still works
-
-#### Estimated Effort
-**Total time**: 45 minutes
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Fix retry-helper.ts Any Types
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 45 minutes
-**Started**: -
-
-#### Problem Summary
-4 `any` types in retry helper utility need proper typing.
-
-#### Success Criteria
-- [ ] Analyze retry callback types
-- [ ] Create proper error type unions
-- [ ] Replace any types with generics where appropriate
-- [ ] Verify retry logic still functions correctly
-
-#### Estimated Effort
-**Total time**: 45 minutes
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Fix config-display.ts Any Types
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 1 hour
-**Started**: -
-
-#### Problem Summary
-5 `any` types in configuration display utilities need proper typing.
-
-#### Success Criteria
-- [ ] Import proper configuration types
-- [ ] Replace display function any parameters
-- [ ] Add type guards for dynamic property access
-- [ ] Test configuration display output
-
-#### Estimated Effort
-**Total time**: 1 hour
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-
-### Fix run.ts CLI Command Any Types
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 1 hour
-**Started**: -
-
-#### Problem Summary
-5 `any` types in run CLI command need proper typing.
-
-#### Success Criteria
-- [ ] Import proper test result types
-- [ ] Fix command option types
-- [ ] Replace any in result processing
-- [ ] Test CLI command functionality
-
-#### Estimated Effort
-**Total time**: 1 hour
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
 
 ## 📋 Complex Linting Tasks - Architectural Type Improvements
-
-### Fix High-Impact CLI Commands Type Safety
-**Status**: Pending
-**Priority**: 🟠 High
-**Estimate**: 3-4 hours across 2 sessions
-**Started**: -
-
-#### Problem Summary
-CLI commands test.ts (14 any types) and incremental.ts (6 any types) need comprehensive type safety improvements.
-
-#### Success Criteria
-- [ ] Complete type safety in test.ts command
-- [ ] Complete type safety in incremental.ts command
-- [ ] Shared CLI patterns documented
-- [ ] All commands follow consistent type patterns
-
-#### Task Structure
-- Parent Task: Fix type safety in high-impact CLI commands
-- Initial Subtasks:
-  - [ ] Break down test.ts command type issues (14 any types)
-  - [ ] Break down incremental.ts command type issues (6 any types)
-
-#### Estimated Effort
-**Total time**: 3-4 hours
-**Complexity**: 🟠 Complex
-**AI Agent suitability**: Good with careful planning
-
----
-
-### Fix Testing Infrastructure Type Safety
-**Status**: Pending
-**Priority**: 🟠 High
-**Estimate**: 3-4 hours across 2 sessions
-**Started**: -
-
-#### Problem Summary
-Testing infrastructure files JestRunner.ts (6 any types), CoverageParser.ts (6 any types), and config-error-messages.ts (7 any types) need comprehensive type safety.
-
-#### Success Criteria
-- [ ] Define common test result interfaces
-- [ ] Complete type safety in JestRunner
-- [ ] Complete type safety in CoverageParser
-- [ ] Proper error message typing
-
-#### Task Structure
-- Parent Task: Improve type safety in testing infrastructure
-- Initial Subtasks:
-  - [ ] Break down JestRunner.ts type improvements (6 any types)
-  - [ ] Break down CoverageParser.ts type improvements (6 any types)
-  - [ ] Break down config-error-messages.ts patterns (7 any types)
-
-#### Estimated Effort
-**Total time**: 3-4 hours
-**Complexity**: 🟠 Complex
-**AI Agent suitability**: Good with investigation
-
----
 
 ## 📋 Epic: Complete AI Workflow Type Safety Overhaul
 
@@ -900,447 +681,114 @@ AIEnhancedTestingWorkflow.ts has 10 complex `any` types that are central to AI f
 
 
 
-### Fix generation-types.ts Any Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 30 minutes
-**Started**: -
 
-#### Problem Summary
-Test generation types need proper TypeScript interfaces.
 
-#### Success Criteria
-- [ ] Add proper TypeScript interfaces for test generation
-- [ ] Replace `any` types with specific type definitions
-- [ ] Verify test generation functionality
-- [ ] Test type safety in generation workflows
 
-#### Estimated Effort
-**Total time**: 30 minutes
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
+
+
+
+
+
+
+
 
 ---
 
-### Fix analyze.ts Remaining Any Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 1 hour
-**Started**: -
 
-#### Problem Summary
-Complete type safety improvements in analyze command.
 
-#### Success Criteria
-- [ ] Replace remaining `any` types in analyze command
-- [ ] Add proper interfaces for analysis results
-- [ ] Verify analysis command functionality
-- [ ] Test project analysis accuracy
-
-#### Estimated Effort
-**Total time**: 1 hour
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
-
-### Fix reporting-types.ts Any Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 1 hour
-**Started**: -
-
-#### Problem Summary
-Reporting and visualization types need proper interfaces.
-
-#### Success Criteria
-- [ ] Add proper interfaces for reporting types
-- [ ] Replace `any` types in visualization components
-- [ ] Verify reporting functionality works
-- [ ] Test coverage and gap reporting
-
-#### Estimated Effort
-**Total time**: 1 hour
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
-
-### Fix CLI Index Type Safety Issues
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 1 hour
-**Started**: -
-
-#### Problem Summary
-Unsafe argument passing in main CLI entry point needs resolution.
-
-#### Success Criteria
-- [ ] Fix unsafe argument type issues in CLI entry point
-- [ ] Add proper type checking for CLI arguments
-- [ ] Verify all CLI commands work correctly
-- [ ] Test argument validation and error handling
-
-#### Estimated Effort
-**Total time**: 1 hour
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
-
-### Fix Test Command Type Safety
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 1 hour
-**Started**: -
-
-#### Problem Summary
-ProjectAnalysis type reference and other type safety issues in test command.
-
-#### Success Criteria
-- [ ] Resolve ProjectAnalysis type reference issues
-- [ ] Fix type safety problems in test command
-- [ ] Verify test generation command works
-- [ ] Test comprehensive test generation workflow
-
-#### Estimated Effort
-**Total time**: 1 hour
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
-
-### Complete Configuration Service Unknown Types
-**Status**: Pending
-**Priority**: 🟢 Low
-**Estimate**: 1.5 hours
-**Started**: -
-
-#### Problem Summary
-Fix remaining unknown type issues in configuration processing.
-
-#### Success Criteria
-- [ ] Replace unknown types with proper interfaces
-- [ ] Fix configuration object property access
-- [ ] Verify configuration loading works correctly
-- [ ] Test all configuration sources and merging
-
-#### Estimated Effort
-**Total time**: 1.5 hours
-**Complexity**: 🟢 Simple
-**AI Agent suitability**: Excellent
-
----
-
-### Refactor ProjectAnalyzer MCP Detection Methods
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 4 hours / 2 sessions
-**Started**: -
-
-#### Problem Summary
-Systematically fix all framework detection methods with proper interfaces.
-
-#### Success Criteria
-- [ ] Create proper FrameworkDetectionResult interface
-- [ ] Update all hasFramework methods (React, Vue, Angular, etc.)
-- [ ] Fix MCP server detection logic
-- [ ] Add comprehensive test coverage for framework detection
-
-#### Detailed Implementation Steps
-**Phase 1: Interface Design** (1 hour)
-- [ ] Design FrameworkDetectionResult interface
-- [ ] Plan framework detection method signatures
-- [ ] Create test data structures
-
-**Phase 2: Method Refactoring** (2 hours)
-- [ ] Update React, Vue, Angular detection methods
-- [ ] Fix Express, Next.js, FastAPI detection
-- [ ] Improve MCP server detection logic
-- [ ] Add proper error handling
-
-**Phase 3: Testing & Validation** (1 hour)
-- [ ] Add unit tests for all detection methods
-- [ ] Test with real project examples
-- [ ] Verify framework-specific test generation
-
-#### Estimated Effort
-**Total time**: 4 hours across 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Enhance ClaudeOrchestrator Type Safety
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 4 hours / 2 sessions
-**Started**: -
-
-#### Problem Summary
-Improve type safety in AI orchestration while maintaining functionality.
-
-#### Success Criteria
-- [ ] Create proper interfaces for subprocess communication
-- [ ] Fix unknown type usage in retry logic
-- [ ] Improve stderr parsing type safety
-- [ ] Enhance checkpoint manager integration
-
-#### Detailed Implementation Steps
-**Phase 1: Interface Design** (1 hour)
-- [ ] Design subprocess communication interfaces
-- [ ] Plan retry logic type structure
-- [ ] Create error handling interfaces
-
-**Phase 2: Implementation** (2 hours)
-- [ ] Update subprocess communication methods
-- [ ] Fix retry logic type safety
-- [ ] Improve stderr parsing with proper types
-- [ ] Enhance checkpoint integration
-
-**Phase 3: Testing** (1 hour)
-- [ ] Test AI orchestration functionality
-- [ ] Verify retry mechanisms work
-- [ ] Test error handling and recovery
-
-#### Estimated Effort
-**Total time**: 4 hours across 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Standardize CLI Command Interfaces
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 5 hours / 2 sessions
-**Started**: -
-
-#### Problem Summary
-Create consistent interfaces across all CLI commands.
-
-#### Success Criteria
-- [ ] Define standard CommandOptions interface
-- [ ] Update all command implementations
-- [ ] Fix argument validation logic
-- [ ] Ensure consistent error handling
-
-#### Detailed Implementation Steps
-**Phase 1: Interface Design** (1 hour)
-- [ ] Design CommandOptions interface hierarchy
-- [ ] Plan command validation patterns
-- [ ] Create error handling standards
-
-**Phase 2: Command Updates** (3 hours)
-- [ ] Update analyze, test, run commands
-- [ ] Fix generate-logical, incremental commands
-- [ ] Update watch, monitor commands
-- [ ] Standardize argument processing
-
-**Phase 3: Testing & Validation** (1 hour)
-- [ ] Test all CLI commands
-- [ ] Verify argument validation
-- [ ] Test error handling consistency
-
-#### Estimated Effort
-**Total time**: 5 hours across 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Improve Template Engine Type Safety
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 4 hours / 2 sessions
-**Started**: -
-
-#### Problem Summary
-Add proper TypeScript interfaces for template generation system.
-
-#### Success Criteria
-- [ ] Create TemplateContext interface hierarchy
-- [ ] Fix template parameter passing
-- [ ] Improve template validation logic
-- [ ] Add template type checking
-
-#### Detailed Implementation Steps
-**Phase 1: Interface Design** (1 hour)
-- [ ] Design TemplateContext interfaces
-- [ ] Plan template parameter structures
-- [ ] Create validation interfaces
-
-**Phase 2: Implementation** (2 hours)
-- [ ] Update TestTemplateEngine with proper types
-- [ ] Fix template parameter passing
-- [ ] Improve template generation logic
-- [ ] Add type-safe template validation
-
-**Phase 3: Testing** (1 hour)
-- [ ] Test template generation functionality
-- [ ] Verify template context handling
-- [ ] Test framework-specific templates
-
-#### Estimated Effort
-**Total time**: 4 hours across 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Enhance File Discovery Service Type Safety
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 4 hours / 2 sessions
-**Started**: -
-
-#### Problem Summary
-Improve type safety in file discovery operations.
-
-#### Success Criteria
-- [ ] Refine FileDiscoveryRequest interface
-- [ ] Fix pattern matching type safety
-- [ ] Improve cache type definitions
-- [ ] Enhance error handling types
-
-#### Detailed Implementation Steps
-**Phase 1: Interface Refinement** (1 hour)
-- [ ] Enhance FileDiscoveryRequest interface
-- [ ] Design pattern matching types
-- [ ] Plan cache type structure
-
-**Phase 2: Implementation** (2 hours)
-- [ ] Update file discovery service with proper types
-- [ ] Fix pattern matching logic
-- [ ] Improve cache implementation
-- [ ] Add error handling types
-
-**Phase 3: Testing** (1 hour)
-- [ ] Test file discovery functionality
-- [ ] Verify pattern matching accuracy
-- [ ] Test caching behavior
-
-#### Estimated Effort
-**Total time**: 4 hours across 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Complete AI Error Type Integration
-**Status**: Pending
-**Priority**: 🟡 Medium
-**Estimate**: 3 hours / 2 sessions
-**Started**: -
-
-#### Problem Summary
-Fully integrate AI-specific error types throughout the system.
-
-#### Success Criteria
-- [ ] Extend AIErrorType definitions
-- [ ] Update error handling in AI workflows
-- [ ] Improve error propagation
-- [ ] Add error recovery type safety
-
-#### Detailed Implementation Steps
-**Phase 1: Error Type Design** (1 hour)
-- [ ] Extend AIErrorType definitions
-- [ ] Plan error propagation patterns
-- [ ] Design recovery mechanisms
-
-**Phase 2: Integration** (2 hours)
-- [ ] Update AI workflows with proper error types
-- [ ] Improve error propagation logic
-- [ ] Add type-safe error recovery
-- [ ] Test error handling scenarios
-
-#### Estimated Effort
-**Total time**: 3 hours across 2 sessions
-**Complexity**: 🟡 Moderate
-**AI Agent suitability**: Good
-
----
-
-### Template System Architecture Redesign
-**Status**: Pending
-**Priority**: 🟠 High
-**Estimate**: 15 hours across multiple sessions
-**Started**: -
-
-#### Problem Summary
-Decompose large template files (1,700+ lines) and improve template architecture.
-
-#### Success Criteria
-- [ ] Break down JavaScriptEnhancedTemplates.ts decomposition strategy
-- [ ] Investigate template inheritance patterns
-- [ ] Design modular template architecture
-- [ ] Implement incremental decomposition
-- [ ] Maintain backward compatibility
-
-#### Detailed Implementation Steps
-**Phase 1: Investigation & Design** (4 hours)
-- [ ] Break down JavaScriptEnhancedTemplates.ts decomposition strategy
-- [ ] Investigate template usage patterns and dependencies
-- [ ] Design template architecture with proper modularity
-- [ ] Plan migration and backward compatibility strategy
-
-**Phase 2: Incremental Decomposition** (8 hours)
-- [ ] Extract base template classes
-- [ ] Separate framework-specific templates
-- [ ] Create template factory patterns
-- [ ] Implement template composition system
-
-**Phase 3: Integration & Testing** (3 hours)
-- [ ] Integrate new template architecture
-- [ ] Test template generation functionality
-- [ ] Verify backward compatibility
-- [ ] Performance testing and optimization
-
-#### Estimated Effort
-**Total time**: 15 hours across multiple sessions
-**Complexity**: 🟠 Complex
-**AI Agent suitability**: Requires investigation and planning
-
----
-
-### Configuration Service Modularization
+### Configuration Service Modularization - Breakdown Required
 **Status**: Pending
 **Priority**: 🟠 High
 **Estimate**: 12 hours across multiple sessions
 **Started**: -
 
 #### Problem Summary
-Break down large ConfigurationService (1,282 lines) into focused modules.
+Break down large ConfigurationService (1,467 lines) into focused modules. The service currently handles configuration loading from 6 sources, environment variable parsing, CLI argument mapping, complex merging logic, and extensive special case handling.
 
 #### Success Criteria
-- [ ] Break down configuration service responsibilities
-- [ ] Design configuration module architecture
-- [ ] Implement incremental module extraction
-- [ ] Maintain configuration compatibility
+- [ ] Break down configuration service into 5-7 focused modules
+- [ ] Each module under 300 lines
+- [ ] Maintain backward compatibility
+- [ ] Improve testability and maintainability
 
-#### Detailed Implementation Steps
-**Phase 1: Service Analysis & Design** (3 hours)
-- [ ] Break down configuration service responsibilities
-- [ ] Analyze configuration usage patterns
-- [ ] Design modular configuration architecture
-- [ ] Plan migration strategy for existing configurations
+#### Breakdown Subtask
+- [x] Break down Configuration Service Modularization into manageable subtasks
 
-**Phase 2: Incremental Module Extraction** (7 hours)
-- [ ] Extract configuration loading module
-- [ ] Separate validation and merging logic
-- [ ] Create environment variable processing module
-- [ ] Implement configuration source management
+#### Subtasks Created
+The following subtasks have been created to replace this epic task:
 
-**Phase 3: Integration Testing & Validation** (2 hours)
-- [ ] Integrate modular configuration system
-- [ ] Test configuration loading and merging
-- [ ] Verify backward compatibility
-- [ ] Performance and stability testing
+1. **REF-CONFIG-001: Extract Configuration Source Loaders**
+   - Priority: 🟠 High
+   - Estimate: 3 hours
+   - Extract source-specific loaders into separate modules
+
+2. **REF-CONFIG-002: Extract Environment Variable Parser**
+   - Priority: 🟠 High
+   - Estimate: 2 hours
+   - Create dedicated module for env var parsing and mapping
+
+3. **✅ REF-CONFIG-003: Extract CLI Argument Mapper (COMPLETED)**
+   - Priority: 🟠 High
+   - Estimate: 2 hours → Actual: 1.5 hours
+   - Created CliArgumentMapper module with comprehensive CLI arg to config mapping and threshold parsing
+
+4. **REF-CONFIG-004: Extract Configuration Merger**
+   - Priority: 🟠 High
+   - Estimate: 2 hours
+   - Create dedicated module for deep merge and validation
+
+5. **REF-CONFIG-005: Create Configuration Factory**
+   - Priority: 🟠 High
+   - Estimate: 3 hours
+   - Implement factory pattern to orchestrate modules
 
 #### Estimated Effort
-**Total time**: 12 hours across multiple sessions
-**Complexity**: 🟠 Complex
-**AI Agent suitability**: Requires investigation and planning
+**Total time**: 12 hours across 5 subtasks
+**Complexity**: 🟠 Complex (broken down into moderate tasks)
+**AI Agent suitability**: Individual subtasks suitable for AI execution
+
+## 📋 Configuration Service Modularization Subtasks
+
+
+
+
+
+### REF-CONFIG-005: Create Configuration Factory
+**Status**: Pending
+**Priority**: 🟠 High
+**Estimate**: 3 hours
+**Started**: -
+
+#### Problem Summary
+Create orchestration layer to coordinate the extracted modules and maintain the ConfigurationService public API.
+
+#### Success Criteria
+- [ ] Create ConfigurationServiceFactory
+- [ ] Coordinate extracted modules
+- [ ] Maintain backward compatibility
+- [ ] Improve testability
+
+#### Detailed Implementation Steps
+**Phase 1: Design Factory Architecture** (1 hour)
+- [ ] Define factory interface
+- [ ] Plan module coordination
+- [ ] Design dependency injection
+
+**Phase 2: Implement Factory** (1.5 hours)
+- [ ] Create ConfigurationServiceFactory
+- [ ] Integrate all extracted modules
+- [ ] Update ConfigurationService to use factory
+- [ ] Maintain public API compatibility
+
+**Phase 3: Integration Testing** (30 minutes)
+- [ ] Test full configuration loading workflow
+- [ ] Verify all source types work
+- [ ] Performance regression testing
+
+#### Estimated Effort
+**Total time**: 3 hours
+**Complexity**: 🟡 Moderate
+**AI Agent suitability**: ✅ Good - orchestration task with clear requirements
 
 ---
 
@@ -1528,5 +976,20 @@ Systematic modernization of large files and architectural patterns.
 
 **MIGRATION UPDATE (2025-07-07)**: Added comprehensive TypeScript improvement tasks from migration analysis - 24 new tasks ranging from simple type fixes to epic architectural improvements, totaling 45-65 hours of systematic improvements.
 
+**TEST PERFORMANCE INVESTIGATION UPDATE (2025-07-10)**: Added systematic test performance optimization tasks based on investigation revealing 840+ tests in core suite vs 465 in fast suite. Integration tests (278 tests) and AI tests (562 tests) perform extensive filesystem operations causing 3-5x slower execution. Tasks address immediate optimizations (50-70% speed improvement) and systematic architectural improvements.
+
+## 📋 Test Performance Optimization Tasks - Systematic Investigation Results
+
+*Added from comprehensive investigation into test suite performance issues*
+
+
+
+
+
+
+
+
 ---
+
+
 

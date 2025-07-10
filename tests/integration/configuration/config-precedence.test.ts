@@ -4,14 +4,16 @@
 
 import { ConfigurationService } from '../../../src/config/ConfigurationService';
 import { fs, path } from '../../../src/utils/common-imports';
+import { createTemporaryProject, cleanupTemporaryProject, setupFixtureLifecycle, FIXTURE_TEMPLATES } from '../../fixtures/shared';
 import os from 'os';
 
 describe('Configuration Precedence Integration', () => {
+  setupFixtureLifecycle();
   let tempDir: string;
   let originalEnv: NodeJS.ProcessEnv;
   
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-testing-precedence-'));
+    tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
     originalEnv = { ...process.env };
     
     // Clear any existing CLAUDE_TESTING_ env vars
@@ -23,7 +25,7 @@ describe('Configuration Precedence Integration', () => {
   });
   
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await cleanupTemporaryProject(tempDir);
     process.env = originalEnv;
   });
 

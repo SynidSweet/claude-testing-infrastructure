@@ -24,6 +24,8 @@ import {
 
 import { PatternManagerImpl } from './PatternManager';
 import { MemoryFileDiscoveryCache, NullFileDiscoveryCache } from './FileDiscoveryCache';
+import { ProjectStructureDetector } from './ProjectStructureDetector';
+import type { ProjectStructureAnalysis } from './ProjectStructureDetector';
 
 const logger: debug.Debugger = debug('claude-testing:file-discovery');
 
@@ -60,7 +62,12 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
     const startTime = Date.now();
 
     // Apply configuration defaults to request
-    const effectiveRequest = this.applyConfigDefaults(request);
+    let effectiveRequest = this.applyConfigDefaults(request);
+
+    // Apply smart pattern detection if enabled
+    if (this.config.smartDetection?.enabled !== false) {
+      effectiveRequest = await this.analyzeAndEnhancePatterns(effectiveRequest);
+    }
 
     // Generate cache key
     const cacheKey = this.generateCacheKey(effectiveRequest);
@@ -194,6 +201,112 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
    */
   getCacheStats(): CacheStats {
     return this.cache.getStats();
+  }
+
+  /**
+   * Analyze project structure without modifying request
+   * 
+   * This method is useful for CLI tools that want to display
+   * structure analysis results to users.
+   */
+  async analyzeProjectStructure(projectPath: string): Promise<ProjectStructureAnalysis> {
+    const detector = new ProjectStructureDetector(projectPath);
+    return await detector.analyzeStructure();
+  }
+
+  /**
+   * Analyze project structure and apply smart patterns to discovery request
+   * 
+   * This method integrates ProjectStructureDetector to enhance file discovery
+   * with intelligent pattern detection based on project layout analysis.
+   */
+  async analyzeAndEnhancePatterns(request: FileDiscoveryRequest): Promise<FileDiscoveryRequest> {
+    // Skip smart detection if patterns are explicitly provided or disabled in config
+    if ((request.include && request.include.length > 0) || this.config.smartDetection?.enabled === false) {
+      return request;
+    }
+
+    try {
+
+    const structureCacheKey: CacheKey = {
+      baseDir: request.baseDir,
+      include: ['__structure_analysis__'],
+      exclude: [],
+      type: request.type,
+      languages: request.languages ?? [],
+      options: {
+        absolute: false,
+        includeDirectories: false,
+      },
+    };
+    const cached = this.cache.get(structureCacheKey);
+    
+    let analysis: ProjectStructureAnalysis;
+    if (cached && cached.result.files.length > 0 && cached.result.files[0]) {
+      // Use cached analysis stored as serialized JSON in files array
+      analysis = JSON.parse(cached.result.files[0]) as ProjectStructureAnalysis;
+    } else {
+      const detector = new ProjectStructureDetector(request.baseDir);
+      analysis = await detector.analyzeStructure();
+      
+      // Cache the analysis for future use
+      this.cache.set(
+        structureCacheKey,
+        {
+          files: [JSON.stringify(analysis)],
+          fromCache: false,
+          duration: 0,
+          stats: {
+            totalScanned: 0,
+            included: 1,
+            excluded: 0,
+            languageFiltered: 0,
+          },
+        }
+      );
+    }
+
+    // Only apply smart patterns if confidence meets threshold
+    const confidenceThreshold = this.config.smartDetection?.confidenceThreshold ?? 0.7;
+    if (analysis.confidence < confidenceThreshold) {
+      logger('Smart pattern confidence too low: %d < %d, using defaults', analysis.confidence, confidenceThreshold);
+      return request;
+    }
+
+    // Apply smart patterns based on discovery type
+    const enhancedRequest = { ...request };
+    
+    switch (request.type) {
+      case FileDiscoveryType.PROJECT_ANALYSIS:
+      case FileDiscoveryType.TEST_GENERATION:
+        enhancedRequest.include = analysis.suggestedPatterns.include;
+        enhancedRequest.exclude = [...(request.exclude ?? []), ...analysis.suggestedPatterns.exclude];
+        break;
+        
+      case FileDiscoveryType.TEST_EXECUTION:
+        enhancedRequest.include = analysis.suggestedPatterns.testIncludes;
+        enhancedRequest.exclude = [...(request.exclude ?? []), ...analysis.suggestedPatterns.testExcludes];
+        break;
+        
+      default:
+        // For other types, use general patterns
+        enhancedRequest.include = analysis.suggestedPatterns.include;
+        enhancedRequest.exclude = [...(request.exclude ?? []), ...analysis.suggestedPatterns.exclude];
+    }
+
+    logger('Smart pattern detection applied: %O', {
+      detectedStructure: analysis.detectedStructure,
+      confidence: analysis.confidence,
+      patterns: enhancedRequest.include,
+      threshold: confidenceThreshold,
+    });
+
+    return enhancedRequest;
+    } catch (error) {
+      logger('Smart pattern detection failed: %O', error);
+      // Fall back to original request on error
+      return request;
+    }
   }
 
   /**
@@ -337,6 +450,11 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
         enableStats: false,
         logSlowOperations: true,
         slowThresholdMs: 1000,
+      },
+      smartDetection: {
+        enabled: true,
+        confidenceThreshold: 0.7, // 70% confidence required
+        cacheAnalysis: true,
       },
     };
   }

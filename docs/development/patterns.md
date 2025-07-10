@@ -1,6 +1,6 @@
 # Development Patterns
 
-*Last updated: 2025-07-07 | Added advanced type safety patterns with comprehensive interfaces and type guards*
+*Last updated: 2025-07-09 | Added CLI error handling standardization patterns and utilities*
 
 ## Overview
 
@@ -578,6 +578,148 @@ const value = object.property ?? defaultValue;
 - `src/runners/JestRunner.ts` - Subprocess typing and configuration
 - `src/runners/CoverageReporter.ts` - Import consolidation
 - Throughout codebase - Nullish coalescing improvements
+
+### Error Constructor Type Safety
+
+#### Pattern
+For error handling systems with specific error class types, use specific union types rather than generic `any[]` or `unknown[]` for constructor type safety:
+
+```typescript
+// Before: unsafe generic typing
+retryableErrors?: Array<new (...args: any[]) => Error>;
+
+// After: specific union types for known error classes
+retryableErrors?: Array<
+  typeof AITimeoutError | typeof AINetworkError | typeof AIRateLimitError | typeof Error
+>;
+```
+
+#### Benefits
+- **Type safety**: TypeScript catches constructor signature mismatches at compile time
+- **Intellisense**: IDEs provide proper autocomplete for error types
+- **Consistency**: Interface definitions match implementation patterns
+- **AI Integration**: Specific types enable proper error handling in AI operations
+
+#### Implementation Notes
+- Use specific error class types (`typeof ErrorClass`) for constructors
+- Maintain consistency between interface definitions and function parameters
+- Consider backward compatibility when updating existing error handling
+- Apply proper formatting for complex union types
+
+#### Files Using This Pattern
+- `src/utils/retry-helper.ts` - AI error retry logic with specific error type unions
+- `src/ai/ClaudeOrchestrator.ts` - Uses retry helper with type-safe error handling
+- `src/types/ai-error-types.ts` - Defines specific AI error classes
+
+## CLI Error Handling Standardization Pattern ✅ NEW
+
+### Overview
+Standardized error handling pattern for CLI commands that provides consistent error display, context information, and proper exit codes across all commands.
+
+### Problem Solved
+Previously, CLI commands used inconsistent error handling approaches:
+- Some commands used error handler utilities, others used basic try/catch
+- Different error message formatting approaches
+- Varying exit code strategies
+- Inconsistent logging patterns
+
+### Solution Architecture
+```typescript
+// Standardized CLI error handling utilities
+export interface CLIErrorOptions {
+  exitCode?: number;
+  showStack?: boolean;
+  context?: Record<string, unknown>;
+}
+
+export function handleCLIError(
+  error: unknown,
+  operationName: string,
+  options: CLIErrorOptions = {}
+): never {
+  // Consistent error formatting with ✗ indicator
+  // Context information display
+  // Detailed logging for debugging
+  // Proper exit codes based on error type
+}
+
+export async function executeCLICommand<T>(
+  commandName: string,
+  operation: () => Promise<T>,
+  errorOptions: CLIErrorOptions = {}
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    handleCLIError(error, commandName, errorOptions);
+  }
+}
+```
+
+### Implementation Pattern
+```typescript
+// Before: Inconsistent error handling
+export async function myCommand(projectPath: string, options: MyOptions): Promise<void> {
+  try {
+    // Command logic
+  } catch (error) {
+    console.error(chalk.red(`Error: ${error.message}`));
+    process.exit(1);
+  }
+}
+
+// After: Standardized error handling
+export async function myCommand(projectPath: string, options: MyOptions): Promise<void> {
+  try {
+    // Command logic
+  } catch (error) {
+    throw error; // Re-throw to be handled by wrapper
+  }
+}
+
+// CLI registration with wrapper
+program
+  .command('my-command')
+  .action((projectPath: string, options: MyOptions) =>
+    executeCLICommand(
+      'my command operation',
+      () => myCommand(projectPath, options),
+      {
+        showStack: Boolean(options.verbose),
+        context: { projectPath, options },
+      }
+    )
+  );
+```
+
+### Error Display Format
+```bash
+# Consistent error format
+✗ Project path does not exist: /nonexistent/path
+
+Additional context:
+  projectPath: /nonexistent/path
+  options: [object Object]
+```
+
+### Key Benefits
+- **Consistent User Experience**: All commands display errors with same format
+- **Helpful Context**: Additional debugging information shown when relevant
+- **Proper Exit Codes**: Different error types use appropriate exit codes
+- **Maintainability**: Single place to update error handling behavior
+- **Developer Experience**: Centralized error handling logic reduces duplication
+
+### Implementation Guidelines
+1. **Use executeCLICommand wrapper** for all CLI command actions
+2. **Re-throw errors** in command functions instead of handling directly
+3. **Provide context** with projectPath and options for debugging
+4. **Use verbose mode** for stack trace display
+5. **Import dynamically** to avoid circular imports (chalk in handleCLIError)
+
+### Files Using This Pattern
+- `src/utils/error-handling.ts` - CLI error handling utilities
+- `src/cli/index.ts` - All command actions wrapped with executeCLICommand
+- `src/cli/commands/*.ts` - All 10 CLI commands follow this pattern
 
 ## See Also
 - **Architecture Overview**: [`/docs/architecture/overview.md`](../architecture/overview.md)

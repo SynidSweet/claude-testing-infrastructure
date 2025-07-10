@@ -15,7 +15,12 @@ interface IstanbulFileData {
   >;
   branchMap: Record<string, { loc?: { start?: { line: number; column: number } }; type?: string }>;
   fnMap: Record<string, { name?: string; decl?: { start: { line: number } } }>;
-  [key: string]: unknown;
+  summary?: {
+    statements?: { total?: number; covered?: number; skipped?: number; pct?: number };
+    branches?: { total?: number; covered?: number; skipped?: number; pct?: number };
+    functions?: { total?: number; covered?: number; skipped?: number; pct?: number };
+    lines?: { total?: number; covered?: number; skipped?: number; pct?: number };
+  };
 }
 
 /**
@@ -23,7 +28,6 @@ interface IstanbulFileData {
  */
 interface IstanbulCoverageData {
   coverageMap?: Record<string, IstanbulFileData>;
-  [key: string]: unknown;
 }
 
 /**
@@ -31,7 +35,6 @@ interface IstanbulCoverageData {
  */
 interface JestCoverageData {
   coverageMap: Record<string, IstanbulFileData>;
-  [key: string]: unknown;
 }
 
 /**
@@ -42,7 +45,13 @@ interface CoveragePyFileData {
   executed_lines?: number[];
   missing_lines?: number[];
   excluded_lines?: number[];
-  [key: string]: unknown;
+  summary?: {
+    covered_lines?: number;
+    num_statements?: number;
+    percent_covered?: number;
+    missing_lines?: number;
+    excluded_lines?: number;
+  };
 }
 
 /**
@@ -52,7 +61,7 @@ type RawCoverageData =
   | IstanbulCoverageData
   | JestCoverageData
   | CoverageData
-  | Record<string, unknown>;
+  | { files?: Record<string, CoveragePyFileData>; totals?: Record<string, unknown> };
 
 /**
  * Standardized coverage data structure
@@ -286,8 +295,8 @@ export class JestCoverageParser extends CoverageParser {
 
         // Try to parse as JSON first
         try {
-          const parsed: unknown = JSON.parse(data);
-          coverageData = parsed as RawCoverageData;
+          const parsed = JSON.parse(data) as RawCoverageData;
+          coverageData = parsed;
         } catch (parseError) {
           // If not JSON, try to extract from Jest output
           logger.debug('Failed to parse as JSON, trying text extraction', { parseError });
@@ -587,7 +596,9 @@ export class PytestCoverageParser extends CoverageParser {
     try {
       if (typeof data === 'object') {
         // JSON format from coverage.py
-        return this.parseCoverageJson(data as Record<string, unknown>);
+        return this.parseCoverageJson(
+          data as { files?: Record<string, CoveragePyFileData>; totals?: Record<string, unknown> }
+        );
       } else {
         // Text output from pytest-cov
         return this.parsePytestTextOutput(data);
@@ -598,7 +609,10 @@ export class PytestCoverageParser extends CoverageParser {
     }
   }
 
-  private parseCoverageJson(coverageData: Record<string, unknown>): CoverageData {
+  private parseCoverageJson(coverageData: {
+    files?: Record<string, CoveragePyFileData>;
+    totals?: Record<string, unknown>;
+  }): CoverageData {
     const files: Record<string, FileCoverage> = {};
 
     if (coverageData.files) {
@@ -612,7 +626,7 @@ export class PytestCoverageParser extends CoverageParser {
     }
 
     // Extract summary from totals or calculate from files
-    const totals = coverageData.totals as Record<string, unknown> | undefined;
+    const totals = coverageData.totals;
     const summary = totals
       ? {
           statements: Number(totals.covered_percent) || 0,

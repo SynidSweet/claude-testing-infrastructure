@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-07-08 | Updated by: /document command | Added Heartbeat Monitoring refactoring with separation of concerns architecture*
+*Last updated: 2025-07-10 | Updated by: /document command | Added smart pattern detection to FileDiscoveryService architecture*
 
 ## Architecture Summary
 
@@ -229,6 +229,13 @@ The FileDiscoveryService (`src/services/FileDiscoveryService.ts`) provides consi
 - **User configuration**: Merges default patterns with user-defined overrides
 - **Pattern validation**: Glob syntax validation with warnings and suggestions
 - **Type-based resolution**: Different patterns for project analysis, test generation, and test execution
+
+##### ProjectStructureDetector ✅ NEW
+- **Smart pattern detection**: Analyzes project structure to generate optimal file patterns
+- **Structure types**: Detects standard-src, monorepo, flat, framework-specific layouts
+- **Confidence scoring**: Applies patterns only when confidence exceeds threshold (default 0.7)
+- **Workspace support**: Handles monorepo workspaces with specific patterns
+- **Framework integration**: Works with FileDiscoveryService for automatic pattern application
 
 ##### FileDiscoveryCache
 - **TTL-based expiration**: Configurable time-to-live for cache entries
@@ -730,28 +737,44 @@ Generated Tests → Runner Selection → Test Execution → Coverage Processing 
 - **Error Handling**: Graceful degradation and detailed error reporting
 - **CLI Integration**: Complete `run` command with enhanced coverage options
 
-### Template Method Pattern Implementation (Updated 2025-07-01)
+### Template System Architecture (Updated 2025-07-10)
 
-The Coverage Reporter system uses the Template Method pattern with inheritance-based consolidation:
+The template system has been redesigned with a modular architecture to improve maintainability and extensibility:
 
-1. **BaseTemplateEngine**: Abstract base class providing common functionality (122 lines)
-   - Template data transformation utilities
-   - Coverage percentage formatting
-   - Common template data interfaces
-   - Shared helper methods
+#### Test Template Core Infrastructure
 
-2. **HtmlTemplateEngine**: Extends base with HTML-specific rendering (144 lines)
-3. **MarkdownTemplateEngine**: Extends base with Markdown-specific rendering (122 lines)
-4. **XmlTemplateEngine**: Extends base with XML-specific rendering (103 lines)
+1. **TemplateRegistry** (`src/generators/templates/core/TemplateRegistry.ts`): Centralized template management
+   - Template registration with conflict detection
+   - Intelligent template matching with confidence scores
+   - Template search with fallback hierarchy (exact → framework → type → language)
+   - Registry statistics and introspection capabilities
 
-Benefits achieved:
-- Eliminated duplicate template preparation logic
-- Consistent async render interface across all engines
-- Shared utilities for data transformation and formatting
-- Type-safe template data interfaces with inheritance
-- Maintainable separation of format-specific logic
+2. **TemplateEngine** (`src/generators/templates/core/TemplateEngine.ts`): Robust template execution
+   - Safe generation with comprehensive error handling
+   - Performance metrics and statistics tracking
+   - Template validation and testing capabilities
+   - Backward compatibility with existing interfaces
 
-Template engines location: `/src/runners/templates/`
+3. **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Legacy integration layer
+   - Maintains existing public API for compatibility
+   - Currently 1,675 lines (target for future modularization)
+   - Will be migrated to use new core architecture (TEMPLATE-REF-001)
+
+#### Coverage Template Engines (Existing)
+
+4. **BaseTemplateEngine**: Abstract base class providing common functionality (122 lines)
+5. **HtmlTemplateEngine**: Extends base with HTML-specific rendering (144 lines)
+6. **MarkdownTemplateEngine**: Extends base with Markdown-specific rendering (122 lines)
+7. **XmlTemplateEngine**: Extends base with XML-specific rendering (103 lines)
+
+#### Benefits of New Architecture
+- **Separation of Concerns**: Template storage (Registry) vs execution (Engine)
+- **Enhanced Error Handling**: Safe generation with detailed error reporting
+- **Performance Monitoring**: Built-in statistics and performance tracking
+- **Extensibility Foundation**: Ready for factory pattern and plugin architecture
+- **Type Safety**: Comprehensive TypeScript interfaces with proper optionality
+
+Template system location: `/src/generators/templates/`
 
 ### AI-Powered Enhancement (Phase 5 - COMPLETE)
 

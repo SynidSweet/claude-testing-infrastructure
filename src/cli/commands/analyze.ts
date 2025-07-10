@@ -1,4 +1,4 @@
-import { chalk, ora, logger } from '../../utils/common-imports';
+import { chalk, logger } from '../../utils/common-imports';
 import type {
   ProjectAnalysis,
   DetectedLanguage,
@@ -11,49 +11,143 @@ import type {
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 import { ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
-import {
-  handleAnalysisOperation,
-  handleFileOperation,
-  formatErrorMessage,
-} from '../../utils/error-handling';
-import { displayConfigurationSources } from '../../utils/config-display';
+import { handleAnalysisOperation, handleFileOperation } from '../../utils/error-handling';
+import { executeCommand, type CommandContext, type StandardCliOptions } from '../utils';
+import type { Command } from 'commander';
 
-export interface AnalyzeOptions {
+export interface AnalyzeOptions extends StandardCliOptions {
   output?: string;
   format?: 'json' | 'markdown' | 'console';
-  verbose?: boolean;
   validateConfig?: boolean;
-  config?: string;
+  showPatterns?: boolean;
 }
 
 export async function analyzeCommand(
   projectPath: string,
   options: AnalyzeOptions = {},
-  command?: { parent?: { opts: () => { showConfigSources?: boolean } } }
+  command?: Command
 ): Promise<void> {
-  // Access global options from parent command
-  const globalOptions = command?.parent?.opts() || {};
-  const showConfigSources = globalOptions.showConfigSources || false;
-  const spinner = ora('Analyzing project...').start();
+  // Handle configuration validation as a special case
+  if (options.validateConfig) {
+    return handleConfigValidation(projectPath, options, command);
+  }
 
-  try {
-    logger.info(`Starting analysis of project: ${projectPath}`);
+  // Use standardized command execution pattern
+  await executeCommand(
+    projectPath,
+    options,
+    command,
+    async (_context: CommandContext) => {
+      logger.info(`Starting analysis of project: ${projectPath}`);
 
-    // Load and validate configuration if requested
-    if (options.validateConfig) {
-      spinner.text = 'Loading and validating configuration...';
+      let fileDiscovery: any;
+      const analysis = await handleAnalysisOperation(
+        async () => {
+          // Create a new ConfigurationService for analysis
+          const configService = new ConfigurationService({
+            projectPath,
+            ...(options.config && { customConfigPath: options.config }),
+            includeEnvVars: true,
+            includeUserConfig: true,
+            cliArgs: options,
+          });
 
-      const configService = new ConfigurationService({
-        projectPath,
-        ...(options.config && { customConfigPath: options.config }),
-        includeEnvVars: true,
-        includeUserConfig: true,
-        cliArgs: options as Record<string, unknown>,
+          // Load configuration before creating FileDiscoveryService
+          await configService.loadConfiguration();
+
+          // Create FileDiscoveryService instance
+          fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+
+          // Create analyzer with FileDiscoveryService
+          const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
+          return await analyzer.analyzeProject();
+        },
+        'project analysis',
+        projectPath
+      );
+
+      // Show pattern analysis if requested
+      if (options.showPatterns && fileDiscovery) {
+        await displayPatternAnalysis(fileDiscovery, projectPath, analysis, options);
+      }
+
+      // Format and display results
+      await displayAnalysisResults(analysis, options);
+    },
+    {
+      commandName: 'analyze',
+      loadingText: 'Analyzing project...',
+      showConfigSources: true,
+    }
+  );
+}
+
+async function displayPatternAnalysis(
+  fileDiscovery: any,
+  projectPath: string,
+  _analysis: ProjectAnalysis,
+  options: AnalyzeOptions = {}
+): Promise<void> {
+  // Check if FileDiscoveryService has the analyzeProjectStructure method
+  if (typeof fileDiscovery.analyzeProjectStructure === 'function') {
+    console.log(chalk.blue('\n🔍 Smart Pattern Analysis'));
+    console.log(chalk.blue('========================'));
+    
+    try {
+      const structureAnalysis = await fileDiscovery.analyzeProjectStructure(projectPath);
+      
+      console.log(chalk.cyan('\n📂 Detected Structure:'), structureAnalysis.detectedStructure);
+      console.log(chalk.cyan('🎯 Confidence:'), `${(structureAnalysis.confidence * 100).toFixed(0)}%`);
+      
+      console.log(chalk.cyan('\n📁 Source Directories:'));
+      structureAnalysis.sourceDirectories.forEach((dir: any) => {
+        console.log(`  • ${dir.path} (${dir.type}, confidence: ${(dir.confidence * 100).toFixed(0)}%)`);
       });
+      
+      console.log(chalk.cyan('\n🧪 Test Directories:'));
+      structureAnalysis.testDirectories.forEach((dir: any) => {
+        console.log(`  • ${dir.path} (${dir.type}, framework: ${dir.testFramework || 'unknown'})`);
+      });
+      
+      console.log(chalk.cyan('\n📋 Suggested Patterns:'));
+      console.log(chalk.gray('Include patterns:'));
+      structureAnalysis.suggestedPatterns.include.forEach((pattern: string) => {
+        console.log(`  • ${pattern}`);
+      });
+      
+      console.log(chalk.gray('\nTest include patterns:'));
+      structureAnalysis.suggestedPatterns.testIncludes.forEach((pattern: string) => {
+        console.log(`  • ${pattern}`);
+      });
+      
+      if (structureAnalysis.monorepoInfo?.isMonorepo) {
+        console.log(chalk.cyan('\n📦 Monorepo Detected:'));
+        console.log('  Workspaces:', structureAnalysis.monorepoInfo.workspaces.join(', '));
+      }
+    } catch (error) {
+      console.log(chalk.yellow('⚠️  Could not analyze project structure patterns'));
+      if (options.verbose) {
+        console.error(error);
+      }
+    }
+  } else {
+    console.log(chalk.yellow('\n⚠️  Pattern analysis not available in this version'));
+  }
+}
 
-      const configResult = await configService.loadConfiguration();
+async function handleConfigValidation(
+  projectPath: string,
+  options: AnalyzeOptions,
+  command?: Command
+): Promise<void> {
+  await executeCommand(
+    projectPath,
+    options,
+    command,
+    async (context: CommandContext) => {
+      // Use configuration from context
+      const configResult = context.config.config;
 
-      spinner.stop();
       console.log(chalk.blue('\n📋 Configuration Validation Results'));
       console.log(chalk.blue('====================================='));
 
@@ -90,121 +184,81 @@ export async function analyzeCommand(
       console.log(chalk.blue('\n📊 Resolved Configuration:'));
       console.log(JSON.stringify(configResult.config, null, 2));
       console.log('');
-    } else if (showConfigSources) {
-      // Show config sources even when not validating
-      spinner.text = 'Loading configuration...';
-
-      const configService = new ConfigurationService({
-        projectPath,
-        ...(options.config && { customConfigPath: options.config }),
-        includeEnvVars: true,
-        includeUserConfig: true,
-        cliArgs: options as Record<string, unknown>,
-      });
-
-      const configResult = await configService.loadConfiguration();
-      spinner.stop();
-
-      displayConfigurationSources(configResult);
-      console.log('');
-
-      spinner.start('Analyzing project...');
+    },
+    {
+      commandName: 'validate-config',
+      loadingText: 'Loading and validating configuration...',
+      validateConfig: true,
+      exitOnConfigError: false, // We handle the exit ourselves
     }
+  );
+}
 
-    const analysis = await handleAnalysisOperation(
-      async () => {
-        // Create or get existing configuration service
-        const configService = new ConfigurationService({
-          projectPath,
-          ...(options.config && { customConfigPath: options.config }),
-          includeEnvVars: true,
-          includeUserConfig: true,
-          cliArgs: options as Record<string, unknown>,
-        });
+async function displayAnalysisResults(
+  analysis: ProjectAnalysis,
+  options: AnalyzeOptions
+): Promise<void> {
+  if (options.format === 'json') {
+    const output = JSON.stringify(analysis, null, 2);
+    console.log(output);
 
-        // Load configuration before creating FileDiscoveryService
-        await configService.loadConfiguration();
+    if (options.output) {
+      await handleFileOperation(
+        async () => {
+          const fs = await import('fs/promises');
+          await fs.writeFile(options.output!, output);
+        },
+        `writing analysis output to file`,
+        options.output
+      );
+      console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
+    }
+  } else if (options.format === 'markdown') {
+    const markdown = formatAsMarkdown(analysis);
+    console.log(markdown);
 
-        // Create FileDiscoveryService instance
-        const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
+    if (options.output) {
+      await handleFileOperation(
+        async () => {
+          const fs = await import('fs/promises');
+          await fs.writeFile(options.output!, markdown);
+        },
+        `writing markdown analysis to file`,
+        options.output
+      );
+      console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
+    }
+  } else {
+    // Console format (default)
+    if (options.output) {
+      // Capture console output for file writing
+      const originalLog = console.log;
+      let consoleOutput = '';
+      console.log = (...args: unknown[]) => {
+        consoleOutput +=
+          args
+            .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
+            .join(' ') + '\n';
+      };
 
-        // Create analyzer with FileDiscoveryService
-        const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
-        return await analyzer.analyzeProject();
-      },
-      'project analysis',
-      projectPath
-    );
+      displayConsoleResults(analysis, options.verbose);
 
-    spinner.succeed('Analysis complete');
+      // Restore original console.log
+      console.log = originalLog;
 
-    // Format and display results
-    if (options.format === 'json') {
-      const output = JSON.stringify(analysis, null, 2);
-      console.log(output);
-
-      if (options.output) {
-        await handleFileOperation(
-          async () => {
-            const fs = await import('fs/promises');
-            await fs.writeFile(options.output!, output);
-          },
-          `writing analysis output to file`,
-          options.output
-        );
-        console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
-      }
-    } else if (options.format === 'markdown') {
-      const markdown = formatAsMarkdown(analysis);
-      console.log(markdown);
-
-      if (options.output) {
-        await handleFileOperation(
-          async () => {
-            const fs = await import('fs/promises');
-            await fs.writeFile(options.output!, markdown);
-          },
-          `writing markdown analysis to file`,
-          options.output
-        );
-        console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
-      }
+      // Write captured output to file
+      await handleFileOperation(
+        async () => {
+          const fs = await import('fs/promises');
+          await fs.writeFile(options.output!, consoleOutput);
+        },
+        `writing console analysis to file`,
+        options.output
+      );
+      console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
     } else {
-      // Console format (default)
-      if (options.output) {
-        // Capture console output for file writing
-        const originalLog = console.log;
-        let consoleOutput = '';
-        console.log = (...args: unknown[]) => {
-          consoleOutput +=
-            args
-              .map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : String(arg)))
-              .join(' ') + '\n';
-        };
-
-        displayConsoleResults(analysis, options.verbose);
-
-        // Restore original console.log
-        console.log = originalLog;
-
-        // Write captured output to file
-        await handleFileOperation(
-          async () => {
-            const fs = await import('fs/promises');
-            await fs.writeFile(options.output!, consoleOutput);
-          },
-          `writing console analysis to file`,
-          options.output
-        );
-        console.log(chalk.green(`\n✓ Analysis saved to ${options.output}`));
-      } else {
-        displayConsoleResults(analysis, options.verbose);
-      }
+      displayConsoleResults(analysis, options.verbose);
     }
-  } catch (error) {
-    spinner.fail('Analysis failed');
-    console.error(chalk.red(`\n✗ ${formatErrorMessage(error)}`));
-    process.exit(1);
   }
 }
 
@@ -278,14 +332,52 @@ function displayComplexityMetrics(complexity: ComplexityMetrics): void {
 
 function displayProjectStructure(projectStructure: ProjectStructure): void {
   console.log(chalk.cyan('\n📂 Project Structure:'));
-  if (projectStructure.srcDirectory) {
-    console.log(`  • Source directory: ${projectStructure.srcDirectory}`);
-  }
-  if (projectStructure.entryPoints.length > 0) {
-    console.log(`  • Entry points: ${projectStructure.entryPoints.slice(0, 3).join(', ')}`);
-  }
-  if (projectStructure.testDirectories.length > 0) {
-    console.log(`  • Test directories: ${projectStructure.testDirectories.slice(0, 3).join(', ')}`);
+  
+  // Display smart analysis if available
+  if (projectStructure.smartAnalysis) {
+    const analysis = projectStructure.smartAnalysis;
+    console.log(`  • Structure Type: ${analysis.detectedStructure} (${Math.round(analysis.confidence * 100)}% confidence)`);
+    
+    if (analysis.sourceDirectories.length > 0) {
+      console.log(`  • Source Directories:`);
+      analysis.sourceDirectories.slice(0, 3).forEach(dir => {
+        console.log(`    - ${dir.path} (${dir.type}, ${Math.round(dir.confidence * 100)}% confidence, ${dir.fileCount} files)`);
+      });
+    }
+    
+    if (analysis.testDirectories.length > 0) {
+      console.log(`  • Test Directories:`);
+      analysis.testDirectories.slice(0, 3).forEach(dir => {
+        const framework = dir.testFramework ? ` - ${dir.testFramework}` : '';
+        console.log(`    - ${dir.path} (${dir.type}${framework})`);
+      });
+    }
+    
+    if (analysis.frameworkIndicators.length > 0) {
+      const topFramework = analysis.frameworkIndicators[0];
+      if (topFramework) {
+        console.log(`  • Framework Patterns: ${topFramework.framework} (${Math.round(topFramework.confidence * 100)}% confidence)`);
+      }
+    }
+    
+    if (analysis.monorepoInfo?.isMonorepo) {
+      console.log(`  • Monorepo: Yes (${analysis.monorepoInfo.workspaces.length} workspaces)`);
+    }
+    
+    console.log(`  • Suggested Patterns:`);
+    console.log(`    - Include: ${analysis.suggestedPatterns.include.slice(0, 2).join(', ')}${analysis.suggestedPatterns.include.length > 2 ? '...' : ''}`);
+    console.log(`    - Test: ${analysis.suggestedPatterns.testIncludes.slice(0, 2).join(', ')}${analysis.suggestedPatterns.testIncludes.length > 2 ? '...' : ''}`);
+  } else {
+    // Fallback to basic structure display
+    if (projectStructure.srcDirectory) {
+      console.log(`  • Source directory: ${projectStructure.srcDirectory}`);
+    }
+    if (projectStructure.entryPoints.length > 0) {
+      console.log(`  • Entry points: ${projectStructure.entryPoints.slice(0, 3).join(', ')}`);
+    }
+    if (projectStructure.testDirectories.length > 0) {
+      console.log(`  • Test directories: ${projectStructure.testDirectories.slice(0, 3).join(', ')}`);
+    }
   }
 }
 
@@ -346,6 +438,31 @@ function formatAsMarkdown(analysis: ProjectAnalysis): string {
       .forEach((file: { path: string; lines: number }) => {
         markdown += `- ${file.path} (${file.lines} lines)\n`;
       });
+    markdown += '\n';
+  }
+
+  // Smart project structure analysis
+  if (analysis.projectStructure.smartAnalysis) {
+    const smartAnalysis = analysis.projectStructure.smartAnalysis;
+    markdown += `## Smart Project Structure Analysis\n\n`;
+    markdown += `- **Structure Type:** ${smartAnalysis.detectedStructure} (${Math.round(smartAnalysis.confidence * 100)}% confidence)\n`;
+    
+    if (smartAnalysis.sourceDirectories.length > 0) {
+      markdown += `- **Source Directories:**\n`;
+      smartAnalysis.sourceDirectories.forEach(dir => {
+        markdown += `  - ${dir.path} (${dir.type}, ${Math.round(dir.confidence * 100)}% confidence, ${dir.fileCount} files)\n`;
+      });
+    }
+    
+    if (smartAnalysis.frameworkIndicators.length > 0) {
+      markdown += `- **Framework Patterns:**\n`;
+      smartAnalysis.frameworkIndicators.forEach(indicator => {
+        markdown += `  - ${indicator.framework} (${Math.round(indicator.confidence * 100)}% confidence)\n`;
+      });
+    }
+    
+    markdown += `- **Suggested Include Patterns:** ${smartAnalysis.suggestedPatterns.include.join(', ')}\n`;
+    markdown += `- **Suggested Test Patterns:** ${smartAnalysis.suggestedPatterns.testIncludes.join(', ')}\n`;
     markdown += '\n';
   }
 
