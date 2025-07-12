@@ -189,30 +189,41 @@ class EnhancedProductionReadinessChecker {
       const workflowRuns = await this.getGitHubWorkflowRuns(owner, repo);
       
       if (workflowRuns && workflowRuns.workflow_runs && workflowRuns.workflow_runs.length > 0) {
+        // Prioritize Core Infrastructure Tests for production readiness assessment
+        const coreInfrastructureRuns = workflowRuns.workflow_runs.filter(run => 
+          run.name === 'Core Infrastructure Tests' && 
+          run.head_branch === this.results.cicdStatus.branch
+        );
+        
+        // Use Core Infrastructure Tests if available, otherwise fall back to latest run
+        const primaryRun = coreInfrastructureRuns.length > 0 ? coreInfrastructureRuns[0] : workflowRuns.workflow_runs[0];
         const latestRun = workflowRuns.workflow_runs[0];
+        
         this.results.cicdStatus.lastRun = {
-          status: latestRun.status,
-          conclusion: latestRun.conclusion,
-          created_at: latestRun.created_at,
-          updated_at: latestRun.updated_at,
-          html_url: latestRun.html_url,
-          head_branch: latestRun.head_branch
+          status: primaryRun.status,
+          conclusion: primaryRun.conclusion,
+          created_at: primaryRun.created_at,
+          updated_at: primaryRun.updated_at,
+          html_url: primaryRun.html_url,
+          head_branch: primaryRun.head_branch,
+          name: primaryRun.name
         };
         
-        // Check if CI/CD is passing
+        // Check if CI/CD is passing based on Core Infrastructure Tests
         // Special handling when running inside CI:
         // - If we're the current run (in_progress), check previous completed runs
         // - If we're looking at a recent failure that's not our run, check if we can find a success
         const isRunningInCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
         const currentRunId = process.env.GITHUB_RUN_ID;
-        const isOurRun = currentRunId && latestRun.id?.toString() === currentRunId;
-        const isInProgress = latestRun.status === 'in_progress' || !latestRun.conclusion;
+        const isOurRun = currentRunId && primaryRun.id?.toString() === currentRunId;
+        const isInProgress = primaryRun.status === 'in_progress' || !primaryRun.conclusion;
         
         if (isRunningInCI) {
           if (isOurRun || (isInProgress && !latestRun.conclusion)) {
             // We're checking our own run or a current in-progress run
-            // Look for the most recent completed run on the same branch
+            // Look for the most recent completed Core Infrastructure Tests run on the same branch
             const sameBranchRuns = workflowRuns.workflow_runs.filter(run => 
+              run.name === 'Core Infrastructure Tests' &&
               run.head_branch === this.results.cicdStatus.branch && 
               run.status === 'completed' && 
               run.conclusion
@@ -239,28 +250,30 @@ class EnhancedProductionReadinessChecker {
             }
           }
         } else {
-          // Not running in CI - use normal logic
-          this.results.cicdStatus.passing = latestRun.conclusion === 'success';
+          // Not running in CI - use Core Infrastructure Tests result
+          this.results.cicdStatus.passing = primaryRun.conclusion === 'success';
         }
         
-        // Analyze recent runs for patterns
-        const recentRuns = workflowRuns.workflow_runs.slice(0, 5);
-        const completedRuns = recentRuns.filter(run => run.status === 'completed' && run.conclusion);
-        const successRate = completedRuns.length > 0 
-          ? completedRuns.filter(run => run.conclusion === 'success').length / completedRuns.length 
+        // Analyze recent Core Infrastructure Tests runs for patterns
+        const recentCoreRuns = workflowRuns.workflow_runs
+          .filter(run => run.name === 'Core Infrastructure Tests')
+          .slice(0, 5);
+        const completedCoreRuns = recentCoreRuns.filter(run => run.status === 'completed' && run.conclusion);
+        const successRate = completedCoreRuns.length > 0 
+          ? completedCoreRuns.filter(run => run.conclusion === 'success').length / completedCoreRuns.length 
           : 0;
         
         this.results.cicdStatus.details = {
           recentSuccessRate: successRate,
-          failurePattern: this.analyzeFailurePattern(recentRuns)
+          failurePattern: this.analyzeFailurePattern(recentCoreRuns)
         };
         
         if (this.results.cicdStatus.passing) {
-          console.log(`✅ CI/CD pipeline passing on ${this.results.cicdStatus.branch} branch`);
+          console.log(`✅ Core Infrastructure Tests passing on ${this.results.cicdStatus.branch} branch`);
         } else {
-          const status = latestRun.conclusion || (isInProgress ? 'checking previous runs' : 'unknown');
-          this.results.criticalIssues.push(`CI/CD pipeline failing on ${this.results.cicdStatus.branch}: ${status}`);
-          console.log(`❌ CI/CD pipeline not passing: ${status}`);
+          const status = primaryRun.conclusion || (isInProgress ? 'checking previous runs' : 'unknown');
+          this.results.criticalIssues.push(`Core Infrastructure Tests failing on ${this.results.cicdStatus.branch}: ${status}`);
+          console.log(`❌ Core Infrastructure Tests not passing: ${status}`);
         }
       } else {
         // Fallback: Check local git status if API unavailable
