@@ -48,9 +48,9 @@ module.exports = {
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
   },
   
-  // Optimized for I/O-heavy tests
-  testTimeout: 20000, // Longer timeout for file operations
-  maxWorkers: isCIEnvironment() ? 1 : 2, // Limit workers for I/O contention
+  // Optimized for I/O-heavy tests with aggressive CI timeouts
+  testTimeout: isCIEnvironment() ? 45000 : 20000, // 45s in CI, 20s locally
+  maxWorkers: isCIEnvironment() ? 1 : 2, // Sequential execution in CI
   
   // I/O test settings with advanced caching
   cache: true,
@@ -58,17 +58,19 @@ module.exports = {
   detectOpenHandles: true,
   forceExit: true,
   
+  // Aggressive CI timeout and cleanup settings
+  setupFilesAfterEnv: isCIEnvironment() ? ['<rootDir>/tests/setup/ci-timeout-setup.js'] : [],
+  
   // Enhanced memory management for long-running tests
   logHeapUsage: isCIEnvironment(),
-  workerIdleMemoryLimit: '768MB', // Higher for I/O operations
+  workerIdleMemoryLimit: isCIEnvironment() ? '512MB' : '768MB', // Lower in CI
   
   // I/O-specific optimizations
   clearMocks: true,
   restoreMocks: true,
   resetMocks: false,
   
-  // Memory pressure monitoring
-  exposedGC: false,
+  // Performance monitoring
   slowTestThreshold: 10, // Flag slow I/O tests
   
   // Sequential execution for problematic tests

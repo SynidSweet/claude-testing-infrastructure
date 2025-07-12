@@ -165,6 +165,10 @@ jobs:
         if: success()
         run: |
           echo "🔗 Running integration tests with enhanced error reporting..."
+          echo "⚙️ Integration test configuration:"
+          echo "   Timeout: 45 seconds per test"
+          echo "   Workers: 1 (sequential execution)"
+          echo "   Force exit: enabled"
           npm run test:integration 2>&1 | tee test-integration.log || {
             echo "❌ INTEGRATION TESTS FAILED"
             echo "📋 Integration test failure analysis:"
@@ -188,6 +192,8 @@ jobs:
           echo "✅ Integration tests passed"
         env:
           CI: true  # This ensures AI tests are automatically skipped via Jest config
+          # SKIP_INTEGRATION_TESTS: "true"  # Uncomment to skip integration tests in CI
+          # SKIP_TESTS: "truth-validation,documentation-parser"  # Comma-separated list of tests to skip
 
       - name: Collect failure artifacts
         if: failure()
