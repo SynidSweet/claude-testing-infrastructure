@@ -1,16 +1,18 @@
 import type { Template } from '../TestTemplateEngine';
-import { TemplateFactory, type TemplateFactoryConfig, type TemplateCreationRequest, type TemplateCreationResult, type TemplateFactoryCapabilities } from './TemplateFactory';
+import {
+  TemplateFactory,
+  type TemplateFactoryConfig,
+  type TemplateCreationRequest,
+  type TemplateCreationResult,
+  type TemplateFactoryCapabilities,
+} from './TemplateFactory';
 
 // Legacy Python template imports from TestTemplateEngine where they're defined
-import { 
-  PytestTemplate,
-  PytestFastApiTemplate,
-  PytestDjangoTemplate
-} from '../TestTemplateEngine';
+import { PytestTemplate, PytestFastApiTemplate, PytestDjangoTemplate } from '../TestTemplateEngine';
 
 /**
  * Python template factory
- * 
+ *
  * Creates templates for Python projects with various frameworks.
  * Supports pytest and different Python web frameworks.
  */
@@ -22,7 +24,7 @@ export class PythonTemplateFactory extends TemplateFactory {
       language: 'python',
       enableEnhanced: true,
       frameworkConfig: {},
-      templateOptions: {}
+      templateOptions: {},
     };
 
     super({ ...defaultConfig, ...config });
@@ -41,17 +43,11 @@ export class PythonTemplateFactory extends TemplateFactory {
         'pytest-flask',
         'enhanced-pytest',
         'enhanced-fastapi',
-        'enhanced-django'
+        'enhanced-django',
       ],
-      supportedFrameworks: [
-        'pytest',
-        'fastapi',
-        'django',
-        'flask',
-        'asyncio'
-      ],
+      supportedFrameworks: ['pytest', 'fastapi', 'django', 'flask', 'asyncio'],
       supportsEnhanced: this.config.enableEnhanced || false,
-      language: this.config.language
+      language: this.config.language,
     };
   }
 
@@ -60,7 +56,7 @@ export class PythonTemplateFactory extends TemplateFactory {
     if (!validation.valid) {
       return {
         success: false,
-        error: validation.error || 'Validation failed'
+        error: validation.error || 'Validation failed',
       };
     }
 
@@ -68,12 +64,12 @@ export class PythonTemplateFactory extends TemplateFactory {
       const template = this.instantiateTemplate(request);
       return {
         success: true,
-        template
+        template,
       };
     } catch (error) {
       return {
         success: false,
-        error: `Failed to create template '${request.templateName}': ${error}`
+        error: `Failed to create template '${request.templateName}': ${error}`,
       };
     }
   }
@@ -201,7 +197,7 @@ export class PythonTemplateFactory extends TemplateFactory {
   getTemplateByFramework(framework: string): Template | null {
     switch (framework.toLowerCase()) {
       case 'pytest':
-        return this.config.enableEnhanced 
+        return this.config.enableEnhanced
           ? this.createEnhancedPytestTemplate()
           : new PytestTemplate();
 

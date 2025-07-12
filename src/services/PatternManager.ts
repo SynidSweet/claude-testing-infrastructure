@@ -203,6 +203,7 @@ export class PatternManagerImpl implements PatternManager {
         includes: [
           'src/**/*.{js,ts,jsx,tsx}',
           'lib/**/*.{js,ts,jsx,tsx}',
+          '*.{js,ts,jsx,tsx}', // Root level files
           '**/*.{py}',
           'components/**/*.{js,ts,jsx,tsx,vue,svelte}',
           'pages/**/*.{js,ts,jsx,tsx,vue,svelte}',
@@ -216,7 +217,9 @@ export class PatternManagerImpl implements PatternManager {
           '**/*.stories.*',
           '**/*.config.*',
           '**/*.d.ts',
-          '**/index.{js,ts}', // Often just re-exports
+          'src/components/**/index.{js,ts}', // Re-exports in component subdirectories only
+          'lib/**/index.{js,ts}', // Re-exports in lib subdirectories
+          'components/**/index.{js,ts}', // Re-exports in component subdirectories
           '**/types/**',
         ],
       },

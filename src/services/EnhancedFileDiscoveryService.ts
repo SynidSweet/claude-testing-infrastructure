@@ -150,7 +150,7 @@ export class EnhancedFileDiscoveryServiceImpl implements FileDiscoveryService {
         followSymbolicLinks: false,
         suppressErrors: true,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       const discoveryError: FileDiscoveryError = {
         kind: 'InvalidPatternError',
         pattern: includePatterns.join(', '),
@@ -327,7 +327,7 @@ export class EnhancedFileDiscoveryServiceImpl implements FileDiscoveryService {
         };
       }
       return { success: true, data: undefined };
-    } catch (error) {
+    } catch (error: unknown) {
       const errorWithCode = error as NodeJS.ErrnoException;
       if (errorWithCode.code === 'ENOENT') {
         return {

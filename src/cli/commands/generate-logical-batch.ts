@@ -157,6 +157,7 @@ export const generateLogicalBatchCommand = new Command()
             const configService = new ConfigurationService({
               projectPath: absoluteProjectPath,
             });
+            await configService.loadConfiguration();
             const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
             const projectAnalyzer = new ProjectAnalyzer(absoluteProjectPath, fileDiscovery);
             const projectAnalysis = await projectAnalyzer.analyzeProject();
@@ -366,7 +367,7 @@ export const generateLogicalBatchCommand = new Command()
 
             console.log(`\nBatch report saved to: ${batchReportPath}`);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           spinner.fail('Batched AI test generation failed');
           throw error;
         }

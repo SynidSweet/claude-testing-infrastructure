@@ -146,6 +146,7 @@ export async function testCommand(
         }
 
         const configService = new ConfigurationService({ projectPath });
+        await configService.loadConfiguration();
         const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
         const generator = new StructuralTestGenerator(
           config,
@@ -317,7 +318,7 @@ async function loadConfiguration(
       sourcesWithErrors: configResult.summary.sourcesWithErrors,
       maxRatio: fullConfig.generation.maxTestToSourceRatio,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.warn('Failed to load configuration service, using defaults', { error });
     const { DEFAULT_CONFIG } = await import('../../types/config');
     fullConfig = DEFAULT_CONFIG;
@@ -332,7 +333,7 @@ async function loadConfiguration(
       // Merge custom configuration
       Object.assign(fullConfig, customConfig);
       logger.debug('Custom configuration loaded', { config: options.config });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Failed to load custom configuration, using defaults', {
         config: options.config,
         error,
@@ -408,7 +409,7 @@ async function writeGeneratedTests(tests: GeneratedTest[], verbose = false): Pro
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Failed to write test file: ${test.testPath}`, { error });
       throw error;
     }
@@ -572,7 +573,7 @@ async function generateLogicalTests(
         if (!authTest || authTest.includes('authentication') || authTest.includes('login')) {
           throw new Error('Claude CLI authentication required');
         }
-      } catch (authError) {
+      } catch (authError: unknown) {
         const errorMsg = authError instanceof Error ? authError.message : String(authError);
         if (
           errorMsg.includes('timeout') ||
@@ -587,7 +588,7 @@ async function generateLogicalTests(
         }
         // If it's a different error, continue - authentication might still work
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (
         errorMsg.includes('Claude CLI authentication required') ||
@@ -739,7 +740,7 @@ async function generateLogicalTests(
           ); // 30 minute overall timeout
         }),
       ]);
-    } catch (error) {
+    } catch (error: unknown) {
       // Kill all active processes on timeout or error
       await orchestrator.killAll();
       throw error;
@@ -780,7 +781,7 @@ async function generateLogicalTests(
 
     console.log(chalk.cyan(`\n📁 Enhanced tests saved to: ${config.outputPath}`));
     console.log(chalk.green('\n✨ Logical tests ready for execution!\n'));
-  } catch (error) {
+  } catch (error: unknown) {
     spinner.fail('Logical test generation failed');
     throw error;
   }

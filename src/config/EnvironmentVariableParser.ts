@@ -43,7 +43,12 @@ export interface EnvParsingResult {
  * Environment variable parser for Claude Testing configuration
  */
 export class EnvironmentVariableParser {
-  private static readonly ARRAY_FIELDS = ['INCLUDE', 'EXCLUDE', 'COVERAGE_REPORTERS', 'OUTPUT_FORMATS'];
+  private static readonly ARRAY_FIELDS = [
+    'INCLUDE',
+    'EXCLUDE',
+    'COVERAGE_REPORTERS',
+    'OUTPUT_FORMATS',
+  ];
 
   /**
    * Parse environment variables starting with CLAUDE_TESTING_ prefix
@@ -63,7 +68,7 @@ export class EnvironmentVariableParser {
       // Remove CLAUDE_TESTING_ prefix
       const key = fullKey.substring('CLAUDE_TESTING_'.length);
       const path = key.toLowerCase().split('_');
-      
+
       // Check if this is an array field before parsing
       const isArrayField = this.isArrayField(key);
       const { value: parsedValue, warning } = this.parseEnvValue(value, isArrayField, key);
@@ -394,9 +399,7 @@ export class EnvironmentVariableParser {
     // For nested paths, convert to appropriate case
     // Keep configuration object keys lowercase (coverage.thresholds.global)
     // Use camelCase only for property names within objects
-    const camelPath = path
-      .map((segment) => segment.toLowerCase())
-      .filter((seg) => seg !== ''); // Remove empty segments
+    const camelPath = path.map((segment) => segment.toLowerCase()).filter((seg) => seg !== ''); // Remove empty segments
 
     if (camelPath.length === 0) return;
 
@@ -424,5 +427,4 @@ export class EnvironmentVariableParser {
       current[finalKey] = value;
     }
   }
-
 }

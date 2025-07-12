@@ -47,17 +47,20 @@ export async function runCommand(
           projectPath
         );
 
-        // Step 2: Analyze project using loaded configuration
+        // Step 2: Load configuration first
         const configService = new ConfigurationService({
           projectPath,
         });
+        await configService.loadConfiguration();
+
+        // Step 3: Analyze project using loaded configuration
         const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
         const analyzer = new ProjectAnalyzer(projectPath, fileDiscovery);
         const analysis = await analyzer.analyzeProject();
 
         spinner.succeed('Project analysis complete');
 
-        // Step 3: Check for generated tests
+        // Step 4: Check for generated tests
         const testPath = path.join(projectPath, '.claude-testing');
         try {
           await fs.stat(testPath);
@@ -70,7 +73,7 @@ export async function runCommand(
           return;
         }
 
-        // Step 4: Load configuration
+        // Step 5: Load additional runner configuration
         spinner.text = 'Loading test configuration...';
         const config = await loadRunnerConfiguration(
           projectPath,
@@ -82,12 +85,12 @@ export async function runCommand(
         );
         spinner.succeed('Configuration loaded');
 
-        // Step 5: Create and validate test runner
+        // Step 6: Create and validate test runner
         spinner.text = 'Initializing test runner...';
         const runner = TestRunnerFactory.createRunner(config, analysis, fileDiscovery);
         spinner.succeed(`Test runner ready (${config.framework})`);
 
-        // Step 6: Execute tests
+        // Step 7: Execute tests
         spinner.text = 'Running tests...';
 
         console.log(chalk.cyan(`\n🚀 Running tests with ${config.framework}...\n`));
@@ -107,7 +110,7 @@ export async function runCommand(
         if (!result.success) {
           process.exit(result.exitCode || 1);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         spinner.fail('Test execution failed');
         throw error;
       }
@@ -262,7 +265,7 @@ function parseThresholds(thresholdString?: string): CoverageThresholds['global']
         };
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.warn('Failed to parse threshold string', { thresholdString, error });
   }
 

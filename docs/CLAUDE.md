@@ -11,6 +11,7 @@ This guide serves as the central navigation hub for AI agents working with any a
 ### Core AI Agent Entry Points
 - **[Main AI Agent Guide](../AI_AGENT_GUIDE.md)** - Primary, stable entry point for all AI agents
 - **[Project Context](../PROJECT_CONTEXT.md)** - Complete project overview and current status
+- **⚠️ [CURRENT FOCUS](./CURRENT_FOCUS.md)** - **CHECK BEFORE ANY WORK** - Truth Validation System Implementation
 
 ### Specialized AI Agent Guides
 ```

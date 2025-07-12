@@ -360,7 +360,7 @@ export class CliArgumentMapper {
           },
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Failed to parse threshold string', { thresholdString, error });
       return { error: `Failed to parse threshold: ${String(error)}` };
     }

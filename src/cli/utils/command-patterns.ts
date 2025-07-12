@@ -6,6 +6,7 @@
  */
 
 import { ora } from '../../utils/common-imports';
+import type { Ora } from 'ora';
 import { displayConfigurationSources } from '../../utils/config-display';
 import {
   loadStandardConfiguration,
@@ -244,7 +245,7 @@ export function validateProjectPath(projectPath: string): void {
 /**
  * Get spinner for consistent loading indicators
  */
-export function getCommandSpinner(text: string) {
+export function getCommandSpinner(text: string): Ora {
   return ora(text);
 }
 

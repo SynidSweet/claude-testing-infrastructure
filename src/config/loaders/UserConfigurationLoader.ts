@@ -47,7 +47,7 @@ export class UserConfigurationLoader extends BaseConfigurationSourceLoader {
         );
 
         return this.createSuccessResult(source);
-      } catch (error) {
+      } catch (error: unknown) {
         // Try next path
         continue;
       }

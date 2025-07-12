@@ -1,6 +1,6 @@
 /**
  * Configuration merger for Claude Testing Infrastructure
- * 
+ *
  * Provides deep merging capabilities for configuration objects from multiple sources
  * with proper type safety and validation orchestration.
  */
@@ -99,8 +99,8 @@ export class ConfigurationMerger {
           // For objects, recursively merge
           const targetValue = result[key];
           const sourceValue = source[key] as ConfigRecord;
-          const mergeTarget = this.isRecordObject(targetValue as EnvValue | ConfigRecord) 
-            ? (targetValue as ConfigRecord) 
+          const mergeTarget = this.isRecordObject(targetValue as EnvValue | ConfigRecord)
+            ? (targetValue as ConfigRecord)
             : {};
           result[key] = this.deepMerge(mergeTarget, sourceValue);
         } else {
@@ -116,13 +116,15 @@ export class ConfigurationMerger {
   /**
    * Validate merged configuration using appropriate validation strategy
    */
-  private validateMergedConfiguration(mergedConfig: PartialClaudeTestingConfig): ConfigValidationResult {
+  private validateMergedConfiguration(
+    mergedConfig: PartialClaudeTestingConfig
+  ): ConfigValidationResult {
     const manager = new ConfigurationManager(this.projectPath);
 
     // Check if we have a complete config (all required fields present)
     const hasAllFields = [
       'include',
-      'exclude', 
+      'exclude',
       'testFramework',
       'aiModel',
       'features',

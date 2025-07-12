@@ -48,7 +48,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
 
           try {
             await fs.access(resolvedProjectPath);
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error('Project path does not exist', { projectPath: resolvedProjectPath });
             throw new Error(`Project path does not exist: ${resolvedProjectPath}`);
           }
@@ -84,6 +84,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
           const configService = new ConfigurationService({
             projectPath: resolvedProjectPath,
           });
+          await configService.loadConfiguration();
           const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
           const projectAnalyzer = new ProjectAnalyzer(resolvedProjectPath, fileDiscovery);
           const projectAnalysis = await projectAnalyzer.analyzeProject();
@@ -186,7 +187,7 @@ export const analyzeGapsCommand = new Command('analyze-gaps')
             process.exit(1); // Indicates some gaps found
           }
           // Exit 0 for excellent/good assessments
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error('Gap analysis failed', {
             error: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined,
@@ -214,7 +215,7 @@ async function outputResults(
 
   try {
     await fs.mkdir(outputDir, { recursive: true });
-  } catch (error) {
+  } catch (error: unknown) {
     // Directory might already exist
   }
 

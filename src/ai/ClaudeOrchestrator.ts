@@ -339,7 +339,7 @@ export class ClaudeOrchestrator extends EventEmitter {
         ),
         canDegrade: this.config.gracefulDegradation ?? false,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       if (isNodeError(error) && (error.code === 'ENOENT' || errorMessage.includes('not found'))) {
@@ -1037,7 +1037,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
             logger.info(
               `Resuming task ${task.id} with ${estimatedTokens} estimated remaining tokens`
             );
-          } catch (error) {
+          } catch (error: unknown) {
             const checkpointError = new AICheckpointError(
               `Failed to resume from checkpoint ${checkpointId}, starting fresh`,
               checkpointId,
@@ -1334,7 +1334,7 @@ ${task.context.missingScenarios.map((scenario) => `    # - ${scenario}`).join('\
                   cost: task.estimatedCost, // Fallback estimation
                 });
               }
-            } catch (parseError) {
+            } catch (parseError: unknown) {
               // If JSON parsing fails, log the error and return text output
               const error = new AIResponseParseError(
                 'Failed to parse JSON response from Claude CLI',

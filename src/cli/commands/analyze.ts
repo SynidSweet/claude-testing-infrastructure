@@ -92,39 +92,44 @@ async function displayPatternAnalysis(
   if (typeof fileDiscovery.analyzeProjectStructure === 'function') {
     console.log(chalk.blue('\n🔍 Smart Pattern Analysis'));
     console.log(chalk.blue('========================'));
-    
+
     try {
       const structureAnalysis = await fileDiscovery.analyzeProjectStructure(projectPath);
-      
+
       console.log(chalk.cyan('\n📂 Detected Structure:'), structureAnalysis.detectedStructure);
-      console.log(chalk.cyan('🎯 Confidence:'), `${(structureAnalysis.confidence * 100).toFixed(0)}%`);
-      
+      console.log(
+        chalk.cyan('🎯 Confidence:'),
+        `${(structureAnalysis.confidence * 100).toFixed(0)}%`
+      );
+
       console.log(chalk.cyan('\n📁 Source Directories:'));
       structureAnalysis.sourceDirectories.forEach((dir: any) => {
-        console.log(`  • ${dir.path} (${dir.type}, confidence: ${(dir.confidence * 100).toFixed(0)}%)`);
+        console.log(
+          `  • ${dir.path} (${dir.type}, confidence: ${(dir.confidence * 100).toFixed(0)}%)`
+        );
       });
-      
+
       console.log(chalk.cyan('\n🧪 Test Directories:'));
       structureAnalysis.testDirectories.forEach((dir: any) => {
         console.log(`  • ${dir.path} (${dir.type}, framework: ${dir.testFramework || 'unknown'})`);
       });
-      
+
       console.log(chalk.cyan('\n📋 Suggested Patterns:'));
       console.log(chalk.gray('Include patterns:'));
       structureAnalysis.suggestedPatterns.include.forEach((pattern: string) => {
         console.log(`  • ${pattern}`);
       });
-      
+
       console.log(chalk.gray('\nTest include patterns:'));
       structureAnalysis.suggestedPatterns.testIncludes.forEach((pattern: string) => {
         console.log(`  • ${pattern}`);
       });
-      
+
       if (structureAnalysis.monorepoInfo?.isMonorepo) {
         console.log(chalk.cyan('\n📦 Monorepo Detected:'));
         console.log('  Workspaces:', structureAnalysis.monorepoInfo.workspaces.join(', '));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(chalk.yellow('⚠️  Could not analyze project structure patterns'));
       if (options.verbose) {
         console.error(error);
@@ -332,41 +337,51 @@ function displayComplexityMetrics(complexity: ComplexityMetrics): void {
 
 function displayProjectStructure(projectStructure: ProjectStructure): void {
   console.log(chalk.cyan('\n📂 Project Structure:'));
-  
+
   // Display smart analysis if available
   if (projectStructure.smartAnalysis) {
     const analysis = projectStructure.smartAnalysis;
-    console.log(`  • Structure Type: ${analysis.detectedStructure} (${Math.round(analysis.confidence * 100)}% confidence)`);
-    
+    console.log(
+      `  • Structure Type: ${analysis.detectedStructure} (${Math.round(analysis.confidence * 100)}% confidence)`
+    );
+
     if (analysis.sourceDirectories.length > 0) {
       console.log(`  • Source Directories:`);
-      analysis.sourceDirectories.slice(0, 3).forEach(dir => {
-        console.log(`    - ${dir.path} (${dir.type}, ${Math.round(dir.confidence * 100)}% confidence, ${dir.fileCount} files)`);
+      analysis.sourceDirectories.slice(0, 3).forEach((dir) => {
+        console.log(
+          `    - ${dir.path} (${dir.type}, ${Math.round(dir.confidence * 100)}% confidence, ${dir.fileCount} files)`
+        );
       });
     }
-    
+
     if (analysis.testDirectories.length > 0) {
       console.log(`  • Test Directories:`);
-      analysis.testDirectories.slice(0, 3).forEach(dir => {
+      analysis.testDirectories.slice(0, 3).forEach((dir) => {
         const framework = dir.testFramework ? ` - ${dir.testFramework}` : '';
         console.log(`    - ${dir.path} (${dir.type}${framework})`);
       });
     }
-    
+
     if (analysis.frameworkIndicators.length > 0) {
       const topFramework = analysis.frameworkIndicators[0];
       if (topFramework) {
-        console.log(`  • Framework Patterns: ${topFramework.framework} (${Math.round(topFramework.confidence * 100)}% confidence)`);
+        console.log(
+          `  • Framework Patterns: ${topFramework.framework} (${Math.round(topFramework.confidence * 100)}% confidence)`
+        );
       }
     }
-    
+
     if (analysis.monorepoInfo?.isMonorepo) {
       console.log(`  • Monorepo: Yes (${analysis.monorepoInfo.workspaces.length} workspaces)`);
     }
-    
+
     console.log(`  • Suggested Patterns:`);
-    console.log(`    - Include: ${analysis.suggestedPatterns.include.slice(0, 2).join(', ')}${analysis.suggestedPatterns.include.length > 2 ? '...' : ''}`);
-    console.log(`    - Test: ${analysis.suggestedPatterns.testIncludes.slice(0, 2).join(', ')}${analysis.suggestedPatterns.testIncludes.length > 2 ? '...' : ''}`);
+    console.log(
+      `    - Include: ${analysis.suggestedPatterns.include.slice(0, 2).join(', ')}${analysis.suggestedPatterns.include.length > 2 ? '...' : ''}`
+    );
+    console.log(
+      `    - Test: ${analysis.suggestedPatterns.testIncludes.slice(0, 2).join(', ')}${analysis.suggestedPatterns.testIncludes.length > 2 ? '...' : ''}`
+    );
   } else {
     // Fallback to basic structure display
     if (projectStructure.srcDirectory) {
@@ -376,7 +391,9 @@ function displayProjectStructure(projectStructure: ProjectStructure): void {
       console.log(`  • Entry points: ${projectStructure.entryPoints.slice(0, 3).join(', ')}`);
     }
     if (projectStructure.testDirectories.length > 0) {
-      console.log(`  • Test directories: ${projectStructure.testDirectories.slice(0, 3).join(', ')}`);
+      console.log(
+        `  • Test directories: ${projectStructure.testDirectories.slice(0, 3).join(', ')}`
+      );
     }
   }
 }
@@ -446,21 +463,21 @@ function formatAsMarkdown(analysis: ProjectAnalysis): string {
     const smartAnalysis = analysis.projectStructure.smartAnalysis;
     markdown += `## Smart Project Structure Analysis\n\n`;
     markdown += `- **Structure Type:** ${smartAnalysis.detectedStructure} (${Math.round(smartAnalysis.confidence * 100)}% confidence)\n`;
-    
+
     if (smartAnalysis.sourceDirectories.length > 0) {
       markdown += `- **Source Directories:**\n`;
-      smartAnalysis.sourceDirectories.forEach(dir => {
+      smartAnalysis.sourceDirectories.forEach((dir) => {
         markdown += `  - ${dir.path} (${dir.type}, ${Math.round(dir.confidence * 100)}% confidence, ${dir.fileCount} files)\n`;
       });
     }
-    
+
     if (smartAnalysis.frameworkIndicators.length > 0) {
       markdown += `- **Framework Patterns:**\n`;
-      smartAnalysis.frameworkIndicators.forEach(indicator => {
+      smartAnalysis.frameworkIndicators.forEach((indicator) => {
         markdown += `  - ${indicator.framework} (${Math.round(indicator.confidence * 100)}% confidence)\n`;
       });
     }
-    
+
     markdown += `- **Suggested Include Patterns:** ${smartAnalysis.suggestedPatterns.include.join(', ')}\n`;
     markdown += `- **Suggested Test Patterns:** ${smartAnalysis.suggestedPatterns.testIncludes.join(', ')}\n`;
     markdown += '\n';

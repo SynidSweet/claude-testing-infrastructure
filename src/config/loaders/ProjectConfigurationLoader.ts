@@ -36,7 +36,7 @@ export class ProjectConfigurationLoader extends BaseConfigurationSourceLoader {
       );
 
       return this.createSuccessResult(source);
-    } catch (error) {
+    } catch (error: unknown) {
       return this.createFailureResult(
         `Failed to load project configuration: ${(error as Error).message}`,
         manager.getConfigurationPath()

@@ -342,19 +342,24 @@ export class ProjectStructureDetector {
   private async detectMonorepoStructure(): Promise<MonorepoInfo> {
     try {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8')) as {
+        workspaces?: string[] | { packages?: string[] };
+      };
 
       const workspaces = packageJson.workspaces;
       if (workspaces) {
         const workspacePatterns = Array.isArray(workspaces)
           ? workspaces
-          : workspaces.packages || [];
-        return {
+          : (workspaces.packages ?? []);
+        const result: MonorepoInfo = {
           isMonorepo: true,
           workspaces: workspacePatterns,
           rootPackageJson: true,
-          workspacePattern: workspacePatterns[0],
         };
+        if (workspacePatterns[0]) {
+          result.workspacePattern = workspacePatterns[0];
+        }
+        return result;
       }
 
       // Check for multiple package.json files
@@ -847,7 +852,7 @@ export class ProjectStructureDetector {
       helpers: 0.5,
     };
 
-    confidence += dirScores[dirName] || 0.3;
+    confidence += dirScores[dirName] ?? 0.3;
 
     // File count boost
     if (sourceFiles.length > 10) confidence += 0.2;

@@ -55,19 +55,19 @@ export interface ConfigurationSourceLoadResult {
 export interface ConfigurationSourceLoader {
   /** The type of configuration source this loader handles */
   readonly sourceType: ConfigurationSourceType;
-  
-  /** 
+
+  /**
    * Load configuration from this source
    * @returns Promise resolving to the load result
    */
   load(): Promise<ConfigurationSourceLoadResult>;
-  
+
   /**
    * Check if this source is available/applicable
    * @returns Promise resolving to true if the source can be loaded
    */
   isAvailable(): Promise<boolean>;
-  
+
   /**
    * Get a human-readable description of this source
    * @returns Description string
@@ -88,16 +88,16 @@ export interface ConfigurationSourceLoaderOptions {
  */
 export abstract class BaseConfigurationSourceLoader implements ConfigurationSourceLoader {
   protected options: ConfigurationSourceLoaderOptions;
-  
+
   constructor(options: ConfigurationSourceLoaderOptions) {
     this.options = options;
   }
-  
+
   abstract readonly sourceType: ConfigurationSourceType;
   abstract load(): Promise<ConfigurationSourceLoadResult>;
   abstract isAvailable(): Promise<boolean>;
   abstract getDescription(): string;
-  
+
   /**
    * Create a configuration source with error handling
    */
@@ -116,14 +116,14 @@ export abstract class BaseConfigurationSourceLoader implements ConfigurationSour
       warnings,
       loadedAt: new Date(),
     };
-    
+
     if (path !== undefined) {
       source.path = path;
     }
-    
+
     return source;
   }
-  
+
   /**
    * Create a successful load result
    */
@@ -133,7 +133,7 @@ export abstract class BaseConfigurationSourceLoader implements ConfigurationSour
       success: true,
     };
   }
-  
+
   /**
    * Create a failed load result
    */

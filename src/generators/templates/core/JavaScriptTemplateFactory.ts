@@ -1,18 +1,24 @@
 import type { Template } from '../TestTemplateEngine';
-import { TemplateFactory, type TemplateFactoryConfig, type TemplateCreationRequest, type TemplateCreationResult, type TemplateFactoryCapabilities } from './TemplateFactory';
+import {
+  TemplateFactory,
+  type TemplateFactoryConfig,
+  type TemplateCreationRequest,
+  type TemplateCreationResult,
+  type TemplateFactoryCapabilities,
+} from './TemplateFactory';
 
 // Legacy template imports from TestTemplateEngine where they're defined
-import { 
+import {
   JestJavaScriptTemplate,
   JestReactComponentTemplate,
   JestExpressApiTemplate,
   JestTypeScriptTemplate,
-  JestReactTypeScriptTemplate
+  JestReactTypeScriptTemplate,
 } from '../TestTemplateEngine';
 
 /**
  * JavaScript/TypeScript template factory
- * 
+ *
  * Creates templates for JavaScript and TypeScript projects with various frameworks.
  * Supports both legacy and enhanced template variants.
  */
@@ -24,7 +30,7 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
       language: 'javascript',
       enableEnhanced: true,
       frameworkConfig: {},
-      templateOptions: {}
+      templateOptions: {},
     };
 
     super({ ...defaultConfig, ...config });
@@ -46,18 +52,11 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
         'enhanced-react-component',
         'enhanced-vue-component',
         'enhanced-angular-component',
-        'enhanced-typescript'
+        'enhanced-typescript',
       ],
-      supportedFrameworks: [
-        'jest',
-        'react',
-        'vue',
-        'angular',
-        'express',
-        'node'
-      ],
+      supportedFrameworks: ['jest', 'react', 'vue', 'angular', 'express', 'node'],
       supportsEnhanced: this.config.enableEnhanced || false,
-      language: this.config.language
+      language: this.config.language,
     };
   }
 
@@ -66,7 +65,7 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
     if (!validation.valid) {
       return {
         success: false,
-        error: validation.error || 'Validation failed'
+        error: validation.error || 'Validation failed',
       };
     }
 
@@ -74,12 +73,12 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
       const template = this.instantiateTemplate(request);
       return {
         success: true,
-        template
+        template,
       };
     } catch (error) {
       return {
         success: false,
-        error: `Failed to create template '${request.templateName}': ${error}`
+        error: `Failed to create template '${request.templateName}': ${error}`,
       };
     }
   }
@@ -222,7 +221,9 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
    */
   private createEnhancedJestTemplate(): Template | null {
     try {
-      const { EnhancedJestJavaScriptTemplate } = require('../javascript/EnhancedJestJavaScriptTemplate');
+      const {
+        EnhancedJestJavaScriptTemplate,
+      } = require('../javascript/EnhancedJestJavaScriptTemplate');
       return new EnhancedJestJavaScriptTemplate();
     } catch (error) {
       console.warn('EnhancedJestJavaScriptTemplate not available:', error);
@@ -235,7 +236,9 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
    */
   private createEnhancedReactTemplate(): Template | null {
     try {
-      const { EnhancedReactComponentTemplate } = require('../javascript/EnhancedReactComponentTemplate');
+      const {
+        EnhancedReactComponentTemplate,
+      } = require('../javascript/EnhancedReactComponentTemplate');
       return new EnhancedReactComponentTemplate();
     } catch (error) {
       console.warn('EnhancedReactComponentTemplate not available:', error);
@@ -248,7 +251,9 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
    */
   private createEnhancedVueTemplate(): Template | null {
     try {
-      const { EnhancedVueComponentTemplate } = require('../javascript/EnhancedVueComponentTemplate');
+      const {
+        EnhancedVueComponentTemplate,
+      } = require('../javascript/EnhancedVueComponentTemplate');
       return new EnhancedVueComponentTemplate();
     } catch (error) {
       console.warn('EnhancedVueComponentTemplate not available:', error);
@@ -261,7 +266,9 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
    */
   private createEnhancedAngularTemplate(): Template | null {
     try {
-      const { EnhancedAngularComponentTemplate } = require('../javascript/EnhancedAngularComponentTemplate');
+      const {
+        EnhancedAngularComponentTemplate,
+      } = require('../javascript/EnhancedAngularComponentTemplate');
       return new EnhancedAngularComponentTemplate();
     } catch (error) {
       console.warn('EnhancedAngularComponentTemplate not available:', error);
@@ -288,7 +295,7 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
   getTemplateByFramework(framework: string): Template | null {
     switch (framework.toLowerCase()) {
       case 'jest':
-        return this.config.enableEnhanced 
+        return this.config.enableEnhanced
           ? this.createEnhancedJestTemplate() || new JestJavaScriptTemplate()
           : new JestJavaScriptTemplate();
 
@@ -298,14 +305,10 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
           : new JestReactComponentTemplate();
 
       case 'vue':
-        return this.config.enableEnhanced
-          ? this.createEnhancedVueTemplate()
-          : null;
+        return this.config.enableEnhanced ? this.createEnhancedVueTemplate() : null;
 
       case 'angular':
-        return this.config.enableEnhanced
-          ? this.createEnhancedAngularTemplate()
-          : null;
+        return this.config.enableEnhanced ? this.createEnhancedAngularTemplate() : null;
 
       case 'express':
         return new JestExpressApiTemplate();

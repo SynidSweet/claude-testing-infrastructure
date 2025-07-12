@@ -1,6 +1,6 @@
 # Testing Documentation - AI Agent Guide
 
-*Last updated: 2025-07-10 | Added AI test suite optimization achieving 99.7% performance improvement*
+*Last updated: 2025-07-12 | Added E2E Test Maintenance Guide for robust testing patterns that survive CLI output evolution*
 
 *Quick navigation for AI agents working with testing documentation and validation systems*
 
@@ -19,6 +19,7 @@ testing/
 ├── timer-testing-patterns.md    # Timer/async testing patterns guide
 ├── timer-testing-troubleshooting.md # Timer test issue resolution
 ├── ai-test-optimization.md      # AI test suite performance optimization (99.7% improvement)
+├── e2e-test-maintenance-guide.md # E2E test maintenance for CLI output evolution
 ├── test-strategy.md             # Testing strategy (future)
 ├── validation-guide.md          # Validation procedures (future)
 └── quality-gates.md             # Quality standards (future)
@@ -59,6 +60,11 @@ testing/
 **Purpose**: High-performance AI test optimization achieving 99.7% performance improvement  
 **When to reference**: Optimizing AI test execution, improving test performance, writing efficient AI tests  
 **Key content**: OptimizedAITestUtils API, optimization techniques, migration guide, performance monitoring
+
+#### E2E Test Maintenance Guide (`e2e-test-maintenance-guide.md`)
+**Purpose**: Comprehensive guide for maintaining robust E2E tests that survive CLI output format evolution  
+**When to reference**: Writing E2E tests, fixing format-related test failures, preventing test regression  
+**Key content**: Robust pattern matching strategies, defensive test patterns, maintenance workflows, regression prevention
 
 ### Future Testing Documents
 - **Test Strategy**: Overall testing approach and methodologies
@@ -350,6 +356,12 @@ Validate that AI-generated tests contain meaningful assertions
 2. Verify timer mocking and cleanup
 3. Add proper event loop coordination
 4. Use debugging techniques for diagnosis
+
+### Writing E2E tests?
+1. Check `e2e-test-maintenance-guide.md` for robust patterns
+2. Focus on functional success over exact output format
+3. Use exit codes as primary success indicator
+4. Use regex patterns for flexible matching
 
 ### Adding new tests?
 1. Follow established test structure patterns

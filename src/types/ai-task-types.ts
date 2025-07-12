@@ -33,7 +33,7 @@ export interface AITaskResult {
 /**
  * Gap analysis data structure
  */
-export interface GapAnalysisData {
+export interface AIGapAnalysisData {
   filePath: string;
   language: string;
   framework?: string;
@@ -90,7 +90,7 @@ export function isValidTaskPriority(value: unknown): value is TaskPriority {
 /**
  * Type guard for GapAnalysisData
  */
-export function isGapAnalysisData(value: unknown): value is GapAnalysisData {
+export function isAIGapAnalysisData(value: unknown): value is AIGapAnalysisData {
   return (
     typeof value === 'object' &&
     value !== null &&

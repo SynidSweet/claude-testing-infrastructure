@@ -1,6 +1,6 @@
 /**
  * Core template engine components
- * 
+ *
  * This module provides the foundational template system architecture
  * extracted from the monolithic TestTemplateEngine.ts for better
  * separation of concerns and maintainability.
@@ -20,13 +20,13 @@ export type {
   TemplateInfo,
   TemplateRegistrationResult,
   TemplateSearchCriteria,
-  TemplateMatch
+  TemplateMatch,
 } from './TemplateRegistry';
 
 export type {
   SafeGenerationResult,
   TemplateGenerationOptions,
-  TemplateGenerationStats
+  TemplateGenerationStats,
 } from './TemplateEngine';
 
 export type {
@@ -34,7 +34,7 @@ export type {
   TemplateCreationRequest,
   TemplateCreationResult,
   TemplateFactoryCapabilities,
-  TemplateFactoryRegistrationResult
+  TemplateFactoryRegistrationResult,
 } from './TemplateFactory';
 
 // Re-export important types from the main template engine for compatibility
@@ -45,7 +45,7 @@ export type {
   EnhancedTemplateContext,
   TemplateMetadata,
   TestGenerationOptions,
-  ValidationResult
+  ValidationResult,
 } from '../TestTemplateEngine';
 
 /**
@@ -108,7 +108,7 @@ export function createDefaultFactoryRegistry() {
   const { PythonTemplateFactory } = require('./PythonTemplateFactory');
 
   const factoryRegistry = new TemplateFactoryRegistry();
-  
+
   // Register default factories
   factoryRegistry.registerFactory(new JavaScriptTemplateFactory());
   factoryRegistry.registerFactory(new PythonTemplateFactory());
@@ -142,7 +142,10 @@ export function registerTemplatesFromFactories(templateRegistry: any, factoryReg
         }
       }
     } catch (error) {
-      console.warn(`Failed to register templates from factory '${factory.getFactoryName()}':`, error);
+      console.warn(
+        `Failed to register templates from factory '${factory.getFactoryName()}':`,
+        error
+      );
     }
   }
 }
@@ -162,13 +165,13 @@ export function createCompleteTemplateSystem() {
     templateEngine,
     templateRegistry,
     factoryRegistry,
-    
+
     // Convenience methods
     createTemplate: (request: any) => factoryRegistry.createTemplate(request),
     listTemplates: () => templateRegistry.listTemplates(),
     getStats: () => ({
       templates: templateRegistry.getStats(),
-      factories: factoryRegistry.getStats()
-    })
+      factories: factoryRegistry.getStats(),
+    }),
   };
 }

@@ -5,7 +5,10 @@
  * Provides a factory pattern for creating and coordinating loaders.
  */
 
-import type { ConfigurationSourceLoader, ConfigurationSourceLoaderOptions } from './ConfigurationSourceLoader';
+import type {
+  ConfigurationSourceLoader,
+  ConfigurationSourceLoaderOptions,
+} from './ConfigurationSourceLoader';
 import { DefaultConfigurationLoader } from './DefaultConfigurationLoader';
 import { UserConfigurationLoader } from './UserConfigurationLoader';
 import { ProjectConfigurationLoader } from './ProjectConfigurationLoader';
@@ -17,7 +20,7 @@ import { CustomFileConfigurationLoader } from './CustomFileConfigurationLoader';
 export interface LoaderRegistryOptions extends ConfigurationSourceLoaderOptions {
   /** Whether to include user configuration loader */
   includeUserConfig?: boolean;
-  /** Custom configuration file path (if any) */
+  /** Custom configuration file path (optional) */
   customConfigPath?: string;
 }
 
@@ -47,7 +50,7 @@ export class ConfigurationSourceLoaderRegistry {
    * Get a specific loader by its source type
    */
   getLoader(sourceType: string): ConfigurationSourceLoader | undefined {
-    return this.loaders.find(loader => loader.sourceType === sourceType);
+    return this.loaders.find((loader) => loader.sourceType === sourceType);
   }
 
   /**
@@ -55,13 +58,13 @@ export class ConfigurationSourceLoaderRegistry {
    */
   async getAvailableLoaders(): Promise<ConfigurationSourceLoader[]> {
     const availableLoaders: ConfigurationSourceLoader[] = [];
-    
+
     for (const loader of this.loaders) {
       if (await loader.isAvailable()) {
         availableLoaders.push(loader);
       }
     }
-    
+
     return availableLoaders;
   }
 
@@ -85,7 +88,7 @@ export class ConfigurationSourceLoaderRegistry {
    * Remove a loader from the registry
    */
   removeLoader(sourceType: string): boolean {
-    const index = this.loaders.findIndex(loader => loader.sourceType === sourceType);
+    const index = this.loaders.findIndex((loader) => loader.sourceType === sourceType);
     if (index !== -1) {
       this.loaders.splice(index, 1);
       return true;
@@ -98,7 +101,7 @@ export class ConfigurationSourceLoaderRegistry {
    */
   private initializeLoaders(): void {
     // Load in reverse priority order (lowest to highest priority)
-    
+
     // 1. Default configuration (lowest priority)
     this.loaders.push(new DefaultConfigurationLoader(this.options));
 
@@ -112,13 +115,15 @@ export class ConfigurationSourceLoaderRegistry {
 
     // 4. Custom file configuration (if specified)
     if (this.options.customConfigPath) {
-      this.loaders.push(new CustomFileConfigurationLoader({
-        ...this.options,
-        customConfigPath: this.options.customConfigPath,
-      }));
+      this.loaders.push(
+        new CustomFileConfigurationLoader({
+          ...this.options,
+          customConfigPath: this.options.customConfigPath,
+        })
+      );
     }
 
-    // Note: Environment variables and CLI arguments will be handled 
+    // Note: Environment variables and CLI arguments will be handled
     // by separate dedicated modules (EnvironmentVariableParser and CliArgumentMapper)
   }
 }

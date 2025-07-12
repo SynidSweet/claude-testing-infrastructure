@@ -1,6 +1,9 @@
 import { fs, path, fg, logger } from '../utils/common-imports';
 import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
-import { ProjectStructureDetector, type ProjectStructureAnalysis } from '../services/ProjectStructureDetector';
+import {
+  ProjectStructureDetector,
+  type ProjectStructureAnalysis,
+} from '../services/ProjectStructureDetector';
 
 export interface ProjectAnalysis {
   projectPath: string;
@@ -151,7 +154,7 @@ export class ProjectAnalyzer {
     // Validate project path exists
     try {
       await fs.access(this.projectPath);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Project path does not exist: ${this.projectPath}`);
     }
 
@@ -200,7 +203,7 @@ export class ProjectAnalyzer {
 
       logger.info('Project analysis completed successfully');
       return analysis;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Project analysis failed:', error);
       throw new Error(
         `Failed to analyze project: ${error instanceof Error ? error.message : String(error)}`
@@ -520,11 +523,11 @@ export class ProjectAnalyzer {
   private async analyzeProjectStructure(): Promise<ProjectStructure> {
     // Original basic analysis
     const rootFiles = await this.findFiles(['*'], [], { onlyFiles: true, deep: 1 });
-    
+
     // Enhanced smart structure detection
     const structureDetector = new ProjectStructureDetector(this.projectPath);
     let smartAnalysis: ProjectStructureAnalysis | undefined;
-    
+
     try {
       smartAnalysis = await structureDetector.analyzeStructure();
       logger.info(
@@ -533,7 +536,7 @@ export class ProjectAnalyzer {
         Math.round(smartAnalysis.confidence * 100),
         smartAnalysis.sourceDirectories.length
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn('Smart structure analysis failed, falling back to basic detection:', error);
     }
 
@@ -545,7 +548,7 @@ export class ProjectAnalyzer {
       // Use smart analysis results
       const primarySource = smartAnalysis.sourceDirectories[0];
       srcDirectory = primarySource?.path !== '.' ? primarySource?.path : undefined;
-      testDirectories = smartAnalysis.testDirectories.map(td => td.path);
+      testDirectories = smartAnalysis.testDirectories.map((td) => td.path);
     } else {
       // Fallback to basic detection
       const srcCandidates = ['src', 'lib', 'app', 'source'];
@@ -675,7 +678,7 @@ export class ProjectAnalyzer {
         const lines = content.split('\n').length;
         totalLines += lines;
         fileSizes.push({ path: file, lines });
-      } catch (error) {
+      } catch (error: unknown) {
         // Skip files that can't be read
         logger.debug(`Could not read file ${file}:`, error);
       }
@@ -1280,7 +1283,7 @@ export class ProjectAnalyzer {
             ...(prompt.arguments ? { arguments: prompt.arguments } : {}),
           }));
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.debug('Could not parse MCP config file:', error);
       }
     }
@@ -1312,7 +1315,7 @@ export class ProjectAnalyzer {
         });
 
         return result.files;
-      } catch (error) {
+      } catch (error: unknown) {
         logger.debug(
           'Error using FileDiscoveryService, falling back to direct implementation:',
           error
@@ -1330,7 +1333,7 @@ export class ProjectAnalyzer {
         deep: options.deep ?? 10,
         dot: false,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error finding files:', error);
       return [];
     }
@@ -1344,7 +1347,7 @@ export class ProjectAnalyzer {
         onlyDirectories: true,
         dot: false,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error finding directories:', error);
       return [];
     }
@@ -1355,7 +1358,7 @@ export class ProjectAnalyzer {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
       return JSON.parse(content) as PackageJsonContent;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('No package.json found or invalid JSON');
       return null;
     }
@@ -1391,7 +1394,7 @@ export class ProjectAnalyzer {
       }
 
       if (Object.keys(deps).length > 0) return deps;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('No pyproject.toml found');
     }
 
@@ -1412,7 +1415,7 @@ export class ProjectAnalyzer {
       });
 
       return Object.keys(deps).length > 0 ? deps : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('No requirements.txt found');
     }
 
@@ -1462,7 +1465,7 @@ export class ProjectAnalyzer {
           fileExtensionPattern: await this.detectFileExtensionPattern(),
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error analyzing module system:', error);
       return {
         type: 'commonjs',
@@ -1509,7 +1512,7 @@ export class ProjectAnalyzer {
             cjsCount++;
           }
           // Files with both or neither don't contribute to the count
-        } catch (error) {
+        } catch (error: unknown) {
           logger.debug(`Error reading file ${filePath}:`, error);
         }
       }
@@ -1531,7 +1534,7 @@ export class ProjectAnalyzer {
         // Default to CommonJS if no clear pattern
         return { type: 'commonjs', confidence: 0.6 };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error detecting module type from files:', error);
       return { type: 'commonjs', confidence: 0.5 };
     }
@@ -1574,7 +1577,7 @@ export class ProjectAnalyzer {
       } else {
         return 'js';
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error detecting file extension pattern:', error);
       return 'js';
     }

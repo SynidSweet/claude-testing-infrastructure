@@ -274,7 +274,7 @@ async function compareWithBaseline(
       console.log('\n💡 Recommendations:');
       comparison.recommendations.forEach((rec) => console.log(`   • ${rec}`));
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(
       `❌ Failed to compare with baseline: ${error instanceof Error ? error.message : String(error)}`
     );

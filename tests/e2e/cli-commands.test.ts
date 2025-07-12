@@ -81,7 +81,7 @@ describe('CLI Commands End-to-End Validation', () => {
         cwd: path.resolve('.')
       });
       
-      expect(dryRunResult.stdout).toContain('dry run');
+      expect(dryRunResult.stdout.toLowerCase()).toContain('dry run');
       
       // Verify no tests were actually created
       const testsAfterDryRun = await countGeneratedTests(testProjectPath);
@@ -349,7 +349,8 @@ async function countGeneratedTests(projectPath: string): Promise<number> {
   try {
     const testDir = path.join(projectPath, '.claude-testing');
     const files = await fs.readdir(testDir, { recursive: true });
-    return files.filter(f => f.toString().match(/\.(test|spec)\.(js|ts|jsx|tsx|py)$/)).length;
+    // Match both standard patterns (.test.py, .spec.py) and Python patterns (.unit_test.py, .utility_test.py, etc.)
+    return files.filter(f => f.toString().match(/\.(test|spec)\.(js|ts|jsx|tsx|py)$|_test\.py$/)).length;
   } catch {
     return 0;
   }

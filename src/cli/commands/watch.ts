@@ -101,7 +101,7 @@ async function watchModeHandler(
       if (!projectStats.isDirectory()) {
         throw new Error(`Not a directory: ${resolvedPath}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Project path does not exist: ${resolvedPath}`);
     }
 
@@ -127,6 +127,7 @@ async function watchModeHandler(
     const configService = new ConfigurationService({
       projectPath: resolvedPath,
     });
+    await configService.loadConfiguration();
     const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
     const projectAnalyzer = new ProjectAnalyzer(resolvedPath, fileDiscovery);
     await projectAnalyzer.analyzeProject();
@@ -221,7 +222,7 @@ async function watchModeHandler(
 
     // Keep process alive
     process.stdin.resume();
-  } catch (error) {
+  } catch (error: unknown) {
     spinner.fail('Failed to start watch mode');
     logger.error('Watch mode initialization error:', error);
 
@@ -302,7 +303,7 @@ function setupEventHandlers(
           // TODO: Add automatic test execution
           console.log(chalk.gray('  Auto-run tests feature coming soon...'));
         }
-      } catch (error) {
+      } catch (error: unknown) {
         stats.failedGenerations++;
         console.log(chalk.red(`Test generation error: ${error}`));
         logger.error('Test generation error', { error });

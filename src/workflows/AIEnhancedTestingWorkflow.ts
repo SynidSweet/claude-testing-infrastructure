@@ -19,11 +19,20 @@ import { TestRunnerFactory, type TestRunnerConfig } from '../runners/TestRunnerF
 import { type TestResult, type CoverageResult } from '../runners/TestRunner';
 import { TestGapAnalyzer, type TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
 // import { CoverageReporter } from '../runners/CoverageReporter'; // Not currently used
-import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator } from '../ai';
+import { ChunkedAITaskPreparation, ClaudeOrchestrator, CostEstimator, type AITask } from '../ai';
 import { logger } from '../utils/logger';
 import type { GapAnalysisResult } from '../types/generation-types';
 import { AIWorkflowError } from '../types/ai-error-types';
 import { formatErrorMessage } from '../utils/error-handling';
+import type {
+  WorkflowPhase,
+  WorkflowEvents,
+  StructuralTestFile,
+  WorkflowEventHandler,
+  WorkflowState,
+  PhaseResults,
+  PhaseResult,
+} from '../types/ai-workflow-types';
 
 export interface TestRunResults {
   results: TestResult;
@@ -93,6 +102,99 @@ export interface WorkflowDetailedReport {
 
 export class AIEnhancedTestingWorkflow extends EventEmitter {
   private startTime: number = 0;
+  private workflowState: WorkflowState;
+
+  // Type-safe event emission
+  public emit<K extends keyof WorkflowEvents>(event: K, data: WorkflowEvents[K]): boolean {
+    return super.emit(event, data);
+  }
+
+  // Type-safe event listener
+  public on<K extends keyof WorkflowEvents>(event: K, listener: WorkflowEventHandler<K>): this {
+    return super.on(event, listener);
+  }
+
+  // Initialize workflow state
+  private initializeState(): WorkflowState {
+    return {
+      currentPhase: null,
+      startTime: Date.now(),
+      phaseTimes: {},
+      results: {
+        success: false,
+        generatedTests: { structural: 0, logical: 0 },
+      },
+      errors: [],
+    };
+  }
+
+  // Type-safe phase transition
+  private transitionToPhase(phase: WorkflowPhase): void {
+    // Import the function dynamically to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { isValidPhaseTransition } = require('../types/ai-workflow-types') as {
+      isValidPhaseTransition: (from: WorkflowPhase | null, to: WorkflowPhase) => boolean;
+    };
+    if (!isValidPhaseTransition(this.workflowState.currentPhase, phase)) {
+      throw new AIWorkflowError(
+        `Invalid phase transition from ${this.workflowState.currentPhase} to ${phase}`,
+        'phase-transition'
+      );
+    }
+
+    // End current phase timing
+    if (this.workflowState.currentPhase) {
+      const currentPhaseTime = this.workflowState.phaseTimes[this.workflowState.currentPhase];
+      if (currentPhaseTime && !currentPhaseTime.end) {
+        currentPhaseTime.end = Date.now();
+      }
+    }
+
+    // Start new phase
+    this.workflowState.currentPhase = phase;
+    this.workflowState.phaseTimes[phase] = { start: Date.now() };
+  }
+
+  // Store phase result with type safety
+  private setPhaseResult<T extends WorkflowPhase>(phase: T, result: PhaseResult<T>): void {
+    // Type-safe result storage based on phase
+    switch (phase) {
+      case 'analysis': {
+        this.workflowState.results.projectAnalysis = result as PhaseResults['analysis'];
+        break;
+      }
+      case 'structural-generation': {
+        const structuralTests = result as PhaseResults['structural-generation'];
+        if (this.workflowState.results.generatedTests) {
+          this.workflowState.results.generatedTests.structural = structuralTests.length;
+        }
+        break;
+      }
+      case 'test-execution':
+      case 'final-execution': {
+        const testResults = result as PhaseResults['test-execution'];
+        this.workflowState.results.testResults = testResults.results;
+        if (testResults.coverage) {
+          this.workflowState.results.coverage = testResults.coverage;
+        }
+        break;
+      }
+      case 'gap-analysis': {
+        const gapResult = result as PhaseResults['gap-analysis'];
+        this.workflowState.results.gaps = this.convertToGapAnalysisResult(gapResult);
+        break;
+      }
+      case 'ai-generation': {
+        const aiResult = result as PhaseResults['ai-generation'];
+        this.workflowState.results.aiResults = aiResult;
+        if (this.workflowState.results.generatedTests) {
+          this.workflowState.results.generatedTests.logical = aiResult.successful;
+        }
+        this.workflowState.results.totalCost = aiResult.totalCost;
+        break;
+      }
+    }
+  }
 
   constructor(private config: WorkflowConfig = {}) {
     super();
@@ -107,86 +209,100 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       coverage: true,
       ...config,
     };
+
+    // Initialize workflow state
+    this.workflowState = this.initializeState();
   }
 
   /**
    * Execute the complete AI-enhanced testing workflow
    */
   async execute(projectPath: string): Promise<WorkflowResult> {
-    this.startTime = Date.now();
-    const result: Partial<WorkflowResult> = {
-      success: false,
-      generatedTests: { structural: 0, logical: 0 },
-    };
+    // Initialize fresh state for this execution
+    this.workflowState = this.initializeState();
+    this.startTime = this.workflowState.startTime;
 
     try {
       this.emit('workflow:start', { projectPath, config: this.config });
 
       // Phase 1: Project Analysis
-      this.emit('phase:start', { phase: 'analysis' });
-      result.projectAnalysis = await this.analyzeProject(projectPath);
-      this.emit('phase:complete', { phase: 'analysis', result: result.projectAnalysis });
+      this.transitionToPhase('analysis');
+      this.emit('phase:start', { phase: 'analysis' as WorkflowPhase });
+      const projectAnalysis = await this.analyzeProject(projectPath);
+      this.setPhaseResult('analysis', projectAnalysis);
+      this.emit('phase:complete', { phase: 'analysis' as WorkflowPhase, result: projectAnalysis });
 
       // Phase 2: Structural Test Generation
-      this.emit('phase:start', { phase: 'structural-generation' });
+      this.transitionToPhase('structural-generation');
+      this.emit('phase:start', { phase: 'structural-generation' as WorkflowPhase });
       const structuralTests = await this.generateStructuralTests(
         projectPath,
-        result.projectAnalysis
+        this.workflowState.results.projectAnalysis!
       );
-      result.generatedTests!.structural = structuralTests.length;
+      this.setPhaseResult('structural-generation', structuralTests);
       this.emit('phase:complete', {
-        phase: 'structural-generation',
+        phase: 'structural-generation' as WorkflowPhase,
         count: structuralTests.length,
       });
 
       // Phase 3: Test Execution (if enabled)
       if (this.config.runTests) {
-        this.emit('phase:start', { phase: 'test-execution' });
+        this.transitionToPhase('test-execution');
+        this.emit('phase:start', { phase: 'test-execution' as WorkflowPhase });
         const testResults = await this.runTests(projectPath);
-        result.testResults = testResults.results;
-        if (testResults.coverage) {
-          result.coverage = testResults.coverage;
-        }
-        this.emit('phase:complete', { phase: 'test-execution', results: testResults });
+        this.setPhaseResult('test-execution', testResults);
+        this.emit('phase:complete', {
+          phase: 'test-execution' as WorkflowPhase,
+          results: testResults,
+        });
       }
 
       // Phase 4: Gap Analysis
-      this.emit('phase:start', { phase: 'gap-analysis' });
+      this.transitionToPhase('gap-analysis');
+      this.emit('phase:start', { phase: 'gap-analysis' as WorkflowPhase });
       const gapReport = await this.analyzeTestGaps(projectPath);
-      result.gaps = this.convertToGapAnalysisResult(gapReport);
-      this.emit('phase:complete', { phase: 'gap-analysis', gaps: gapReport.gaps?.length ?? 0 });
+      this.setPhaseResult('gap-analysis', gapReport);
+      this.emit('phase:complete', {
+        phase: 'gap-analysis' as WorkflowPhase,
+        gaps: gapReport.gaps?.length ?? 0,
+      });
 
       // Phase 5: AI Logical Test Generation (if enabled and gaps exist)
       if (this.config.enableAI && gapReport.gaps && gapReport.gaps.length > 0) {
-        this.emit('phase:start', { phase: 'ai-generation' });
+        this.transitionToPhase('ai-generation');
+        this.emit('phase:start', { phase: 'ai-generation' as WorkflowPhase });
         const aiResults = await this.generateLogicalTests(gapReport);
-        result.aiResults = aiResults;
-        if (result.generatedTests) {
-          result.generatedTests.logical = aiResults.successful;
-        }
-        result.totalCost = aiResults.totalCost;
-        this.emit('phase:complete', { phase: 'ai-generation', results: aiResults });
+        this.setPhaseResult('ai-generation', aiResults);
+        this.emit('phase:complete', {
+          phase: 'ai-generation' as WorkflowPhase,
+          results: aiResults,
+        });
       }
 
       // Phase 6: Final Test Execution (if AI generated new tests)
-      if (this.config.runTests && (result.generatedTests?.logical ?? 0) > 0) {
-        this.emit('phase:start', { phase: 'final-execution' });
+      if (this.config.runTests && (this.workflowState.results.generatedTests?.logical ?? 0) > 0) {
+        this.transitionToPhase('final-execution');
+        this.emit('phase:start', { phase: 'final-execution' as WorkflowPhase });
         const finalResults = await this.runTests(projectPath);
-        result.testResults = finalResults.results;
-        if (finalResults.coverage) {
-          result.coverage = finalResults.coverage;
-        }
-        this.emit('phase:complete', { phase: 'final-execution', results: finalResults });
+        this.setPhaseResult('final-execution', finalResults);
+        this.emit('phase:complete', {
+          phase: 'final-execution' as WorkflowPhase,
+          results: finalResults,
+        });
       }
 
       // Generate reports
-      result.duration = (Date.now() - this.startTime) / 1000;
-      result.reports = await this.generateReports(projectPath, result);
-      result.success = true;
+      this.workflowState.results.duration = (Date.now() - this.startTime) / 1000;
+      this.workflowState.results.success = true;
+      this.workflowState.results.reports = await this.generateReports(
+        projectPath,
+        this.workflowState.results
+      );
 
-      this.emit('workflow:complete', { result });
-      return result as WorkflowResult;
-    } catch (error) {
+      const finalResult = this.workflowState.results as WorkflowResult;
+      this.emit('workflow:complete', { result: finalResult });
+      return finalResult;
+    } catch (error: unknown) {
       const workflowError =
         error instanceof AIWorkflowError
           ? error
@@ -196,9 +312,10 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
               error instanceof Error ? error : undefined
             );
 
+      this.workflowState.errors.push(workflowError);
       this.emit('workflow:error', { error: workflowError });
-      result.duration = (Date.now() - this.startTime) / 1000;
-      result.reports = {
+      this.workflowState.results.duration = (Date.now() - this.startTime) / 1000;
+      this.workflowState.results.reports = {
         summary: `Workflow failed: ${workflowError.message}`,
         detailed: {
           timestamp: new Date().toISOString(),
@@ -209,7 +326,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
           context: workflowError.context,
         },
       };
-      return result as WorkflowResult;
+      return this.workflowState.results as WorkflowResult;
     }
   }
 
@@ -230,7 +347,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
   private async generateStructuralTests(
     projectPath: string,
     analysis: ProjectAnalysis
-  ): Promise<unknown[]> {
+  ): Promise<StructuralTestFile[]> {
     // Import StructuralTestGenerator since TestGenerator is abstract
     const { StructuralTestGenerator } = await import('../generators/StructuralTestGenerator');
     const config = {
@@ -252,18 +369,22 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     const testDir = path.join(projectPath, '.claude-testing', 'tests');
     await fs.mkdir(testDir, { recursive: true });
 
-    let testCount = 0;
+    const structuralTestFiles: StructuralTestFile[] = [];
     if (generatedTests.tests) {
       for (const test of generatedTests.tests) {
         const testPath = path.join(testDir, path.basename(test.testPath));
         await fs.mkdir(path.dirname(testPath), { recursive: true });
         await fs.writeFile(testPath, test.content, 'utf-8');
-        testCount++;
+        structuralTestFiles.push({
+          testPath: test.testPath,
+          content: test.content,
+          sourceFile: (test as { sourceFile?: string }).sourceFile ?? '',
+        });
       }
     }
 
-    logger.info(`Generated ${testCount} structural test files`);
-    return generatedTests.tests ?? [];
+    logger.info(`Generated ${structuralTestFiles.length} structural test files`);
+    return structuralTestFiles;
   }
 
   /**
@@ -359,7 +480,7 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
     // Check if Claude is available
     try {
       execSync('which claude', { stdio: 'ignore' });
-    } catch (error) {
+    } catch (error: unknown) {
       const workflowError = new AIWorkflowError(
         'Claude CLI not found - skipping AI generation',
         'ai-generation',
@@ -399,22 +520,32 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       verbose: this.config.verbose ?? false,
     });
 
-    // Track progress
-    orchestrator.on('task:complete', ({ task }) => {
-      this.emit('ai:task-complete', { file: (task as { sourceFile?: string }).sourceFile });
+    // Track progress with type safety
+    orchestrator.on('task:complete', ({ task }: { task: AITask }) => {
+      this.emit('ai:task-complete', { file: task.sourceFile });
     });
 
     const results = await orchestrator.processBatch(batch);
 
     const successful = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
-    const stats = orchestrator['stats'];
+
+    // Use getStats method for type safety
+    const stats = orchestrator.getStats
+      ? orchestrator.getStats()
+      : {
+          totalCost: 0,
+          totalTokensUsed: 0,
+          totalDuration: 0,
+          successfulTasks: successful,
+          failedTasks: failed,
+        };
 
     return {
       successful,
       failed,
-      totalCost: (stats as { totalCost?: number }).totalCost ?? 0,
-      totalTokens: (stats as { totalTokensUsed?: number }).totalTokensUsed ?? 0,
+      totalCost: stats.totalCost,
+      totalTokens: stats.totalTokensUsed,
     };
   }
 

@@ -135,7 +135,7 @@ export class TestTemplateEngine {
     // Register in both legacy Map and new TemplateRegistry for backward compatibility
     const key = this.getTemplateKey(template.language, template.framework, template.testType);
     this.templates.set(key, template);
-    
+
     // Register in the new TemplateRegistry (ignore failures for backward compatibility)
     this.registry.registerTemplate(template);
   }
@@ -235,7 +235,9 @@ export class TestTemplateEngine {
     for (const registryInfo of registryTemplateInfos) {
       templateInfos.push({
         name: registryInfo.name,
-        description: registryInfo.description || `${registryInfo.language} template for ${registryInfo.framework || 'any framework'}`,
+        description:
+          registryInfo.description ||
+          `${registryInfo.language} template for ${registryInfo.framework || 'any framework'}`,
         language: registryInfo.language,
         framework: registryInfo.framework || undefined,
         testType: (registryInfo.testType as TestType) || undefined,
@@ -246,10 +248,11 @@ export class TestTemplateEngine {
 
     // Add any legacy templates that might not be in the registry
     for (const template of this.templates.values()) {
-      const existingInfo = templateInfos.find(info => 
-        info.name === template.name && 
-        info.language === template.language &&
-        info.framework === template.framework
+      const existingInfo = templateInfos.find(
+        (info) =>
+          info.name === template.name &&
+          info.language === template.language &&
+          info.framework === template.framework
       );
 
       if (!existingInfo) {
@@ -352,10 +355,16 @@ export class TestTemplateEngine {
     // Import enhanced templates from individual files
     try {
       // Enhanced JavaScript templates
-      const { EnhancedJestJavaScriptTemplate } = require('./javascript/EnhancedJestJavaScriptTemplate');
-      const { EnhancedReactComponentTemplate } = require('./javascript/EnhancedReactComponentTemplate');
+      const {
+        EnhancedJestJavaScriptTemplate,
+      } = require('./javascript/EnhancedJestJavaScriptTemplate');
+      const {
+        EnhancedReactComponentTemplate,
+      } = require('./javascript/EnhancedReactComponentTemplate');
       const { EnhancedVueComponentTemplate } = require('./javascript/EnhancedVueComponentTemplate');
-      const { EnhancedAngularComponentTemplate } = require('./javascript/EnhancedAngularComponentTemplate');
+      const {
+        EnhancedAngularComponentTemplate,
+      } = require('./javascript/EnhancedAngularComponentTemplate');
       const { EnhancedTypeScriptTemplate } = require('./javascript/EnhancedTypeScriptTemplate');
 
       this.registerTemplate(new EnhancedJestJavaScriptTemplate());

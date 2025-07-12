@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   test:
@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        node-version: [18, 20]
+        node-version: [20, 22]
         
     steps:
       - name: Checkout code
@@ -31,11 +31,70 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
+      - name: Validate environment
+        run: |
+          echo "🔍 Environment validation..."
+          echo "Node.js version: $(node --version)"
+          echo "npm version: $(npm --version)"
+          echo "OS: ${{ matrix.os }}"
+          echo "Working directory: $(pwd)"
+          
+          # Check for package-lock.json existence
+          if [ ! -f "package-lock.json" ]; then
+            echo "❌ ERROR: package-lock.json not found"
+            echo "This is required for consistent dependency installation"
+            exit 1
+          fi
+          
+          # Check package.json syntax
+          node -pe 'JSON.parse(require("fs").readFileSync("package.json", "utf8"))' > /dev/null
+          echo "✅ package.json syntax valid"
+          
+          # Run security audit before install
+          echo "🔒 Running security audit..."
+          npm audit --audit-level high || {
+            echo "⚠️ High-severity vulnerabilities detected"
+            echo "Review security issues before proceeding"
+          }
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          echo "📦 Installing dependencies with enhanced error handling..."
+          npm ci 2>&1 | tee npm-install.log || {
+            echo "❌ DEPENDENCY INSTALLATION FAILED"
+            echo "📋 Troubleshooting information:"
+            echo "Node version: $(node --version)"
+            echo "npm version: $(npm --version)"
+            echo "Platform: ${{ matrix.os }}"
+            echo "❓ Common solutions:"
+            echo "  - Check Node.js version compatibility"
+            echo "  - Verify package-lock.json is synchronized"
+            echo "  - Check for platform-specific dependency issues"
+            echo "📋 Full npm install log available in artifacts"
+            exit 1
+          }
+          echo "✅ Dependencies installed successfully"
 
       - name: Build infrastructure
-        run: npm run build
+        run: |
+          echo "🔨 Building infrastructure with enhanced error detection..."
+          npm run build 2>&1 | tee build.log || {
+            echo "❌ BUILD FAILED"
+            echo "📋 Build troubleshooting:"
+            echo "  - Check for TypeScript compilation errors"
+            echo "  - Verify all dependencies are correctly installed"
+            echo "  - Review build configuration"
+            echo "📋 Full build log available in artifacts"
+            
+            # Check for common TypeScript errors
+            if grep -q "TS[0-9]\+:" build.log; then
+              echo "🔍 TypeScript errors detected:"
+              grep "TS[0-9]\+:" build.log | head -5
+            fi
+            
+            exit 1
+          }
+          echo "✅ Build completed successfully"
 
       - name: Verify CLI availability
         run: |
@@ -55,23 +114,146 @@ jobs:
         run: npm run format:check
         continue-on-error: true
 
+      - name: Run type safety check
+        run: |
+          echo "🔍 Running comprehensive type safety analysis..."
+          npm run type-safety:check 2>&1 | tee type-safety.log || {
+            echo "❌ TYPE SAFETY CHECK FAILED"
+            echo "📋 Type safety troubleshooting:"
+            echo "  - Check for TypeScript compilation errors"
+            echo "  - Review ESLint type safety rule violations"
+            echo "  - Analyze any type usage patterns"
+            echo "  - Review type coverage analysis"
+            
+            if [ -f .type-safety-summary.md ]; then
+              echo "📊 Type Safety Summary:"
+              cat .type-safety-summary.md | head -20
+            fi
+            
+            echo "📋 Full type safety log available in artifacts"
+            exit 1
+          }
+          echo "✅ Type safety check passed"
+
       - name: Run unit tests (fast feedback)
-        run: npm run test:unit
+        run: |
+          echo "🧪 Running unit tests with enhanced error reporting..."
+          npm run test:unit 2>&1 | tee test-unit.log || {
+            echo "❌ UNIT TESTS FAILED"
+            echo "📋 Test failure analysis:"
+            
+            # Extract test failure summaries
+            if grep -q "FAIL" test-unit.log; then
+              echo "🔍 Failed test suites:"
+              grep "FAIL" test-unit.log | head -5
+            fi
+            
+            if grep -q "Error:" test-unit.log; then
+              echo "🔍 Error details:"
+              grep -A 2 "Error:" test-unit.log | head -10
+            fi
+            
+            echo "📋 Full test log available in artifacts"
+            echo "💡 Try: npm run test:unit -- --verbose for detailed output"
+            exit 1
+          }
+          echo "✅ Unit tests passed"
         env:
           CI: true
 
       - name: Run integration tests (if unit tests pass)
         if: success()
-        run: npm run test:integration
+        run: |
+          echo "🔗 Running integration tests with enhanced error reporting..."
+          npm run test:integration 2>&1 | tee test-integration.log || {
+            echo "❌ INTEGRATION TESTS FAILED"
+            echo "📋 Integration test failure analysis:"
+            
+            # Check for common integration test issues
+            if grep -q "timeout" test-integration.log; then
+              echo "⏱️ Timeout issues detected - consider increasing Jest timeout"
+            fi
+            
+            if grep -q "ENOENT" test-integration.log; then
+              echo "📁 File not found errors detected - check test fixtures"
+            fi
+            
+            if grep -q "spawn.*ENOENT" test-integration.log; then
+              echo "🔧 Command execution errors - check CLI availability"
+            fi
+            
+            echo "📋 Full integration test log available in artifacts"
+            exit 1
+          }
+          echo "✅ Integration tests passed"
         env:
           CI: true  # This ensures AI tests are automatically skipped via Jest config
 
-      - name: Upload test results
+      - name: Collect failure artifacts
+        if: failure()
+        run: |
+          echo "📋 Collecting failure artifacts for debugging..."
+          
+          # Create failure artifacts directory
+          mkdir -p failure-artifacts
+          
+          # Collect system information
+          echo "🖥️ System Information" > failure-artifacts/system-info.txt
+          echo "OS: ${{ matrix.os }}" >> failure-artifacts/system-info.txt
+          echo "Node.js: $(node --version)" >> failure-artifacts/system-info.txt
+          echo "npm: $(npm --version)" >> failure-artifacts/system-info.txt
+          echo "Platform: $(uname -a)" >> failure-artifacts/system-info.txt
+          echo "Current directory: $(pwd)" >> failure-artifacts/system-info.txt
+          echo "Timestamp: $(date)" >> failure-artifacts/system-info.txt
+          
+          # Collect npm debug logs if they exist
+          if [ -d ~/.npm/_logs ]; then
+            echo "📄 Collecting npm debug logs..."
+            cp -r ~/.npm/_logs failure-artifacts/npm-logs/ 2>/dev/null || true
+          fi
+          
+          # Collect build artifacts if they exist
+          if [ -f build.log ]; then
+            cp build.log failure-artifacts/
+          fi
+          
+          # Collect test logs
+          if [ -f test-unit.log ]; then
+            cp test-unit.log failure-artifacts/
+          fi
+          if [ -f test-integration.log ]; then
+            cp test-integration.log failure-artifacts/
+          fi
+          if [ -f npm-install.log ]; then
+            cp npm-install.log failure-artifacts/
+          fi
+          
+          # Collect type safety reports
+          if [ -f type-safety.log ]; then
+            cp type-safety.log failure-artifacts/
+          fi
+          if [ -f .type-safety-report.json ]; then
+            cp .type-safety-report.json failure-artifacts/
+          fi
+          if [ -f .type-safety-summary.md ]; then
+            cp .type-safety-summary.md failure-artifacts/
+          fi
+          
+          # Collect package files for debugging
+          cp package.json failure-artifacts/ 2>/dev/null || true
+          cp package-lock.json failure-artifacts/ 2>/dev/null || true
+          
+          # List final contents
+          echo "📁 Collected artifacts:"
+          ls -la failure-artifacts/
+
+      - name: Upload failure artifacts
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: test-results-${{ matrix.os }}-node${{ matrix.node-version }}
+          name: failure-artifacts-${{ matrix.os }}-node${{ matrix.node-version }}
           path: |
+            failure-artifacts/
             coverage/
             test-results/
             *.log
@@ -93,15 +275,70 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          echo "📦 Installing dependencies for coverage report..."
+          npm ci 2>&1 | tee npm-coverage-install.log || {
+            echo "❌ Coverage job dependency installation failed"
+            echo "📋 Check main test job for dependency issues"
+            exit 1
+          }
 
       - name: Build infrastructure
-        run: npm run build
+        run: |
+          echo "🔨 Building for coverage report..."
+          npm run build 2>&1 | tee coverage-build.log || {
+            echo "❌ Coverage job build failed"
+            echo "📋 Check main test job for build issues"
+            exit 1
+          }
 
       - name: Generate coverage report
-        run: npm run test:coverage -- --config jest.performance.config.js
+        run: |
+          echo "📊 Generating coverage report with enhanced error handling..."
+          npm run test:coverage -- --config jest.performance.config.js 2>&1 | tee coverage-generation.log || {
+            echo "❌ COVERAGE GENERATION FAILED"
+            echo "📋 Coverage troubleshooting:"
+            echo "  - Check if performance config is valid"
+            echo "  - Verify test files can be found"
+            echo "  - Check for Jest configuration issues"
+            
+            if grep -q "No tests found" coverage-generation.log; then
+              echo "🔍 No tests found - check test file patterns"
+            fi
+            
+            if grep -q "out of memory" coverage-generation.log; then
+              echo "💾 Memory issues - consider reducing test parallelism"
+            fi
+            
+            echo "📋 Full coverage log available in artifacts"
+            exit 1
+          }
+          echo "✅ Coverage report generated successfully"
         env:
           CI: true
+
+      - name: Collect coverage job failure artifacts
+        if: failure()
+        run: |
+          echo "📋 Collecting coverage job failure artifacts..."
+          mkdir -p coverage-failure-artifacts
+          
+          # Collect logs
+          [ -f npm-coverage-install.log ] && cp npm-coverage-install.log coverage-failure-artifacts/
+          [ -f coverage-build.log ] && cp coverage-build.log coverage-failure-artifacts/
+          [ -f coverage-generation.log ] && cp coverage-generation.log coverage-failure-artifacts/
+          
+          # Collect system info
+          echo "Coverage Job Failure - $(date)" > coverage-failure-artifacts/failure-info.txt
+          echo "Node.js: $(node --version)" >> coverage-failure-artifacts/failure-info.txt
+          echo "npm: $(npm --version)" >> coverage-failure-artifacts/failure-info.txt
+
+      - name: Upload coverage failure artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: coverage-failure-artifacts
+          path: coverage-failure-artifacts/
 
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v4
@@ -140,39 +377,114 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          echo "📦 Installing dependencies for quality checks..."
+          npm ci 2>&1 | tee npm-quality-install.log || {
+            echo "❌ Quality job dependency installation failed"
+            exit 1
+          }
 
       - name: Build infrastructure
-        run: npm run build
+        run: |
+          echo "🔨 Building for quality checks..."
+          npm run build 2>&1 | tee quality-build.log || {
+            echo "❌ Quality job build failed"
+            exit 1
+          }
 
       - name: Run comprehensive quality checks
         run: |
-          echo "🔍 Running quality checks..."
+          echo "🔍 Running quality checks with enhanced error reporting..."
           
           # Check for TypeScript compilation errors
-          npx tsc --noEmit
+          echo "🔍 TypeScript compilation check..."
+          npx tsc --noEmit 2>&1 | tee typescript-check.log || {
+            echo "❌ TYPESCRIPT COMPILATION FAILED"
+            echo "📋 TypeScript errors detected:"
+            grep "error TS" typescript-check.log | head -10 || echo "No specific TS errors found"
+            echo "📋 Full TypeScript log available in artifacts"
+            exit 1
+          }
+          echo "✅ TypeScript compilation passed"
           
           # Verify all core modules can be imported
+          echo "📦 Module import verification..."
           node -e "
-            const analyzer = require('./dist/analyzers/ProjectAnalyzer');
-            const generator = require('./dist/generators/TestGenerator');
-            const runner = require('./dist/runners/TestRunnerFactory');
-            console.log('✅ All core modules imported successfully');
-          "
+            try {
+              const analyzer = require('./dist/analyzers/ProjectAnalyzer');
+              const generator = require('./dist/generators/TestGenerator');
+              const runner = require('./dist/runners/TestRunnerFactory');
+              console.log('✅ All core modules imported successfully');
+            } catch (error) {
+              console.error('❌ Module import failed:', error.message);
+              process.exit(1);
+            }
+          " 2>&1 | tee module-import-check.log || {
+            echo "❌ MODULE IMPORT FAILED"
+            echo "📋 Check for missing dependencies or build issues"
+            exit 1
+          }
           
           # Test CLI functionality
-          echo "Testing CLI commands..."
-          node dist/cli/index.js --help > /dev/null
-          node dist/cli/index.js --version > /dev/null
+          echo "💻 CLI functionality check..."
+          node dist/cli/index.js --help > cli-help.log 2>&1 || {
+            echo "❌ CLI help command failed"
+            cat cli-help.log
+            exit 1
+          }
+          
+          node dist/cli/index.js --version > cli-version.log 2>&1 || {
+            echo "❌ CLI version command failed"
+            cat cli-version.log
+            exit 1
+          }
+          
           echo "✅ CLI commands functional"
 
       - name: Validate configuration
         run: |
-          echo "🔧 Validating configuration system..."
+          echo "🔧 Validating configuration system with enhanced error handling..."
           node -e "
-            const config = require('./dist/config/ConfigurationService');
-            console.log('✅ Configuration system validated');
-          "
+            try {
+              const config = require('./dist/config/ConfigurationService');
+              console.log('✅ Configuration system validated');
+            } catch (error) {
+              console.error('❌ Configuration system validation failed:', error.message);
+              console.error('Stack trace:', error.stack);
+              process.exit(1);
+            }
+          " 2>&1 | tee config-validation.log || {
+            echo "❌ CONFIGURATION VALIDATION FAILED"
+            echo "📋 Check for configuration service issues"
+            exit 1
+          }
+
+      - name: Collect quality check failure artifacts
+        if: failure()
+        run: |
+          echo "📋 Collecting quality check failure artifacts..."
+          mkdir -p quality-failure-artifacts
+          
+          # Collect all logs
+          [ -f npm-quality-install.log ] && cp npm-quality-install.log quality-failure-artifacts/
+          [ -f quality-build.log ] && cp quality-build.log quality-failure-artifacts/
+          [ -f typescript-check.log ] && cp typescript-check.log quality-failure-artifacts/
+          [ -f module-import-check.log ] && cp module-import-check.log quality-failure-artifacts/
+          [ -f config-validation.log ] && cp config-validation.log quality-failure-artifacts/
+          [ -f cli-help.log ] && cp cli-help.log quality-failure-artifacts/
+          [ -f cli-version.log ] && cp cli-version.log quality-failure-artifacts/
+          
+          # Collect system info
+          echo "Quality Checks Job Failure - $(date)" > quality-failure-artifacts/failure-info.txt
+          echo "Node.js: $(node --version)" >> quality-failure-artifacts/failure-info.txt
+          echo "npm: $(npm --version)" >> quality-failure-artifacts/failure-info.txt
+
+      - name: Upload quality check failure artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: quality-failure-artifacts
+          path: quality-failure-artifacts/
 
   security:
     name: Security Scan
@@ -320,17 +632,40 @@ jobs:
           echo "- **Node Versions**: 18, 20" >> ci-summary.md
           echo "" >> ci-summary.md
           
-          # Determine overall status
+          # Determine overall status with enhanced error details
           OVERALL_STATUS="✅ ALL CHECKS PASSED"
+          ERROR_DETAILS=""
+          
           if [[ "${{ needs.test.result }}" != "success" ]]; then
             OVERALL_STATUS="❌ FAILED - Core tests failed"
+            ERROR_DETAILS="Core test job failed. Check failure-artifacts for detailed logs including unit/integration test errors, build issues, or dependency problems."
           elif [[ "${{ needs.quality-checks.result }}" != "success" ]]; then
             OVERALL_STATUS="❌ FAILED - Quality checks failed"
+            ERROR_DETAILS="Quality checks failed. This could be TypeScript compilation errors, module import issues, or CLI functionality problems. Check quality-failure-artifacts for detailed diagnosis."
           elif [[ "${{ needs.security.result }}" != "success" ]]; then
             OVERALL_STATUS="⚠️ WARNING - Security issues detected"
+            ERROR_DETAILS="Security audit detected vulnerabilities. Review npm audit results and update dependencies."
+          elif [[ "${{ needs.coverage.result }}" == "failure" ]]; then
+            OVERALL_STATUS="⚠️ WARNING - Coverage generation failed"
+            ERROR_DETAILS="Coverage report generation failed. Check coverage-failure-artifacts for Jest configuration or test execution issues."
+          elif [[ "${{ needs.production-validation.result }}" == "failure" ]]; then
+            OVERALL_STATUS="⚠️ WARNING - Production validation failed"
+            ERROR_DETAILS="Production validation checks failed. Infrastructure may not be ready for deployment."
           fi
           
           echo "## Overall Status: $OVERALL_STATUS" >> ci-summary.md
+          
+          if [[ "$ERROR_DETAILS" != "" ]]; then
+            echo "" >> ci-summary.md
+            echo "### 🔍 Error Details" >> ci-summary.md
+            echo "$ERROR_DETAILS" >> ci-summary.md
+            echo "" >> ci-summary.md
+            echo "### 📋 Troubleshooting Resources" >> ci-summary.md
+            echo "- **Failure Artifacts**: Check workflow artifacts for detailed logs" >> ci-summary.md
+            echo "- **Common Issues**: Review CI troubleshooting documentation" >> ci-summary.md
+            echo "- **Local Testing**: Run \`npm run test:fast\` locally to reproduce" >> ci-summary.md
+            echo "- **Environment**: Verify Node.js ${{ env.NODE_VERSION }} compatibility" >> ci-summary.md
+          fi
           
           cat ci-summary.md
 
@@ -340,14 +675,39 @@ jobs:
           name: ci-summary
           path: ci-summary.md
 
-      - name: Set final status
+      - name: Set final status with enhanced error reporting
         run: |
+          echo "🔍 Final CI Status Analysis..."
+          
+          # Enhanced error reporting with specific guidance
           if [[ "${{ needs.test.result }}" != "success" ]]; then
-            echo "❌ Core tests failed - failing CI"
+            echo "❌ CRITICAL: Core tests failed - CI pipeline failed"
+            echo "📋 Next steps:"
+            echo "  1. Download failure-artifacts from this workflow run"
+            echo "  2. Check test-unit.log and test-integration.log for specific failures"
+            echo "  3. Review system-info.txt for environment compatibility"
+            echo "  4. Run 'npm run test:fast' locally to reproduce"
+            echo "  5. Check for Node.js ${{ env.NODE_VERSION }} compatibility issues"
             exit 1
           elif [[ "${{ needs.quality-checks.result }}" != "success" ]]; then
-            echo "❌ Quality checks failed - failing CI"
+            echo "❌ CRITICAL: Quality checks failed - CI pipeline failed"
+            echo "📋 Next steps:"
+            echo "  1. Download quality-failure-artifacts from this workflow run"
+            echo "  2. Check typescript-check.log for compilation errors"
+            echo "  3. Review module-import-check.log for dependency issues"
+            echo "  4. Verify CLI functionality with config-validation.log"
+            echo "  5. Run 'npm run build' and 'npx tsc --noEmit' locally"
             exit 1
+          elif [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "⚠️ WARNING: Security issues detected - review required"
+            echo "📋 Security remediation:"
+            echo "  1. Run 'npm audit' locally to see vulnerability details"
+            echo "  2. Update vulnerable dependencies with 'npm audit fix'"
+            echo "  3. Review and approve any breaking changes"
+            echo "  4. Consider adding security exceptions for false positives"
+            echo "✅ CI pipeline completed with security warnings"
+          else
+            echo "✅ All critical checks passed - CI pipeline successful"
+            echo "📊 Pipeline performance: Enhanced error handling and artifact collection active"
+            echo "🎯 Ready for: Development, testing, and production deployment"
           fi
-          
-          echo "✅ CI pipeline completed successfully"

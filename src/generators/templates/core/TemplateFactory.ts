@@ -58,7 +58,7 @@ export interface TemplateFactoryCapabilities {
 
 /**
  * Abstract base class for template factories
- * 
+ *
  * Provides a plugin architecture for creating templates in a structured way.
  * Each language/framework combination can have its own factory implementation.
  */
@@ -83,7 +83,7 @@ export abstract class TemplateFactory {
    * Create multiple templates at once
    */
   createTemplates(requests: TemplateCreationRequest[]): TemplateCreationResult[] {
-    return requests.map(request => this.createTemplate(request));
+    return requests.map((request) => this.createTemplate(request));
   }
 
   /**
@@ -126,16 +126,16 @@ export abstract class TemplateFactory {
     }
 
     if (!this.canCreateTemplate(request.templateName)) {
-      return { 
-        valid: false, 
-        error: `Template '${request.templateName}' is not supported by this factory` 
+      return {
+        valid: false,
+        error: `Template '${request.templateName}' is not supported by this factory`,
       };
     }
 
     if (request.framework && !this.supportsFramework(request.framework)) {
-      return { 
-        valid: false, 
-        error: `Framework '${request.framework}' is not supported by this factory` 
+      return {
+        valid: false,
+        error: `Framework '${request.framework}' is not supported by this factory`,
       };
     }
 
@@ -210,7 +210,7 @@ export class TemplateFactoryRegistry {
       return {
         success: false,
         error: `Factory with name '${factoryName}' already exists`,
-        existingFactory: this.factories.get(factoryName) || undefined
+        existingFactory: this.factories.get(factoryName) || undefined,
       };
     }
 
@@ -250,11 +250,11 @@ export class TemplateFactoryRegistry {
    * Find factory that can create a specific template
    */
   findFactoryForTemplate(templateName: string, language?: string): TemplateFactory | undefined {
-    const searchFactories = language 
+    const searchFactories = language
       ? this.getFactoriesForLanguage(language)
       : this.getAllFactories();
 
-    return searchFactories.find(factory => factory.canCreateTemplate(templateName));
+    return searchFactories.find((factory) => factory.canCreateTemplate(templateName));
   }
 
   /**
@@ -266,7 +266,7 @@ export class TemplateFactoryRegistry {
     if (!factory) {
       return {
         success: false,
-        error: `No factory found for template '${request.templateName}'${language ? ` in language '${language}'` : ''}`
+        error: `No factory found for template '${request.templateName}'${language ? ` in language '${language}'` : ''}`,
       };
     }
 
@@ -289,13 +289,13 @@ export class TemplateFactoryRegistry {
       factoriesByLanguage.set(language, (factoriesByLanguage.get(language) || 0) + 1);
 
       const capabilities = factory.getCapabilities();
-      capabilities.supportedTemplates.forEach(template => supportedTemplates.add(template));
+      capabilities.supportedTemplates.forEach((template) => supportedTemplates.add(template));
     }
 
     return {
       totalFactories: this.factories.size,
       factoriesByLanguage,
-      supportedTemplates: Array.from(supportedTemplates).sort()
+      supportedTemplates: Array.from(supportedTemplates).sort(),
     };
   }
 

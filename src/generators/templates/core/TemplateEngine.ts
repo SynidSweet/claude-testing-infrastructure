@@ -39,10 +39,10 @@ export interface TemplateGenerationStats {
 
 /**
  * Core template engine for test generation
- * 
+ *
  * Extracted from TestTemplateEngine to provide cleaner separation between
  * template management (TemplateRegistry) and template execution (TemplateEngine).
- * 
+ *
  * This class focuses solely on the execution and generation logic.
  */
 export class TemplateEngine {
@@ -55,7 +55,7 @@ export class TemplateEngine {
       successfulGenerations: 0,
       failedGenerations: 0,
       templateUsageCount: new Map(),
-      averageGenerationTime: 0
+      averageGenerationTime: 0,
     };
   }
 
@@ -64,11 +64,11 @@ export class TemplateEngine {
    */
   generateTest(context: TemplateContext, options: TemplateGenerationOptions = {}): string {
     const result = this.generateTestSafe(context, options);
-    
+
     if (!result.success) {
       throw new Error(result.error || 'Template generation failed');
     }
-    
+
     return result.content!;
   }
 
@@ -76,7 +76,7 @@ export class TemplateEngine {
    * Generate test content with comprehensive error handling
    */
   generateTestSafe(
-    context: TemplateContext, 
+    context: TemplateContext,
     options: TemplateGenerationOptions = {}
   ): SafeGenerationResult {
     const startTime = Date.now();
@@ -89,7 +89,7 @@ export class TemplateEngine {
         this.stats.failedGenerations++;
         return {
           success: false,
-          error: `No template found for language: ${context.language}, framework: ${context.framework}`
+          error: `No template found for language: ${context.language}, framework: ${context.framework}`,
         };
       }
 
@@ -102,14 +102,14 @@ export class TemplateEngine {
             success: false,
             error: `Context validation failed: ${validation.errors?.join(', ')}`,
             template,
-            warnings: validation.warnings || undefined
+            warnings: validation.warnings || undefined,
           };
         }
       }
 
       // Generate content
       const content = template.generate(context);
-      
+
       // Update statistics
       const endTime = Date.now();
       const generationTime = endTime - startTime;
@@ -122,12 +122,11 @@ export class TemplateEngine {
         success: true,
         content,
         template,
-        warnings: options.includeWarnings ? this.gatherWarnings(context, template) : undefined
+        warnings: options.includeWarnings ? this.gatherWarnings(context, template) : undefined,
       };
-
     } catch (error) {
       this.stats.failedGenerations++;
-      
+
       // Try fallback template if provided
       if (options.fallbackTemplate) {
         try {
@@ -136,23 +135,23 @@ export class TemplateEngine {
             success: true,
             content,
             template: options.fallbackTemplate,
-            warnings: [`Used fallback template due to error: ${error}`]
+            warnings: [`Used fallback template due to error: ${error}`],
           };
         } catch (fallbackError) {
           return {
             success: false,
             error: `Primary template failed: ${error}. Fallback template failed: ${fallbackError}`,
-            template: options.fallbackTemplate
+            template: options.fallbackTemplate,
           };
         }
       }
 
       return {
         success: false,
-        error: options.includeErrorDetails 
-          ? `Template generation failed: ${error}` 
+        error: options.includeErrorDetails
+          ? `Template generation failed: ${error}`
           : 'Template generation failed',
-        template: this.findBestTemplate(context) || undefined
+        template: this.findBestTemplate(context) || undefined,
       };
     }
   }
@@ -183,8 +182,12 @@ export class TemplateEngine {
     const isValid = template.language === context.language;
     return {
       isValid,
-      errors: isValid ? [] : [`Template language '${template.language}' doesn't match context language '${context.language}'`],
-      warnings: []
+      errors: isValid
+        ? []
+        : [
+            `Template language '${template.language}' doesn't match context language '${context.language}'`,
+          ],
+      warnings: [],
     };
   }
 
@@ -199,7 +202,7 @@ export class TemplateEngine {
           success: false,
           error: `Template validation failed: ${validation.errors?.join(', ')}`,
           template,
-          warnings: validation.warnings || undefined
+          warnings: validation.warnings || undefined,
         };
       }
 
@@ -207,13 +210,13 @@ export class TemplateEngine {
       return {
         success: true,
         content,
-        template
+        template,
       };
     } catch (error) {
       return {
         success: false,
         error: `Template generation failed: ${error}`,
-        template
+        template,
       };
     }
   }
@@ -234,7 +237,7 @@ export class TemplateEngine {
       successfulGenerations: 0,
       failedGenerations: 0,
       templateUsageCount: new Map(),
-      averageGenerationTime: 0
+      averageGenerationTime: 0,
     };
     this.generationTimes = [];
   }
@@ -255,21 +258,22 @@ export class TemplateEngine {
         minTime: 0,
         maxTime: 0,
         medianTime: 0,
-        totalGenerations: 0
+        totalGenerations: 0,
       };
     }
 
     const sorted = [...this.generationTimes].sort((a, b) => a - b);
-    const median = sorted.length % 2 === 0
-      ? ((sorted[sorted.length / 2 - 1] || 0) + (sorted[sorted.length / 2] || 0)) / 2
-      : (sorted[Math.floor(sorted.length / 2)] || 0);
+    const median =
+      sorted.length % 2 === 0
+        ? ((sorted[sorted.length / 2 - 1] || 0) + (sorted[sorted.length / 2] || 0)) / 2
+        : sorted[Math.floor(sorted.length / 2)] || 0;
 
     return {
       averageTime: this.stats.averageGenerationTime,
       minTime: Math.min(...this.generationTimes),
       maxTime: Math.max(...this.generationTimes),
       medianTime: median || 0,
-      totalGenerations: this.generationTimes.length
+      totalGenerations: this.generationTimes.length,
     };
   }
 
@@ -308,7 +312,9 @@ export class TemplateEngine {
     }
 
     if (context.framework && template.framework && context.framework !== template.framework) {
-      warnings.push(`Framework mismatch: context has '${context.framework}', template expects '${template.framework}'`);
+      warnings.push(
+        `Framework mismatch: context has '${context.framework}', template expects '${template.framework}'`
+      );
     }
 
     if (!context.exports || context.exports.length === 0) {

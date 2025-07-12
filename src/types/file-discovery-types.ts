@@ -39,7 +39,7 @@ export interface FileDiscoveryService {
   /**
    * Analyze project structure for smart pattern detection
    */
-  analyzeProjectStructure?(projectPath: string): Promise<any>;
+  analyzeProjectStructure?(projectPath: string): Promise<unknown>;
 }
 
 /**

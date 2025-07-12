@@ -17,19 +17,16 @@ import {
   type ConfigValidationResult,
 } from '../types/config';
 import type { FileDiscoveryConfig } from '../types/file-discovery-types';
+import { type ConfigurationSource, ConfigurationSourceType } from './loaders';
+import { type CliArguments } from './CliArgumentMapper';
 import {
-  ConfigurationSourceLoaderRegistry,
-  type ConfigurationSource,
-  ConfigurationSourceType,
-  type LoaderRegistryOptions,
-} from './loaders';
-import { EnvironmentVariableParser } from './EnvironmentVariableParser';
-import { CliArgumentMapper, type CliArguments } from './CliArgumentMapper';
-import { ConfigurationMerger } from './ConfigurationMerger';
+  ConfigurationServiceFactory,
+  type ConfigurationServiceFactoryOptions,
+  type ConfigurationModules,
+} from './ConfigurationServiceFactory';
 
 // Re-export CliArguments for backward compatibility
 export type { CliArguments } from './CliArgumentMapper';
-
 
 /**
  * Type for configuration object sections
@@ -79,10 +76,7 @@ export class ConfigurationService {
   private sources: ConfigurationSource[] = [];
   private loadedConfig: ClaudeTestingConfig | null = null;
   private loadResult: ConfigurationLoadResult | null = null;
-  private loaderRegistry: ConfigurationSourceLoaderRegistry;
-  private envParser: EnvironmentVariableParser;
-  private cliMapper: CliArgumentMapper;
-  private merger: ConfigurationMerger;
+  private modules: ConfigurationModules;
 
   constructor(options: ConfigurationServiceOptions) {
     this.options = {
@@ -90,27 +84,12 @@ export class ConfigurationService {
       includeUserConfig: true,
       ...options,
     };
-    
-    // Initialize loader registry
-    const registryOptions: LoaderRegistryOptions = {
-      projectPath: this.options.projectPath,
-      includeUserConfig: this.options.includeUserConfig ?? true,
-    };
-    
-    if (this.options.customConfigPath) {
-      registryOptions.customConfigPath = this.options.customConfigPath;
-    }
-    
-    this.loaderRegistry = new ConfigurationSourceLoaderRegistry(registryOptions);
-    
-    // Initialize environment variable parser
-    this.envParser = new EnvironmentVariableParser();
-    
-    // Initialize CLI argument mapper
-    this.cliMapper = new CliArgumentMapper();
-    
-    // Initialize configuration merger
-    this.merger = new ConfigurationMerger({ projectPath: this.options.projectPath });
+
+    // Create configuration modules using factory
+    const factory = new ConfigurationServiceFactory(
+      this.options as ConfigurationServiceFactoryOptions
+    );
+    this.modules = factory.createModules();
   }
 
   /**
@@ -138,7 +117,7 @@ export class ConfigurationService {
     }
 
     // Merge all configurations
-    const mergeResult = this.merger.mergeConfigurations(this.sources);
+    const mergeResult = this.modules.merger.mergeConfigurations(this.sources);
 
     // Create final result
     this.loadResult = {
@@ -235,24 +214,23 @@ export class ConfigurationService {
    * Load configuration from file-based sources using the loader registry
    */
   private async loadFromSourceLoaders(): Promise<void> {
-    const loaders = this.loaderRegistry.getLoaders();
-    
+    const loaders = this.modules.loaderRegistry.getLoaders();
+
     for (const loader of loaders) {
       try {
         const result = await loader.load();
         this.sources.push(result.source);
-        
+
         if (result.success && result.source.loaded) {
           logger.debug(`Loaded configuration from: ${loader.getDescription()}`);
         } else if (result.source.errors.length > 0) {
           logger.warn(`Configuration source has errors: ${loader.getDescription()}`);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn(`Failed to load configuration from: ${loader.getDescription()}`, error);
       }
     }
   }
-
 
   private loadEnvironmentConfiguration(): void {
     const { config: envConfig, warnings } = this.extractEnvConfig();
@@ -278,7 +256,7 @@ export class ConfigurationService {
       return;
     }
 
-    const mappingResult = this.cliMapper.mapCliArgsToConfig(this.options.cliArgs);
+    const mappingResult = this.modules.cliMapper.mapCliArgsToConfig(this.options.cliArgs);
 
     // Extract threshold error if present
     const errors: string[] = [];
@@ -302,13 +280,14 @@ export class ConfigurationService {
     }
   }
 
-
   private extractEnvConfig(): { config: PartialClaudeTestingConfig; warnings: string[] } {
     // Use the environment variable parser
-    const result = this.envParser.parseEnvironmentVariables(process.env);
-    
+    const result = this.modules.envParser.parseEnvironmentVariables(process.env);
+
     // Debug logging
-    const envVarCount = Object.keys(process.env).filter(key => key.startsWith('CLAUDE_TESTING_')).length;
+    const envVarCount = Object.keys(process.env).filter((key) =>
+      key.startsWith('CLAUDE_TESTING_')
+    ).length;
     if (envVarCount > 0) {
       logger.debug(`Found ${envVarCount} CLAUDE_TESTING_ environment variables`);
     }
@@ -316,18 +295,13 @@ export class ConfigurationService {
     return result;
   }
 
-
-
   // Configuration object utilities moved to CliArgumentMapper
 
   // Type-safe configuration utilities moved to CliArgumentMapper
 
-
   // CLI argument mapping logic moved to CliArgumentMapper
 
   // Threshold parsing logic moved to CliArgumentMapper
-
-
 
   private generateSummary(): {
     sourcesLoaded: number;

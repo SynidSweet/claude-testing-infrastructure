@@ -42,7 +42,7 @@ export interface TemplateMatch {
 
 /**
  * Central registry for managing test generation templates
- * 
+ *
  * Extracted from TestTemplateEngine to provide cleaner separation of concerns.
  * Handles template registration, discovery, and selection logic.
  */
@@ -70,7 +70,7 @@ export class TemplateRegistry {
     if (!template || !template.name || !template.language) {
       return {
         success: false,
-        error: 'Template must have name and language properties'
+        error: 'Template must have name and language properties',
       };
     }
 
@@ -81,7 +81,7 @@ export class TemplateRegistry {
       return {
         success: false,
         error: `Template with key '${key}' already exists`,
-        existingTemplate: this.createTemplateInfo(existingTemplate)
+        existingTemplate: this.createTemplateInfo(existingTemplate),
       };
     }
 
@@ -111,7 +111,7 @@ export class TemplateRegistry {
         matches.push({
           template: exactTemplate,
           confidence: 1.0,
-          matchType: 'exact'
+          matchType: 'exact',
         });
       }
     }
@@ -119,11 +119,11 @@ export class TemplateRegistry {
     // 2. Try framework match (language:framework)
     if (criteria.framework) {
       const frameworkTemplate = this.findFrameworkMatch(criteria);
-      if (frameworkTemplate && !matches.some(m => m.template === frameworkTemplate)) {
+      if (frameworkTemplate && !matches.some((m) => m.template === frameworkTemplate)) {
         matches.push({
           template: frameworkTemplate,
           confidence: 0.8,
-          matchType: 'framework'
+          matchType: 'framework',
         });
       }
     }
@@ -131,11 +131,11 @@ export class TemplateRegistry {
     // 3. Try test type match (language::testType)
     if (criteria.testType) {
       const typeTemplate = this.findTypeMatch(criteria);
-      if (typeTemplate && !matches.some(m => m.template === typeTemplate)) {
+      if (typeTemplate && !matches.some((m) => m.template === typeTemplate)) {
         matches.push({
           template: typeTemplate,
           confidence: 0.6,
-          matchType: 'type'
+          matchType: 'type',
         });
       }
     }
@@ -145,24 +145,24 @@ export class TemplateRegistry {
     if (defaultFramework) {
       const defaultTemplate = this.findFrameworkMatch({
         ...criteria,
-        framework: defaultFramework
+        framework: defaultFramework,
       });
-      if (defaultTemplate && !matches.some(m => m.template === defaultTemplate)) {
+      if (defaultTemplate && !matches.some((m) => m.template === defaultTemplate)) {
         matches.push({
           template: defaultTemplate,
           confidence: 0.4,
-          matchType: 'fallback'
+          matchType: 'fallback',
         });
       }
     }
 
     // 5. Try language only match
     const languageTemplate = this.findLanguageMatch(criteria);
-    if (languageTemplate && !matches.some(m => m.template === languageTemplate)) {
+    if (languageTemplate && !matches.some((m) => m.template === languageTemplate)) {
       matches.push({
         template: languageTemplate,
         confidence: 0.2,
-        matchType: 'language'
+        matchType: 'language',
       });
     }
 
@@ -173,9 +173,7 @@ export class TemplateRegistry {
    * List all registered templates
    */
   listTemplates(): TemplateInfo[] {
-    return Array.from(this.templates.values()).map(template => 
-      this.createTemplateInfo(template)
-    );
+    return Array.from(this.templates.values()).map((template) => this.createTemplateInfo(template));
   }
 
   /**
@@ -189,9 +187,7 @@ export class TemplateRegistry {
    * Get templates by language
    */
   getTemplatesByLanguage(language: string): Template[] {
-    return Array.from(this.templates.values()).filter(
-      template => template.language === language
-    );
+    return Array.from(this.templates.values()).filter((template) => template.language === language);
   }
 
   /**
@@ -199,7 +195,7 @@ export class TemplateRegistry {
    */
   getTemplatesByFramework(framework: string): Template[] {
     return Array.from(this.templates.values()).filter(
-      template => template.framework === framework
+      (template) => template.framework === framework
     );
   }
 
@@ -238,7 +234,7 @@ export class TemplateRegistry {
     return {
       totalTemplates: this.templates.size,
       languageCount,
-      frameworkCount
+      frameworkCount,
     };
   }
 
@@ -252,7 +248,7 @@ export class TemplateRegistry {
     return {
       language: context.language,
       framework: context.framework,
-      testType: context.testType
+      testType: context.testType,
     };
   }
 
@@ -283,7 +279,7 @@ export class TemplateRegistry {
       framework: template.framework || undefined,
       testType: template.testType || undefined,
       description: template.getMetadata?.()?.description || undefined,
-      supported: true
+      supported: true,
     };
   }
 }

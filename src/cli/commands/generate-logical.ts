@@ -107,6 +107,7 @@ export const generateLogicalCommand = new Command()
             const configService = new ConfigurationService({
               projectPath: absoluteProjectPath,
             });
+            await configService.loadConfiguration();
             const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
             const projectAnalyzer = new ProjectAnalyzer(absoluteProjectPath, fileDiscovery);
             const projectAnalysis = await projectAnalyzer.analyzeProject();
@@ -337,7 +338,7 @@ export const generateLogicalCommand = new Command()
           console.log(
             `  Duration: ${((orchStats.endTime!.getTime() - orchStats.startTime.getTime()) / 1000).toFixed(1)}s`
           );
-        } catch (error) {
+        } catch (error: unknown) {
           spinner.fail('AI test generation failed');
           throw error;
         }

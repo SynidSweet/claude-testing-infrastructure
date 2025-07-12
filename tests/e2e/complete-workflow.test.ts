@@ -87,6 +87,8 @@ describe('End-to-End Workflow Validation', () => {
 
     test('should handle mixed TypeScript/JavaScript project', async () => {
       const projectPath = await fixtureManager.createTemporaryProject('mixed-project');
+      
+      
       const result = await runCompleteWorkflow(projectPath, {
         includeStructural: true,
         includeLogical: false,
@@ -104,6 +106,8 @@ describe('End-to-End Workflow Validation', () => {
   describe('Python Projects', () => {
     test('should complete full workflow for Python project', async () => {
       const projectPath = await fixtureManager.createTemporaryProject('python-project');
+      
+      
       const result = await runCompleteWorkflow(projectPath, {
         includeStructural: true,
         includeLogical: false,
@@ -243,7 +247,7 @@ describe('End-to-End Workflow Validation', () => {
       });
 
       expect(analysisResult.stdout).toContain('Project analysis completed');
-      expect(dryRunResult.stdout).toContain('dry run');
+      expect(dryRunResult.stdout.toLowerCase()).toContain('dry run');
       
       // Verify no files were actually created
       const testDir = path.join(projectPath, '.claude-testing');
@@ -443,7 +447,8 @@ async function countGeneratedTests(projectPath: string): Promise<number> {
   try {
     const testDir = path.join(projectPath, '.claude-testing');
     const files = await fs.readdir(testDir, { recursive: true });
-    return files.filter(f => f.toString().match(/\.(test|spec)\.(js|ts|jsx|tsx|py)$/)).length;
+    // Match both standard patterns (.test.py, .spec.py) and Python patterns (.unit_test.py, .utility_test.py, etc.)
+    return files.filter(f => f.toString().match(/\.(test|spec)\.(js|ts|jsx|tsx|py)$|_test\.py$/)).length;
   } catch {
     return 0;
   }

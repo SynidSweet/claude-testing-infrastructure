@@ -128,7 +128,7 @@ export class ConfigInitializer {
       }
 
       await this.showNextSteps(templateChoice);
-    } catch (error) {
+    } catch (error: unknown) {
       handleCLIError(error, 'configuration setup', {
         context: { targetPath: this.targetPath, options },
       });
@@ -261,7 +261,7 @@ export class ConfigInitializer {
 
       console.log('⚠️  Could not auto-detect project type, using React TypeScript template');
       return AVAILABLE_TEMPLATES[0]!;
-    } catch (error) {
+    } catch (error: unknown) {
       console.log('⚠️  Auto-detection failed, using React TypeScript template');
       return AVAILABLE_TEMPLATES[0]!;
     }
@@ -288,7 +288,7 @@ export class ConfigInitializer {
 
       console.log('✅ Configuration file created successfully!');
       console.log(`   ${configPath}\n`);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(
         `Failed to copy template: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -335,7 +335,7 @@ export class ConfigInitializer {
 
       await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
       console.log('\n✅ Configuration customized successfully!\n');
-    } catch (error) {
+    } catch (error: unknown) {
       console.log('⚠️  Customization failed, using template defaults\n');
     } finally {
       rl.close();

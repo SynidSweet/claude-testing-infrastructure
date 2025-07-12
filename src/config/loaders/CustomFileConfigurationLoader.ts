@@ -55,7 +55,7 @@ export class CustomFileConfigurationLoader extends BaseConfigurationSourceLoader
       );
 
       return this.createSuccessResult(source);
-    } catch (error) {
+    } catch (error: unknown) {
       return this.createFailureResult(
         `Failed to load custom configuration: ${(error as Error).message}`,
         this.customConfigPath

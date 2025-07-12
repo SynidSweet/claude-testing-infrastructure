@@ -465,7 +465,7 @@ export async function withRetry<T>(
 export function Retry(options: RetryOptions = {}) {
   return function (
     _target: unknown,
-    _propertyKey: string,
+    _propertyKey: string | symbol,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
     const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
