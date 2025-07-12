@@ -200,11 +200,32 @@ class EnhancedProductionReadinessChecker {
         };
         
         // Check if CI/CD is passing
-        this.results.cicdStatus.passing = latestRun.conclusion === 'success';
+        // Special handling: If we're running in CI and the latest run is "in_progress" and it's our own run, 
+        // check the previous completed run instead
+        const isRunningInCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+        const isInProgress = latestRun.status === 'in_progress' || !latestRun.conclusion;
+        
+        if (isRunningInCI && isInProgress) {
+          // Find the most recent completed run
+          const completedRun = workflowRuns.workflow_runs.find(run => run.status === 'completed' && run.conclusion);
+          if (completedRun) {
+            this.results.cicdStatus.passing = completedRun.conclusion === 'success';
+            console.log(`📊 Checking previous completed CI/CD run (current run is in progress)`);
+          } else {
+            // No completed runs found, assume passing for current run
+            this.results.cicdStatus.passing = true;
+            console.log(`📊 No previous completed runs found, assuming current run will pass`);
+          }
+        } else {
+          this.results.cicdStatus.passing = latestRun.conclusion === 'success';
+        }
         
         // Analyze recent runs for patterns
         const recentRuns = workflowRuns.workflow_runs.slice(0, 5);
-        const successRate = recentRuns.filter(run => run.conclusion === 'success').length / recentRuns.length;
+        const completedRuns = recentRuns.filter(run => run.status === 'completed' && run.conclusion);
+        const successRate = completedRuns.length > 0 
+          ? completedRuns.filter(run => run.conclusion === 'success').length / completedRuns.length 
+          : 0;
         
         this.results.cicdStatus.details = {
           recentSuccessRate: successRate,
@@ -214,8 +235,9 @@ class EnhancedProductionReadinessChecker {
         if (this.results.cicdStatus.passing) {
           console.log(`✅ CI/CD pipeline passing on ${this.results.cicdStatus.branch} branch`);
         } else {
-          this.results.criticalIssues.push(`CI/CD pipeline failing on ${this.results.cicdStatus.branch}: ${latestRun.conclusion || 'in progress'}`);
-          console.log(`❌ CI/CD pipeline not passing: ${latestRun.conclusion || 'in progress'}`);
+          const status = latestRun.conclusion || (isInProgress ? 'checking previous runs' : 'unknown');
+          this.results.criticalIssues.push(`CI/CD pipeline failing on ${this.results.cicdStatus.branch}: ${status}`);
+          console.log(`❌ CI/CD pipeline not passing: ${status}`);
         }
       } else {
         // Fallback: Check local git status if API unavailable

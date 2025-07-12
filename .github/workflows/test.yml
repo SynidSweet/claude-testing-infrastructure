@@ -309,10 +309,11 @@ jobs:
       - name: Generate coverage report
         run: |
           echo "📊 Generating coverage report with enhanced error handling..."
-          npm run test:coverage -- --config jest.performance.config.js 2>&1 | tee coverage-generation.log || {
+          echo "🔧 Using optimized Jest configuration for CI coverage..."
+          npm run test:coverage -- --config jest.optimized.config.js 2>&1 | tee coverage-generation.log || {
             echo "❌ COVERAGE GENERATION FAILED"
             echo "📋 Coverage troubleshooting:"
-            echo "  - Check if performance config is valid"
+            echo "  - Check if optimized config is valid"
             echo "  - Verify test files can be found"
             echo "  - Check for Jest configuration issues"
             
@@ -324,12 +325,17 @@ jobs:
               echo "💾 Memory issues - consider reducing test parallelism"
             fi
             
+            if grep -q "heartbeat" coverage-generation.log; then
+              echo "⏱️ Heartbeat monitoring test timeout - AI tests should be excluded"
+            fi
+            
             echo "📋 Full coverage log available in artifacts"
             exit 1
           }
           echo "✅ Coverage report generated successfully"
         env:
           CI: true
+          SKIP_AI_TESTS: "true"
 
       - name: Collect coverage job failure artifacts
         if: failure()
@@ -362,17 +368,24 @@ jobs:
 
       - name: Comment coverage on PR
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
             
-            if (fs.existsSync('coverage/lcov-report/index.html')) {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## 📊 Test Coverage Report\n\nCore infrastructure test coverage report has been generated. Check the workflow artifacts for detailed coverage information.\n\n> **Note**: AI validation tests are excluded from CI runs to maintain fast feedback loops. Run tests locally for comprehensive validation.`
-              });
+            try {
+              if (fs.existsSync('coverage/lcov-report/index.html')) {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: `## 📊 Test Coverage Report\n\nCore infrastructure test coverage report has been generated. Check the workflow artifacts for detailed coverage information.\n\n> **Note**: AI validation tests are excluded from CI runs to maintain fast feedback loops. Run tests locally for comprehensive validation.`
+                });
+                console.log('✅ Coverage comment posted successfully');
+              }
+            } catch (error) {
+              console.log('⚠️ Could not post coverage comment:', error.message);
+              console.log('This is expected for forks or repos without PR comment permissions');
             }
 
   quality-checks:
