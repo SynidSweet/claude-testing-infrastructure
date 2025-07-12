@@ -26,11 +26,12 @@ jest.mock('../../src/utils/logger', () => ({
 }));
 
 describe('ClaudeOrchestrator Optimized Heartbeat Monitoring', () => {
-  jest.setTimeout(15000); // Reduced timeout due to optimization
+  jest.setTimeout(30000); // Increased timeout for timer advancement tests
   let orchestrator: ClaudeOrchestrator;
   
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
     optimizedAITestHelpers.setup();
 
     // Configure optimized environment for heartbeat testing

@@ -10,7 +10,10 @@
  */
 
 import { EventEmitter } from 'events';
+import type { spawn, execSync } from 'child_process';
+import type { mkdir, readFile, writeFile, access } from 'fs/promises';
 import type { AITaskBatch, TaskContext } from '../ai/AITaskPreparation';
+import type { ClaudeOrchestrator } from '../ai/ClaudeOrchestrator';
 
 /**
  * Lightweight mock process for AI testing
@@ -135,11 +138,14 @@ export class OptimizedAITestUtils {
     taskCount: number = 1,
     batchId: string = 'test-batch'
   ): AITaskBatch {
+    // Use temp directory instead of root /test to avoid permission issues
+    const tempDir = process.env.TMPDIR ?? process.env.TMP ?? '/tmp';
+    const testDir = `${tempDir}/claude-testing-test-${Date.now()}`;
     const tasks = Array.from({ length: taskCount }, (_, i) => ({
       id: `task-${i + 1}`,
       prompt: 'Generate tests',
-      sourceFile: `/test/file${i + 1}.ts`,
-      testFile: `/test/file${i + 1}.test.ts`,
+      sourceFile: `${testDir}/file${i + 1}.ts`,
+      testFile: `${testDir}/file${i + 1}.test.ts`,
       context: this.createOptimizedTaskContext(),
       estimatedTokens: 100,
       estimatedCost: 0.01,
@@ -184,7 +190,7 @@ export class OptimizedAITestUtils {
   ): Promise<void> {
     for (const event of events) {
       const target = this.getEventTarget(process, event.target);
-      const data = event.data instanceof Buffer ? event.data : Buffer.from(event.data || '');
+      const data = event.data instanceof Buffer ? event.data : Buffer.from(event.data ?? '');
 
       if (event.delay && event.delay > 0) {
         // Use simplified timeout for delays
@@ -245,8 +251,16 @@ export class OptimizedAITestUtils {
     mockExecSync: jest.SpyInstance;
     mockFs: { [key: string]: jest.SpyInstance };
   } {
-    const child_process = require('child_process');
-    const fs = require('fs/promises');
+    const child_process = jest.requireMock<{
+      spawn: jest.MockedFunction<typeof spawn>;
+      execSync: jest.MockedFunction<typeof execSync>;
+    }>('child_process');
+    const fs = jest.requireMock<{
+      mkdir: jest.MockedFunction<typeof mkdir>;
+      readFile: jest.MockedFunction<typeof readFile>;
+      writeFile: jest.MockedFunction<typeof writeFile>;
+      access: jest.MockedFunction<typeof access>;
+    }>('fs/promises');
 
     // Reuse existing mocks if available
     if (this.sharedMocks.has('spawn')) {
@@ -295,7 +309,7 @@ export class OptimizedAITestUtils {
    * Optimized test patterns for common AI test scenarios
    */
   static async runOptimizedErrorTest(
-    orchestrator: any,
+    orchestrator: ClaudeOrchestrator,
     errorType: 'auth' | 'network' | 'rate-limit',
     errorMessage: string
   ): Promise<void> {
@@ -320,7 +334,7 @@ export class OptimizedAITestUtils {
     // Streamlined assertions
     expect(results).toHaveLength(1);
     expect(results[0]?.success).toBe(false);
-    expect(results[0]?.error?.message || results[0]?.error).toContain(
+    expect(results[0]?.error?.message ?? results[0]?.error).toContain(
       errorType === 'auth' ? 'Authentication' : errorType === 'network' ? 'Network' : 'Rate limit'
     );
   }
@@ -329,7 +343,7 @@ export class OptimizedAITestUtils {
    * Optimized heartbeat test pattern
    */
   static async runOptimizedHeartbeatTest(
-    orchestrator: any,
+    orchestrator: ClaudeOrchestrator,
     heartbeatInterval: number,
     expectedEventType: string
   ): Promise<void> {
@@ -426,7 +440,11 @@ export const optimizedAITestHelpers = {
     OptimizedAITestUtils.createLightweightProcess(config),
   createBatch: (taskCount?: number, batchId?: string): AITaskBatch =>
     OptimizedAITestUtils.createOptimizedTaskBatch(taskCount, batchId),
-  setupMocks: () => OptimizedAITestUtils.setupOptimizedMocks(),
+  setupMocks: (): {
+    mockSpawn: jest.SpyInstance;
+    mockExecSync: jest.SpyInstance;
+    mockFs: { [key: string]: jest.SpyInstance };
+  } => OptimizedAITestUtils.setupOptimizedMocks(),
   simulateEvents: (process: OptimizedMockProcess, events: OptimizedEventSim[]): Promise<void> =>
     OptimizedAITestUtils.simulateOptimizedEvents(process, events),
   fastAdvance: (timeMs: number): Promise<void> => OptimizedAITestUtils.fastAdvanceTimers(timeMs),
@@ -436,13 +454,13 @@ export const optimizedAITestHelpers = {
     output?: string
   ): Promise<void> => OptimizedAITestUtils.completeProcessSimulation(process, success, output),
   testError: (
-    orchestrator: any,
+    orchestrator: ClaudeOrchestrator,
     errorType: 'auth' | 'network' | 'rate-limit',
     errorMessage: string
   ): Promise<void> =>
     OptimizedAITestUtils.runOptimizedErrorTest(orchestrator, errorType, errorMessage),
   testHeartbeat: (
-    orchestrator: any,
+    orchestrator: ClaudeOrchestrator,
     heartbeatInterval: number,
     expectedEventType: string
   ): Promise<void> =>
@@ -451,7 +469,11 @@ export const optimizedAITestHelpers = {
       heartbeatInterval,
       expectedEventType
     ),
-  getMetrics: () => OptimizedAITestUtils.getOptimizationMetrics(),
+  getMetrics: (): {
+    sharedMocksCount: number;
+    processPoolSize: number;
+    config: OptimizedAITestConfig;
+  } => OptimizedAITestUtils.getOptimizationMetrics(),
 };
 
 export default OptimizedAITestUtils;
