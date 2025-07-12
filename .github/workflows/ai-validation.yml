@@ -30,7 +30,7 @@ on:
         type: boolean
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   VALIDATION_BUDGET: ${{ github.event.inputs.budget_limit || '5.00' }}
   VALIDATION_MODE: ${{ github.event.inputs.validation_mode || 'standard' }}
 

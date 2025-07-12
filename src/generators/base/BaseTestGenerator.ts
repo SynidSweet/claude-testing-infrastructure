@@ -1,16 +1,16 @@
 import { logger, path } from '../../utils/common-imports';
 import type { ProjectAnalysis } from '../../analyzers/ProjectAnalyzer';
-import { ProgressReporter } from '../../utils/ProgressReporter';
-import type { 
-  TestGeneratorConfig, 
-  GeneratedTest, 
+import type { ProgressReporter } from '../../utils/ProgressReporter';
+import type {
+  TestGeneratorConfig,
+  GeneratedTest,
   TestGenerationResult,
-  GenerationStats
+  GenerationStats,
 } from '../TestGenerator';
 
 /**
  * Language-specific context for test generation
- * 
+ *
  * This interface provides all the language-specific information
  * needed by a test generator to create appropriate tests.
  */
@@ -75,7 +75,7 @@ export interface TestingPattern {
 
 /**
  * Abstract base class for language-specific test generators
- * 
+ *
  * This class provides the foundation for creating test generators
  * that understand language-specific patterns, frameworks, and idioms.
  * Concrete implementations should extend this class and implement
@@ -110,12 +110,15 @@ export abstract class BaseTestGenerator {
    */
   async generateAllTests(): Promise<TestGenerationResult> {
     const startTime = Date.now();
-    logger.info(`Starting ${this.languageContext.language} test generation for ${this.config.projectPath}`, {
-      language: this.languageContext.language,
-      framework: this.languageContext.framework,
-      testFramework: this.languageContext.testFramework,
-      outputPath: this.config.outputPath,
-    });
+    logger.info(
+      `Starting ${this.languageContext.language} test generation for ${this.config.projectPath}`,
+      {
+        language: this.languageContext.language,
+        framework: this.languageContext.framework,
+        testFramework: this.languageContext.testFramework,
+        outputPath: this.config.outputPath,
+      }
+    );
 
     try {
       // Pre-generation setup
@@ -131,7 +134,7 @@ export abstract class BaseTestGenerator {
       // Start progress reporting if reporter is available
       if (this.progressReporter) {
         this.progressReporter.start(
-          filesToTest.length, 
+          filesToTest.length,
           `Generating ${this.languageContext.language} tests...`
         );
       }
@@ -143,18 +146,18 @@ export abstract class BaseTestGenerator {
 
       for (let i = 0; i < filesToTest.length; i++) {
         const filePath = filesToTest[i];
-        
+
         if (!filePath) {
           logger.warn(`Skipping undefined file path at index ${i}`);
           continue;
         }
-        
+
         try {
           // Update progress
           if (this.progressReporter) {
             this.progressReporter.updateProgress(i + 1, filePath);
           }
-          
+
           const testResult = await this.generateTestForFile(filePath);
           if (testResult) {
             results.push(testResult);
@@ -163,7 +166,7 @@ export abstract class BaseTestGenerator {
           const errorMsg = `Failed to generate test for ${filePath}: ${error instanceof Error ? error.message : String(error)}`;
           logger.error(errorMsg, { error });
           errors.push(errorMsg);
-          
+
           // Report error to progress reporter
           if (this.progressReporter) {
             this.progressReporter.reportError(error instanceof Error ? error : errorMsg, filePath);
@@ -192,9 +195,9 @@ export abstract class BaseTestGenerator {
       // Complete progress reporting
       if (this.progressReporter) {
         this.progressReporter.complete(
-          errors.length === 0, 
-          errors.length === 0 
-            ? `${this.languageContext.language} tests generated successfully` 
+          errors.length === 0,
+          errors.length === 0
+            ? `${this.languageContext.language} tests generated successfully`
             : 'Test generation completed with errors'
         );
       }
@@ -275,7 +278,7 @@ export abstract class BaseTestGenerator {
    * Generate test content from template and analysis
    */
   protected abstract generateTestContent(
-    template: string, 
+    template: string,
     analysis: SourceFileAnalysis
   ): Promise<string>;
 
@@ -317,12 +320,10 @@ export abstract class BaseTestGenerator {
     }
 
     const ratio = testFileCount / sourceFileCount;
-    
+
     // Use configured threshold or fallback to default
-    const maxRatio = config.maxRatio || 
-                     config.generation?.maxTestToSourceRatio || 
-                     config.options?.maxRatio || 
-                     10; // Default fallback
+    const maxRatio =
+      config.maxRatio || config.generation?.maxTestToSourceRatio || config.options?.maxRatio || 10; // Default fallback
 
     logger.debug(
       `Test generation ratio check: ${testFileCount} tests for ${sourceFileCount} source files (ratio: ${ratio.toFixed(2)}x, max: ${maxRatio}x)`
@@ -361,9 +362,7 @@ export abstract class BaseTestGenerator {
 
     // Get language-specific extensions
     const extensions = this.getSourceFileExtensions();
-    const patterns = extensions.map((ext) =>
-      path.join(this.config.projectPath, `**/*${ext}`)
-    );
+    const patterns = extensions.map((ext) => path.join(this.config.projectPath, `**/*${ext}`));
 
     const excludePatterns = this.getExcludePatterns();
 

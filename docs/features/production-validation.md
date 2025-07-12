@@ -1,6 +1,6 @@
 # Production Validation System
 
-*Last updated: 2025-07-03 | Implemented comprehensive production validation system with CI/CD integration*
+*Last updated: 2025-07-12 | Fixed production readiness script core commands validation - working directory issue resolved*
 
 ## 🎯 Overview
 
@@ -125,6 +125,39 @@ Added `production-validation` job that:
 - **Artifacts**: Uploads validation reports and deployment checklists
 - **Notifications**: Comments on PRs with validation status
 - **Environment**: Uses CI-optimized execution (AI tests skipped)
+
+## 🔧 Recent Fixes
+
+### Production Script Working Directory Fix (2025-07-12)
+**Issue**: Core commands validation consistently failing (5/5 failures) due to missing working directory context in production readiness script.
+
+**Root Cause**: The `scripts/production-readiness-check-enhanced.js` script was executing CLI commands without specifying the correct working directory (`cwd`), causing commands to fail when the script was run from different locations.
+
+**Solution Implemented**:
+1. **Added Project Root Detection**:
+   ```javascript
+   const PROJECT_ROOT = path.resolve(__dirname, '..');
+   ```
+
+2. **Fixed All execAsync Calls** (8 total operations):
+   - CLI responsiveness checks: Added `cwd: PROJECT_ROOT`
+   - Core commands validation: Added `cwd: PROJECT_ROOT`
+   - Test suite execution: Added `cwd: PROJECT_ROOT`
+   - Linting checks: Added `cwd: PROJECT_ROOT`
+   - Git operations: Added `cwd: PROJECT_ROOT`
+
+**Commands Fixed**:
+- `node dist/cli/index.js --version` and `--help`
+- All core command help checks (`analyze`, `test`, `run`, `incremental`, `watch`)
+- Test execution commands (`npm run test:fast`, `npm run test:core`)
+- Linting validation (`npm run lint`)
+- Git status operations
+
+**Results**:
+- **Core Commands**: 0/5 → 5/5 passing (100% improvement)
+- **Deployability**: ❌ Not deployable → ✅ Deployable to production
+- **CLI Responsiveness**: Maintained ✅ working status
+- **Production Validation**: Now reliable regardless of execution directory
 
 ## 📊 Quality Metrics
 

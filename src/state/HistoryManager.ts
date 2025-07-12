@@ -4,8 +4,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { BaselineManifest } from './ManifestManager';
-import { ManifestManager } from './ManifestManager';
+import { ManifestManager, type BaselineManifest, type TestManifest } from './ManifestManager';
 import { ChangeDetector } from './ChangeDetector';
 import { logger } from '../utils/logger';
 
@@ -146,8 +145,8 @@ export class HistoryManager {
     // Count file update frequency
     const fileUpdateCounts = new Map<string, number>();
     for (const entry of index.entries) {
-      for (const file of entry.details?.changedFiles || []) {
-        fileUpdateCounts.set(file, (fileUpdateCounts.get(file) || 0) + 1);
+      for (const file of entry.details?.changedFiles ?? []) {
+        fileUpdateCounts.set(file, (fileUpdateCounts.get(file) ?? 0) + 1);
       }
     }
 
@@ -160,7 +159,7 @@ export class HistoryManager {
       totalGenerations: index.entries.length,
       totalCost,
       averageCost: totalCost / index.entries.length,
-      lastGeneration: index.entries[index.entries.length - 1]?.timestamp || 'never',
+      lastGeneration: index.entries[index.entries.length - 1]?.timestamp ?? 'never',
       mostActiveFiles,
       errorRate: entriesWithErrors.length / index.entries.length,
     };
@@ -173,7 +172,7 @@ export class HistoryManager {
     const gitCommit = await this.changeDetector.getCurrentCommit();
     const baselineId = await this.manifestManager.createBaseline(
       description,
-      gitCommit || undefined
+      gitCommit ?? undefined
     );
 
     // Record in history
@@ -313,7 +312,11 @@ export class HistoryManager {
     try {
       const indexPath = path.join(this.historyDir, 'index.json');
       const content = await fs.readFile(indexPath, 'utf-8');
-      return JSON.parse(content);
+      return JSON.parse(content) as {
+        entries: Array<
+          Pick<HistoryEntry, 'id' | 'timestamp' | 'operation' | 'summary' | 'details'>
+        >;
+      };
     } catch {
       return { entries: [] };
     }
@@ -349,16 +352,16 @@ export class HistoryManager {
   private async loadEntry(id: string): Promise<HistoryEntry> {
     const entryPath = path.join(this.historyDir, `${id}.json`);
     const content = await fs.readFile(entryPath, 'utf-8');
-    return JSON.parse(content);
+    return JSON.parse(content) as HistoryEntry;
   }
 
   /**
    * Load baseline snapshot
    */
-  private async loadBaselineSnapshot(baselineId: string): Promise<any> {
+  private async loadBaselineSnapshot(baselineId: string): Promise<TestManifest> {
     const snapshotPath = path.join(this.historyDir, `baseline-${baselineId}.json`);
     const content = await fs.readFile(snapshotPath, 'utf-8');
-    return JSON.parse(content);
+    return JSON.parse(content) as TestManifest;
   }
 
   /**

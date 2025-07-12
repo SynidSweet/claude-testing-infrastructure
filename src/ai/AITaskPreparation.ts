@@ -88,7 +88,7 @@ export class AITaskPreparation {
 
     // Filter gaps based on complexity threshold
     const eligibleGaps = gapReport.gaps.filter(
-      (gap) => gap.complexity.overall >= (this.config.minComplexityForAI || 5)
+      (gap) => gap.complexity.overall >= (this.config.minComplexityForAI ?? 5)
     );
 
     // Create tasks for each eligible gap
@@ -108,7 +108,7 @@ export class AITaskPreparation {
       tasks,
       totalEstimatedTokens: tasks.reduce((sum, t) => sum + t.estimatedTokens, 0),
       totalEstimatedCost: tasks.reduce((sum, t) => sum + t.estimatedCost, 0),
-      maxConcurrency: this.config.maxConcurrentTasks || 3,
+      maxConcurrency: this.config.maxConcurrentTasks ?? 3,
     };
 
     return batch;
@@ -222,7 +222,7 @@ export class AITaskPreparation {
 - Test Framework: ${frameworkInfo.testFramework}
 - Module Type: ${frameworkInfo.moduleType}
 - Business Domain: ${context.businessDomain}
-- Critical Paths: ${context.criticalPaths?.join(', ') || 'None'}
+- Critical Paths: ${context.criticalPaths?.join(', ') ?? 'None'}
 
 **SOURCE FILE**: ${gap.sourceFile}
 \`\`\`${frameworkInfo.language}
@@ -284,8 +284,8 @@ Generate comprehensive logical tests that thoroughly validate the business logic
    * Estimate cost for tokens
    */
   private estimateCost(tokens: number): number {
-    const model = this.config.model || this.DEFAULT_MODEL;
-    
+    const model = this.config.model ?? this.DEFAULT_MODEL;
+
     // Resolve model name to full identifier
     const resolvedModelName = resolveModelName(model);
     if (!resolvedModelName) {
@@ -414,14 +414,14 @@ Generate comprehensive logical tests that thoroughly validate the business logic
   /**
    * Map priority enum to number
    */
-  private mapPriorityToNumber(priority: any): number {
+  private mapPriorityToNumber(priority: string | undefined): number {
     const priorityMap: Record<string, number> = {
       critical: 10,
       high: 8,
       medium: 5,
       low: 3,
     };
-    return priorityMap[priority] || 5;
+    return priorityMap[priority ?? 'medium'] ?? 5;
   }
 
   /**

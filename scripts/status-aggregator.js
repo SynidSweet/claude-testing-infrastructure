@@ -1,0 +1,804 @@
+#!/usr/bin/env node
+
+/**
+ * Status Aggregator Core Engine
+ * 
+ * Single source of truth for actual project status across all dimensions
+ * Part of Truth Validation System - prevents false completion claims
+ * 
+ * Features:
+ * - Aggregates actual status from all verification sources
+ * - Structured status reporting with validation
+ * - Detects discrepancies between documentation claims and reality
+ * - Provides actionable insights for production readiness
+ * 
+ * Usage:
+ *   node scripts/status-aggregator.js                    # Basic status report
+ *   node scripts/status-aggregator.js --validate-claims  # Compare with documentation
+ *   node scripts/status-aggregator.js --json             # JSON output
+ *   node scripts/status-aggregator.js --exit-on-discrepancy # Exit 1 if discrepancies found
+ */
+
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const fs = require('fs/promises');
+const path = require('path');
+
+const execAsync = promisify(exec);
+
+class StatusAggregator {
+  constructor(options = {}) {
+    this.options = {
+      validateClaims: options.validateClaims || false,
+      exitOnDiscrepancy: options.exitOnDiscrepancy || false,
+      jsonOutput: options.jsonOutput || false,
+      verbose: options.verbose || false,
+      ...options
+    };
+    
+    this.status = {
+      timestamp: new Date().toISOString(),
+      tests: {},
+      linting: {},
+      build: {},
+      cicd: {},
+      documentation: {},
+      ai: {},
+      overall: {}
+    };
+    
+    this.discrepancies = [];
+  }
+
+  async run() {
+    if (!this.options.jsonOutput) {
+      console.log('🔍 Status Aggregator Core Engine');
+      console.log('=================================\n');
+    }
+
+    try {
+      // Collect actual status from all sources
+      await this.collectTestStatus();
+      await this.collectLintingStatus();
+      await this.collectBuildStatus();
+      await this.collectCICDStatus();
+      await this.collectDocumentationStatus();
+      await this.collectAIStatus();
+      
+      // Calculate overall status
+      this.calculateOverallStatus();
+      
+      // Validate claims if requested
+      if (this.options.validateClaims) {
+        await this.validateDocumentationClaims();
+      }
+      
+      // Generate output
+      if (this.options.jsonOutput) {
+        console.log(JSON.stringify(this.status, null, 2));
+      } else {
+        this.generateReport();
+      }
+      
+      // Exit with appropriate code
+      if (this.options.exitOnDiscrepancy && this.discrepancies.length > 0) {
+        return 1;
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('❌ Status aggregation failed:', error.message);
+      return 2;
+    }
+  }
+
+  async collectTestStatus() {
+    if (this.options.verbose) console.log('📊 Collecting test status...');
+    
+    try {
+      const startTime = Date.now();
+      
+      // Run fast test suite for current status
+      const testCommand = 'npm run test:fast';
+      const { stdout } = await execAsync(testCommand + ' 2>&1', { 
+        timeout: 60000,
+        maxBuffer: 1024 * 1024 * 10,
+        shell: true
+      });
+      
+      const duration = Date.now() - startTime;
+      const testResults = this.parseTestResults(stdout);
+      
+      this.status.tests = {
+        passRate: testResults.passRate,
+        passed: testResults.passed,
+        failed: testResults.failed,
+        skipped: testResults.skipped,
+        total: testResults.total,
+        duration: duration,
+        lastRun: new Date().toISOString(),
+        command: testCommand,
+        status: testResults.passRate >= 0.95 ? 'PASSING' : 'FAILING'
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Pass rate: ${(testResults.passRate * 100).toFixed(1)}% (${testResults.passed}/${testResults.total})`);
+      }
+    } catch (error) {
+      this.status.tests = {
+        passRate: 0,
+        passed: 0,
+        failed: 0,
+        skipped: 0,
+        total: 0,
+        duration: 0,
+        lastRun: new Date().toISOString(),
+        status: 'ERROR',
+        error: error.message
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Error: ${error.message}`);
+      }
+    }
+  }
+
+  async collectLintingStatus() {
+    if (this.options.verbose) console.log('📝 Collecting linting status...');
+    
+    try {
+      const { stdout } = await execAsync('npm run lint 2>&1', { 
+        timeout: 30000,
+        shell: true
+      });
+      
+      const lintResults = this.parseLintResults(stdout);
+      
+      this.status.linting = {
+        errorCount: lintResults.errors,
+        warningCount: lintResults.warnings,
+        totalProblems: lintResults.errors + lintResults.warnings,
+        lastCheck: new Date().toISOString(),
+        status: lintResults.errors === 0 ? 'CLEAN' : 'ERRORS',
+        details: lintResults.details
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Errors: ${lintResults.errors}, Warnings: ${lintResults.warnings}`);
+      }
+    } catch (error) {
+      // Linting errors are expected when there are violations
+      if (error.stdout) {
+        const lintResults = this.parseLintResults(error.stdout);
+        this.status.linting = {
+          errorCount: lintResults.errors,
+          warningCount: lintResults.warnings,
+          totalProblems: lintResults.errors + lintResults.warnings,
+          lastCheck: new Date().toISOString(),
+          status: lintResults.errors === 0 ? 'CLEAN' : 'ERRORS',
+          details: lintResults.details
+        };
+      } else {
+        this.status.linting = {
+          errorCount: 0,
+          warningCount: 0,
+          totalProblems: 0,
+          lastCheck: new Date().toISOString(),
+          status: 'ERROR',
+          error: error.message
+        };
+      }
+    }
+  }
+
+  async collectBuildStatus() {
+    if (this.options.verbose) console.log('🔨 Collecting build status...');
+    
+    try {
+      // Check build artifacts
+      const distPath = path.join(process.cwd(), 'dist');
+      const cliPath = path.join(distPath, 'cli', 'index.js');
+      
+      await fs.access(distPath);
+      await fs.access(cliPath);
+      
+      // Test CLI functionality
+      const { stdout: version } = await execAsync('node dist/cli/index.js --version', { timeout: 10000 });
+      
+      this.status.build = {
+        successful: true,
+        artifactsPresent: true,
+        cliWorking: version.includes('2.0.0'),
+        lastBuild: new Date().toISOString(),
+        version: version.trim(),
+        status: 'SUCCESS'
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Build successful, CLI version: ${version.trim()}`);
+      }
+    } catch (error) {
+      this.status.build = {
+        successful: false,
+        artifactsPresent: false,
+        cliWorking: false,
+        lastBuild: new Date().toISOString(),
+        status: 'FAILED',
+        error: error.message
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Build failed: ${error.message}`);
+      }
+    }
+  }
+
+  async collectCICDStatus() {
+    if (this.options.verbose) console.log('🚀 Collecting CI/CD status...');
+    
+    try {
+      // Get current branch
+      const { stdout: branchOutput } = await execAsync('git branch --show-current', { timeout: 5000 });
+      const currentBranch = branchOutput.trim();
+      
+      // Get latest commit info
+      const { stdout: commitOutput } = await execAsync('git log -1 --pretty=format:"%H|%s|%ai"', { timeout: 5000 });
+      const [commitHash, commitMessage, commitDate] = commitOutput.split('|');
+      
+      // Check if we can determine CI status (this is a simplified check)
+      // In a real implementation, this would use GitHub API or similar
+      const cicdStatus = await this.checkCICDPipelineStatus(currentBranch);
+      
+      this.status.cicd = {
+        currentBranch: currentBranch,
+        lastCommit: {
+          hash: commitHash,
+          message: commitMessage,
+          date: commitDate
+        },
+        pipelineStatus: cicdStatus.status,
+        lastRun: cicdStatus.lastRun,
+        passing: cicdStatus.passing,
+        status: cicdStatus.passing ? 'PASSING' : 'FAILING'
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Branch: ${currentBranch}, CI Status: ${cicdStatus.status}`);
+      }
+    } catch (error) {
+      this.status.cicd = {
+        currentBranch: 'unknown',
+        lastCommit: null,
+        pipelineStatus: 'UNKNOWN',
+        lastRun: null,
+        passing: false,
+        status: 'ERROR',
+        error: error.message
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   CI/CD check failed: ${error.message}`);
+      }
+    }
+  }
+
+  async collectDocumentationStatus() {
+    if (this.options.verbose) console.log('📚 Collecting documentation status...');
+    
+    try {
+      const requiredDocs = [
+        'README.md',
+        'AI_AGENT_GUIDE.md',
+        'PROJECT_CONTEXT.md',
+        'docs/CURRENT_FOCUS.md',
+        'docs/architecture/overview.md',
+        'docs/development/workflow.md'
+      ];
+      
+      let existingDocs = 0;
+      const missingDocs = [];
+      
+      for (const docPath of requiredDocs) {
+        try {
+          await fs.access(path.join(process.cwd(), docPath));
+          existingDocs++;
+        } catch (error) {
+          missingDocs.push(docPath);
+        }
+      }
+      
+      this.status.documentation = {
+        completeness: existingDocs / requiredDocs.length,
+        required: requiredDocs.length,
+        existing: existingDocs,
+        missing: missingDocs,
+        lastCheck: new Date().toISOString(),
+        status: existingDocs === requiredDocs.length ? 'COMPLETE' : 'INCOMPLETE'
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Documentation: ${existingDocs}/${requiredDocs.length} complete`);
+      }
+    } catch (error) {
+      this.status.documentation = {
+        completeness: 0,
+        required: 0,
+        existing: 0,
+        missing: [],
+        lastCheck: new Date().toISOString(),
+        status: 'ERROR',
+        error: error.message
+      };
+    }
+  }
+
+  async collectAIStatus() {
+    if (this.options.verbose) console.log('🤖 Collecting AI integration status...');
+    
+    try {
+      // Check if Claude CLI is available
+      const { stdout: claudeVersion } = await execAsync('claude --version', { timeout: 5000 });
+      
+      this.status.ai = {
+        claudeCliAvailable: true,
+        claudeVersion: claudeVersion.trim(),
+        lastCheck: new Date().toISOString(),
+        status: 'AVAILABLE'
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Claude CLI available: ${claudeVersion.trim()}`);
+      }
+    } catch (error) {
+      this.status.ai = {
+        claudeCliAvailable: false,
+        claudeVersion: null,
+        lastCheck: new Date().toISOString(),
+        status: 'UNAVAILABLE',
+        note: 'AI features will be skipped - structural testing still functional'
+      };
+      
+      if (this.options.verbose) {
+        console.log(`   Claude CLI not available (optional for structural testing)`);
+      }
+    }
+  }
+
+  calculateOverallStatus() {
+    if (this.options.verbose) console.log('📊 Calculating overall status...');
+    
+    const weights = {
+      tests: 0.30,
+      linting: 0.25,
+      build: 0.20,
+      cicd: 0.15,
+      documentation: 0.10
+    };
+    
+    let score = 0;
+    const components = {};
+    
+    // Test status
+    components.tests = this.status.tests.passRate || 0;
+    score += components.tests * weights.tests;
+    
+    // Linting status (perfect score if no errors)
+    components.linting = this.status.linting.errorCount === 0 ? 1 : 0;
+    score += components.linting * weights.linting;
+    
+    // Build status
+    components.build = this.status.build.successful ? 1 : 0;
+    score += components.build * weights.build;
+    
+    // CI/CD status
+    components.cicd = this.status.cicd.passing ? 1 : 0;
+    score += components.cicd * weights.cicd;
+    
+    // Documentation status
+    components.documentation = this.status.documentation.completeness || 0;
+    score += components.documentation * weights.documentation;
+    
+    // Determine overall status
+    let overallStatus = 'FAILING';
+    if (score >= 0.95) {
+      overallStatus = 'PRODUCTION_READY';
+    } else if (score >= 0.85) {
+      overallStatus = 'MOSTLY_READY';
+    } else if (score >= 0.70) {
+      overallStatus = 'DEVELOPMENT_READY';
+    }
+    
+    this.status.overall = {
+      score: score,
+      percentage: Math.round(score * 100),
+      status: overallStatus,
+      components: components,
+      weights: weights,
+      criticalIssues: this.identifyCriticalIssues()
+    };
+  }
+
+  identifyCriticalIssues() {
+    const critical = [];
+    
+    if (this.status.tests.passRate < 0.95) {
+      critical.push(`Test pass rate too low: ${(this.status.tests.passRate * 100).toFixed(1)}%`);
+    }
+    
+    if (this.status.linting.errorCount > 0) {
+      critical.push(`${this.status.linting.errorCount} linting errors`);
+    }
+    
+    if (!this.status.build.successful) {
+      critical.push('Build failed');
+    }
+    
+    if (!this.status.cicd.passing) {
+      critical.push('CI/CD pipeline failing');
+    }
+    
+    return critical;
+  }
+
+  async validateDocumentationClaims() {
+    if (this.options.verbose) console.log('🔍 Validating documentation claims...');
+    
+    try {
+      // Use Truth Validation Engine for comprehensive validation
+      const TruthValidationEngine = require('./truth-validation-engine');
+      const engine = new TruthValidationEngine({
+        verbose: false,
+        jsonOutput: false,
+        exitOnFail: false
+      });
+      
+      // Set the actual status from this aggregator
+      engine.actualStatus = this.status;
+      
+      // Parse documented claims
+      await engine.parseDocumentedClaims();
+      
+      // Perform validation
+      await engine.validateAllClaims();
+      
+      // Import discrepancies into this aggregator
+      this.discrepancies = engine.discrepancies;
+      
+      if (this.options.verbose && this.discrepancies.length > 0) {
+        console.log(`   Found ${this.discrepancies.length} discrepancies`);
+      }
+      
+    } catch (error) {
+      console.error('Documentation validation failed:', error.message);
+      
+      // Fallback to old validation method
+      await this.validateDocumentationClaimsLegacy();
+    }
+  }
+  
+  async validateDocumentationClaimsLegacy() {
+    // Legacy validation method as backup
+    try {
+      const DocumentationClaimParser = require('./documentation-claim-parser');
+      const parser = new DocumentationClaimParser({
+        targetPath: process.cwd(),
+        verbose: false
+      });
+      
+      await parser.run();
+      const claims = parser.getClaims();
+      
+      if (this.options.verbose) {
+        console.log(`   Found ${claims.metadata.claimsFound} claims across ${claims.metadata.filesScanned} files`);
+      }
+      
+      // Validate production readiness claims
+      this.validateProductionReadyClaims(claims.productionReady);
+      
+      // Validate test pass rate claims
+      this.validateTestPassRateClaims(claims.testPassRate);
+      
+      // Validate error count claims
+      this.validateErrorCountClaims(claims.errorCount);
+      
+      // Validate completion claims against actual status
+      this.validateCompletionClaims(claims.completed);
+      
+    } catch (error) {
+      console.error('Legacy documentation validation failed:', error.message);
+    }
+  }
+
+  validateProductionReadyClaims(productionReadyClaims) {
+    const actuallyProductionReady = this.status.overall.status === 'PRODUCTION_READY';
+    
+    for (const claim of productionReadyClaims) {
+      if (!actuallyProductionReady) {
+        this.discrepancies.push({
+          type: 'production-ready',
+          claimed: true,
+          actual: false,
+          severity: 'HIGH',
+          source: `${claim.file}:${claim.line}`,
+          claimText: claim.claim,
+          actualStatus: this.status.overall.status,
+          actualScore: this.status.overall.percentage
+        });
+      }
+    }
+  }
+
+  validateTestPassRateClaims(testPassRateClaims) {
+    const actualPassRate = this.status.tests.passRate;
+    
+    for (const claim of testPassRateClaims) {
+      const tolerance = 0.01; // 1% tolerance
+      
+      if (Math.abs(claim.value - actualPassRate) > tolerance) {
+        this.discrepancies.push({
+          type: 'test-pass-rate',
+          claimed: claim.value,
+          actual: actualPassRate,
+          severity: Math.abs(claim.value - actualPassRate) > 0.1 ? 'HIGH' : 'MEDIUM',
+          source: `${claim.file}:${claim.line}`,
+          claimText: claim.claim,
+          difference: Math.abs(claim.value - actualPassRate),
+          actualTests: `${this.status.tests.passed}/${this.status.tests.total}`
+        });
+      }
+    }
+  }
+
+  validateErrorCountClaims(errorCountClaims) {
+    const actualErrorCount = this.status.linting.errorCount;
+    
+    for (const claim of errorCountClaims) {
+      if (claim.value !== actualErrorCount) {
+        this.discrepancies.push({
+          type: 'error-count',
+          claimed: claim.value,
+          actual: actualErrorCount,
+          severity: 'HIGH',
+          source: `${claim.file}:${claim.line}`,
+          claimText: claim.claim,
+          actualWarnings: this.status.linting.warningCount,
+          totalProblems: this.status.linting.totalProblems
+        });
+      }
+    }
+  }
+
+  validateCompletionClaims(completionClaims) {
+    // For completion claims, we validate against critical system status
+    // Any "✅ COMPLETED" claim should be validated against actual system state
+    
+    const hasCriticalIssues = this.status.overall.criticalIssues.length > 0;
+    
+    if (hasCriticalIssues) {
+      // Group completion claims by file for reporting
+      const claimsByFile = {};
+      for (const claim of completionClaims) {
+        if (!claimsByFile[claim.file]) {
+          claimsByFile[claim.file] = [];
+        }
+        claimsByFile[claim.file].push(claim);
+      }
+      
+      // Report discrepancies for files with completion claims while critical issues exist
+      for (const [filePath, claims] of Object.entries(claimsByFile)) {
+        this.discrepancies.push({
+          type: 'completion-claims',
+          claimed: `${claims.length} completion claims`,
+          actual: `${this.status.overall.criticalIssues.length} critical issues`,
+          severity: 'HIGH',
+          source: filePath,
+          claimCount: claims.length,
+          criticalIssues: this.status.overall.criticalIssues
+        });
+      }
+    }
+  }
+
+  validateClaim(claimType, claimed, actual) {
+    const tolerance = 0.01; // 1% tolerance for floating point comparisons
+    
+    let discrepancy = null;
+    
+    if (typeof claimed === 'boolean' && typeof actual === 'boolean') {
+      if (claimed !== actual) {
+        discrepancy = {
+          type: claimType,
+          claimed: claimed,
+          actual: actual,
+          severity: 'HIGH'
+        };
+      }
+    } else if (typeof claimed === 'number' && typeof actual === 'number') {
+      if (Math.abs(claimed - actual) > tolerance) {
+        discrepancy = {
+          type: claimType,
+          claimed: claimed,
+          actual: actual,
+          difference: Math.abs(claimed - actual),
+          severity: Math.abs(claimed - actual) > 0.1 ? 'HIGH' : 'MEDIUM'
+        };
+      }
+    }
+    
+    if (discrepancy) {
+      this.discrepancies.push(discrepancy);
+    }
+  }
+
+  parseTestResults(stdout) {
+    const testStatsRegex = /Tests:\s+(?:(\d+)\s+skipped,\s*)?(?:(\d+)\s+failed,\s*)?(\d+)\s+passed,?\s*(\d+)\s+total/;
+    const match = stdout.match(testStatsRegex);
+    
+    let passed = 0;
+    let failed = 0;
+    let skipped = 0;
+    let total = 0;
+    
+    if (match) {
+      skipped = match[1] ? parseInt(match[1]) : 0;
+      failed = match[2] ? parseInt(match[2]) : 0;
+      passed = parseInt(match[3]);
+      total = parseInt(match[4]);
+    }
+    
+    const passRate = total > 0 ? passed / total : 0;
+    
+    return { passed, failed, skipped, total, passRate };
+  }
+
+  parseLintResults(stdout) {
+    let errors = 0;
+    let warnings = 0;
+    const details = [];
+    
+    // Parse ESLint output format
+    const summaryMatch = stdout.match(/(\d+)\s+errors?\s*,?\s*(\d+)\s+warnings?/);
+    if (summaryMatch) {
+      errors = parseInt(summaryMatch[1]);
+      warnings = parseInt(summaryMatch[2]);
+    }
+    
+    // Alternative format
+    const problemsMatch = stdout.match(/(\d+)\s+problems?\s*\((\d+)\s+errors?,\s*(\d+)\s+warnings?\)/);
+    if (problemsMatch) {
+      errors = parseInt(problemsMatch[2]);
+      warnings = parseInt(problemsMatch[3]);
+    }
+    
+    return { errors, warnings, details };
+  }
+
+  async checkCICDPipelineStatus(branch) {
+    // Simplified CI/CD status check
+    // In a real implementation, this would integrate with GitHub API
+    
+    try {
+      // Check if we're in a git repository with remotes
+      const { stdout: remoteOutput } = await execAsync('git remote -v', { timeout: 5000 });
+      const hasRemote = remoteOutput.includes('github.com');
+      
+      if (!hasRemote) {
+        return {
+          status: 'NO_REMOTE',
+          lastRun: null,
+          passing: false
+        };
+      }
+      
+      // For now, return a conservative status
+      // Real implementation would check actual CI/CD status
+      return {
+        status: 'UNKNOWN',
+        lastRun: new Date().toISOString(),
+        passing: false // Conservative assumption
+      };
+    } catch (error) {
+      return {
+        status: 'ERROR',
+        lastRun: null,
+        passing: false
+      };
+    }
+  }
+
+  generateReport() {
+    console.log('📊 Project Status Aggregation Report');
+    console.log('====================================\n');
+    
+    // Test Status
+    console.log('🧪 Test Status:');
+    console.log(`   Pass Rate: ${(this.status.tests.passRate * 100).toFixed(1)}% (${this.status.tests.passed}/${this.status.tests.total})`);
+    console.log(`   Duration: ${(this.status.tests.duration / 1000).toFixed(1)}s`);
+    console.log(`   Status: ${this.status.tests.status}`);
+    
+    // Linting Status
+    console.log('\n📝 Linting Status:');
+    console.log(`   Errors: ${this.status.linting.errorCount}`);
+    console.log(`   Warnings: ${this.status.linting.warningCount}`);
+    console.log(`   Status: ${this.status.linting.status}`);
+    
+    // Build Status
+    console.log('\n🔨 Build Status:');
+    console.log(`   Successful: ${this.status.build.successful ? '✅' : '❌'}`);
+    console.log(`   CLI Working: ${this.status.build.cliWorking ? '✅' : '❌'}`);
+    console.log(`   Status: ${this.status.build.status}`);
+    
+    // CI/CD Status
+    console.log('\n🚀 CI/CD Status:');
+    console.log(`   Branch: ${this.status.cicd.currentBranch}`);
+    console.log(`   Pipeline: ${this.status.cicd.pipelineStatus}`);
+    console.log(`   Status: ${this.status.cicd.status}`);
+    
+    // Documentation Status
+    console.log('\n📚 Documentation Status:');
+    console.log(`   Completeness: ${(this.status.documentation.completeness * 100).toFixed(0)}%`);
+    console.log(`   Files: ${this.status.documentation.existing}/${this.status.documentation.required}`);
+    console.log(`   Status: ${this.status.documentation.status}`);
+    
+    // AI Status
+    console.log('\n🤖 AI Integration Status:');
+    console.log(`   Claude CLI: ${this.status.ai.claudeCliAvailable ? '✅' : '❌'}`);
+    console.log(`   Status: ${this.status.ai.status}`);
+    
+    // Overall Status
+    console.log('\n📊 Overall Status:');
+    console.log(`   Score: ${this.status.overall.percentage}%`);
+    console.log(`   Status: ${this.status.overall.status}`);
+    
+    if (this.status.overall.criticalIssues.length > 0) {
+      console.log('\n🚨 Critical Issues:');
+      this.status.overall.criticalIssues.forEach((issue, index) => {
+        console.log(`   ${index + 1}. ${issue}`);
+      });
+    }
+    
+    if (this.discrepancies.length > 0) {
+      console.log('\n⚠️  Documentation Discrepancies:');
+      this.discrepancies.forEach((discrepancy, index) => {
+        console.log(`   ${index + 1}. ${discrepancy.type.toUpperCase()} [${discrepancy.severity}]:`);
+        console.log(`       Claimed: ${discrepancy.claimed}`);
+        console.log(`       Actual: ${discrepancy.actual}`);
+        if (discrepancy.source) {
+          console.log(`       Source: ${discrepancy.source}`);
+        }
+        if (discrepancy.claimText) {
+          console.log(`       Claim: "${discrepancy.claimText}"`);
+        }
+        if (discrepancy.actualTests) {
+          console.log(`       Tests: ${discrepancy.actualTests}`);
+        }
+        if (discrepancy.criticalIssues) {
+          console.log(`       Critical Issues: ${discrepancy.criticalIssues.join(', ')}`);
+        }
+      });
+    }
+    
+    console.log('');
+  }
+}
+
+// CLI handling
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  const options = {
+    validateClaims: args.includes('--validate-claims'),
+    exitOnDiscrepancy: args.includes('--exit-on-discrepancy'),
+    jsonOutput: args.includes('--json'),
+    verbose: args.includes('--verbose')
+  };
+  
+  const aggregator = new StatusAggregator(options);
+  aggregator.run().then(exitCode => {
+    process.exit(exitCode);
+  }).catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(2);
+  });
+}
+
+module.exports = StatusAggregator;

@@ -149,6 +149,7 @@ export interface FeatureFlags {
  * Test generation configuration options
  */
 export interface GenerationOptions {
+  [key: string]: unknown;
   /**
    * Maximum number of tests to generate per file
    * @default 50

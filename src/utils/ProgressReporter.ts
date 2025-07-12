@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import chalk from 'chalk';
-import ora, { Ora } from 'ora';
+import ora, { type Ora } from 'ora';
 
 export interface ProgressEvent {
   type: 'start' | 'progress' | 'complete' | 'error' | 'warning';
@@ -34,21 +34,23 @@ export class ProgressReporter extends EventEmitter {
       filesProcessed: 0,
       totalFiles: 0,
       errors: 0,
-      warnings: 0
+      warnings: 0,
     };
   }
 
   start(totalFiles: number, message: string = 'Starting test generation...'): void {
     this.stats.totalFiles = totalFiles;
     this.stats.startTime = Date.now();
-    
+
     if (!this.verbose) {
       this.spinner = ora({
         text: message,
-        spinner: 'dots'
+        spinner: 'dots',
       }).start();
     } else {
+      // eslint-disable-next-line no-console
       console.log(chalk.blue(`\n${message}`));
+      // eslint-disable-next-line no-console
       console.log(chalk.gray(`Total files to process: ${totalFiles}`));
     }
 
@@ -57,7 +59,7 @@ export class ProgressReporter extends EventEmitter {
 
   updateProgress(current: number, file?: string): void {
     this.stats.filesProcessed = current;
-    
+
     // Throttle updates to avoid flickering
     const now = Date.now();
     if (now - this.lastUpdateTime < this.updateInterval && current < this.stats.totalFiles) {
@@ -69,7 +71,7 @@ export class ProgressReporter extends EventEmitter {
     const elapsed = now - this.stats.startTime;
     const avgTimePerFile = elapsed / current;
     const remainingFiles = this.stats.totalFiles - current;
-    const estimatedTimeRemaining = Math.round(avgTimePerFile * remainingFiles / 1000);
+    const estimatedTimeRemaining = Math.round((avgTimePerFile * remainingFiles) / 1000);
 
     const progressMessage = `Generating tests... [${current}/${this.stats.totalFiles}] ${percentage}% - ETA: ${estimatedTimeRemaining}s`;
 
@@ -79,16 +81,19 @@ export class ProgressReporter extends EventEmitter {
         this.spinner.text += chalk.gray(` - ${this.getShortPath(file)}`);
       }
     } else {
-      console.log(chalk.cyan(`[${current}/${this.stats.totalFiles}] ${percentage}%`) + 
-        (file ? chalk.gray(` - Processing: ${this.getShortPath(file)}`) : ''));
+      // eslint-disable-next-line no-console
+      console.log(
+        chalk.cyan(`[${current}/${this.stats.totalFiles}] ${percentage}%`) +
+          (file ? chalk.gray(` - Processing: ${this.getShortPath(file)}`) : '')
+      );
     }
 
-    this.emit('progress', { 
-      type: 'progress', 
-      current, 
-      total: this.stats.totalFiles, 
+    this.emit('progress', {
+      type: 'progress',
+      current,
+      total: this.stats.totalFiles,
       file,
-      message: progressMessage 
+      message: progressMessage,
     });
   }
 
@@ -99,17 +104,23 @@ export class ProgressReporter extends EventEmitter {
     if (!this.verbose && this.spinner) {
       // Temporarily stop spinner to show error
       this.spinner.stop();
-      console.log(chalk.red(`✗ Error${file ? ` in ${this.getShortPath(file)}` : ''}: ${errorMessage}`));
+      // eslint-disable-next-line no-console
+      console.log(
+        chalk.red(`✗ Error${file ? ` in ${this.getShortPath(file)}` : ''}: ${errorMessage}`)
+      );
       this.spinner.start();
     } else {
-      console.log(chalk.red(`✗ Error${file ? ` in ${this.getShortPath(file)}` : ''}: ${errorMessage}`));
+      // eslint-disable-next-line no-console
+      console.log(
+        chalk.red(`✗ Error${file ? ` in ${this.getShortPath(file)}` : ''}: ${errorMessage}`)
+      );
     }
 
-    this.emit('error', { 
-      type: 'error', 
-      error: error instanceof Error ? error : new Error(errorMessage), 
+    this.emit('error', {
+      type: 'error',
+      error: error instanceof Error ? error : new Error(errorMessage),
       file,
-      message: errorMessage 
+      message: errorMessage,
     });
   }
 
@@ -117,13 +128,16 @@ export class ProgressReporter extends EventEmitter {
     this.stats.warnings++;
 
     if (this.verbose) {
-      console.log(chalk.yellow(`⚠️  Warning${file ? ` in ${this.getShortPath(file)}` : ''}: ${warning}`));
+      // eslint-disable-next-line no-console
+      console.log(
+        chalk.yellow(`⚠️  Warning${file ? ` in ${this.getShortPath(file)}` : ''}: ${warning}`)
+      );
     }
 
-    this.emit('warning', { 
-      type: 'warning', 
+    this.emit('warning', {
+      type: 'warning',
       message: warning,
-      file 
+      file,
     });
   }
 
@@ -133,34 +147,39 @@ export class ProgressReporter extends EventEmitter {
 
     if (!this.verbose && this.spinner) {
       if (success) {
-        this.spinner.succeed(message || 'Test generation completed');
+        this.spinner.succeed(message ?? 'Test generation completed');
       } else {
-        this.spinner.fail(message || 'Test generation failed');
+        this.spinner.fail(message ?? 'Test generation failed');
       }
     } else {
       const icon = success ? '✓' : '✗';
       const color = success ? chalk.green : chalk.red;
-      console.log(color(`\n${icon} ${message || 'Test generation ' + (success ? 'completed' : 'failed')}`));
+      // eslint-disable-next-line no-console
+      console.log(
+        color(`\n${icon} ${message ?? 'Test generation ' + (success ? 'completed' : 'failed')}`)
+      );
     }
 
     if (this.verbose || success) {
+      /* eslint-disable no-console */
       console.log(chalk.cyan('\n📊 Generation Summary:'));
       console.log(`  • Files processed: ${this.stats.filesProcessed}/${this.stats.totalFiles}`);
       console.log(`  • Time elapsed: ${elapsedSeconds}s`);
-      
+
       if (this.stats.errors > 0) {
         console.log(chalk.red(`  • Errors: ${this.stats.errors}`));
       }
       if (this.stats.warnings > 0) {
         console.log(chalk.yellow(`  • Warnings: ${this.stats.warnings}`));
       }
+      /* eslint-enable no-console */
     }
 
-    this.emit('complete', { 
-      type: 'complete', 
-      message: message || (success ? 'Completed' : 'Failed'),
+    this.emit('complete', {
+      type: 'complete',
+      message: message ?? (success ? 'Completed' : 'Failed'),
       current: this.stats.filesProcessed,
-      total: this.stats.totalFiles
+      total: this.stats.totalFiles,
     });
   }
 

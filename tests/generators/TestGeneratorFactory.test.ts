@@ -148,9 +148,11 @@ describe('TestGeneratorFactory', () => {
       const configWithOverride = {
         ...config,
         testGeneration: {
-          engine: 'structural',
+          engine: 'structural' as const,
         },
-      } as any;
+      } as TestGeneratorConfig & {
+        testGeneration: { engine: 'structural' };
+      };
       
       const generator = await TestGeneratorFactory.createGenerator(configWithOverride, analysis);
       
@@ -206,7 +208,7 @@ describe('TestGeneratorFactory', () => {
       expect(generator).toBeInstanceOf(StructuralTestGenerator);
     });
 
-    it('should throw error when language-specific forced but no generator available', async () => {
+    it('should throw error when language-specific forced but no generator available', () => {
       TestGeneratorFactory.setFeatureFlag(true);
       // Don't register any generators
       
@@ -217,8 +219,8 @@ describe('TestGeneratorFactory', () => {
         },
       } as any;
       
-      await expect(TestGeneratorFactory.createGenerator(configWithOverride, analysis))
-        .rejects.toThrow('No generator registered for language: javascript');
+      expect(() => TestGeneratorFactory.createGenerator(configWithOverride, analysis))
+        .toThrow('No generator registered for language: javascript');
     });
   });
 
@@ -297,11 +299,11 @@ describe('TestGeneratorFactory', () => {
   });
 
   describe('createCompatibilityAdapter', () => {
-    it('should throw not implemented error', async () => {
+    it('should throw not implemented error', () => {
       const mockGenerator = {} as BaseTestGenerator;
       
-      await expect(TestGeneratorFactory.createCompatibilityAdapter(mockGenerator))
-        .rejects.toThrow('Compatibility adapter not yet implemented');
+      expect(() => TestGeneratorFactory.createCompatibilityAdapter(mockGenerator))
+        .toThrow('Compatibility adapter not yet implemented');
     });
   });
 });

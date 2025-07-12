@@ -28,6 +28,7 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
     "moduleResolution": "node",
     "baseUrl": "./src",
     "paths": {

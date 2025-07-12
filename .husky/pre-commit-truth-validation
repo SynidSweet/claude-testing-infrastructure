@@ -1,0 +1,14 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Pre-commit hook with truth validation
+echo "🔍 Running pre-commit checks with truth validation..."
+
+# Run standard pre-commit checks
+npm run precommit
+
+# Run truth validation
+echo "🔍 Validating documentation claims against reality..."
+npm run truth-validation:precommit
+
+echo "✅ All pre-commit checks passed!"

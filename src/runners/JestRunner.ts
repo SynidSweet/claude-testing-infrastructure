@@ -1,12 +1,117 @@
 import { spawn } from 'child_process';
-import type { TestRunnerConfig, TestResult, TestFailure, CoverageResult } from './TestRunner';
-import { TestRunner } from './TestRunner';
+import {
+  TestRunner,
+  type TestRunnerConfig,
+  type TestResult,
+  type TestFailure,
+  type CoverageResult,
+} from './TestRunner';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
-import type { CoverageReporter } from './CoverageReporter';
-import { CoverageReporterFactory } from './CoverageReporter';
-import type { FileDiscoveryService } from '../types/file-discovery-types';
-import { FileDiscoveryType } from '../types/file-discovery-types';
+import { CoverageReporterFactory, type CoverageReporter } from './CoverageReporter';
+import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
+import type { CoverageThresholds } from './CoverageParser';
+
+/**
+ * Jest coverage data structure
+ */
+interface JestCoverageData {
+  [filePath: string]: {
+    path?: string;
+    s: Record<string, number>;
+    b: Record<string, number[]>;
+    f: Record<string, number>;
+    statementMap: Record<
+      string,
+      { start: { line: number; column: number }; end: { line: number; column: number } }
+    >;
+    branchMap: Record<
+      string,
+      { loc?: { start?: { line: number; column: number } }; type?: string }
+    >;
+    fnMap: Record<string, { name?: string; decl?: { start: { line: number } } }>;
+  };
+}
+
+/**
+ * Jest JSON result structure
+ */
+interface JestJsonResult {
+  numTotalTests?: number;
+  numTotalTestSuites?: number;
+  numPassedTests?: number;
+  numFailedTests?: number;
+  numPendingTests?: number;
+  startTime?: number;
+  endTime?: number;
+  coverageMap?: JestCoverageData;
+  testResults?: Array<{
+    message?: string;
+    name?: string;
+    assertionResults?: Array<{
+      status?: string;
+      title?: string;
+      failureMessages?: string[];
+    }>;
+  }>;
+}
+
+/**
+ * Jest configuration object structure
+ */
+interface JestConfig {
+  testEnvironment?: string;
+  testMatch?: string[];
+  passWithNoTests?: boolean;
+  setupFilesAfterEnv?: string[];
+  preset?: string;
+  extensionsToTreatAsEsm?: string[];
+  moduleNameMapper?: Record<string, string>;
+  transform?: Record<string, string>;
+  transformIgnorePatterns?: string[];
+  collectCoverage?: boolean;
+  coverageDirectory?: string;
+  coverageReporters?: string[];
+  coverageThreshold?: {
+    global?: {
+      statements?: number;
+      branches?: number;
+      functions?: number;
+      lines?: number;
+    };
+  };
+}
+
+/**
+ * Jest coverage map structure
+ */
+interface JestCoverageMap {
+  global?: {
+    statements?: { pct?: number };
+    branches?: { pct?: number };
+    functions?: { pct?: number };
+    lines?: { pct?: number };
+  };
+}
+
+/**
+ * Coverage report data structure
+ */
+interface CoverageReportData {
+  files?: Record<
+    string,
+    {
+      uncoveredLines?: number[];
+    }
+  >;
+}
+
+/**
+ * Type guard to check if unknown data is a JestCoverageMap
+ */
+function isJestCoverageMap(data: unknown): data is JestCoverageMap {
+  return typeof data === 'object' && data !== null;
+}
 
 /**
  * Jest test runner implementation
@@ -14,13 +119,21 @@ import { FileDiscoveryType } from '../types/file-discovery-types';
 export class JestRunner extends TestRunner {
   private coverageReporter?: CoverageReporter;
 
-  constructor(config: TestRunnerConfig, analysis: ProjectAnalysis, private fileDiscovery: FileDiscoveryService) {
+  constructor(
+    config: TestRunnerConfig,
+    analysis: ProjectAnalysis,
+    private fileDiscovery: FileDiscoveryService
+  ) {
     super(config, analysis);
 
     // Initialize coverage reporter if coverage is enabled
     if (config.coverage?.enabled) {
-      const reporterConfig: any = {
-        outputDir: config.coverage.outputDir,
+      const reporterConfig: {
+        outputDir?: string;
+        failOnThreshold: boolean;
+        thresholds?: CoverageThresholds;
+      } = {
+        ...(config.coverage.outputDir ? { outputDir: config.coverage.outputDir } : {}),
         failOnThreshold: false, // Don't fail here, let the runner handle it
       };
 
@@ -44,9 +157,9 @@ export class JestRunner extends TestRunner {
       const result = await this.fileDiscovery.findFiles({
         baseDir: this.config.testPath,
         type: FileDiscoveryType.TEST_EXECUTION,
-        useCache: true
+        useCache: true,
       });
-      
+
       return result.files.length > 0;
     } catch {
       return false;
@@ -56,7 +169,7 @@ export class JestRunner extends TestRunner {
   protected async executeTests(): Promise<TestResult> {
     const { command, args } = this.getRunCommand();
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
 
@@ -66,18 +179,17 @@ export class JestRunner extends TestRunner {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      child.stdout?.on('data', (data) => {
+      child.stdout?.on('data', (data: Buffer) => {
         stdout += data.toString();
       });
 
-      child.stderr?.on('data', (data) => {
+      child.stderr?.on('data', (data: Buffer) => {
         stderr += data.toString();
       });
 
-      child.on('close', async (code) => {
-        const exitCode = code || 0;
-        const result = await this.parseOutput(stdout, stderr, exitCode);
-        resolve(result);
+      child.on('close', (code) => {
+        const exitCode = code ?? 0;
+        void this.parseOutput(stdout, stderr, exitCode).then(resolve).catch(reject);
       });
 
       child.on('error', (error) => {
@@ -175,6 +287,13 @@ export class JestRunner extends TestRunner {
     return { command: jestCommand, args };
   }
 
+  /**
+   * Type guard for Jest JSON result
+   */
+  private isJestJsonResult(data: unknown): data is JestJsonResult {
+    return typeof data === 'object' && data !== null && 'numTotalTests' in data;
+  }
+
   protected async parseOutput(
     stdout: string,
     stderr: string,
@@ -191,8 +310,8 @@ export class JestRunner extends TestRunner {
         if (!line) continue;
 
         try {
-          const parsed = JSON.parse(line);
-          if (parsed.numTotalTests !== undefined) {
+          const parsed = JSON.parse(line) as JestJsonResult;
+          if (this.isJestJsonResult(parsed)) {
             jsonOutput = line;
             break;
           }
@@ -202,7 +321,7 @@ export class JestRunner extends TestRunner {
       }
 
       if (jsonOutput) {
-        const jestResult = JSON.parse(jsonOutput);
+        const jestResult = JSON.parse(jsonOutput) as JestJsonResult;
         return await this.parseJestJson(jestResult, stdout, stderr, exitCode);
       }
     } catch (error) {
@@ -214,7 +333,7 @@ export class JestRunner extends TestRunner {
   }
 
   private async parseJestJson(
-    jestResult: any,
+    jestResult: JestJsonResult,
     stdout: string,
     stderr: string,
     exitCode: number
@@ -226,14 +345,20 @@ export class JestRunner extends TestRunner {
       for (const testResult of jestResult.testResults) {
         if (testResult.message) {
           // Parse individual test failures
-          for (const assertionResult of testResult.assertionResults || []) {
+          for (const assertionResult of testResult.assertionResults ?? []) {
             if (assertionResult.status === 'failed') {
-              failures.push({
-                suite: testResult.name || 'Unknown Suite',
-                test: assertionResult.title || 'Unknown Test',
-                message: assertionResult.failureMessages?.join('\n') || 'Test failed',
-                stack: assertionResult.failureMessages?.join('\n') || undefined,
-              });
+              const failureData: TestFailure = {
+                suite: testResult.name ?? 'Unknown Suite',
+                test: assertionResult.title ?? 'Unknown Test',
+                message: assertionResult.failureMessages?.join('\n') ?? 'Test failed',
+              };
+
+              const stack = assertionResult.failureMessages?.join('\n');
+              if (stack) {
+                failureData.stack = stack;
+              }
+
+              failures.push(failureData);
             }
           }
         }
@@ -253,7 +378,9 @@ export class JestRunner extends TestRunner {
           functions: coverageReport.data.summary.functions,
           lines: coverageReport.data.summary.lines,
           meetsThreshold: coverageReport.meetsThreshold,
-          uncoveredLines: this.extractUncoveredLinesFromReport(coverageReport.data),
+          uncoveredLines: this.extractUncoveredLinesFromReport(
+            coverageReport.data as CoverageReportData
+          ),
         };
 
         // Log coverage summary
@@ -266,9 +393,11 @@ export class JestRunner extends TestRunner {
         logger.warn('Failed to process coverage with new system, falling back to legacy', {
           error,
         });
-        coverage = this.parseCoverage(jestResult.coverageMap);
+        if (jestResult.coverageMap && isJestCoverageMap(jestResult.coverageMap)) {
+          coverage = this.parseCoverage(jestResult.coverageMap);
+        }
       }
-    } else if (jestResult.coverageMap) {
+    } else if (jestResult.coverageMap && isJestCoverageMap(jestResult.coverageMap)) {
       // Fallback to legacy coverage parsing
       coverage = this.parseCoverage(jestResult.coverageMap);
     }
@@ -276,11 +405,11 @@ export class JestRunner extends TestRunner {
     const result: TestResult = {
       success: exitCode === 0,
       exitCode,
-      testSuites: jestResult.numTotalTestSuites || 0,
-      tests: jestResult.numTotalTests || 0,
-      passed: jestResult.numPassedTests || 0,
-      failed: jestResult.numFailedTests || 0,
-      skipped: jestResult.numPendingTests || 0,
+      testSuites: jestResult.numTotalTestSuites ?? 0,
+      tests: jestResult.numTotalTests ?? 0,
+      passed: jestResult.numPassedTests ?? 0,
+      failed: jestResult.numFailedTests ?? 0,
+      skipped: jestResult.numPendingTests ?? 0,
       duration:
         jestResult.startTime && jestResult.endTime ? jestResult.endTime - jestResult.startTime : 0,
       failures,
@@ -311,10 +440,10 @@ export class JestRunner extends TestRunner {
         /Tests:\s*(?:(\d+)\s+passed(?:,\s*)?)?(?:(\d+)\s+failed(?:,\s*)?)?(?:(\d+)\s+skipped(?:,\s*)?)?(?:(\d+)\s+total)?/
       );
       if (testMatch) {
-        passed = parseInt(testMatch[1] || '0');
-        failed = parseInt(testMatch[2] || '0');
-        skipped = parseInt(testMatch[3] || '0');
-        tests = parseInt(testMatch[4] || '0');
+        passed = parseInt(testMatch[1] ?? '0');
+        failed = parseInt(testMatch[2] ?? '0');
+        skipped = parseInt(testMatch[3] ?? '0');
+        tests = parseInt(testMatch[4] ?? '0');
       }
 
       // Match test suites pattern
@@ -339,7 +468,7 @@ export class JestRunner extends TestRunner {
     };
   }
 
-  private parseCoverage(coverageMap: any): CoverageResult {
+  private parseCoverage(coverageMap: JestCoverageMap): CoverageResult {
     // Jest coverage format parsing
     let statements = 0;
     let branches = 0;
@@ -347,10 +476,10 @@ export class JestRunner extends TestRunner {
     let lines = 0;
 
     if (coverageMap.global) {
-      statements = coverageMap.global.statements?.pct || 0;
-      branches = coverageMap.global.branches?.pct || 0;
-      functions = coverageMap.global.functions?.pct || 0;
-      lines = coverageMap.global.lines?.pct || 0;
+      statements = coverageMap.global.statements?.pct ?? 0;
+      branches = coverageMap.global.branches?.pct ?? 0;
+      functions = coverageMap.global.functions?.pct ?? 0;
+      lines = coverageMap.global.lines?.pct ?? 0;
     }
 
     // Check if coverage meets thresholds
@@ -371,15 +500,15 @@ export class JestRunner extends TestRunner {
     };
   }
 
-  private generateJestConfig(): any {
+  private generateJestConfig(): JestConfig {
     const moduleSystem = this.analysis.moduleSystem;
-    
+
     // Base configuration
-    const config: any = {
+    const config: JestConfig = {
       testEnvironment: 'node',
       testMatch: ['**/*.test.{js,ts,jsx,tsx}'],
       passWithNoTests: true,
-      setupFilesAfterEnv: ['<rootDir>/setupTests.js']
+      setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
     };
 
     // Configure for ES modules
@@ -387,10 +516,10 @@ export class JestRunner extends TestRunner {
       config.preset = 'ts-jest/presets/default-esm';
       config.extensionsToTreatAsEsm = ['.ts'];
       config.moduleNameMapper = {
-        '^(\\.{1,2}/.*)\\.js$': '$1'
+        '^(\\.{1,2}/.*)\\.js$': '$1',
       };
       config.transform = {
-        '^.+\\.tsx?$': ['ts-jest', { useESM: true }]
+        '^.+\\.tsx?$': 'ts-jest',
       };
     } else {
       // CommonJS configuration
@@ -400,18 +529,18 @@ export class JestRunner extends TestRunner {
     // Add coverage configuration if enabled
     if (this.config.coverage?.enabled) {
       config.collectCoverage = true;
-      
+
       if (this.config.coverage.outputDir) {
         config.coverageDirectory = this.config.coverage.outputDir;
       }
-      
+
       if (this.config.coverage.reporters) {
         config.coverageReporters = this.config.coverage.reporters;
       }
-      
+
       if (this.config.coverage.thresholds) {
         config.coverageThreshold = {
-          global: this.config.coverage.thresholds
+          global: this.config.coverage.thresholds,
         };
       }
     }
@@ -424,17 +553,15 @@ export class JestRunner extends TestRunner {
     return 'npx';
   }
 
-
-  private extractUncoveredLinesFromReport(coverageData: any): Record<string, number[]> {
+  private extractUncoveredLinesFromReport(
+    coverageData: CoverageReportData
+  ): Record<string, number[]> {
     const uncoveredLines: Record<string, number[]> = {};
 
-    if (coverageData && typeof coverageData === 'object' && 'files' in coverageData) {
+    if (coverageData?.files) {
       for (const [filePath, fileData] of Object.entries(coverageData.files)) {
-        if (fileData && typeof fileData === 'object' && 'uncoveredLines' in fileData) {
-          const lines = (fileData as any).uncoveredLines;
-          if (Array.isArray(lines) && lines.length > 0) {
-            uncoveredLines[filePath] = lines;
-          }
+        if (fileData?.uncoveredLines && Array.isArray(fileData.uncoveredLines)) {
+          uncoveredLines[filePath] = fileData.uncoveredLines;
         }
       }
     }

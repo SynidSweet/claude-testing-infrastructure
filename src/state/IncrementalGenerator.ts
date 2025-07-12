@@ -4,10 +4,8 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
-import type { TestManifest } from './ManifestManager';
-import { ManifestManager } from './ManifestManager';
-import type { ChangeAnalysis, FileChange } from './ChangeDetector';
-import { ChangeDetector } from './ChangeDetector';
+import { ManifestManager, type TestManifest } from './ManifestManager';
+import { ChangeDetector, type ChangeAnalysis, type FileChange } from './ChangeDetector';
 // import { TestGenerator } from '../generators/TestGenerator';
 // import { ProjectAnalyzer } from '../analyzers/ProjectAnalyzer';
 import { logger } from '../utils/logger';
@@ -141,19 +139,23 @@ export class IncrementalGenerator {
   /**
    * Determine the best update strategy
    */
-  private determineUpdateStrategy(changeAnalysis: ChangeAnalysis, options: IncrementalOptions) {
+  private determineUpdateStrategy(
+    changeAnalysis: ChangeAnalysis,
+    options: IncrementalOptions
+  ): { fullRegeneration: boolean; useAI: boolean; parallel: boolean; costBudget: number } {
     return {
-      fullRegeneration: changeAnalysis.requiresFullRegeneration || options.forceRegenerate || false,
+      fullRegeneration:
+        (changeAnalysis.requiresFullRegeneration || options.forceRegenerate) ?? false,
       useAI: !options.skipAI && changeAnalysis.impactScore > 20,
-      parallel: (options.maxConcurrency || 3) > 1,
-      costBudget: options.costLimit || 5.0,
+      parallel: (options.maxConcurrency ?? 3) > 1,
+      costBudget: options.costLimit ?? 5.0,
     };
   }
 
   /**
    * Perform full regeneration of all tests
    */
-  private async performFullRegeneration(
+  private performFullRegeneration(
     _manifest: TestManifest,
     _options: IncrementalOptions
   ): Promise<IncrementalUpdate> {
@@ -161,7 +163,7 @@ export class IncrementalGenerator {
 
     // This would call the full test generation pipeline
     // For now, return a mock result
-    return {
+    return Promise.resolve({
       changedFiles: [],
       updatedTests: [],
       deletedTests: [],
@@ -169,7 +171,7 @@ export class IncrementalGenerator {
       skippedFiles: [],
       totalTime: 0,
       costEstimate: 0,
-    };
+    });
   }
 
   /**
@@ -222,7 +224,7 @@ export class IncrementalGenerator {
 
     switch (change.type) {
       case 'added':
-        await this.handleAddedFile(fullPath, change.path, result, options);
+        this.handleAddedFile(fullPath, change.path, result, options);
         break;
 
       case 'modified':
@@ -244,19 +246,19 @@ export class IncrementalGenerator {
   /**
    * Handle newly added file
    */
-  private async handleAddedFile(
+  private handleAddedFile(
     fullPath: string,
     relativePath: string,
     result: IncrementalUpdate,
     options: IncrementalOptions
-  ): Promise<void> {
+  ): void {
     if (options.dryRun) {
       logger.info('DRY RUN: Would generate tests for new file', { file: relativePath });
       return;
     }
 
     // Generate tests for new file
-    const testFiles = await this.generateTestsForFile(fullPath, relativePath);
+    const testFiles = this.generateTestsForFile(fullPath, relativePath);
     result.newTests.push(...testFiles);
     result.costEstimate += this.estimateGenerationCost(relativePath, 'new');
   }
@@ -286,7 +288,7 @@ export class IncrementalGenerator {
       result.costEstimate += this.estimateGenerationCost(relativePath, 'update');
     } else {
       // Generate new tests
-      const newTests = await this.generateTestsForFile(fullPath, relativePath);
+      const newTests = this.generateTestsForFile(fullPath, relativePath);
       result.newTests.push(...newTests);
       result.costEstimate += this.estimateGenerationCost(relativePath, 'new');
     }
@@ -329,13 +331,13 @@ export class IncrementalGenerator {
     await this.handleDeletedFile(oldPath, manifest, result);
 
     const fullNewPath = path.join(this.projectPath, newPath);
-    await this.handleAddedFile(fullNewPath, newPath, result, options);
+    this.handleAddedFile(fullNewPath, newPath, result, options);
   }
 
   /**
    * Generate tests for a specific file
    */
-  private async generateTestsForFile(_fullPath: string, relativePath: string): Promise<string[]> {
+  private generateTestsForFile(_fullPath: string, relativePath: string): string[] {
     // This would integrate with the existing TestGenerator
     // For now, return mock data
     logger.info('Generating tests for file', { file: relativePath });
@@ -345,14 +347,14 @@ export class IncrementalGenerator {
   /**
    * Update existing tests for a file
    */
-  private async updateTestsForFile(
+  private updateTestsForFile(
     _fullPath: string,
     relativePath: string,
     existingTests: string[]
   ): Promise<string[]> {
     // This would update existing test files
     logger.info('Updating tests for file', { file: relativePath, tests: existingTests });
-    return existingTests;
+    return Promise.resolve(existingTests);
   }
 
   /**
@@ -360,7 +362,7 @@ export class IncrementalGenerator {
    */
   private findTestsForFile(relativePath: string, manifest: TestManifest): string[] {
     const fileManifest = manifest.files.find((f) => f.relativePath === relativePath);
-    return fileManifest?.testFiles || [];
+    return fileManifest?.testFiles ?? [];
   }
 
   /**

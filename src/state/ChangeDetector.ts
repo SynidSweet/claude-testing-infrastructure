@@ -35,7 +35,7 @@ export class ChangeDetector {
     }
 
     // Default to comparing with last commit if no baseline specified
-    const compareWith = baselineCommit || 'HEAD~1';
+    const compareWith = baselineCommit ?? 'HEAD~1';
 
     try {
       // Get list of changed files
@@ -65,19 +65,19 @@ export class ChangeDetector {
   /**
    * Detect changes by comparing file timestamps and hashes
    */
-  async detectChangesFromFilesystem(): Promise<ChangeAnalysis> {
+  detectChangesFromFilesystem(): Promise<ChangeAnalysis> {
     // Implementation for non-git or fallback detection
     const changedFiles: FileChange[] = [];
 
     // This would compare against manifest file timestamps/hashes
     // For now, return empty analysis
-    return {
+    return Promise.resolve({
       changedFiles,
       affectedTestFiles: [],
       impactScore: 0,
       requiresFullRegeneration: false,
       changesSinceBaseline: [],
-    };
+    });
   }
 
   /**

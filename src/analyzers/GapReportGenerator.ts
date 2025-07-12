@@ -1,6 +1,5 @@
 import { logger } from '../utils/common-imports';
-import type { TestGapAnalysisResult, TestGap } from './TestGapAnalyzer';
-import { GapPriority } from './TestGapAnalyzer';
+import { GapPriority, type TestGapAnalysisResult, type TestGap } from './TestGapAnalyzer';
 import { MarkdownReportGenerator } from './reporting/MarkdownReportGenerator';
 import { TerminalReportGenerator } from './reporting/TerminalReportGenerator';
 import { ReportVisualizationService } from './reporting/ReportVisualizationService';

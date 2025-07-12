@@ -2,7 +2,7 @@
 
 *Complete setup and development practices for the Claude Testing Infrastructure*
 
-*Last updated: 2025-07-04 | Enhanced generated test quality - fixed class detection and React configuration*
+*Last updated: 2025-07-10 | Jest Configuration Optimization - Added performance-optimized test configurations and enhanced pre-commit workflow*
 
 ## 🔒 CRITICAL: Infrastructure Usage
 
@@ -43,6 +43,69 @@ node dist/cli/index.js analyze /path/to/any/project
 node dist/cli/index.js test /path/to/any/project --only-structural
 node dist/cli/index.js run /path/to/any/project
 ```
+
+## Test Execution Strategy
+
+### Test Suite Categories
+The test suite uses optimized Jest configurations for maximum performance and reliability:
+
+#### 1. Fast Tests (`npm run test:fast`) 
+- **Purpose**: Quick feedback during development
+- **Configuration**: `jest.unit.config.js` - optimized for CPU-bound tests
+- **Scope**: Unit tests for utils, generators, analyzers, and config modules  
+- **Performance**: 465 tests in ~13 seconds
+- **Workers**: 100% (CPU-optimized)
+- **Use when**: Making code changes, need rapid validation
+
+#### 2. Core Tests (`npm run test:core`)
+- **Purpose**: Infrastructure validation before commits  
+- **Strategy**: Sequential execution of unit + integration tests
+- **Performance**: 521 tests in ~20 seconds (60-75% faster than previous timeout issues)
+- **Scope**: Unit tests + integration tests (excludes AI validation)
+- **Use when**: Before committing changes, validating functionality  
+
+#### 3. Integration Tests (`npm run test:integration`)
+- **Purpose**: I/O-heavy test validation
+- **Configuration**: `jest.integration.config.js` - optimized for filesystem operations
+- **Performance**: 56 tests in ~7 seconds
+- **Workers**: Limited (I/O-optimized)
+- **Scope**: Configuration tests, file operations, project validation
+
+#### 4. Full Tests (`npm run test:full`)
+- **Purpose**: Comprehensive validation
+- **Configuration**: `jest.performance.config.js` - advanced optimizations
+- **Scope**: All tests including AI validation
+- **Target time**: < 10 minutes
+- **Use when**: Before releases, after major changes
+
+### Test Execution Guidelines
+```bash
+# During development - quick feedback (465 tests in ~13s)
+npm run test:fast
+
+# Before commits - ensure stability (521 tests in ~20s)
+npm run test:core
+
+# Integration testing only (56 tests in ~7s)  
+npm run test:integration
+
+# Before releases - full validation
+npm run test:full
+
+# For AI validation specifically
+npm run test:ai-validation
+
+# Watch mode during development
+npm run test:watch
+```
+
+### Jest Configuration Optimizations
+Performance-optimized Jest configurations provide significant speed improvements:
+- **CPU-bound tests**: Maximum worker utilization for parallel processing
+- **I/O-bound tests**: Limited workers to reduce filesystem contention  
+- **Environment detection**: Automatic CI/local optimizations
+- **Cache management**: Separated cache directories for different test types
+- **Memory management**: Worker idle limits and heap optimization
 
 ## Production CLI Commands
 
@@ -220,8 +283,31 @@ npm run quality:check  # lint + format + build
 **Pre-commit includes**:
 - ESLint code quality checks
 - Prettier format validation
-- TypeScript compilation verification
+- **Fast TypeScript compilation verification** (`tsc --noEmit`)
 - Complete test suite with AI validation
+
+### Build Verification Enhancement (2025-07-10)
+
+The pre-commit process now includes optimized build verification:
+
+```bash
+# Quality check process (runs in pre-commit)
+npm run quality:check
+
+# Individual steps:
+npm run lint           # ESLint code quality
+npm run format:check   # Prettier format validation  
+npm run build:check    # Fast TypeScript compilation (no emit)
+
+# Fast build check only (optimized for pre-commit)
+npm run build:check    # ~4 seconds vs ~8 seconds for full build
+```
+
+**Benefits**:
+- **Faster feedback**: Type-check only build is 50% faster than full build
+- **Early error detection**: Catches TypeScript errors before commit
+- **Clear error messages**: Detailed compilation errors with file locations
+- **No slowdown**: Optimized for pre-commit workflow speed
 
 ### 📈 Testing Metrics
 

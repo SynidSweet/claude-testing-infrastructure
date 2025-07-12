@@ -2,7 +2,7 @@
 
 *Centralized file discovery with intelligent caching and pattern management*
 
-*Last updated: 2025-07-01 | Updated by: /document command | Implementation COMPLETE - singleton factory pattern integrated across all CLI commands with comprehensive end-to-end testing*
+*Last updated: 2025-07-10 | Updated by: /document command | Smart pattern integration added with ProjectStructureDetector*
 
 ## Overview
 
@@ -31,6 +31,7 @@ FileDiscoveryService
 - **Performance Monitoring**: Cache statistics and slow operation detection ✅ IMPLEMENTED
 - **Configuration Integration**: Seamless integration with ConfigurationService for centralized settings
 - **End-to-End Testing**: Comprehensive integration test suite validating cross-component functionality ✅ IMPLEMENTED
+- **Smart Pattern Detection**: Automatic project structure analysis with confidence-based pattern application ✅ NEW
 
 ## File Discovery Types
 
@@ -100,6 +101,30 @@ service.invalidateCache('/path/to/project');
 service.invalidateCache();
 ```
 
+### Smart Pattern Detection ✅ NEW
+
+The service automatically analyzes project structure to generate optimal file patterns:
+
+```typescript
+// Analyze project structure (used by CLI)
+const analysis = await service.analyzeProjectStructure('/path/to/project');
+console.log('Detected structure:', analysis.detectedStructure); // e.g., 'monorepo', 'standard-src'
+console.log('Confidence:', analysis.confidence); // 0-1 confidence score
+
+// Patterns are automatically applied during file discovery
+const result = await service.findFiles({
+  baseDir: '/path/to/project',
+  type: FileDiscoveryType.PROJECT_ANALYSIS
+  // Smart patterns applied automatically if confidence > 0.7
+});
+```
+
+The smart detection supports:
+- **Structure Types**: `standard-src`, `standard-lib`, `flat`, `monorepo`, `framework-specific`, `mixed`
+- **Workspace Detection**: Automatically detects and handles monorepo workspaces
+- **Framework Awareness**: Generates framework-specific patterns (React, Vue, Angular, etc.)
+- **Confidence Scoring**: Only applies patterns when confidence exceeds threshold
+
 ## User Configuration ✅ IMPLEMENTED
 
 ### Configuration Options
@@ -127,6 +152,11 @@ Users can customize file discovery behavior via `.claude-testing.config.json`:
       "enableStats": true,
       "logSlowOperations": true,
       "slowThresholdMs": 1000
+    },
+    "smartDetection": {
+      "enabled": true,
+      "confidenceThreshold": 0.7,
+      "cacheAnalysis": true
     }
   }
 }
@@ -150,6 +180,12 @@ Users can customize file discovery behavior via `.claude-testing.config.json`:
 - **enableStats**: Log detailed file discovery statistics
 - **logSlowOperations**: Warn about slow discovery operations
 - **slowThresholdMs**: Threshold for "slow" operations in milliseconds
+
+### Smart Detection Configuration
+
+- **enabled**: Enable/disable automatic pattern detection (default: true)
+- **confidenceThreshold**: Minimum confidence to apply patterns (default: 0.7)
+- **cacheAnalysis**: Cache structure analysis results (default: true)
 
 ## Pattern Management
 

@@ -1,5 +1,7 @@
 # Development Guide - AI Agent Guide
 
+*Last updated: 2025-07-12 | Configuration System Type Safety - TypeScript Excellence initiative advanced*
+
 *Quick navigation for AI agents working on Claude Testing Infrastructure development*
 
 ## 🎯 Purpose
@@ -32,6 +34,7 @@ node dist/cli/index.js --version  # Should show: 2.0.0
 
 ### TypeScript Standards
 - **Strict mode enabled** - No `any` types without justification
+- **Automated type checking** - Pre-commit hooks and CI/CD validation (see [`type-safety-automation.md`](./type-safety-automation.md))
 - **Interfaces over types** - For better extensibility
 - **Discriminated unions** - For type safety (see `src/types/*-types.ts`)
 - **Async/await** - Over callbacks and raw promises
@@ -83,10 +86,11 @@ src/
 ### Common Development Tasks
 
 #### Adding a New Command
-1. Create command file in `src/cli/commands/`
-2. Register in `src/cli/index.ts`
-3. Add tests in `__tests__/cli/commands/`
-4. Update help text and documentation
+1. **Follow CLI Development Guidelines**: See [`cli-development-guidelines.md`](./cli-development-guidelines.md)
+2. **Use command templates**: See [`cli-command-templates.md`](./cli-command-templates.md)
+3. **Use standardized utilities**: `src/cli/utils/` for config loading, error handling, and command patterns
+4. **Test with patterns**: Follow test templates in CLI guidelines
+5. **Register in main CLI**: Add to `src/cli/index.ts`
 
 #### Adding Language Support
 1. Create new adapter in `src/adapters/`
@@ -161,6 +165,11 @@ npm test -- --coverage
 # Type checking
 npm run type-check
 
+# Type safety automation
+npm run type-safety:check      # Standard validation
+npm run type-safety:strict     # Zero-tolerance mode
+npm run type-safety:report     # Detailed analysis
+
 # Linting
 npm run lint
 
@@ -200,6 +209,37 @@ performance.measure('analysis', 'analysis-start', 'analysis-end');
 3. Push tags: `git push --tags`
 4. NPM publish (when applicable)
 
+## 🚨 Error Handling Standards
+
+### Type-Safe Error Handling
+Always use typed catch blocks and domain-specific error handling:
+
+```typescript
+// ❌ Bad - Untyped catch
+try {
+  await operation();
+} catch (error) {
+  // error is implicitly 'any'
+}
+
+// ✅ Good - Type-safe catch
+import { handleDomainError } from '../utils/error-guards';
+
+try {
+  await operation();
+} catch (error: unknown) {
+  throw handleDomainError(error, 'file', { filePath });
+}
+```
+
+### Error Pattern Guidelines
+1. **Use domain-specific handlers**: `handleDomainError()` for contextual errors
+2. **Preserve error context**: Always include original error and operation context
+3. **Follow ErrorResult pattern**: Use `ErrorResult<T, E>` for expected failures
+4. **Type all catch blocks**: Always use `catch (error: unknown)`
+
+📖 **Complete Error Handling Guide**: [`error-handling-patterns.md`](./error-handling-patterns.md)
+
 ## 📝 Documentation Standards
 
 ### Code Comments
@@ -223,6 +263,9 @@ async analyzeProject(projectPath: string): Promise<ProjectAnalysis> {
 
 ## 🔗 Related Documentation
 
+- **Type Safety Automation**: [`type-safety-automation.md`](./type-safety-automation.md) - Comprehensive automated type checking system with CI/CD integration
+- **CLI Development**: [`cli-development-guidelines.md`](./cli-development-guidelines.md) - Comprehensive CLI development guide
+- **CLI Templates**: [`cli-command-templates.md`](./cli-command-templates.md) - Ready-to-use CLI command templates
 - **Architecture**: [`/docs/architecture/CLAUDE.md`](../architecture/CLAUDE.md) - System design
 - **Features**: [`/docs/features/CLAUDE.md`](../features/CLAUDE.md) - Component details
 - **Planning**: [`/docs/planning/CLAUDE.md`](../planning/CLAUDE.md) - Task management
@@ -233,11 +276,13 @@ async analyzeProject(projectPath: string): Promise<ProjectAnalysis> {
 
 ### Essential Commands
 ```bash
-npm install         # Install dependencies
-npm run build      # Build project
-npm test           # Run tests
-npm run lint       # Check code style
-npm run type-check # Verify types
+npm install               # Install dependencies
+npm run build            # Build project
+npm test                 # Run tests
+npm run lint             # Check code style
+npm run type-check       # Verify types
+npm run type-safety:check # Automated type safety validation
+npm run precommit:enhanced # Full workflow with type checking
 ```
 
 ### Key Patterns

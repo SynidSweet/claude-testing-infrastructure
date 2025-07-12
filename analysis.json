@@ -1,0 +1,22 @@
+
+✓ Project Analysis Complete
+
+📁 Project: /code/personal/claude-testing/tests/e2e/test-projects/typescript-react-project
+
+🔤 Languages:
+  • typescript (30% confidence)
+
+🚀 Frameworks:
+  • react v^18.2.0 (90% confidence)
+
+🧪 Testing Setup:
+  • Has tests: ❌
+  • Test frameworks: jest
+
+📊 Project Complexity:
+  • Total files: 3
+  • Total lines: 247
+  • Average file size: 82 lines
+
+✨ Analysis complete! Use --format json or --verbose for more details.
+

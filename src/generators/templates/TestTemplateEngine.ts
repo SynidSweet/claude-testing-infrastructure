@@ -1,8 +1,13 @@
 import { TestType } from '../TestGenerator';
+import type { JavaScriptContext, PythonContext, FrameworkDetectionResult } from '../types/contexts';
+import { TemplateRegistry } from './core/TemplateRegistry';
 
-export interface TemplateContext {
+/**
+ * Core template context interface with essential properties
+ */
+export interface BaseTemplateContext {
   moduleName: string;
-  modulePath?: string; // For Python: proper module path (e.g., 'src.utils.helpers')
+  modulePath?: string | undefined;
   imports: string[];
   exports: string[];
   hasDefaultExport: boolean;
@@ -12,15 +17,103 @@ export interface TemplateContext {
   isAsync: boolean;
   isComponent: boolean;
   dependencies: string[];
-  moduleSystem?: 'commonjs' | 'esm' | 'mixed'; // For JavaScript/TypeScript: module system to use
+  moduleSystem?: 'commonjs' | 'esm' | 'mixed' | undefined;
 }
 
+/**
+ * Enhanced template context with rich framework and language-specific metadata
+ */
+export interface EnhancedTemplateContext extends BaseTemplateContext {
+  /** Rich framework detection information */
+  frameworkInfo?: FrameworkDetectionResult | undefined;
+  /** Language-specific context data */
+  languageContext?: JavaScriptContext | PythonContext | undefined;
+  /** Additional metadata for enhanced templates */
+  metadata?: TemplateMetadata | undefined;
+}
+
+/**
+ * Template metadata for advanced template features
+ */
+export interface TemplateMetadata {
+  /** File path being tested */
+  sourceFilePath: string;
+  /** Output file path for the test */
+  outputFilePath: string;
+  /** Custom template variables */
+  variables?: Record<string, unknown>;
+  /** Framework-specific options */
+  frameworkOptions?: Record<string, unknown>;
+  /** Test generation options */
+  generationOptions?: TestGenerationOptions;
+}
+
+/**
+ * Test generation options for template customization
+ */
+export interface TestGenerationOptions {
+  /** Whether to generate setup/teardown methods */
+  includeSetup?: boolean;
+  /** Whether to generate mock utilities */
+  includeMocks?: boolean;
+  /** Whether to generate async test helpers */
+  includeAsyncHelpers?: boolean;
+  /** Maximum number of test cases to generate */
+  maxTestCases?: number;
+  /** Custom test patterns to include */
+  customPatterns?: string[];
+}
+
+/**
+ * Union type for backward compatibility
+ */
+export type TemplateContext = BaseTemplateContext | EnhancedTemplateContext;
+
+/**
+ * Type guard to check if context is enhanced
+ */
+export function isEnhancedTemplateContext(
+  context: TemplateContext
+): context is EnhancedTemplateContext {
+  return 'frameworkInfo' in context || 'languageContext' in context || 'metadata' in context;
+}
+
+/**
+ * Template interface with enhanced type safety
+ */
 export interface Template {
   name: string;
   language: 'javascript' | 'typescript' | 'python';
   framework?: string;
   testType?: TestType;
+  /** Generate test content from context */
   generate(context: TemplateContext): string;
+  /** Validate context before generation (optional) */
+  validateContext?(context: TemplateContext): ValidationResult;
+  /** Get template metadata (optional) */
+  getMetadata?(): TemplateInfo;
+}
+
+/**
+ * Template validation result
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errors?: string[] | undefined;
+  warnings?: string[] | undefined;
+}
+
+/**
+ * Template information for introspection
+ */
+export interface TemplateInfo {
+  name: string;
+  description: string;
+  language: string;
+  framework?: string | undefined;
+  testType?: TestType | undefined;
+  supportedFeatures: string[];
+  version: string;
 }
 
 /**
@@ -28,8 +121,10 @@ export interface Template {
  */
 export class TestTemplateEngine {
   private templates: Map<string, Template> = new Map();
+  private registry: TemplateRegistry;
 
   constructor() {
+    this.registry = new TemplateRegistry();
     this.registerDefaultTemplates();
   }
 
@@ -37,26 +132,161 @@ export class TestTemplateEngine {
    * Register a template
    */
   registerTemplate(template: Template): void {
+    // Register in both legacy Map and new TemplateRegistry for backward compatibility
     const key = this.getTemplateKey(template.language, template.framework, template.testType);
     this.templates.set(key, template);
+
+    // Register in the new TemplateRegistry (ignore failures for backward compatibility)
+    this.registry.registerTemplate(template);
   }
 
   /**
-   * Generate test content using the most appropriate template
+   * Generate test content using the most appropriate template with validation
    */
   generateTest(context: TemplateContext): string {
     const template = this.findBestTemplate(context);
     if (!template) {
-      throw new Error(`No template found for ${context.language}/${context.framework}/${context.testType}`);
+      throw new Error(
+        `No template found for ${context.language}/${context.framework}/${context.testType}`
+      );
     }
-    
+
+    // Validate context if template supports validation
+    if (template.validateContext) {
+      const validation = template.validateContext(context);
+      if (!validation.isValid) {
+        const errorMsg = validation.errors?.join(', ') || 'Context validation failed';
+        throw new Error(`Template validation failed: ${errorMsg}`);
+      }
+
+      // Log warnings if present
+      if (validation.warnings && validation.warnings.length > 0) {
+        console.warn(`Template warnings: ${validation.warnings.join(', ')}`);
+      }
+    }
+
     return template.generate(context);
+  }
+
+  /**
+   * Generate test with enhanced context validation and error handling
+   */
+  generateTestSafe(context: TemplateContext): {
+    success: boolean;
+    content?: string | undefined;
+    error?: string | undefined;
+    warnings?: string[] | undefined;
+  } {
+    try {
+      const template = this.findBestTemplate(context);
+      if (!template) {
+        return {
+          success: false,
+          error: `No template found for ${context.language}/${context.framework}/${context.testType}`,
+        };
+      }
+
+      // Validate context if template supports validation
+      let warnings: string[] | undefined;
+      if (template.validateContext) {
+        const validation = template.validateContext(context);
+        if (!validation.isValid) {
+          return {
+            success: false,
+            error: validation.errors?.join(', ') || 'Context validation failed',
+          };
+        }
+        warnings = validation.warnings;
+      }
+
+      const content = template.generate(context);
+      return { success: true, content, warnings: warnings || undefined };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get template information for a given context
+   */
+  getTemplateInfo(context: TemplateContext): TemplateInfo | undefined {
+    const template = this.findBestTemplate(context);
+    return template?.getMetadata?.();
+  }
+
+  /**
+   * Get access to the internal TemplateRegistry for advanced use cases
+   */
+  getRegistry(): TemplateRegistry {
+    return this.registry;
+  }
+
+  /**
+   * List all registered templates with their metadata
+   */
+  listTemplates(): TemplateInfo[] {
+    const templateInfos: TemplateInfo[] = [];
+    const registryTemplateInfos = this.registry.listTemplates();
+
+    // Convert registry template infos to legacy format
+    for (const registryInfo of registryTemplateInfos) {
+      templateInfos.push({
+        name: registryInfo.name,
+        description:
+          registryInfo.description ||
+          `${registryInfo.language} template for ${registryInfo.framework || 'any framework'}`,
+        language: registryInfo.language,
+        framework: registryInfo.framework || undefined,
+        testType: (registryInfo.testType as TestType) || undefined,
+        supportedFeatures: ['basic-generation'],
+        version: '1.0.0',
+      });
+    }
+
+    // Add any legacy templates that might not be in the registry
+    for (const template of this.templates.values()) {
+      const existingInfo = templateInfos.find(
+        (info) =>
+          info.name === template.name &&
+          info.language === template.language &&
+          info.framework === template.framework
+      );
+
+      if (!existingInfo) {
+        if (template.getMetadata) {
+          templateInfos.push(template.getMetadata());
+        } else {
+          // Fallback for templates without metadata
+          templateInfos.push({
+            name: template.name,
+            description: `${template.language} template for ${template.framework || 'any framework'}`,
+            language: template.language,
+            framework: template.framework || undefined,
+            testType: template.testType || undefined,
+            supportedFeatures: ['basic-generation'],
+            version: '1.0.0',
+          });
+        }
+      }
+    }
+
+    return templateInfos;
   }
 
   /**
    * Find the best matching template for the given context
    */
   private findBestTemplate(context: TemplateContext): Template | undefined {
+    // First try the new TemplateRegistry for improved matching
+    const registryTemplate = this.registry.findTemplate(context);
+    if (registryTemplate) {
+      return registryTemplate;
+    }
+
+    // Fallback to legacy template selection for backward compatibility
     // Try exact match first
     let key = this.getTemplateKey(context.language, context.framework, context.testType);
     let template = this.templates.get(key);
@@ -104,11 +334,11 @@ export class TestTemplateEngine {
     this.registerTemplate(new JestJavaScriptTemplate());
     this.registerTemplate(new JestReactComponentTemplate());
     this.registerTemplate(new JestExpressApiTemplate());
-    
+
     // TypeScript Jest templates
     this.registerTemplate(new JestTypeScriptTemplate());
     this.registerTemplate(new JestReactTypeScriptTemplate());
-    
+
     // Python pytest templates
     this.registerTemplate(new PytestTemplate());
     this.registerTemplate(new PytestFastApiTemplate());
@@ -122,19 +352,26 @@ export class TestTemplateEngine {
    * Register enhanced templates with async pattern awareness and framework-specific features
    */
   private registerEnhancedTemplates(): void {
-    // Import enhanced templates dynamically to avoid circular dependencies
+    // Import enhanced templates from individual files
     try {
-      const enhancedTemplates = require('./JavaScriptEnhancedTemplates');
-      
       // Enhanced JavaScript templates
-      this.registerTemplate(new enhancedTemplates.EnhancedJestJavaScriptTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedReactComponentTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedVueComponentTemplate());
-      this.registerTemplate(new enhancedTemplates.EnhancedAngularComponentTemplate());
-      
-      // Enhanced TypeScript templates
-      this.registerTemplate(new enhancedTemplates.EnhancedTypeScriptTemplate());
-      
+      const {
+        EnhancedJestJavaScriptTemplate,
+      } = require('./javascript/EnhancedJestJavaScriptTemplate');
+      const {
+        EnhancedReactComponentTemplate,
+      } = require('./javascript/EnhancedReactComponentTemplate');
+      const { EnhancedVueComponentTemplate } = require('./javascript/EnhancedVueComponentTemplate');
+      const {
+        EnhancedAngularComponentTemplate,
+      } = require('./javascript/EnhancedAngularComponentTemplate');
+      const { EnhancedTypeScriptTemplate } = require('./javascript/EnhancedTypeScriptTemplate');
+
+      this.registerTemplate(new EnhancedJestJavaScriptTemplate());
+      this.registerTemplate(new EnhancedReactComponentTemplate());
+      this.registerTemplate(new EnhancedVueComponentTemplate());
+      this.registerTemplate(new EnhancedAngularComponentTemplate());
+      this.registerTemplate(new EnhancedTypeScriptTemplate());
     } catch (error) {
       // Fallback to basic templates if enhanced templates fail to load
       console.warn('Enhanced templates failed to load, using basic templates:', error);
@@ -142,10 +379,168 @@ export class TestTemplateEngine {
   }
 }
 
+/**
+ * Template context utilities for type-safe context creation and manipulation
+ */
+export class TemplateContextUtils {
+  /**
+   * Create an enhanced template context from base context and additional metadata
+   */
+  static createEnhancedContext(
+    baseContext: BaseTemplateContext,
+    frameworkInfo?: FrameworkDetectionResult | undefined,
+    languageContext?: JavaScriptContext | PythonContext | undefined,
+    metadata?: TemplateMetadata | undefined
+  ): EnhancedTemplateContext {
+    const enhanced: EnhancedTemplateContext = { ...baseContext };
+
+    if (frameworkInfo !== undefined) {
+      enhanced.frameworkInfo = frameworkInfo;
+    }
+
+    if (languageContext !== undefined) {
+      enhanced.languageContext = languageContext;
+    }
+
+    if (metadata !== undefined) {
+      enhanced.metadata = metadata;
+    }
+
+    return enhanced;
+  }
+
+  /**
+   * Convert any template context to base context for backward compatibility
+   */
+  static toBaseContext(context: TemplateContext): BaseTemplateContext {
+    const base: BaseTemplateContext = {
+      moduleName: context.moduleName,
+      imports: context.imports,
+      exports: context.exports,
+      hasDefaultExport: context.hasDefaultExport,
+      testType: context.testType,
+      framework: context.framework,
+      language: context.language,
+      isAsync: context.isAsync,
+      isComponent: context.isComponent,
+      dependencies: context.dependencies,
+    };
+
+    if (context.modulePath !== undefined) {
+      base.modulePath = context.modulePath;
+    }
+
+    if (context.moduleSystem !== undefined) {
+      base.moduleSystem = context.moduleSystem;
+    }
+
+    return base;
+  }
+
+  /**
+   * Validate base template context properties
+   */
+  static validateBaseContext(context: BaseTemplateContext): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Required field validation
+    if (!context.moduleName?.trim()) {
+      errors.push('moduleName is required and cannot be empty');
+    }
+
+    if (!Array.isArray(context.imports)) {
+      errors.push('imports must be an array');
+    }
+
+    if (!Array.isArray(context.exports)) {
+      errors.push('exports must be an array');
+    }
+
+    if (!Array.isArray(context.dependencies)) {
+      errors.push('dependencies must be an array');
+    }
+
+    if (!['javascript', 'typescript', 'python'].includes(context.language)) {
+      errors.push('language must be one of: javascript, typescript, python');
+    }
+
+    if (typeof context.hasDefaultExport !== 'boolean') {
+      errors.push('hasDefaultExport must be a boolean');
+    }
+
+    if (typeof context.isAsync !== 'boolean') {
+      errors.push('isAsync must be a boolean');
+    }
+
+    if (typeof context.isComponent !== 'boolean') {
+      errors.push('isComponent must be a boolean');
+    }
+
+    // Warning validations
+    if (context.exports.length === 0 && !context.hasDefaultExport) {
+      warnings.push('No exports detected - template may generate empty tests');
+    }
+
+    if (context.moduleSystem && !['commonjs', 'esm', 'mixed'].includes(context.moduleSystem)) {
+      warnings.push('Unknown module system - may affect import generation');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    } as ValidationResult;
+  }
+
+  /**
+   * Merge multiple template contexts with priority given to later contexts
+   */
+  static mergeContexts(first: TemplateContext, ...additional: TemplateContext[]): TemplateContext {
+    let merged: TemplateContext = first;
+
+    for (const context of additional) {
+      merged = { ...merged, ...context };
+    }
+
+    return merged;
+  }
+
+  /**
+   * Extract metadata from enhanced context safely
+   */
+  static getMetadata(context: TemplateContext): TemplateMetadata | undefined {
+    return isEnhancedTemplateContext(context) ? context.metadata : undefined;
+  }
+
+  /**
+   * Create default template metadata
+   */
+  static createDefaultMetadata(sourceFilePath: string, outputFilePath: string): TemplateMetadata {
+    return {
+      sourceFilePath,
+      outputFilePath,
+      variables: {},
+      frameworkOptions: {},
+      generationOptions: {
+        includeSetup: true,
+        includeMocks: true,
+        includeAsyncHelpers: true,
+        maxTestCases: 10,
+        customPatterns: [],
+      },
+    };
+  }
+}
+
 // Helper function for type-specific tests
-function generateJSTypeSpecificTests(exportName: string, testType: TestType, isAsync: boolean): string {
+function generateJSTypeSpecificTests(
+  exportName: string,
+  testType: TestType,
+  isAsync: boolean
+): string {
   let tests = '';
-  
+
   if (isAsync) {
     tests += `    it('should handle async operations', async () => {
       if (typeof ${exportName} === 'function') {
@@ -172,7 +567,7 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
 
 `;
   }
-  
+
   if (testType === TestType.UTILITY) {
     tests += `    it('should work with typical inputs', () => {
       if (typeof ${exportName} === 'function') {
@@ -216,7 +611,7 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
 
 `;
   }
-  
+
   tests += `    it('should have expected behavior', () => {
       if (typeof ${exportName} === 'function') {
         // Test function properties
@@ -248,7 +643,7 @@ function generateJSTypeSpecificTests(exportName: string, testType: TestType, isA
       }
     });
 `;
-  
+
   return tests;
 }
 
@@ -259,22 +654,32 @@ class JestJavaScriptTemplate implements Template {
   framework = 'jest';
 
   generate(context: TemplateContext): string {
-    const { moduleName, exports, hasDefaultExport, isAsync, testType, moduleSystem, modulePath } = context;
-    
+    const { moduleName, exports, hasDefaultExport, isAsync, testType, moduleSystem, modulePath } =
+      context;
+
     // Generate import statement based on module system
     let importStatement = '';
     const useESM = moduleSystem === 'esm';
-    
+
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
-    
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
+
     if (useESM) {
       // ES Modules syntax
       if (hasDefaultExport && exports.length > 0) {
@@ -330,7 +735,7 @@ describe('${moduleName}', () => {
 
     // If we have detected exports, test each one
     if (exports.length > 0) {
-      exports.forEach(exportName => {
+      exports.forEach((exportName) => {
         testContent += `  describe('${exportName}', () => {
     it('should be defined', () => {
       expect(${exportName}).toBeDefined();
@@ -380,30 +785,41 @@ class JestReactComponentTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, hasDefaultExport, exports, moduleSystem, modulePath } = context;
     const useESM = moduleSystem === 'esm';
-    
+
     // If no default export, use first export name or fallback to moduleName
-    const componentName: string = hasDefaultExport 
-      ? moduleName 
-      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+    const componentName: string = hasDefaultExport
+      ? moduleName
+      : exports && exports.length > 0 && exports[0]
+        ? exports[0]
+        : moduleName;
 
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
 
     let importStatements = '';
     let componentImport = '';
-    
+
     if (useESM) {
       // ES Module syntax with React testing imports
       importStatements = `import React from 'react';
 import { render, screen } from '@testing-library/react';`;
-      
+
       if (hasDefaultExport) {
         componentImport = `import ${componentName} from '${importPathWithExtension}';`;
       } else if (exports && exports.length > 0) {
@@ -475,7 +891,6 @@ describe('${componentName}', () => {
 `;
     }
   }
-
 }
 
 class JestExpressApiTemplate implements Template {
@@ -487,8 +902,8 @@ class JestExpressApiTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, exports, moduleSystem } = context;
     const useESM = moduleSystem === 'esm';
-    
-    const templateContent = `${useESM ? 'import request from \'supertest\';\nimport express from \'express\';\nimport { ' + exports.join(', ') + ' } from \'./' + moduleName + '.js\';' : 'const request = require(\'supertest\');\nconst express = require(\'express\');\nconst { ' + exports.join(', ') + ' } = require(\'./' + moduleName + '\');'}
+
+    const templateContent = `${useESM ? "import request from 'supertest';\nimport express from 'express';\nimport { " + exports.join(', ') + " } from './" + moduleName + ".js';" : "const request = require('supertest');\nconst express = require('express');\nconst { " + exports.join(', ') + " } = require('./" + moduleName + "');"}
 
 const app = express();
 app.use(express.json());
@@ -502,7 +917,9 @@ describe('${moduleName} API', () => {
     // Cleanup
   });
 
-${exports.map(exportName => `
+${exports
+  .map(
+    (exportName) => `
   describe('${exportName}', () => {
     it('should handle successful requests', async () => {
       const response = await request(app)
@@ -525,7 +942,9 @@ ${exports.map(exportName => `
       // TODO: Add authentication tests
     });
   });
-`).join('')}
+`
+  )
+  .join('')}
 });
 `;
 
@@ -542,17 +961,26 @@ class JestTypeScriptTemplate implements Template {
   generate(context: TemplateContext): string {
     const { moduleName, exports, hasDefaultExport, moduleSystem, modulePath } = context;
     const useESM = moduleSystem === 'esm';
-    
+
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
-    
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
+
     let importStatement = '';
     if (useESM) {
       // ES Modules syntax for TypeScript
@@ -591,7 +1019,7 @@ describe('${moduleName}', () => {
 `;
     }
 
-    exports.forEach(exportName => {
+    exports.forEach((exportName) => {
       testContent += `  describe('${exportName}', () => {
     it('should be defined', () => {
       expect(${exportName}).toBeDefined();
@@ -606,7 +1034,6 @@ describe('${moduleName}', () => {
     testContent += '});';
     return testContent;
   }
-
 }
 
 class JestReactTypeScriptTemplate implements Template {
@@ -617,23 +1044,34 @@ class JestReactTypeScriptTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, hasDefaultExport, exports, moduleSystem, modulePath } = context;
-    
+
     // If no default export, use first export name or fallback to moduleName
-    const componentName: string = hasDefaultExport 
-      ? moduleName 
-      : (exports && exports.length > 0 && exports[0] ? exports[0] : moduleName);
+    const componentName: string = hasDefaultExport
+      ? moduleName
+      : exports && exports.length > 0 && exports[0]
+        ? exports[0]
+        : moduleName;
     const useESM = moduleSystem === 'esm';
-    
+
     // Use modulePath if available, fallback to moduleName
     const importPath = modulePath || moduleName;
     // Add relative path prefix if it doesn't already exist and it's not an npm package
-    const relativeImportPath = importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') || !importPath.includes('/') && !importPath.includes('\\') ? 
-      (importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/') ? importPath : `./${importPath}`) : 
-      importPath;
+    const relativeImportPath =
+      importPath.startsWith('./') ||
+      importPath.startsWith('../') ||
+      importPath.startsWith('/') ||
+      (!importPath.includes('/') && !importPath.includes('\\'))
+        ? importPath.startsWith('./') || importPath.startsWith('../') || importPath.startsWith('/')
+          ? importPath
+          : `./${importPath}`
+        : importPath;
     // Remove TypeScript extensions first
     const pathWithoutTsExt = relativeImportPath.replace(/\.(ts|tsx)$/, '');
-    const importPathWithExtension = useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx') ? `${pathWithoutTsExt}.js` : pathWithoutTsExt;
-    
+    const importPathWithExtension =
+      useESM && !pathWithoutTsExt.endsWith('.js') && !pathWithoutTsExt.endsWith('.jsx')
+        ? `${pathWithoutTsExt}.js`
+        : pathWithoutTsExt;
+
     if (useESM) {
       return `import React from 'react';
 import { render, screen, RenderResult } from '@testing-library/react';
@@ -794,21 +1232,22 @@ class PytestTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, modulePath, exports } = context;
-    
+
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
-    
+
     // Filter out empty or whitespace-only exports
-    const validExports = exports.filter(exp => exp && exp.trim());
-    
+    const validExports = exports.filter((exp) => exp && exp.trim());
+
     // Handle empty exports case
-    const importStatement = validExports.length > 0 
-      ? `from ${importModule} import ${validExports.join(', ')}`
-      : `import ${importModule}`;
-    
+    const importStatement =
+      validExports.length > 0
+        ? `from ${importModule} import ${validExports.join(', ')}`
+        : `import ${importModule}`;
+
     // Clean moduleName for class name (replace dots and hyphens with underscores)
     const className = moduleName.replace(/[\.-]/g, '_');
-    
+
     return `"""Tests for ${moduleName} module."""
 import pytest
 ${importStatement}
@@ -822,7 +1261,11 @@ class Test${this.capitalize(className)}:
         # This test verifies the module was imported successfully
         ${validExports.length > 0 ? 'assert True  # Module imported successfully' : `assert ${importModule} is not None`}
 
-${validExports.length > 0 ? validExports.map(exportName => `
+${
+  validExports.length > 0
+    ? validExports
+        .map(
+          (exportName) => `
     def test_${exportName.toLowerCase()}_exists(self):
         """Test that ${exportName} is defined and importable."""
         assert ${exportName} is not None
@@ -1007,7 +1450,10 @@ ${validExports.length > 0 ? validExports.map(exportName => `
             except AttributeError:
                 # This is also acceptable
                 assert True
-`).join('') : `
+`
+        )
+        .join('')
+    : `
     def test_module_structure(self):
         """Test basic module structure and contents."""
         # Check if module has expected attributes
@@ -1042,7 +1488,8 @@ ${validExports.length > 0 ? validExports.map(exportName => `
         # Test that repeated imports work
         # TODO: Add specific import stability tests
         assert True  # Placeholder for import stability tests
-`}
+`
+}
 `;
   }
 
@@ -1059,18 +1506,19 @@ class PytestFastApiTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, modulePath, exports } = context;
-    
+
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
-    
+
     // Filter out empty or whitespace-only exports
-    const validExports = exports.filter(exp => exp && exp.trim());
-    
+    const validExports = exports.filter((exp) => exp && exp.trim());
+
     // Handle empty exports case
-    const importStatement = validExports.length > 0 
-      ? `from ${importModule} import ${validExports.join(', ')}`
-      : `import ${importModule}`;
-    
+    const importStatement =
+      validExports.length > 0
+        ? `from ${importModule} import ${validExports.join(', ')}`
+        : `import ${importModule}`;
+
     return `"""Tests for ${moduleName} FastAPI endpoints."""
 import pytest
 from fastapi.testclient import TestClient
@@ -1087,7 +1535,9 @@ def client():
 class Test${this.capitalize(moduleName)}Api:
     """Test class for ${moduleName} API endpoints."""
 
-${validExports.map(exportName => `
+${validExports
+  .map(
+    (exportName) => `
     def test_${exportName.toLowerCase()}_get_success(self, client):
         """Test successful GET request for ${exportName}."""
         # Test multiple possible endpoint patterns
@@ -1196,7 +1646,9 @@ ${validExports.map(exportName => `
         """Test 404 error handling for ${exportName}."""
         response = client.get("/api/${exportName.toLowerCase()}/nonexistent")
         assert response.status_code == 404
-`).join('')}
+`
+  )
+  .join('')}
 `;
   }
 
@@ -1213,18 +1665,19 @@ class PytestDjangoTemplate implements Template {
 
   generate(context: TemplateContext): string {
     const { moduleName, modulePath, exports } = context;
-    
+
     // Use modulePath for imports, fall back to moduleName if not provided
     const importModule = modulePath || moduleName;
-    
+
     // Filter out empty or whitespace-only exports
-    const validExports = exports.filter(exp => exp && exp.trim());
-    
+    const validExports = exports.filter((exp) => exp && exp.trim());
+
     // Handle empty exports case
-    const importStatement = validExports.length > 0 
-      ? `from ${importModule} import ${validExports.join(', ')}`
-      : `import ${importModule}`;
-    
+    const importStatement =
+      validExports.length > 0
+        ? `from ${importModule} import ${validExports.join(', ')}`
+        : `import ${importModule}`;
+
     return `"""Tests for ${moduleName} Django views."""
 import pytest
 from django.test import Client
@@ -1241,7 +1694,9 @@ class Test${this.capitalize(moduleName)}Views:
         self.client = Client()
         # TODO: Create test data
 
-${validExports.map(exportName => `
+${validExports
+  .map(
+    (exportName) => `
     def test_${exportName.toLowerCase()}_get_success(self):
         """Test successful GET request for ${exportName}."""
         url = reverse('${exportName.toLowerCase()}')  # TODO: Update URL name
@@ -1264,7 +1719,9 @@ ${validExports.map(exportName => `
         """Test permissions for ${exportName}."""
         # TODO: Test user permissions
         pass
-`).join('')}
+`
+  )
+  .join('')}
 `;
   }
 
@@ -1272,3 +1729,15 @@ ${validExports.map(exportName => `
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 }
+
+// Export all template classes for use by factory classes and other modules
+export {
+  JestJavaScriptTemplate,
+  JestReactComponentTemplate,
+  JestExpressApiTemplate,
+  JestTypeScriptTemplate,
+  JestReactTypeScriptTemplate,
+  PytestTemplate,
+  PytestFastApiTemplate,
+  PytestDjangoTemplate,
+};

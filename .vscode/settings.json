@@ -1,0 +1,71 @@
+{
+  "typescript.preferences.strict": true,
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.preferences.noSemicolons": false,
+  "typescript.check.npmIsInstalled": false,
+  "typescript.format.enable": true,
+  "typescript.format.insertSpaceAfterCommaDelimiter": true,
+  "typescript.format.insertSpaceAfterSemicolonInForStatements": true,
+  "typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+  "typescript.format.insertSpaceAfterConstructor": false,
+  "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+  "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
+  "typescript.format.placeOpenBraceOnNewLineForFunctions": false,
+  "typescript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+  "typescript.inlayHints.enumMemberValues.enabled": true,
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "typescript.inlayHints.parameterNames.enabled": "literals",
+  "typescript.inlayHints.parameterTypes.enabled": true,
+  "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+  "typescript.inlayHints.variableTypes.enabled": false,
+  "typescript.suggest.completeFunctionCalls": true,
+  "typescript.suggest.includeAutomaticOptionalChainCompletions": true,
+  "typescript.workspaceSymbols.scope": "allOpenProjects",
+  "eslint.enable": true,
+  "eslint.run": "onType",
+  "eslint.autoFixOnSave": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "files.associations": {
+    "*.ts": "typescript",
+    "*.tsx": "typescriptreact"
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "**/.jest-cache*": true,
+    "**/.type-safety-*": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.jest-cache*": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.jest-cache*/**": true
+  }
+}

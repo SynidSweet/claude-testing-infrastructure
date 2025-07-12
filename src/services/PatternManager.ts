@@ -1,25 +1,21 @@
 /**
  * PatternManager handles file pattern resolution for different discovery types
- * 
+ *
  * This service provides language-specific patterns, user configuration merging,
  * and pattern validation for consistent file discovery across components.
  */
 
 import {
   FileDiscoveryType,
+  type PatternManager,
+  type StandardPatterns,
+  type LanguagePatterns,
+  type PatternMergeOperation,
+  type PatternValidationResult,
+  type PatternValidationError,
+  type PatternValidationWarning,
+  type FileDiscoveryConfig,
 } from '../types/file-discovery-types';
-
-import type {
-  PatternManager,
-  StandardPatterns,
-  LanguagePatterns,
-  PatternMergeOperation,
-  PatternValidationResult,
-  PatternValidationError,
-  PatternValidationWarning,
-} from '../types/file-discovery-types';
-
-import type { FileDiscoveryConfig } from '../types/file-discovery-types';
 
 /**
  * Implementation of PatternManager with comprehensive pattern resolution
@@ -38,8 +34,8 @@ export class PatternManagerImpl implements PatternManager {
    */
   getIncludePatterns(type: FileDiscoveryType, languages?: string[]): string[] {
     const patterns = this.getTypePatterns(type);
-    let base = patterns?.includes || ['**/*'];
-    
+    let base = patterns?.includes ?? ['**/*'];
+
     // Apply user configuration if available
     if (this.configService) {
       const userConfig = this.configService.getFileDiscoveryConfig();
@@ -48,11 +44,11 @@ export class PatternManagerImpl implements PatternManager {
         base = this.mergeUserPatterns(base, userIncludes, 'add');
       }
     }
-    
+
     if (languages?.length) {
       return this.addLanguageExtensions(base, languages);
     }
-    
+
     return base;
   }
 
@@ -62,18 +58,18 @@ export class PatternManagerImpl implements PatternManager {
   getExcludePatterns(type: FileDiscoveryType, languages?: string[]): string[] {
     const base = [...this.standardPatterns.baseExcludes];
     const patterns = this.getTypePatterns(type);
-    const typeSpecific = patterns?.excludes || [];
+    const typeSpecific = patterns?.excludes ?? [];
     const languageSpecific = this.getLanguageExcludes(languages);
-    
+
     let allPatterns = [...base, ...typeSpecific, ...languageSpecific];
-    
+
     // Apply user configuration if available
     if (this.configService) {
       const userConfig = this.configService.getFileDiscoveryConfig();
       const userPatterns = this.getUserPatterns(type, userConfig);
       allPatterns = this.mergeUserPatterns(allPatterns, userPatterns, 'add');
     }
-    
+
     return allPatterns;
   }
 
@@ -144,7 +140,9 @@ export class PatternManagerImpl implements PatternManager {
   /**
    * Get patterns for a specific discovery type
    */
-  private getTypePatterns(type: FileDiscoveryType): { includes: string[]; excludes: string[] } | undefined {
+  private getTypePatterns(
+    type: FileDiscoveryType
+  ): { includes: string[]; excludes: string[] } | undefined {
     switch (type) {
       case FileDiscoveryType.PROJECT_ANALYSIS:
       case FileDiscoveryType.TEST_GENERATION:
@@ -205,6 +203,7 @@ export class PatternManagerImpl implements PatternManager {
         includes: [
           'src/**/*.{js,ts,jsx,tsx}',
           'lib/**/*.{js,ts,jsx,tsx}',
+          '*.{js,ts,jsx,tsx}', // Root level files
           '**/*.{py}',
           'components/**/*.{js,ts,jsx,tsx,vue,svelte}',
           'pages/**/*.{js,ts,jsx,tsx,vue,svelte}',
@@ -218,7 +217,9 @@ export class PatternManagerImpl implements PatternManager {
           '**/*.stories.*',
           '**/*.config.*',
           '**/*.d.ts',
-          '**/index.{js,ts}', // Often just re-exports
+          'src/components/**/index.{js,ts}', // Re-exports in component subdirectories only
+          'lib/**/index.{js,ts}', // Re-exports in lib subdirectories
+          'components/**/index.{js,ts}', // Re-exports in component subdirectories
           '**/types/**',
         ],
       },
@@ -232,10 +233,7 @@ export class PatternManagerImpl implements PatternManager {
           '**/__tests__/**/*.{js,ts,jsx,tsx}',
           '**/spec/**/*.{js,ts,jsx,tsx}',
         ],
-        excludes: [
-          '**/node_modules/**',
-          '**/*.d.ts',
-        ],
+        excludes: ['**/node_modules/**', '**/*.d.ts'],
       },
       [FileDiscoveryType.CONFIG_DISCOVERY]: {
         includes: [
@@ -269,12 +267,7 @@ export class PatternManagerImpl implements PatternManager {
           angular: ['**/*.component.js', '**/src/app/**/*.js'],
           node: ['**/server/**/*.js', '**/api/**/*.js', '**/routes/**/*.js'],
         },
-        testPatterns: [
-          '**/*.test.js',
-          '**/*.spec.js',
-          '**/__tests__/**/*.js',
-          '**/test/**/*.js',
-        ],
+        testPatterns: ['**/*.test.js', '**/*.spec.js', '**/__tests__/**/*.js', '**/test/**/*.js'],
       },
       typescript: {
         extensions: ['.ts', '.tsx', '.d.ts'],
@@ -284,12 +277,7 @@ export class PatternManagerImpl implements PatternManager {
           angular: ['**/*.component.ts', '**/src/app/**/*.ts'],
           node: ['**/server/**/*.ts', '**/api/**/*.ts', '**/routes/**/*.ts'],
         },
-        testPatterns: [
-          '**/*.test.ts',
-          '**/*.spec.ts',
-          '**/__tests__/**/*.ts',
-          '**/test/**/*.ts',
-        ],
+        testPatterns: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts', '**/test/**/*.ts'],
       },
       python: {
         extensions: ['.py', '.pyx', '.pyi'],
@@ -299,12 +287,7 @@ export class PatternManagerImpl implements PatternManager {
           fastapi: ['**/main.py', '**/routers/**/*.py', '**/dependencies.py'],
           pytest: ['**/conftest.py', '**/test_*.py', '**/*_test.py'],
         },
-        testPatterns: [
-          '**/test_*.py',
-          '**/*_test.py',
-          '**/tests/**/*.py',
-          '**/test/**/*.py',
-        ],
+        testPatterns: ['**/test_*.py', '**/*_test.py', '**/tests/**/*.py', '**/test/**/*.py'],
       },
     };
   }
@@ -314,7 +297,7 @@ export class PatternManagerImpl implements PatternManager {
    */
   private addLanguageExtensions(basePatterns: string[], languages: string[]): string[] {
     const extendedPatterns: string[] = [];
-    
+
     for (const pattern of basePatterns) {
       if (pattern.includes('{')) {
         // Pattern already has extensions, keep as is
@@ -330,7 +313,7 @@ export class PatternManagerImpl implements PatternManager {
         }
       }
     }
-    
+
     return extendedPatterns;
   }
 
@@ -339,14 +322,14 @@ export class PatternManagerImpl implements PatternManager {
    */
   private getLanguageExtensions(languages: string[]): string[] {
     const extensions: string[] = [];
-    
+
     for (const language of languages) {
       const langKey = language.toLowerCase();
       if (this.languagePatterns[langKey]) {
-        extensions.push(...this.languagePatterns[langKey].extensions.map(ext => ext.slice(1))); // Remove dot
+        extensions.push(...this.languagePatterns[langKey].extensions.map((ext) => ext.slice(1))); // Remove dot
       }
     }
-    
+
     return Array.from(new Set(extensions)); // Remove duplicates
   }
 
@@ -355,12 +338,12 @@ export class PatternManagerImpl implements PatternManager {
    */
   private getLanguageExcludes(languages?: string[]): string[] {
     if (!languages?.length) return [];
-    
+
     const excludes: string[] = [];
-    
+
     for (const language of languages) {
       const langKey = language.toLowerCase();
-      
+
       switch (langKey) {
         case 'python':
           excludes.push(
@@ -386,7 +369,7 @@ export class PatternManagerImpl implements PatternManager {
           break;
       }
     }
-    
+
     return excludes;
   }
 
@@ -396,12 +379,12 @@ export class PatternManagerImpl implements PatternManager {
   private getUserPatterns(type: FileDiscoveryType, config: FileDiscoveryConfig): string[] {
     const typeKey = this.getConfigTypeKey(type);
     const patterns = config.patterns[typeKey];
-    
+
     if (patterns?.replaceExcludes) {
       return patterns.replaceExcludes;
     }
-    
-    return patterns?.additionalExcludes || [];
+
+    return patterns?.additionalExcludes ?? [];
   }
 
   /**
@@ -410,12 +393,12 @@ export class PatternManagerImpl implements PatternManager {
   private getUserIncludePatterns(type: FileDiscoveryType, config: FileDiscoveryConfig): string[] {
     const typeKey = this.getConfigTypeKey(type);
     const patterns = config.patterns[typeKey];
-    
+
     if (patterns?.replaceIncludes) {
       return patterns.replaceIncludes;
     }
-    
-    return patterns?.additionalIncludes || [];
+
+    return patterns?.additionalIncludes ?? [];
   }
 
   /**
@@ -439,23 +422,23 @@ export class PatternManagerImpl implements PatternManager {
    */
   private hasInvalidGlobSyntax(pattern: string): boolean {
     // Check for unmatched brackets
-    const openBrackets = (pattern.match(/\[/g) || []).length;
-    const closeBrackets = (pattern.match(/\]/g) || []).length;
-    
+    const openBrackets = (pattern.match(/\[/g) ?? []).length;
+    const closeBrackets = (pattern.match(/\]/g) ?? []).length;
+
     if (openBrackets !== closeBrackets) return true;
-    
+
     // Check for unmatched braces
-    const openBraces = (pattern.match(/\{/g) || []).length;
-    const closeBraces = (pattern.match(/\}/g) || []).length;
-    
+    const openBraces = (pattern.match(/\{/g) ?? []).length;
+    const closeBraces = (pattern.match(/\}/g) ?? []).length;
+
     if (openBraces !== closeBraces) return true;
-    
+
     // Check for invalid characters in glob context
     if (pattern.includes('\\') && !pattern.includes('/')) {
       // Windows-style paths might be problematic
       return true;
     }
-    
+
     return false;
   }
 
@@ -465,10 +448,10 @@ export class PatternManagerImpl implements PatternManager {
   private findInvalidGlobPosition(pattern: string): number | undefined {
     let openBrackets = 0;
     let openBraces = 0;
-    
+
     for (let i = 0; i < pattern.length; i++) {
       const char = pattern[i];
-      
+
       switch (char) {
         case '[':
           openBrackets++;
@@ -486,7 +469,7 @@ export class PatternManagerImpl implements PatternManager {
           break;
       }
     }
-    
+
     return undefined;
   }
 
@@ -501,7 +484,7 @@ export class PatternManagerImpl implements PatternManager {
         suggestion: 'Consider adding file extensions or directory constraints',
       };
     }
-    
+
     // Check for redundant patterns
     if (pattern.includes('**/**')) {
       return {
@@ -509,7 +492,7 @@ export class PatternManagerImpl implements PatternManager {
         suggestion: pattern.replace('**/**', '**'),
       };
     }
-    
+
     // Check for Windows path separators
     if (pattern.includes('\\')) {
       return {
@@ -517,7 +500,7 @@ export class PatternManagerImpl implements PatternManager {
         suggestion: pattern.replace(/\\/g, '/'),
       };
     }
-    
+
     return null;
   }
 }

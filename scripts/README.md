@@ -4,6 +4,64 @@ This directory contains utility scripts for the Claude Testing Infrastructure pr
 
 ## Available Scripts
 
+### Truth Validation System
+
+The truth validation system ensures documentation claims match actual project status:
+
+- **status-aggregator.js**: Single source of truth for project status
+- **documentation-claim-parser.js**: Extracts claims from documentation  
+- **truth-validation-engine.js**: Validates claims against reality
+- **test-suite-blocker-detector.js**: Identifies test suite blockers
+- **infrastructure-blocker-detector.js**: Identifies infrastructure blockers
+- **code-quality-blocker-detector.js**: Identifies code quality blockers
+- **precommit-truth-validation.js**: Pre-commit hook for truth validation
+- **status-documentation-updater.js**: Automatically updates status documentation
+
+#### Usage
+
+```bash
+# Complete truth validation
+npm run validate:truth
+
+# Detailed discrepancy analysis
+npm run validate:truth:detailed
+
+# Blocker detection
+npm run validate:blockers
+npm run validate:infrastructure
+npm run validate:code-quality
+
+# Pre-commit truth validation
+npm run truth-validation:precommit
+
+# Bypass truth validation (for development)
+SKIP_TRUTH_VALIDATION=true npm run truth-validation:precommit
+
+# Automated status documentation updates
+npm run status:update                # Update docs with current status
+npm run status:update:dry-run        # Preview changes without writing
+npm run status:update:commit         # Update and auto-commit changes
+npm run status:update:verbose        # Show detailed information
+```
+
+#### Pre-commit Integration
+
+The system provides pre-commit hooks to prevent false claims:
+
+```bash
+# Use standard pre-commit (no truth validation)
+.husky/pre-commit
+
+# Use truth validation pre-commit (blocks false claims)
+.husky/pre-commit-truth-validation
+```
+
+To enable truth validation pre-commit, rename the hooks:
+```bash
+mv .husky/pre-commit .husky/pre-commit-standard
+mv .husky/pre-commit-truth-validation .husky/pre-commit
+```
+
 ### `production-readiness-check.js`
 
 Comprehensive production readiness validation script that checks:

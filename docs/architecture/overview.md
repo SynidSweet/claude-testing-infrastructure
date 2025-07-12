@@ -1,6 +1,6 @@
 # System Architecture Overview
 
-*Last updated: 2025-07-02 | Updated by: /document command | Integrated centralized model mapping system and fixed framework auto-detection for reliable CI/CD pipeline*
+*Last updated: 2025-07-10 | Updated by: /document command | Added smart pattern detection to FileDiscoveryService architecture*
 
 ## Architecture Summary
 
@@ -230,6 +230,13 @@ The FileDiscoveryService (`src/services/FileDiscoveryService.ts`) provides consi
 - **Pattern validation**: Glob syntax validation with warnings and suggestions
 - **Type-based resolution**: Different patterns for project analysis, test generation, and test execution
 
+##### ProjectStructureDetector ✅ NEW
+- **Smart pattern detection**: Analyzes project structure to generate optimal file patterns
+- **Structure types**: Detects standard-src, monorepo, flat, framework-specific layouts
+- **Confidence scoring**: Applies patterns only when confidence exceeds threshold (default 0.7)
+- **Workspace support**: Handles monorepo workspaces with specific patterns
+- **Framework integration**: Works with FileDiscoveryService for automatic pattern application
+
 ##### FileDiscoveryCache
 - **TTL-based expiration**: Configurable time-to-live for cache entries
 - **LRU eviction**: Automatic removal of oldest entries when cache size limit reached
@@ -265,6 +272,103 @@ enum FileDiscoveryType {
 - **Singleton pattern**: Ensures consistent cache usage across entire CLI session
 
 This architecture has been fully implemented across all CLI commands, providing consistent file operations and measurable performance improvements throughout the infrastructure.
+
+## TestableTimer Abstraction Architecture
+
+### Systematic Timer Testing Foundation
+
+The TestableTimer system provides a comprehensive abstraction layer for timer operations, enabling dependency injection and deterministic testing of time-based functionality throughout the infrastructure.
+
+#### Core Components
+
+##### Timer Abstractions (`src/types/timer-types.ts`)
+- **TestableTimer Interface**: Core abstraction for schedule/cancel operations
+- **MockTimerController Interface**: Extended test-time control capabilities
+- **TimerFactory Interface**: Environment-aware timer creation
+- **Comprehensive Types**: TimerHandle, TimerOptions, validation errors, metrics
+
+##### Production Implementation (`src/utils/RealTimer.ts`)
+- **Native Timer Wrapper**: setTimeout/setInterval/setImmediate with cross-platform support
+- **Metrics Tracking**: Execution times, completion rates, active timer counts
+- **Error Handling**: Graceful callback error catching and parameter validation
+- **Memory Management**: Automatic cleanup and handle lifecycle management
+
+##### Test Implementation (`src/utils/MockTimer.ts`)
+- **Complete Time Control**: Manual advancement, jump to next timer, run all pending
+- **Deterministic Execution**: Precise chronological ordering without real time dependencies
+- **Debug Capabilities**: Pending timer inspection, execution logging, state tracking
+- **Test Isolation**: Independent mock instances for parallel test execution
+
+##### Factory System (`src/utils/TimerFactory.ts`)
+- **Environment Detection**: Automatic Jest/test environment recognition
+- **Configuration Validation**: Type-safe timer configuration with error reporting
+- **Singleton Support**: Optional shared factory instances for consistency
+- **Convenience APIs**: createTimer, createMockTimer, createRealTimer helpers
+
+#### Architecture Benefits
+
+- **Dependency Injection**: Clean separation between timer logic and timer implementation
+- **Test Determinism**: Eliminates flaky timer-based tests through controlled time advancement
+- **Type Safety**: Full TypeScript support with comprehensive interface validation
+- **Reliable**: Native timer performance with enhanced error handling and metrics
+
+#### Integration Strategy
+
+This abstraction serves as the foundation for systematic timer testing improvements across:
+- **ClaudeOrchestrator**: AI process timeout and heartbeat monitoring
+- **Process Monitoring**: Resource usage polling and health checks
+- **Test Infrastructure**: Reliable timing control in async test scenarios
+
+The system uses composition over inheritance and dependency injection to provide clean, testable timer operations throughout the Claude Testing Infrastructure.
+
+## Heartbeat Monitoring Architecture
+
+### Separation of Concerns Design
+
+The heartbeat monitoring system has been refactored to separate timer concerns from business logic, enabling deterministic testing and improved maintainability.
+
+#### Core Components
+
+##### ProcessHealthAnalyzer (`src/ai/heartbeat/ProcessHealthAnalyzer.ts`)
+- **Pure Functions**: No side effects, timers, or external dependencies
+- **Health Analysis**: CPU, memory, output rate, error analysis
+- **Progress Detection**: Pattern matching for progress markers
+- **Input Wait Detection**: Identifies processes waiting for user input
+- **Comprehensive Test Coverage**: High coverage with deterministic tests
+
+##### HeartbeatScheduler (`src/ai/heartbeat/HeartbeatScheduler.ts`)
+- **Timer Management**: All scheduling operations using injected TestableTimer
+- **No Business Logic**: Only handles interval/timeout scheduling
+- **Multiple Timer Types**: Health checks, timeouts, progress reporting
+- **Cancellation Support**: Clean lifecycle management
+- **Test Control**: Full control over timing in tests
+
+##### HeartbeatMonitor (`src/ai/heartbeat/HeartbeatMonitor.ts`)
+- **Orchestration Facade**: Coordinates scheduler and analyzer
+- **Event-Based**: Maintains backward compatibility through events
+- **Process Lifecycle**: Manages monitoring from start to termination
+- **Resource Tracking**: Integrates with ProcessMonitor for metrics
+
+#### Architecture Benefits
+
+- **Testability**: Health logic can be tested without any timing dependencies
+- **Maintainability**: Clear separation of responsibilities
+- **Reliability**: Eliminates timing-related test failures
+- **Extensibility**: Easy to add new health metrics or scheduling patterns
+
+#### Integration Strategy
+
+```
+ClaudeOrchestrator
+    ├── HeartbeatMonitor (Facade)
+    │   ├── HeartbeatScheduler (Timer Management)
+    │   │   └── TestableTimer (Injected Dependency)
+    │   └── ProcessHealthAnalyzer (Business Logic)
+    │       └── Pure Functions (No Dependencies)
+    └── ProcessMonitor (Resource Metrics)
+```
+
+This architecture demonstrates best practices for separating concerns in timer-based systems, serving as a pattern for similar refactoring throughout the codebase.
 
 ## Design Principles
 
@@ -633,28 +737,44 @@ Generated Tests → Runner Selection → Test Execution → Coverage Processing 
 - **Error Handling**: Graceful degradation and detailed error reporting
 - **CLI Integration**: Complete `run` command with enhanced coverage options
 
-### Template Method Pattern Implementation (Updated 2025-07-01)
+### Template System Architecture (Updated 2025-07-10)
 
-The Coverage Reporter system uses the Template Method pattern with inheritance-based consolidation:
+The template system has been redesigned with a modular architecture to improve maintainability and extensibility:
 
-1. **BaseTemplateEngine**: Abstract base class providing common functionality (122 lines)
-   - Template data transformation utilities
-   - Coverage percentage formatting
-   - Common template data interfaces
-   - Shared helper methods
+#### Test Template Core Infrastructure
 
-2. **HtmlTemplateEngine**: Extends base with HTML-specific rendering (144 lines)
-3. **MarkdownTemplateEngine**: Extends base with Markdown-specific rendering (122 lines)
-4. **XmlTemplateEngine**: Extends base with XML-specific rendering (103 lines)
+1. **TemplateRegistry** (`src/generators/templates/core/TemplateRegistry.ts`): Centralized template management
+   - Template registration with conflict detection
+   - Intelligent template matching with confidence scores
+   - Template search with fallback hierarchy (exact → framework → type → language)
+   - Registry statistics and introspection capabilities
 
-Benefits achieved:
-- Eliminated duplicate template preparation logic
-- Consistent async render interface across all engines
-- Shared utilities for data transformation and formatting
-- Type-safe template data interfaces with inheritance
-- Maintainable separation of format-specific logic
+2. **TemplateEngine** (`src/generators/templates/core/TemplateEngine.ts`): Robust template execution
+   - Safe generation with comprehensive error handling
+   - Performance metrics and statistics tracking
+   - Template validation and testing capabilities
+   - Backward compatibility with existing interfaces
 
-Template engines location: `/src/runners/templates/`
+3. **TestTemplateEngine** (`src/generators/templates/TestTemplateEngine.ts`): Legacy integration layer
+   - Maintains existing public API for compatibility
+   - Currently 1,675 lines (target for future modularization)
+   - Will be migrated to use new core architecture (TEMPLATE-REF-001)
+
+#### Coverage Template Engines (Existing)
+
+4. **BaseTemplateEngine**: Abstract base class providing common functionality (122 lines)
+5. **HtmlTemplateEngine**: Extends base with HTML-specific rendering (144 lines)
+6. **MarkdownTemplateEngine**: Extends base with Markdown-specific rendering (122 lines)
+7. **XmlTemplateEngine**: Extends base with XML-specific rendering (103 lines)
+
+#### Benefits of New Architecture
+- **Separation of Concerns**: Template storage (Registry) vs execution (Engine)
+- **Enhanced Error Handling**: Safe generation with detailed error reporting
+- **Performance Monitoring**: Built-in statistics and performance tracking
+- **Extensibility Foundation**: Ready for factory pattern and plugin architecture
+- **Type Safety**: Comprehensive TypeScript interfaces with proper optionality
+
+Template system location: `/src/generators/templates/`
 
 ### AI-Powered Enhancement (Phase 5 - COMPLETE)
 

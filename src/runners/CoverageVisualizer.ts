@@ -26,7 +26,7 @@ export interface CoverageReportConfig {
   /** Project name for reports */
   projectName?: string;
   /** Additional metadata to include */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type CoverageReportFormat = 'html' | 'json' | 'markdown' | 'text' | 'xml';
@@ -245,7 +245,7 @@ export class CoverageVisualizer {
         await this.generateXmlReport(data, filePath);
         break;
       default:
-        throw new Error(`Unsupported report format: ${format}`);
+        throw new Error(`Unsupported report format: ${String(format)}`);
     }
 
     return filePath;

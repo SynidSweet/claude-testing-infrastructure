@@ -4,3 +4,8 @@ export * from './error-handling';
 export * from './FileWatcher';
 export * from './Debouncer';
 export * from './ProgressReporter';
+export * from './TimerTestUtils';
+export * from './AsyncTestUtils';
+export * from './RealTimer';
+export * from './MockTimer';
+export * from './TimerFactory';

@@ -8,10 +8,10 @@
  * - Handles graceful shutdown
  */
 
-import type { FSWatcher } from 'chokidar';
-import { watch } from 'chokidar';
+import { watch, type FSWatcher } from 'chokidar';
 import { EventEmitter } from 'events';
 import path from 'path';
+import type { Stats } from 'fs';
 import { logger } from './logger';
 
 export interface FileChangeEvent {
@@ -93,8 +93,8 @@ export class FileWatcher extends EventEmitter {
 
     this.config = {
       projectPath: this.projectPath,
-      includePatterns: config.includePatterns || defaultIncludePatterns,
-      ignorePatterns: [...defaultIgnorePatterns, ...(config.ignorePatterns || [])],
+      includePatterns: config.includePatterns ?? defaultIncludePatterns,
+      ignorePatterns: [...defaultIgnorePatterns, ...(config.ignorePatterns ?? [])],
       watchAdditions: config.watchAdditions ?? true,
       watchDeletions: config.watchDeletions ?? true,
       pollingInterval: config.pollingInterval ?? 1000,
@@ -235,7 +235,7 @@ export class FileWatcher extends EventEmitter {
   /**
    * Handle individual file change events
    */
-  private handleFileChange(type: FileChangeEvent['type'], filePath: string, stats?: any): void {
+  private handleFileChange(type: FileChangeEvent['type'], filePath: string, stats?: Stats): void {
     const absolutePath = path.resolve(this.projectPath, filePath);
     const relativePath = path.relative(this.projectPath, absolutePath);
     const extension = path.extname(filePath);
@@ -275,9 +275,9 @@ export class FileWatcher extends EventEmitter {
    */
   private setupEventHandlers(): void {
     // Graceful shutdown on process signals
-    const cleanup = () => {
+    const cleanup = (): void => {
       if (this.isWatching) {
-        this.stopWatching().catch((error) => {
+        this.stopWatching().catch((error: unknown) => {
           logger.error('Error during file watcher cleanup', { error });
         });
       }

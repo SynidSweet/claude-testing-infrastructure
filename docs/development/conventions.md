@@ -1,6 +1,6 @@
 # Development Patterns & Conventions
 
-*Last updated: 2025-06-30 | Updated by: /document-all command | Discriminated union types patterns added*
+*Last updated: 2025-07-09 | Updated by: /document command | CLI standardization patterns and configuration loading conventions added*
 
 ## Naming Conventions
 
@@ -253,6 +253,85 @@ export class ProjectAnalyzer {
 }
 ```
 
+### TypeScript Type Safety Standards (Updated 2025-07-07)
+
+#### Eliminating `any` Types
+The codebase maintains strict type safety by systematically replacing `any` types with proper interfaces:
+
+```typescript
+// BEFORE - Unsafe any type
+private askQuestion(rl: any, question: string): Promise<string> {
+  // Implementation
+}
+
+// AFTER - Proper interface type
+private askQuestion(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
+  // Implementation
+}
+```
+
+#### CLI Command Type Safety
+CLI commands should use properly typed option interfaces instead of `any`:
+
+```typescript
+// BEFORE - Unsafe any parameter
+.action(async (targetPath: string, options: any) => {
+  // Implementation
+})
+
+// AFTER - Typed option interface
+interface CommandOptions {
+  template?: string;
+  force?: boolean;
+  interactive?: boolean;
+  list?: boolean;
+}
+
+.action(async (targetPath: string, options: CommandOptions) => {
+  // Implementation
+})
+```
+
+#### Framework Detection Type Safety
+Framework detectors should use proper package.json interfaces:
+
+```typescript
+// Import proper types
+import type { DetectedFramework, PackageJsonContent } from '../analyzers/ProjectAnalyzer';
+
+// Constructor with null safety
+constructor(_projectPath: string, packageJson: PackageJsonContent | null = null) {
+  this.packageJson = packageJson ?? {} as PackageJsonContent;
+}
+```
+
+#### Nullish Coalescing Operator Usage
+Prefer nullish coalescing (`??`) over logical OR (`||`) for safer undefined/null handling:
+
+```typescript
+// BEFORE - Logical OR (less safe)
+const value = config.option || defaultValue;
+
+// AFTER - Nullish coalescing (safer)
+const value = config.option ?? defaultValue;
+```
+
+#### Configuration Type Safety
+Complex configuration objects should use proper type assertions instead of `any`:
+
+```typescript
+// BEFORE - Unsafe any type
+private processConfig(coverageData: any): Record<string, number[]> {
+  return (coverageData as any).files;
+}
+
+// AFTER - Safe type assertion with guards
+private processConfig(coverageData: Record<string, unknown>): Record<string, number[]> {
+  const files = coverageData.files as Record<string, unknown>;
+  return this.validateAndExtractFiles(files);
+}
+```
+
 ### Import Organization
 
 #### Consolidated Import Pattern (Preferred)
@@ -425,6 +504,131 @@ interface AITestGenerator {
   ): Promise<GeneratedTest[]>;
 }
 ```
+
+## CLI Standardization Patterns (Updated 2025-07-09)
+
+### Standardized CLI Utilities
+All CLI commands should use the standardized utilities from `src/cli/utils/` for consistent behavior:
+
+#### Configuration Loading
+```typescript
+import { loadStandardConfiguration, type StandardCliOptions } from '../utils';
+
+// Standard CLI options interface
+export interface MyCommandOptions extends StandardCliOptions {
+  // Command-specific options
+  output?: string;
+  format?: 'json' | 'markdown';
+}
+
+// Standardized configuration loading
+const configResult = await loadStandardConfiguration(projectPath, {
+  customConfigPath: options.config,
+  cliArgs: options,
+  validateConfig: true,
+  exitOnValidationError: true,
+  logValidationWarnings: true,
+});
+```
+
+#### Command Execution Patterns
+```typescript
+import { analysisCommand, generationCommand, simpleCommand } from '../utils';
+
+// For analysis commands
+export async function analyzeCommand(
+  projectPath: string,
+  options: AnalyzeOptions,
+  command?: Command
+): Promise<void> {
+  return analysisCommand(
+    projectPath,
+    options,
+    command,
+    async (context) => {
+      // Command implementation
+    },
+    'project analysis'
+  );
+}
+
+// For generation commands
+export async function generateCommand(
+  projectPath: string,
+  options: GenerateOptions,
+  command?: Command
+): Promise<void> {
+  return generationCommand(
+    projectPath,
+    options,
+    command,
+    async (context) => {
+      // Command implementation
+    },
+    'test generation'
+  );
+}
+```
+
+#### Error Handling
+```typescript
+import { handleConfigurationError, handleFileOperationError } from '../utils';
+
+// Configuration errors
+try {
+  const config = await loadConfig();
+} catch (error) {
+  handleConfigurationError(error, {
+    projectPath,
+    configPath: options.config,
+    suggestions: ['Check .claude-testing.config.json syntax']
+  });
+}
+
+// File operation errors
+try {
+  await fs.writeFile(path, content);
+} catch (error) {
+  handleFileOperationError(error, {
+    projectPath,
+    filePath: path,
+    operation: 'write test file'
+  });
+}
+```
+
+#### Parent Command Options
+```typescript
+import { getParentOptions } from '../utils';
+
+// Type-safe parent option access
+export async function myCommand(
+  projectPath: string,
+  options: MyOptions,
+  command?: Command
+): Promise<void> {
+  const parentOptions = getParentOptions(command);
+  const showConfigSources = parentOptions.showConfigSources || false;
+  
+  if (showConfigSources) {
+    // Display configuration sources
+  }
+}
+```
+
+### CLI Development Guidelines
+1. **Extend StandardCliOptions** for all command option interfaces
+2. **Use standardized utilities** for configuration loading and error handling
+3. **Apply consistent patterns** for parent command option access
+4. **Implement proper validation** with user-friendly error messages
+5. **Follow command execution patterns** (analysis, generation, simple) based on command type
+
+### Benefits of Standardization
+- **Consistent behavior** across all CLI commands
+- **Reduced code duplication** in configuration loading and error handling
+- **Better error messages** with suggestions and context
+- **Type safety** for parent command options
+- **Easier maintenance** and development of new commands
 
 ## See Also
 - 📖 **Development Workflow**: [`./workflow.md`](./workflow.md)

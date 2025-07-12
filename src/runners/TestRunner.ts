@@ -130,8 +130,8 @@ export abstract class TestRunner {
     const startTime = Date.now();
     logger.info(`Running tests with ${this.config.framework}`, {
       testPath: this.config.testPath,
-      coverage: this.config.coverage?.enabled || false,
-      watch: this.config.watch || false,
+      coverage: this.config.coverage?.enabled ?? false,
+      watch: this.config.watch ?? false,
     });
 
     try {

@@ -1,22 +1,26 @@
-import { MCPProjectAnalysis } from '../../types/mcp-types';
+import type { MCPProjectAnalysis } from '../../types/mcp-types';
 
 export class MCPProtocolComplianceTemplate {
   generateComplianceTests(analysis: MCPProjectAnalysis): { path: string; content: string } {
     const framework = analysis.mcpCapabilities?.framework || 'custom';
-    const isTypeScript = analysis.languages.some(l => l.name === 'typescript');
+    const isTypeScript = analysis.languages.some((l) => l.name === 'typescript');
     const extension = isTypeScript ? 'ts' : 'js';
-    
+
     return {
       path: `.claude-testing/mcp-protocol-compliance.test.${extension}`,
       content: this.generateTestContent(framework, isTypeScript, analysis),
     };
   }
 
-  private generateTestContent(framework: string, isTypeScript: boolean, _analysis: MCPProjectAnalysis): string {
+  private generateTestContent(
+    framework: string,
+    isTypeScript: boolean,
+    _analysis: MCPProjectAnalysis
+  ): string {
     const imports = this.generateImports(framework, isTypeScript);
     const setup = this.generateSetup(framework);
     const tests = this.generateTests();
-    
+
     return `${imports}
 
 ${setup}
@@ -29,17 +33,19 @@ ${tests}
 
   private generateImports(framework: string, isTypeScript: boolean): string {
     const baseImports = [];
-    
+
     if (framework === 'fastmcp') {
       baseImports.push("import { FastMCP } from 'fastmcp';");
     } else if (framework === 'official-sdk') {
       baseImports.push("import { Server } from '@modelcontextprotocol/sdk/server';");
     }
-    
+
     if (isTypeScript) {
-      baseImports.push("import { JSONRPCRequest, JSONRPCResponse } from '@modelcontextprotocol/sdk/types';");
+      baseImports.push(
+        "import { JSONRPCRequest, JSONRPCResponse } from '@modelcontextprotocol/sdk/types';"
+      );
     }
-    
+
     return baseImports.join('\n');
   }
 

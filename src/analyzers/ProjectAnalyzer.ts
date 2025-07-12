@@ -1,6 +1,9 @@
 import { fs, path, fg, logger } from '../utils/common-imports';
-import type { FileDiscoveryService } from '../types/file-discovery-types';
-import { FileDiscoveryType } from '../types/file-discovery-types';
+import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
+import {
+  ProjectStructureDetector,
+  type ProjectStructureAnalysis,
+} from '../services/ProjectStructureDetector';
 
 export interface ProjectAnalysis {
   projectPath: string;
@@ -56,6 +59,28 @@ export interface DetectedPackageManager {
   lockFiles: string[];
 }
 
+export interface FrameworkDetectionResult {
+  detected: boolean;
+  confidence: number;
+  version?: string;
+  indicators: string[];
+  dependencies?: string[];
+}
+
+export interface PackageJsonContent {
+  name?: string;
+  version?: string;
+  type?: 'module' | 'commonjs';
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  engines?: Record<string, string>;
+  main?: string;
+  module?: string;
+  types?: string;
+  [key: string]: unknown;
+}
+
 export interface ProjectStructure {
   rootFiles: string[];
   srcDirectory: string | undefined;
@@ -63,6 +88,8 @@ export interface ProjectStructure {
   configFiles: string[];
   buildOutputs: string[];
   entryPoints: string[];
+  // Enhanced structure analysis
+  smartAnalysis?: ProjectStructureAnalysis | undefined;
 }
 
 export interface Dependencies {
@@ -127,7 +154,7 @@ export class ProjectAnalyzer {
     // Validate project path exists
     try {
       await fs.access(this.projectPath);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Project path does not exist: ${this.projectPath}`);
     }
 
@@ -153,8 +180,8 @@ export class ProjectAnalyzer {
       ]);
 
       // Check if this is an MCP server project
-      const isMCPServer = frameworks.some(f => f.name === 'mcp-server' || f.name === 'fastmcp');
-      
+      const isMCPServer = frameworks.some((f) => f.name === 'mcp-server' || f.name === 'fastmcp');
+
       const analysis: ProjectAnalysis = {
         projectPath: this.projectPath,
         languages,
@@ -176,7 +203,7 @@ export class ProjectAnalyzer {
 
       logger.info('Project analysis completed successfully');
       return analysis;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Project analysis failed:', error);
       throw new Error(
         `Failed to analyze project: ${error instanceof Error ? error.message : String(error)}`
@@ -232,7 +259,8 @@ export class ProjectAnalyzer {
     const pythonDeps = await this.readPythonDependencies();
 
     // React detection
-    if (await this.hasReact(packageJsonContent)) {
+    const reactDetection = this.hasReact(packageJsonContent);
+    if (reactDetection.detected) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/.babelrc*',
@@ -240,15 +268,15 @@ export class ProjectAnalyzer {
       ]);
       frameworks.push({
         name: 'react',
-        confidence: 0.9,
-        version:
-          packageJsonContent?.dependencies?.react || packageJsonContent?.devDependencies?.react,
+        confidence: reactDetection.confidence,
+        ...(reactDetection.version && { version: reactDetection.version }),
         configFiles,
       });
     }
 
     // Vue detection
-    if (await this.hasVue(packageJsonContent)) {
+    const vueDetection = this.hasVue(packageJsonContent);
+    if (vueDetection.detected) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/vue.config.*',
@@ -256,14 +284,15 @@ export class ProjectAnalyzer {
       ]);
       frameworks.push({
         name: 'vue',
-        confidence: 0.9,
-        version: packageJsonContent?.dependencies?.vue || packageJsonContent?.devDependencies?.vue,
+        confidence: vueDetection.confidence,
+        ...(vueDetection.version && { version: vueDetection.version }),
         configFiles,
       });
     }
 
     // Angular detection
-    if (await this.hasAngular(packageJsonContent)) {
+    const angularDetection = this.hasAngular(packageJsonContent);
+    if (angularDetection.detected) {
       const configFiles = await this.findFiles([
         '**/angular.json',
         '**/package.json',
@@ -271,14 +300,15 @@ export class ProjectAnalyzer {
       ]);
       frameworks.push({
         name: 'angular',
-        confidence: 0.9,
-        version: packageJsonContent?.dependencies?.['@angular/core'],
+        confidence: angularDetection.confidence,
+        ...(angularDetection.version && { version: angularDetection.version }),
         configFiles,
       });
     }
 
     // Express detection
-    if (await this.hasExpress(packageJsonContent)) {
+    const expressDetection = this.hasExpress(packageJsonContent);
+    if (expressDetection.detected) {
       const configFiles = await this.findFiles([
         '**/package.json',
         '**/app.js',
@@ -287,25 +317,59 @@ export class ProjectAnalyzer {
       ]);
       frameworks.push({
         name: 'express',
-        confidence: 0.8,
-        version: packageJsonContent?.dependencies?.express,
+        confidence: expressDetection.confidence,
+        ...(expressDetection.version && { version: expressDetection.version }),
         configFiles,
       });
     }
 
     // Next.js detection
-    if (await this.hasNextJs(packageJsonContent)) {
+    const nextJsDetection = this.hasNextJs(packageJsonContent);
+    if (nextJsDetection.detected) {
       const configFiles = await this.findFiles(['**/next.config.*', '**/package.json']);
       frameworks.push({
         name: 'nextjs',
-        confidence: 0.9,
-        version: packageJsonContent?.dependencies?.next,
+        confidence: nextJsDetection.confidence,
+        ...(nextJsDetection.version && { version: nextJsDetection.version }),
+        configFiles,
+      });
+    }
+
+    // Svelte detection
+    const svelteDetection = this.hasSvelte(packageJsonContent);
+    if (svelteDetection.detected) {
+      const configFiles = await this.findFiles([
+        '**/svelte.config.*',
+        '**/package.json',
+        '**/.svelte-kit/**',
+      ]);
+      frameworks.push({
+        name: 'svelte',
+        confidence: svelteDetection.confidence,
+        ...(svelteDetection.version && { version: svelteDetection.version }),
+        configFiles,
+      });
+    }
+
+    // Nuxt detection
+    const nuxtDetection = this.hasNuxt(packageJsonContent);
+    if (nuxtDetection.detected) {
+      const configFiles = await this.findFiles([
+        '**/nuxt.config.*',
+        '**/package.json',
+        '**/.nuxt/**',
+      ]);
+      frameworks.push({
+        name: 'nuxt',
+        confidence: nuxtDetection.confidence,
+        ...(nuxtDetection.version && { version: nuxtDetection.version }),
         configFiles,
       });
     }
 
     // FastAPI detection
-    if (await this.hasFastAPI(pythonDeps)) {
+    const fastAPIDetection = this.hasFastAPI(pythonDeps);
+    if (fastAPIDetection.detected) {
       const configFiles = await this.findFiles([
         '**/main.py',
         '**/app.py',
@@ -314,13 +378,15 @@ export class ProjectAnalyzer {
       ]);
       frameworks.push({
         name: 'fastapi',
-        confidence: 0.9,
+        confidence: fastAPIDetection.confidence,
+        ...(fastAPIDetection.version && { version: fastAPIDetection.version }),
         configFiles,
       });
     }
 
     // Django detection
-    if (await this.hasDjango(pythonDeps)) {
+    const djangoDetection = this.hasDjango(pythonDeps);
+    if (djangoDetection.detected) {
       const configFiles = await this.findFiles([
         '**/manage.py',
         '**/settings.py',
@@ -329,13 +395,15 @@ export class ProjectAnalyzer {
       ]);
       frameworks.push({
         name: 'django',
-        confidence: 0.9,
+        confidence: djangoDetection.confidence,
+        ...(djangoDetection.version && { version: djangoDetection.version }),
         configFiles,
       });
     }
 
     // Flask detection
-    if (await this.hasFlask(pythonDeps)) {
+    const flaskDetection = this.hasFlask(pythonDeps);
+    if (flaskDetection.detected) {
       const configFiles = await this.findFiles([
         '**/app.py',
         '**/main.py',
@@ -344,13 +412,15 @@ export class ProjectAnalyzer {
       ]);
       frameworks.push({
         name: 'flask',
-        confidence: 0.8,
+        confidence: flaskDetection.confidence,
+        ...(flaskDetection.version && { version: flaskDetection.version }),
         configFiles,
       });
     }
 
     // MCP Server detection
-    if (await this.hasMCPServer(packageJsonContent)) {
+    const mcpDetection = this.hasMCPServer(packageJsonContent);
+    if (mcpDetection.detected) {
       const configFiles = await this.findFiles([
         '**/mcp.json',
         '**/.mcp/**',
@@ -359,21 +429,20 @@ export class ProjectAnalyzer {
         '**/server.js',
         '**/server.ts',
       ]);
-      
-      const framework = await this.detectMCPFramework(packageJsonContent);
+
+      const framework = this.detectMCPFramework(packageJsonContent);
       if (framework === 'fastmcp') {
         frameworks.push({
           name: 'fastmcp',
-          confidence: 0.95,
-          version: packageJsonContent?.dependencies?.fastmcp || packageJsonContent?.devDependencies?.fastmcp,
+          confidence: mcpDetection.confidence,
+          ...(mcpDetection.version && { version: mcpDetection.version }),
           configFiles,
         });
       } else {
         frameworks.push({
           name: 'mcp-server',
-          confidence: 0.9,
-          version: packageJsonContent?.dependencies?.['@modelcontextprotocol/sdk'] || 
-                   packageJsonContent?.devDependencies?.['@modelcontextprotocol/sdk'],
+          confidence: mcpDetection.confidence,
+          ...(mcpDetection.version && { version: mcpDetection.version }),
           configFiles,
         });
       }
@@ -452,29 +521,55 @@ export class ProjectAnalyzer {
   }
 
   private async analyzeProjectStructure(): Promise<ProjectStructure> {
+    // Original basic analysis
     const rootFiles = await this.findFiles(['*'], [], { onlyFiles: true, deep: 1 });
 
-    // Common src directories
-    const srcCandidates = ['src', 'lib', 'app', 'source'];
-    let srcDirectory: string | undefined;
+    // Enhanced smart structure detection
+    const structureDetector = new ProjectStructureDetector(this.projectPath);
+    let smartAnalysis: ProjectStructureAnalysis | undefined;
 
-    for (const candidate of srcCandidates) {
-      const candidatePath = path.join(this.projectPath, candidate);
-      try {
-        const stat = await fs.stat(candidatePath);
-        if (stat.isDirectory()) {
-          srcDirectory = candidate;
-          break;
-        }
-      } catch {
-        // Directory doesn't exist, continue
-      }
+    try {
+      smartAnalysis = await structureDetector.analyzeStructure();
+      logger.info(
+        'Smart structure analysis complete: type=%s confidence=%d source_dirs=%d',
+        smartAnalysis.detectedStructure,
+        Math.round(smartAnalysis.confidence * 100),
+        smartAnalysis.sourceDirectories.length
+      );
+    } catch (error: unknown) {
+      logger.warn('Smart structure analysis failed, falling back to basic detection:', error);
     }
 
-    const testDirectories = await this.findDirectories(
-      ['**/test', '**/tests', '**/__tests__', '**/*.test.*'],
-      ['node_modules/**']
-    );
+    // Use smart analysis results if available, otherwise fallback to basic detection
+    let srcDirectory: string | undefined;
+    let testDirectories: string[] = [];
+
+    if (smartAnalysis && smartAnalysis.confidence > 0.5) {
+      // Use smart analysis results
+      const primarySource = smartAnalysis.sourceDirectories[0];
+      srcDirectory = primarySource?.path !== '.' ? primarySource?.path : undefined;
+      testDirectories = smartAnalysis.testDirectories.map((td) => td.path);
+    } else {
+      // Fallback to basic detection
+      const srcCandidates = ['src', 'lib', 'app', 'source'];
+      for (const candidate of srcCandidates) {
+        const candidatePath = path.join(this.projectPath, candidate);
+        try {
+          const stat = await fs.stat(candidatePath);
+          if (stat.isDirectory()) {
+            srcDirectory = candidate;
+            break;
+          }
+        } catch {
+          // Directory doesn't exist, continue
+        }
+      }
+      testDirectories = await this.findDirectories(
+        ['**/test', '**/tests', '**/__tests__', '**/*.test.*'],
+        ['node_modules/**']
+      );
+    }
+
     const configFiles = await this.findFiles([
       '**/package.json',
       '**/tsconfig.json',
@@ -512,6 +607,7 @@ export class ProjectAnalyzer {
       configFiles,
       buildOutputs,
       entryPoints,
+      smartAnalysis,
     };
   }
 
@@ -520,9 +616,9 @@ export class ProjectAnalyzer {
     const pythonDeps = await this.readPythonDependencies();
 
     return {
-      production: packageJsonContent?.dependencies || {},
-      development: packageJsonContent?.devDependencies || {},
-      python: pythonDeps || undefined,
+      production: packageJsonContent?.dependencies ?? {},
+      development: packageJsonContent?.devDependencies ?? {},
+      python: pythonDeps ?? undefined,
     };
   }
 
@@ -538,8 +634,8 @@ export class ProjectAnalyzer {
 
     // Detect test frameworks from dependencies
     const allDeps = {
-      ...(packageJsonContent?.dependencies || {}),
-      ...(packageJsonContent?.devDependencies || {}),
+      ...(packageJsonContent?.dependencies ?? {}),
+      ...(packageJsonContent?.devDependencies ?? {}),
     };
 
     if (allDeps?.jest) testFrameworks.push('jest');
@@ -582,7 +678,7 @@ export class ProjectAnalyzer {
         const lines = content.split('\n').length;
         totalLines += lines;
         fileSizes.push({ path: file, lines });
-      } catch (error) {
+      } catch (error: unknown) {
         // Skip files that can't be read
         logger.debug(`Could not read file ${file}:`, error);
       }
@@ -600,77 +696,516 @@ export class ProjectAnalyzer {
   }
 
   // Helper methods for framework detection
-  private async hasReact(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
+  private hasReact(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.react || deps?.['@types/react']);
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.react) {
+      indicators.push('react package found');
+      dependencies.push('react');
+    }
+    if (deps?.['react-dom']) {
+      indicators.push('react-dom package found');
+      dependencies.push('react-dom');
+    }
+    if (deps?.['@types/react']) {
+      indicators.push('TypeScript React types found');
+      dependencies.push('@types/react');
+    }
+    if (deps?.['react-scripts']) {
+      indicators.push('Create React App detected');
+      dependencies.push('react-scripts');
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.95, 0.6 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    if (deps?.react) {
+      result.version = deps.react;
+    }
+
+    return result;
   }
 
-  private async hasVue(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
+  private hasVue(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.vue || deps?.['@vue/cli']);
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.vue) {
+      indicators.push('vue package found');
+      dependencies.push('vue');
+    }
+    if (deps?.['@vue/cli']) {
+      indicators.push('Vue CLI found');
+      dependencies.push('@vue/cli');
+    }
+    if (deps?.['@vue/cli-service']) {
+      indicators.push('Vue CLI Service found');
+      dependencies.push('@vue/cli-service');
+    }
+    if (deps?.nuxt) {
+      indicators.push('Nuxt.js framework detected');
+      dependencies.push('nuxt');
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.95, 0.6 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    if (deps?.vue) {
+      result.version = deps.vue;
+    }
+
+    return result;
   }
 
-  private async hasAngular(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
+  private hasAngular(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.['@angular/core'] || deps?.['@angular/cli']);
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.['@angular/core']) {
+      indicators.push('Angular core package found');
+      dependencies.push('@angular/core');
+    }
+    if (deps?.['@angular/cli']) {
+      indicators.push('Angular CLI found');
+      dependencies.push('@angular/cli');
+    }
+    if (deps?.['@angular/common']) {
+      indicators.push('Angular common package found');
+      dependencies.push('@angular/common');
+    }
+    if (deps?.['@angular/platform-browser']) {
+      indicators.push('Angular platform browser found');
+      dependencies.push('@angular/platform-browser');
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.95, 0.6 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    if (deps?.['@angular/core']) {
+      result.version = deps['@angular/core'];
+    }
+
+    return result;
   }
 
-  private async hasExpress(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
+  private hasExpress(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!deps?.express;
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.express) {
+      indicators.push('express package found');
+      dependencies.push('express');
+    }
+    if (deps?.['@types/express']) {
+      indicators.push('TypeScript Express types found');
+      dependencies.push('@types/express');
+    }
+    if (deps?.['body-parser']) {
+      indicators.push('Express body-parser middleware found');
+      dependencies.push('body-parser');
+    }
+    if (deps?.['express-session']) {
+      indicators.push('Express session middleware found');
+      dependencies.push('express-session');
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.9, 0.5 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    if (deps?.express) {
+      result.version = deps.express;
+    }
+
+    return result;
   }
 
-  private async hasNextJs(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
+  private hasNextJs(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!deps?.next;
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.next) {
+      indicators.push('next package found');
+      dependencies.push('next');
+    }
+    if (deps?.['@next/font']) {
+      indicators.push('Next.js font optimization found');
+      dependencies.push('@next/font');
+    }
+    if (deps?.['@next/image']) {
+      indicators.push('Next.js image optimization found');
+      dependencies.push('@next/image');
+    }
+    if (packageJson.scripts?.dev?.includes('next dev')) {
+      indicators.push('Next.js dev script detected');
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.95, 0.7 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    if (deps?.next) {
+      result.version = deps.next;
+    }
+
+    return result;
   }
 
-  private async hasFastAPI(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.fastapi || pythonDeps?.['fastapi[all]']);
+  private hasFastAPI(pythonDeps: Record<string, string> | null): FrameworkDetectionResult {
+    if (!pythonDeps) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (pythonDeps?.fastapi ?? pythonDeps?.['fastapi[all]']) {
+      indicators.push('fastapi package found');
+      dependencies.push('fastapi');
+    }
+    if (pythonDeps?.uvicorn ?? pythonDeps?.['uvicorn[standard]']) {
+      indicators.push('Uvicorn ASGI server found');
+      dependencies.push('uvicorn');
+    }
+    if (pythonDeps?.pydantic) {
+      indicators.push('Pydantic validation library found');
+      dependencies.push('pydantic');
+    }
+    if (pythonDeps?.starlette) {
+      indicators.push('Starlette framework found');
+      dependencies.push('starlette');
+    }
+
+    const detected = dependencies.includes('fastapi');
+    const confidence = detected ? Math.min(0.95, 0.6 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    const version = pythonDeps?.fastapi ?? pythonDeps?.['fastapi[all]'];
+    if (version) {
+      result.version = version;
+    }
+
+    return result;
   }
 
-  private async hasDjango(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.django || pythonDeps?.Django);
+  private hasDjango(pythonDeps: Record<string, string> | null): FrameworkDetectionResult {
+    if (!pythonDeps) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (pythonDeps?.django ?? pythonDeps?.Django) {
+      indicators.push('django package found');
+      dependencies.push('django');
+    }
+    if (pythonDeps?.['django-rest-framework'] ?? pythonDeps?.djangorestframework) {
+      indicators.push('Django REST Framework found');
+      dependencies.push('django-rest-framework');
+    }
+    if (pythonDeps?.['django-cors-headers']) {
+      indicators.push('Django CORS headers found');
+      dependencies.push('django-cors-headers');
+    }
+    if (pythonDeps?.celery) {
+      indicators.push('Celery task queue found');
+      dependencies.push('celery');
+    }
+
+    const detected = dependencies.includes('django');
+    const confidence = detected ? Math.min(0.95, 0.7 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    const version = pythonDeps?.django ?? pythonDeps?.Django;
+    if (version) {
+      result.version = version;
+    }
+
+    return result;
   }
 
-  private async hasFlask(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.flask || pythonDeps?.Flask);
+  private hasFlask(pythonDeps: Record<string, string> | null): FrameworkDetectionResult {
+    if (!pythonDeps) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (pythonDeps?.flask ?? pythonDeps?.Flask) {
+      indicators.push('flask package found');
+      dependencies.push('flask');
+    }
+    if (pythonDeps?.['flask-restful'] ?? pythonDeps?.['Flask-RESTful']) {
+      indicators.push('Flask-RESTful extension found');
+      dependencies.push('flask-restful');
+    }
+    if (pythonDeps?.['flask-sqlalchemy'] ?? pythonDeps?.['Flask-SQLAlchemy']) {
+      indicators.push('Flask-SQLAlchemy extension found');
+      dependencies.push('flask-sqlalchemy');
+    }
+    if (pythonDeps?.['flask-cors'] ?? pythonDeps?.['Flask-CORS']) {
+      indicators.push('Flask-CORS extension found');
+      dependencies.push('flask-cors');
+    }
+
+    const detected = dependencies.includes('flask');
+    const confidence = detected ? Math.min(0.9, 0.6 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    const version = pythonDeps?.flask ?? pythonDeps?.Flask;
+    if (version) {
+      result.version = version;
+    }
+
+    return result;
   }
 
-  private async hasMCPServer(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
+  private hasMCPServer(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(
-      deps?.['@modelcontextprotocol/sdk'] || 
-      deps?.['@modelcontextprotocol/server'] ||
-      deps?.fastmcp ||
-      deps?.['mcp-framework'] ||
-      deps?.['@anthropic/mcp']
-    );
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.['@modelcontextprotocol/sdk']) {
+      indicators.push('Official MCP SDK found');
+      dependencies.push('@modelcontextprotocol/sdk');
+    }
+    if (deps?.['@modelcontextprotocol/server']) {
+      indicators.push('MCP server package found');
+      dependencies.push('@modelcontextprotocol/server');
+    }
+    if (deps?.fastmcp) {
+      indicators.push('FastMCP framework found');
+      dependencies.push('fastmcp');
+    }
+    if (deps?.['mcp-framework']) {
+      indicators.push('MCP framework package found');
+      dependencies.push('mcp-framework');
+    }
+    if (deps?.['@anthropic/mcp']) {
+      indicators.push('Anthropic MCP package found');
+      dependencies.push('@anthropic/mcp');
+    }
+
+    // Check for MCP-related scripts
+    if (packageJson.scripts) {
+      const mcpScripts = Object.entries(packageJson.scripts).filter(
+        ([key, value]) => value.includes('mcp') || key.includes('mcp')
+      );
+      if (mcpScripts.length > 0) {
+        indicators.push(`MCP scripts found: ${mcpScripts.map(([k]) => k).join(', ')}`);
+      }
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.95, 0.7 + dependencies.length * 0.1) : 0;
+
+    // Determine primary version
+    const version =
+      deps?.fastmcp ??
+      deps?.['@modelcontextprotocol/sdk'] ??
+      deps?.['@modelcontextprotocol/server'] ??
+      deps?.['mcp-framework'] ??
+      deps?.['@anthropic/mcp'];
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    if (version) {
+      result.version = version;
+    }
+
+    return result;
   }
 
-  private async detectMCPFramework(packageJson: any): Promise<'fastmcp' | 'official-sdk' | 'custom'> {
+  private detectMCPFramework(
+    packageJson: PackageJsonContent | null
+  ): 'fastmcp' | 'official-sdk' | 'custom' {
     if (!packageJson) return 'custom';
     const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    
+
     if (deps?.fastmcp) {
       return 'fastmcp';
     } else if (deps?.['@modelcontextprotocol/sdk']) {
       return 'official-sdk';
     }
-    
+
     return 'custom';
+  }
+
+  private hasSvelte(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
+    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.svelte) {
+      indicators.push('svelte package found');
+      dependencies.push('svelte');
+    }
+    if (deps?.['@sveltejs/kit']) {
+      indicators.push('SvelteKit framework found');
+      dependencies.push('@sveltejs/kit');
+    }
+    if (deps?.['@sveltejs/adapter-auto']) {
+      indicators.push('SvelteKit adapter found');
+      dependencies.push('@sveltejs/adapter-auto');
+    }
+    if (deps?.['svelte-preprocess']) {
+      indicators.push('Svelte preprocessor found');
+      dependencies.push('svelte-preprocess');
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.95, 0.6 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    if (deps?.svelte) {
+      result.version = deps.svelte;
+    }
+
+    return result;
+  }
+
+  private hasNuxt(packageJson: PackageJsonContent | null): FrameworkDetectionResult {
+    if (!packageJson) {
+      return { detected: false, confidence: 0, indicators: [] };
+    }
+
+    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+    const indicators: string[] = [];
+    const dependencies: string[] = [];
+
+    if (deps?.nuxt ?? deps?.nuxt3) {
+      indicators.push('nuxt package found');
+      dependencies.push('nuxt');
+    }
+    if (deps?.['@nuxt/kit']) {
+      indicators.push('Nuxt Kit found');
+      dependencies.push('@nuxt/kit');
+    }
+    if (deps?.['@nuxtjs/composition-api']) {
+      indicators.push('Nuxt Composition API found');
+      dependencies.push('@nuxtjs/composition-api');
+    }
+
+    const detected = dependencies.length > 0;
+    const confidence = detected ? Math.min(0.95, 0.7 + dependencies.length * 0.1) : 0;
+
+    const result: FrameworkDetectionResult = {
+      detected,
+      confidence,
+      indicators,
+      dependencies,
+    };
+
+    const version = deps?.nuxt ?? deps?.nuxt3;
+    if (version) {
+      result.version = version;
+    }
+
+    return result;
   }
 
   private async analyzeMCPCapabilities(): Promise<MCPCapabilities> {
     const packageJson = await this.readPackageJson();
-    const framework = await this.detectMCPFramework(packageJson);
-    
+    const framework = this.detectMCPFramework(packageJson);
+
     // Basic capability detection - would be enhanced with actual AST parsing
     const capabilities: MCPCapabilities = {
       tools: [],
@@ -679,55 +1214,80 @@ export class ProjectAnalyzer {
       transports: ['stdio'], // Default transport
       framework,
     };
-    
+
     // Check for HTTP+SSE transport indicators
-    const hasHttpIndicators = packageJson?.dependencies?.express || 
-                             packageJson?.dependencies?.fastify ||
-                             packageJson?.dependencies?.['@fastify/sse'] ||
-                             packageJson?.devDependencies?.express ||
-                             packageJson?.devDependencies?.fastify;
-    
+    const hasHttpIndicators =
+      packageJson?.dependencies?.express ??
+      packageJson?.dependencies?.fastify ??
+      packageJson?.dependencies?.['@fastify/sse'] ??
+      packageJson?.devDependencies?.express ??
+      packageJson?.devDependencies?.fastify;
+
     if (hasHttpIndicators) {
       capabilities.transports.push('http-sse');
     }
-    
+
     // Try to detect MCP configuration file
-    const mcpConfigFiles = await this.findFiles(['mcp.json', '.mcp/config.json', '**/mcp.json', '**/.mcp/config.json']);
+    const mcpConfigFiles = await this.findFiles([
+      'mcp.json',
+      '.mcp/config.json',
+      '**/mcp.json',
+      '**/.mcp/config.json',
+    ]);
     if (mcpConfigFiles.length > 0 && mcpConfigFiles[0]) {
       try {
         const configPath = path.join(this.projectPath, mcpConfigFiles[0]);
         const configContent = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(configContent);
-        
+
+        interface MCPConfig {
+          tools?: Array<{
+            name?: string;
+            description?: string;
+            inputSchema?: unknown;
+          }>;
+          resources?: Array<{
+            name?: string;
+            uri?: string;
+            mimeType?: string;
+          }>;
+          prompts?: Array<{
+            name?: string;
+            description?: string;
+            arguments?: unknown;
+          }>;
+        }
+
+        const config = JSON.parse(configContent) as MCPConfig;
+
         // Extract capabilities from config if available
         if (config.tools) {
-          capabilities.tools = config.tools.map((tool: any) => ({
-            name: tool.name || 'unknown',
-            description: tool.description,
-            inputSchema: tool.inputSchema,
+          capabilities.tools = config.tools.map((tool) => ({
+            name: tool.name ?? 'unknown',
+            ...(tool.description ? { description: tool.description } : {}),
+            ...(tool.inputSchema ? { inputSchema: tool.inputSchema } : {}),
           }));
         }
-        
+
         if (config.resources) {
-          capabilities.resources = config.resources.map((resource: any) => ({
-            name: resource.name || 'unknown',
-            uri: resource.uri || '',
-            mimeType: resource.mimeType,
+          capabilities.resources = config.resources.map((resource) => ({
+            name: resource.name ?? 'unknown',
+            uri: resource.uri ?? '',
+            ...(resource.mimeType ? { mimeType: resource.mimeType } : {}),
           }));
         }
-        
+
         if (config.prompts) {
-          capabilities.prompts = config.prompts.map((prompt: any) => ({
-            name: prompt.name || 'unknown',
-            description: prompt.description,
-            arguments: prompt.arguments,
+          capabilities.prompts = config.prompts.map((prompt) => ({
+            name: prompt.name ?? 'unknown',
+            ...(prompt.description ? { description: prompt.description } : {}),
+            ...(prompt.arguments ? { arguments: prompt.arguments } : {}),
           }));
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.debug('Could not parse MCP config file:', error);
       }
     }
-    
+
     return capabilities;
   }
 
@@ -735,7 +1295,11 @@ export class ProjectAnalyzer {
   private async findFiles(
     patterns: string[],
     ignore: string[] = [],
-    options: any = {}
+    options: {
+      absolute?: boolean;
+      onlyFiles?: boolean;
+      deep?: number;
+    } = {}
   ): Promise<string[]> {
     // Use FileDiscoveryService if available, otherwise fall back to direct implementation
     if (this.fileDiscovery) {
@@ -745,14 +1309,17 @@ export class ProjectAnalyzer {
           include: patterns,
           exclude: ignore,
           type: FileDiscoveryType.CUSTOM,
-          absolute: options.absolute,
+          absolute: options.absolute ?? false,
           includeDirectories: options.onlyFiles === false,
-          useCache: true
+          useCache: true,
         });
 
         return result.files;
-      } catch (error) {
-        logger.debug('Error using FileDiscoveryService, falling back to direct implementation:', error);
+      } catch (error: unknown) {
+        logger.debug(
+          'Error using FileDiscoveryService, falling back to direct implementation:',
+          error
+        );
         // Fall through to direct implementation
       }
     }
@@ -763,10 +1330,10 @@ export class ProjectAnalyzer {
         cwd: this.projectPath,
         ignore,
         onlyFiles: options.onlyFiles !== false,
-        deep: options.deep,
+        deep: options.deep ?? 10,
         dot: false,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error finding files:', error);
       return [];
     }
@@ -780,18 +1347,18 @@ export class ProjectAnalyzer {
         onlyDirectories: true,
         dot: false,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error finding directories:', error);
       return [];
     }
   }
 
-  private async readPackageJson(): Promise<any> {
+  private async readPackageJson(): Promise<PackageJsonContent | null> {
     try {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
-      return JSON.parse(content);
-    } catch (error) {
+      return JSON.parse(content) as PackageJsonContent;
+    } catch (error: unknown) {
       logger.debug('No package.json found or invalid JSON');
       return null;
     }
@@ -827,7 +1394,7 @@ export class ProjectAnalyzer {
       }
 
       if (Object.keys(deps).length > 0) return deps;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('No pyproject.toml found');
     }
 
@@ -842,13 +1409,13 @@ export class ProjectAnalyzer {
         if (line && !line.startsWith('#')) {
           const match = line.match(/^([a-zA-Z0-9_-]+)([>=<~!]+.*)?$/);
           if (match?.[1]) {
-            deps[match[1]] = match[2] || '*';
+            deps[match[1]] = match[2] ?? '*';
           }
         }
       });
 
       return Object.keys(deps).length > 0 ? deps : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('No requirements.txt found');
     }
 
@@ -898,7 +1465,7 @@ export class ProjectAnalyzer {
           fileExtensionPattern: await this.detectFileExtensionPattern(),
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error analyzing module system:', error);
       return {
         type: 'commonjs',
@@ -945,7 +1512,7 @@ export class ProjectAnalyzer {
             cjsCount++;
           }
           // Files with both or neither don't contribute to the count
-        } catch (error) {
+        } catch (error: unknown) {
           logger.debug(`Error reading file ${filePath}:`, error);
         }
       }
@@ -967,7 +1534,7 @@ export class ProjectAnalyzer {
         // Default to CommonJS if no clear pattern
         return { type: 'commonjs', confidence: 0.6 };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error detecting module type from files:', error);
       return { type: 'commonjs', confidence: 0.5 };
     }
@@ -994,9 +1561,15 @@ export class ProjectAnalyzer {
   private async detectFileExtensionPattern(): Promise<'js' | 'mjs' | 'ts'> {
     try {
       // Check for common file patterns in the project
-      const tsFiles = await this.findFiles(['**/*.ts', '**/*.tsx'], ['node_modules/**', 'dist/**', 'build/**']);
-      const mjsFiles = await this.findFiles(['**/*.mjs'], ['node_modules/**', 'dist/**', 'build/**']);
-      
+      const tsFiles = await this.findFiles(
+        ['**/*.ts', '**/*.tsx'],
+        ['node_modules/**', 'dist/**', 'build/**']
+      );
+      const mjsFiles = await this.findFiles(
+        ['**/*.mjs'],
+        ['node_modules/**', 'dist/**', 'build/**']
+      );
+
       if (tsFiles.length > 0) {
         return 'ts';
       } else if (mjsFiles.length > 0) {
@@ -1004,7 +1577,7 @@ export class ProjectAnalyzer {
       } else {
         return 'js';
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error detecting file extension pattern:', error);
       return 'js';
     }

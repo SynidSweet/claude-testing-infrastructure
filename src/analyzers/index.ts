@@ -50,7 +50,7 @@ export interface Analyzer {
 
 export interface AnalysisResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   errors?: string[];
 }
 

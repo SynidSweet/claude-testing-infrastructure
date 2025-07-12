@@ -1,6 +1,6 @@
 /**
  * FileDiscoveryService provides centralized file discovery for all components
- * 
+ *
  * This service integrates pattern management, caching, and configuration
  * to provide consistent file discovery across the infrastructure.
  */
@@ -8,20 +8,28 @@
 import fg from 'fast-glob';
 import path from 'path';
 import { promises as fs } from 'fs';
+import debug from 'debug';
 
-import { FileDiscoveryType } from '../types/file-discovery-types';
-import type {
-  FileDiscoveryService,
-  FileDiscoveryRequest,
-  FileDiscoveryResult,
-  FileDiscoveryCache,
-  PatternManager,
-  CacheKey,
-  FileDiscoveryConfig,
+import {
+  FileDiscoveryType,
+  type FileDiscoveryService,
+  type FileDiscoveryRequest,
+  type FileDiscoveryResult,
+  type FileDiscoveryCache,
+  type PatternManager,
+  type CacheKey,
+  type FileDiscoveryConfig,
+  type CacheStats,
 } from '../types/file-discovery-types';
 
 import { PatternManagerImpl } from './PatternManager';
 import { MemoryFileDiscoveryCache, NullFileDiscoveryCache } from './FileDiscoveryCache';
+import {
+  ProjectStructureDetector,
+  type ProjectStructureAnalysis,
+} from './ProjectStructureDetector';
+
+const logger: debug.Debugger = debug('claude-testing:file-discovery');
 
 /**
  * Service for configuration retrieval
@@ -39,9 +47,9 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   private config: FileDiscoveryConfig;
 
   constructor(configService?: ConfigurationService) {
-    this.config = configService?.getFileDiscoveryConfig() || this.getDefaultConfig();
+    this.config = configService?.getFileDiscoveryConfig() ?? this.getDefaultConfig();
     this.patternManager = new PatternManagerImpl(configService);
-    
+
     if (this.config.cache.enabled) {
       this.cache = new MemoryFileDiscoveryCache(this.config.cache);
     } else {
@@ -54,23 +62,29 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
    */
   async findFiles(request: FileDiscoveryRequest): Promise<FileDiscoveryResult> {
     const startTime = Date.now();
-    
+
     // Apply configuration defaults to request
-    const effectiveRequest = this.applyConfigDefaults(request);
-    
+    let effectiveRequest = this.applyConfigDefaults(request);
+
+    // Apply smart pattern detection if enabled
+    if (this.config.smartDetection?.enabled !== false) {
+      effectiveRequest = await this.analyzeAndEnhancePatterns(effectiveRequest);
+    }
+
     // Generate cache key
     const cacheKey = this.generateCacheKey(effectiveRequest);
-    
+
     // Check cache if enabled
     if (effectiveRequest.useCache !== false) {
-      const cached = await this.cache.get(cacheKey);
+      const cached = this.cache.get(cacheKey);
       if (cached) {
         return cached.result;
       }
     }
 
     // Resolve patterns
-    const includePatterns = effectiveRequest.include || 
+    const includePatterns =
+      effectiveRequest.include ??
       this.patternManager.getIncludePatterns(effectiveRequest.type, effectiveRequest.languages);
     const excludePatterns = this.mergeExcludePatterns(effectiveRequest);
 
@@ -85,14 +99,14 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
       files = await fg(includePatterns, {
         cwd: effectiveRequest.baseDir,
         ignore: excludePatterns,
-        absolute: effectiveRequest.absolute || false,
+        absolute: effectiveRequest.absolute ?? false,
         onlyFiles: !effectiveRequest.includeDirectories,
         dot: false,
         followSymbolicLinks: false,
         suppressErrors: true,
       });
-    } catch (error) {
-      return this.createEmptyResult(startTime, `File discovery failed: ${error}`);
+    } catch (error: unknown) {
+      return this.createEmptyResult(startTime, `File discovery failed: ${String(error)}`);
     }
 
     // Apply language filtering if needed
@@ -113,25 +127,29 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
 
     // Cache result if enabled
     if (effectiveRequest.useCache !== false) {
-      await this.cache.set(cacheKey, result);
+      this.cache.set(cacheKey, result);
     }
 
     // Log slow operations and performance stats
-    if (this.config.performance.logSlowOperations && 
-        result.duration > this.config.performance.slowThresholdMs) {
-      console.warn(`Slow file discovery operation: ${result.duration}ms for ${effectiveRequest.baseDir} (${result.files.length} files)`);
+    if (
+      this.config.performance.logSlowOperations &&
+      result.duration > this.config.performance.slowThresholdMs
+    ) {
+      console.warn(
+        `Slow file discovery operation: ${result.duration}ms for ${effectiveRequest.baseDir} (${result.files.length} files)`
+      );
     }
 
     // Log performance statistics if enabled
     if (this.config.performance.enableStats) {
-      console.debug('File discovery stats', {
-        type: effectiveRequest.type,
-        duration: result.duration,
-        fileCount: result.files.length,
-        fromCache: result.fromCache,
-        baseDir: effectiveRequest.baseDir,
-        stats: result.stats
-      });
+      logger(
+        'File discovery stats: type=%s duration=%dms files=%d fromCache=%s baseDir=%s',
+        effectiveRequest.type,
+        result.duration,
+        result.files.length,
+        result.fromCache,
+        effectiveRequest.baseDir
+      );
     }
 
     return result;
@@ -183,8 +201,127 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   /**
    * Get cache performance statistics
    */
-  getCacheStats() {
+  getCacheStats(): CacheStats {
     return this.cache.getStats();
+  }
+
+  /**
+   * Analyze project structure without modifying request
+   *
+   * This method is useful for CLI tools that want to display
+   * structure analysis results to users.
+   */
+  async analyzeProjectStructure(projectPath: string): Promise<ProjectStructureAnalysis> {
+    const detector = new ProjectStructureDetector(projectPath);
+    return await detector.analyzeStructure();
+  }
+
+  /**
+   * Analyze project structure and apply smart patterns to discovery request
+   *
+   * This method integrates ProjectStructureDetector to enhance file discovery
+   * with intelligent pattern detection based on project layout analysis.
+   */
+  async analyzeAndEnhancePatterns(request: FileDiscoveryRequest): Promise<FileDiscoveryRequest> {
+    // Skip smart detection if patterns are explicitly provided or disabled in config
+    if (
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      (request.include && request.include.length > 0) ||
+      this.config.smartDetection?.enabled === false
+    ) {
+      return request;
+    }
+
+    try {
+      const structureCacheKey: CacheKey = {
+        baseDir: request.baseDir,
+        include: ['__structure_analysis__'],
+        exclude: [],
+        type: request.type,
+        languages: request.languages ?? [],
+        options: {
+          absolute: false,
+          includeDirectories: false,
+        },
+      };
+      const cached = this.cache.get(structureCacheKey);
+
+      let analysis: ProjectStructureAnalysis;
+      if (cached && cached.result.files.length > 0 && cached.result.files[0]) {
+        // Use cached analysis stored as serialized JSON in files array
+        analysis = JSON.parse(cached.result.files[0]) as ProjectStructureAnalysis;
+      } else {
+        const detector = new ProjectStructureDetector(request.baseDir);
+        analysis = await detector.analyzeStructure();
+
+        // Cache the analysis for future use
+        this.cache.set(structureCacheKey, {
+          files: [JSON.stringify(analysis)],
+          fromCache: false,
+          duration: 0,
+          stats: {
+            totalScanned: 0,
+            included: 1,
+            excluded: 0,
+            languageFiltered: 0,
+          },
+        });
+      }
+
+      // Only apply smart patterns if confidence meets threshold
+      const confidenceThreshold = this.config.smartDetection?.confidenceThreshold ?? 0.7;
+      if (analysis.confidence < confidenceThreshold) {
+        logger(
+          'Smart pattern confidence too low: %d < %d, using defaults',
+          analysis.confidence,
+          confidenceThreshold
+        );
+        return request;
+      }
+
+      // Apply smart patterns based on discovery type
+      const enhancedRequest = { ...request };
+
+      switch (request.type) {
+        case FileDiscoveryType.PROJECT_ANALYSIS:
+        case FileDiscoveryType.TEST_GENERATION:
+          enhancedRequest.include = analysis.suggestedPatterns.include;
+          enhancedRequest.exclude = [
+            ...(request.exclude ?? []),
+            ...analysis.suggestedPatterns.exclude,
+          ];
+          break;
+
+        case FileDiscoveryType.TEST_EXECUTION:
+          enhancedRequest.include = analysis.suggestedPatterns.testIncludes;
+          enhancedRequest.exclude = [
+            ...(request.exclude ?? []),
+            ...analysis.suggestedPatterns.testExcludes,
+          ];
+          break;
+
+        default:
+          // For other types, use general patterns
+          enhancedRequest.include = analysis.suggestedPatterns.include;
+          enhancedRequest.exclude = [
+            ...(request.exclude ?? []),
+            ...analysis.suggestedPatterns.exclude,
+          ];
+      }
+
+      logger('Smart pattern detection applied: %O', {
+        detectedStructure: analysis.detectedStructure,
+        confidence: analysis.confidence,
+        patterns: enhancedRequest.include,
+        threshold: confidenceThreshold,
+      });
+
+      return enhancedRequest;
+    } catch (error: unknown) {
+      logger('Smart pattern detection failed: %O', error);
+      // Fall back to original request on error
+      return request;
+    }
   }
 
   /**
@@ -203,13 +340,13 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
   private generateCacheKey(request: FileDiscoveryRequest): CacheKey {
     return {
       baseDir: request.baseDir,
-      include: request.include || [],
-      exclude: request.exclude || [],
+      include: request.include ?? [],
+      exclude: request.exclude ?? [],
       type: request.type,
-      languages: request.languages || [],
+      languages: request.languages ?? [],
       options: {
-        absolute: request.absolute || false,
-        includeDirectories: request.includeDirectories || false,
+        absolute: request.absolute ?? false,
+        includeDirectories: request.includeDirectories ?? false,
       },
     };
   }
@@ -219,8 +356,8 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
    */
   private mergeExcludePatterns(request: FileDiscoveryRequest): string[] {
     const defaultExcludes = this.patternManager.getExcludePatterns(request.type, request.languages);
-    const requestExcludes = request.exclude || [];
-    
+    const requestExcludes = request.exclude ?? [];
+
     return [...defaultExcludes, ...requestExcludes];
   }
 
@@ -237,7 +374,7 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
       return files;
     }
 
-    return files.filter(file => {
+    return files.filter((file) => {
       const ext = path.extname(file).toLowerCase();
       return languageExtensions.includes(ext);
     });
@@ -276,23 +413,12 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
         '**/*.spec.{js,ts,jsx,tsx}',
         '**/__tests__/**/*.{js,ts,jsx,tsx}',
       ],
-      vitest: [
-        '**/*.{test,spec}.{js,ts,jsx,tsx}',
-        '**/test/**/*.{js,ts,jsx,tsx}',
-      ],
-      pytest: [
-        '**/test_*.py',
-        '**/*_test.py',
-        '**/tests/**/*.py',
-      ],
-      mocha: [
-        '**/*.test.js',
-        '**/*.spec.js',
-        '**/test/**/*.js',
-      ],
+      vitest: ['**/*.{test,spec}.{js,ts,jsx,tsx}', '**/test/**/*.{js,ts,jsx,tsx}'],
+      pytest: ['**/test_*.py', '**/*_test.py', '**/tests/**/*.py'],
+      mocha: ['**/*.test.js', '**/*.spec.js', '**/test/**/*.js'],
     };
 
-    return frameworkPatterns[framework.toLowerCase()] || frameworkPatterns.jest || [];
+    return frameworkPatterns[framework.toLowerCase()] ?? frameworkPatterns.jest ?? [];
   }
 
   /**
@@ -339,6 +465,11 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
         enableStats: false,
         logSlowOperations: true,
         slowThresholdMs: 1000,
+      },
+      smartDetection: {
+        enabled: true,
+        confidenceThreshold: 0.7, // 70% confidence required
+        cacheAnalysis: true,
       },
     };
   }

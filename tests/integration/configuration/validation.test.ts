@@ -5,17 +5,18 @@
 import { ConfigurationService } from '../../../src/config/ConfigurationService';
 import { ConfigurationManager } from '../../../src/utils/config-validation';
 import { fs, path } from '../../../src/utils/common-imports';
-import os from 'os';
+import { createTemporaryProject, cleanupTemporaryProject, setupFixtureLifecycle, FIXTURE_TEMPLATES } from '../../fixtures/shared';
 
 describe('Configuration Validation Integration', () => {
+  setupFixtureLifecycle();
   let tempDir: string;
   
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-testing-validation-'));
+    tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
   });
   
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await cleanupTemporaryProject(tempDir);
   });
 
   describe('Validation Error Messages', () => {

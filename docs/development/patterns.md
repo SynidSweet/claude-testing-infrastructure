@@ -1,6 +1,6 @@
 # Development Patterns
 
-*Last updated: 2025-07-02 | Added Jest test mock sequencing patterns for asynchronous analyzer components*
+*Last updated: 2025-07-09 | Added CLI error handling standardization patterns and utilities*
 
 ## Overview
 
@@ -460,6 +460,266 @@ it('should analyze project with files', async () => {
 ### Factory Pattern
 - For test runner selection
 - Already implemented in TestRunnerFactory
+
+## Advanced Type Safety Patterns
+
+### Overview
+Comprehensive type safety patterns for handling external data and unsafe operations. These patterns eliminate `any` types and provide robust validation for complex data structures.
+
+### Type Guard Pattern with External Data
+
+#### Problem Solved
+External data sources (Coverage.py JSON, Jest results, subprocess output) arrive as `unknown` but need safe property access.
+
+#### Implementation
+```typescript
+// 1. Define specific interfaces for expected data structure
+interface CoveragePyFileData {
+  filename?: string;
+  executed_lines?: number[];
+  missing_lines?: number[];
+  excluded_lines?: number[];
+  [key: string]: unknown;
+}
+
+// 2. Create type guard function
+private isCoveragePyFileData(data: unknown): data is CoveragePyFileData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    (typeof (data as Record<string, unknown>).executed_lines === 'undefined' ||
+      Array.isArray((data as Record<string, unknown>).executed_lines)) &&
+    (typeof (data as Record<string, unknown>).missing_lines === 'undefined' ||
+      Array.isArray((data as Record<string, unknown>).missing_lines))
+  );
+}
+
+// 3. Use type guard before accessing properties
+private parseCoverageFileData(fileData: unknown): FileCoverage | null {
+  if (!this.isCoveragePyFileData(fileData)) {
+    return null;
+  }
+  // Now TypeScript knows fileData is CoveragePyFileData
+  const executedLines = fileData.executed_lines ?? [];
+  const missingLines = fileData.missing_lines ?? [];
+  // Safe property access with full type checking
+}
+```
+
+#### Benefits
+- **Eliminates `any` types** - All external data properly typed
+- **Runtime validation** - Catches malformed data at runtime
+- **TypeScript compliance** - Full type checking throughout
+- **Maintainable** - Clear contracts for external data formats
+
+### Buffer and Subprocess Typing Pattern
+
+#### Problem Solved
+Node.js subprocess data events provide `Buffer` objects typed as `any`.
+
+#### Implementation
+```typescript
+// Type subprocess data handlers explicitly
+child.stdout?.on('data', (data: Buffer) => {
+  stdout += data.toString();
+});
+
+child.stderr?.on('data', (data: Buffer) => {
+  stderr += data.toString();
+});
+```
+
+### Configuration Interface Pattern
+
+#### Problem Solved
+Complex configuration objects with optional properties need comprehensive typing.
+
+#### Implementation
+```typescript
+interface JestConfig {
+  testEnvironment?: string;
+  testMatch?: string[];
+  passWithNoTests?: boolean;
+  setupFilesAfterEnv?: string[];
+  preset?: string;
+  extensionsToTreatAsEsm?: string[];
+  moduleNameMapping?: Record<string, string>;
+  transform?: Record<string, string>;
+  transformIgnorePatterns?: string[];
+  [key: string]: unknown; // Allow additional properties
+}
+
+// Use specific return types instead of 'any'
+private generateJestConfig(): JestConfig {
+  const config: JestConfig = {
+    testEnvironment: 'node',
+    testMatch: ['**/*.test.{js,ts,jsx,tsx}'],
+    // Full type safety for all properties
+  };
+  return config;
+}
+```
+
+### Nullish Coalescing Best Practices
+
+#### Pattern
+Replace logical OR (`||`) with nullish coalescing (`??`) for safer property access:
+
+```typescript
+// Before: unsafe for falsy values
+const value = object.property || defaultValue;
+
+// After: only null/undefined trigger default
+const value = object.property ?? defaultValue;
+```
+
+#### Files Using These Patterns
+- `src/runners/CoverageParser.ts` - External data validation
+- `src/runners/JestRunner.ts` - Subprocess typing and configuration
+- `src/runners/CoverageReporter.ts` - Import consolidation
+- Throughout codebase - Nullish coalescing improvements
+
+### Error Constructor Type Safety
+
+#### Pattern
+For error handling systems with specific error class types, use specific union types rather than generic `any[]` or `unknown[]` for constructor type safety:
+
+```typescript
+// Before: unsafe generic typing
+retryableErrors?: Array<new (...args: any[]) => Error>;
+
+// After: specific union types for known error classes
+retryableErrors?: Array<
+  typeof AITimeoutError | typeof AINetworkError | typeof AIRateLimitError | typeof Error
+>;
+```
+
+#### Benefits
+- **Type safety**: TypeScript catches constructor signature mismatches at compile time
+- **Intellisense**: IDEs provide proper autocomplete for error types
+- **Consistency**: Interface definitions match implementation patterns
+- **AI Integration**: Specific types enable proper error handling in AI operations
+
+#### Implementation Notes
+- Use specific error class types (`typeof ErrorClass`) for constructors
+- Maintain consistency between interface definitions and function parameters
+- Consider backward compatibility when updating existing error handling
+- Apply proper formatting for complex union types
+
+#### Files Using This Pattern
+- `src/utils/retry-helper.ts` - AI error retry logic with specific error type unions
+- `src/ai/ClaudeOrchestrator.ts` - Uses retry helper with type-safe error handling
+- `src/types/ai-error-types.ts` - Defines specific AI error classes
+
+## CLI Error Handling Standardization Pattern ✅ NEW
+
+### Overview
+Standardized error handling pattern for CLI commands that provides consistent error display, context information, and proper exit codes across all commands.
+
+### Problem Solved
+Previously, CLI commands used inconsistent error handling approaches:
+- Some commands used error handler utilities, others used basic try/catch
+- Different error message formatting approaches
+- Varying exit code strategies
+- Inconsistent logging patterns
+
+### Solution Architecture
+```typescript
+// Standardized CLI error handling utilities
+export interface CLIErrorOptions {
+  exitCode?: number;
+  showStack?: boolean;
+  context?: Record<string, unknown>;
+}
+
+export function handleCLIError(
+  error: unknown,
+  operationName: string,
+  options: CLIErrorOptions = {}
+): never {
+  // Consistent error formatting with ✗ indicator
+  // Context information display
+  // Detailed logging for debugging
+  // Proper exit codes based on error type
+}
+
+export async function executeCLICommand<T>(
+  commandName: string,
+  operation: () => Promise<T>,
+  errorOptions: CLIErrorOptions = {}
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    handleCLIError(error, commandName, errorOptions);
+  }
+}
+```
+
+### Implementation Pattern
+```typescript
+// Before: Inconsistent error handling
+export async function myCommand(projectPath: string, options: MyOptions): Promise<void> {
+  try {
+    // Command logic
+  } catch (error) {
+    console.error(chalk.red(`Error: ${error.message}`));
+    process.exit(1);
+  }
+}
+
+// After: Standardized error handling
+export async function myCommand(projectPath: string, options: MyOptions): Promise<void> {
+  try {
+    // Command logic
+  } catch (error) {
+    throw error; // Re-throw to be handled by wrapper
+  }
+}
+
+// CLI registration with wrapper
+program
+  .command('my-command')
+  .action((projectPath: string, options: MyOptions) =>
+    executeCLICommand(
+      'my command operation',
+      () => myCommand(projectPath, options),
+      {
+        showStack: Boolean(options.verbose),
+        context: { projectPath, options },
+      }
+    )
+  );
+```
+
+### Error Display Format
+```bash
+# Consistent error format
+✗ Project path does not exist: /nonexistent/path
+
+Additional context:
+  projectPath: /nonexistent/path
+  options: [object Object]
+```
+
+### Key Benefits
+- **Consistent User Experience**: All commands display errors with same format
+- **Helpful Context**: Additional debugging information shown when relevant
+- **Proper Exit Codes**: Different error types use appropriate exit codes
+- **Maintainability**: Single place to update error handling behavior
+- **Developer Experience**: Centralized error handling logic reduces duplication
+
+### Implementation Guidelines
+1. **Use executeCLICommand wrapper** for all CLI command actions
+2. **Re-throw errors** in command functions instead of handling directly
+3. **Provide context** with projectPath and options for debugging
+4. **Use verbose mode** for stack trace display
+5. **Import dynamically** to avoid circular imports (chalk in handleCLIError)
+
+### Files Using This Pattern
+- `src/utils/error-handling.ts` - CLI error handling utilities
+- `src/cli/index.ts` - All command actions wrapped with executeCLICommand
+- `src/cli/commands/*.ts` - All 10 CLI commands follow this pattern
 
 ## See Also
 - **Architecture Overview**: [`/docs/architecture/overview.md`](../architecture/overview.md)

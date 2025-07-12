@@ -1,6 +1,6 @@
 /**
  * Task Checkpoint Manager
- * 
+ *
  * Manages checkpointing for long-running AI tasks to enable recovery from timeouts.
  * Integrates with existing state management system for persistent storage.
  */
@@ -79,12 +79,20 @@ export class TaskCheckpointManager {
   /**
    * Create initial checkpoint for a task
    */
-  async createCheckpoint(task: AITask, phase: TaskCheckpoint['phase'] = 'preparing'): Promise<string> {
+  async createCheckpoint(
+    task: AITask,
+    phase: TaskCheckpoint['phase'] = 'preparing'
+  ): Promise<string> {
     await this.initialize();
 
     const checkpointId = this.generateCheckpointId(task);
-    const promptHash = crypto.createHash('sha256').update(task.prompt).digest('hex').substring(0, 16);
-    const contextHash = crypto.createHash('sha256')
+    const promptHash = crypto
+      .createHash('sha256')
+      .update(task.prompt)
+      .digest('hex')
+      .substring(0, 16);
+    const contextHash = crypto
+      .createHash('sha256')
       .update(JSON.stringify(task.context))
       .digest('hex')
       .substring(0, 16);
@@ -132,7 +140,7 @@ export class TaskCheckpointManager {
   ): Promise<void> {
     try {
       const checkpoint = await this.loadCheckpoint(checkpointId);
-      
+
       // Update fields
       if (updates.phase) checkpoint.phase = updates.phase;
       if (updates.progress !== undefined) checkpoint.progress = updates.progress;
@@ -153,7 +161,9 @@ export class TaskCheckpointManager {
 
       await this.saveCheckpoint(checkpoint);
 
-      logger.debug(`Updated checkpoint ${checkpointId}: phase=${checkpoint.phase}, progress=${checkpoint.progress}%`);
+      logger.debug(
+        `Updated checkpoint ${checkpointId}: phase=${checkpoint.phase}, progress=${checkpoint.progress}%`
+      );
     } catch (error) {
       logger.warn(`Failed to update checkpoint ${checkpointId}:`, error);
     }
@@ -162,17 +172,19 @@ export class TaskCheckpointManager {
   /**
    * Check if a task can be resumed from checkpoint
    */
-  async canResume(task: AITask): Promise<{ canResume: boolean; checkpointId?: string; lastProgress?: number }> {
+  async canResume(
+    task: AITask
+  ): Promise<{ canResume: boolean; checkpointId?: string; lastProgress?: number }> {
     try {
       const checkpoints = await this.findCheckpointsForTask(task.id);
-      
+
       if (checkpoints.length === 0) {
         return { canResume: false };
       }
 
       // Find the most recent recoverable checkpoint
       const sortedCheckpoints = checkpoints
-        .filter(cp => cp.progress > 10 && cp.phase !== 'preparing') // Must have made significant progress
+        .filter((cp) => cp.progress > 10 && cp.phase !== 'preparing') // Must have made significant progress
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
       if (sortedCheckpoints.length === 0) {
@@ -180,16 +192,23 @@ export class TaskCheckpointManager {
       }
 
       const latestCheckpoint = sortedCheckpoints[0]!; // Safe because we checked length above
-      
+
       // Verify the checkpoint is for the same prompt (task hasn't changed)
-      const currentPromptHash = crypto.createHash('sha256').update(task.prompt).digest('hex').substring(0, 16);
-      const currentContextHash = crypto.createHash('sha256')
+      const currentPromptHash = crypto
+        .createHash('sha256')
+        .update(task.prompt)
+        .digest('hex')
+        .substring(0, 16);
+      const currentContextHash = crypto
+        .createHash('sha256')
         .update(JSON.stringify(task.context))
         .digest('hex')
         .substring(0, 16);
 
-      if (latestCheckpoint.metadata.promptHash !== currentPromptHash ||
-          latestCheckpoint.metadata.contextHash !== currentContextHash) {
+      if (
+        latestCheckpoint.metadata.promptHash !== currentPromptHash ||
+        latestCheckpoint.metadata.contextHash !== currentContextHash
+      ) {
         logger.info(`Checkpoint ${latestCheckpoint.checkpointId} outdated - task context changed`);
         return { canResume: false };
       }
@@ -214,10 +233,10 @@ export class TaskCheckpointManager {
     estimatedRemainingTokens: number;
   }> {
     const checkpoint = await this.loadCheckpoint(checkpointId);
-    
+
     // Create a resume prompt that includes partial progress
     const resumePrompt = this.createResumePrompt(checkpoint);
-    
+
     // Estimate remaining tokens based on progress
     const progressRatio = checkpoint.progress / 100;
     const estimatedRemainingTokens = Math.max(
@@ -225,7 +244,9 @@ export class TaskCheckpointManager {
       checkpoint.metadata.estimatedTokens * 0.2 // Minimum 20% of original estimate
     );
 
-    logger.info(`Resuming task ${checkpoint.taskId} from checkpoint ${checkpointId} at ${checkpoint.progress}% progress`);
+    logger.info(
+      `Resuming task ${checkpoint.taskId} from checkpoint ${checkpointId} at ${checkpoint.progress}% progress`
+    );
 
     return {
       checkpoint,
@@ -240,7 +261,7 @@ export class TaskCheckpointManager {
   async completeCheckpoint(checkpointId: string, result: AITaskResult): Promise<void> {
     try {
       const checkpoint = await this.loadCheckpoint(checkpointId);
-      
+
       // Update final state
       checkpoint.phase = 'finalizing';
       checkpoint.progress = 100;
@@ -267,7 +288,7 @@ export class TaskCheckpointManager {
   async failCheckpoint(checkpointId: string, _error: string): Promise<void> {
     try {
       const checkpoint = await this.loadCheckpoint(checkpointId);
-      
+
       // Update with failure information
       checkpoint.state = {
         ...checkpoint.state,
@@ -278,11 +299,15 @@ export class TaskCheckpointManager {
       if ((checkpoint.state.retryCount || 0) >= 3) {
         await this.moveCheckpoint(checkpointId, 'failed');
         await this.removeFromIndex(checkpointId);
-        logger.warn(`Failed checkpoint ${checkpointId} after ${checkpoint.state.retryCount} retries`);
+        logger.warn(
+          `Failed checkpoint ${checkpointId} after ${checkpoint.state.retryCount} retries`
+        );
       } else {
         // Keep in active for potential retry
         await this.saveCheckpoint(checkpoint);
-        logger.info(`Checkpoint ${checkpointId} failed, retry count: ${checkpoint.state.retryCount}`);
+        logger.info(
+          `Checkpoint ${checkpointId} failed, retry count: ${checkpoint.state.retryCount}`
+        );
       }
     } catch (err) {
       logger.warn(`Failed to mark checkpoint ${checkpointId} as failed:`, err);
@@ -296,21 +321,23 @@ export class TaskCheckpointManager {
     try {
       const index = await this.loadCheckpointIndex();
       const activeCheckpoints = await Promise.all(
-        index.map(entry => this.loadCheckpoint(entry.checkpointId).catch(() => null))
+        index.map((entry) => this.loadCheckpoint(entry.checkpointId).catch(() => null))
       );
-      const validCheckpoints = activeCheckpoints.filter(cp => cp !== null) as TaskCheckpoint[];
+      const validCheckpoints = activeCheckpoints.filter((cp) => cp !== null);
 
-      const timestamps = validCheckpoints.map(cp => new Date(cp.timestamp));
-      
+      const timestamps = validCheckpoints.map((cp) => new Date(cp.timestamp));
+
       const result: CheckpointSummary = {
-        activeCheckpoints: validCheckpoints.filter(cp => cp.phase !== 'finalizing').length,
+        activeCheckpoints: validCheckpoints.filter((cp) => cp.phase !== 'finalizing').length,
         totalCheckpoints: validCheckpoints.length,
-        recoverableCheckpoints: validCheckpoints.filter(cp => cp.progress > 10 && cp.phase !== 'preparing'),
+        recoverableCheckpoints: validCheckpoints.filter(
+          (cp) => cp.progress > 10 && cp.phase !== 'preparing'
+        ),
       };
 
       if (timestamps.length > 0) {
-        result.oldestCheckpoint = new Date(Math.min(...timestamps.map(d => d.getTime())));
-        result.newestCheckpoint = new Date(Math.max(...timestamps.map(d => d.getTime())));
+        result.oldestCheckpoint = new Date(Math.min(...timestamps.map((d) => d.getTime())));
+        result.newestCheckpoint = new Date(Math.max(...timestamps.map((d) => d.getTime())));
       }
 
       return result;
@@ -353,7 +380,8 @@ export class TaskCheckpointManager {
 
   private generateCheckpointId(task: AITask): string {
     const timestamp = Date.now().toString();
-    const hash = crypto.createHash('sha256')
+    const hash = crypto
+      .createHash('sha256')
       .update(task.id + task.sourceFile + timestamp)
       .digest('hex')
       .substring(0, 12);
@@ -375,7 +403,7 @@ export class TaskCheckpointManager {
   private async loadCheckpoint(checkpointId: string): Promise<TaskCheckpoint> {
     // Try active directory first
     let filePath = path.join(this.checkpointDir, 'active', `${checkpointId}.json`);
-    
+
     try {
       await fs.access(filePath);
     } catch {
@@ -392,17 +420,20 @@ export class TaskCheckpointManager {
     return await handleFileOperation(
       async () => {
         const content = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(content);
+        return JSON.parse(content) as TaskCheckpoint;
       },
       'loading checkpoint',
       filePath
     );
   }
 
-  private async moveCheckpoint(checkpointId: string, targetDir: 'completed' | 'failed'): Promise<void> {
+  private async moveCheckpoint(
+    checkpointId: string,
+    targetDir: 'completed' | 'failed'
+  ): Promise<void> {
     const sourcePath = path.join(this.checkpointDir, 'active', `${checkpointId}.json`);
     const targetPath = path.join(this.checkpointDir, targetDir, `${checkpointId}.json`);
-    
+
     try {
       await fs.rename(sourcePath, targetPath);
     } catch (error) {
@@ -418,7 +449,7 @@ export class TaskCheckpointManager {
 
   private async removeCheckpoint(checkpointId: string): Promise<void> {
     const directories = ['active', 'completed', 'failed'];
-    
+
     for (const dir of directories) {
       const filePath = path.join(this.checkpointDir, dir, `${checkpointId}.json`);
       try {
@@ -455,9 +486,10 @@ export class TaskCheckpointManager {
   }
 
   private createResumePrompt(checkpoint: TaskCheckpoint): string {
-    const progressInfo = checkpoint.partialResult ? 
-      `\n\nPrevious partial output:\n${checkpoint.partialResult.generatedContent.substring(0, 500)}...` : '';
-    
+    const progressInfo = checkpoint.partialResult
+      ? `\n\nPrevious partial output:\n${checkpoint.partialResult.generatedContent.substring(0, 500)}...`
+      : '';
+
     return `${checkpoint.metadata.originalPrompt}
 
 RESUME FROM CHECKPOINT:
@@ -469,7 +501,9 @@ RESUME FROM CHECKPOINT:
 Continue generating tests from where you left off.`;
   }
 
-  private async saveCheckpointIndex(index: { checkpointId: string; taskId: string; timestamp: string }[]): Promise<void> {
+  private async saveCheckpointIndex(
+    index: { checkpointId: string; taskId: string; timestamp: string }[]
+  ): Promise<void> {
     const indexPath = path.join(this.checkpointDir, 'index.json');
     await handleFileOperation(
       async () => {
@@ -481,12 +515,14 @@ Continue generating tests from where you left off.`;
     );
   }
 
-  private async loadCheckpointIndex(): Promise<{ checkpointId: string; taskId: string; timestamp: string }[]> {
+  private async loadCheckpointIndex(): Promise<
+    { checkpointId: string; taskId: string; timestamp: string }[]
+  > {
     const indexPath = path.join(this.checkpointDir, 'index.json');
-    
+
     try {
       const content = await fs.readFile(indexPath, 'utf-8');
-      return JSON.parse(content);
+      return JSON.parse(content) as { checkpointId: string; taskId: string; timestamp: string }[];
     } catch {
       return [];
     }
@@ -504,7 +540,7 @@ Continue generating tests from where you left off.`;
 
   private async removeFromIndex(checkpointId: string): Promise<void> {
     const index = await this.loadCheckpointIndex();
-    const filteredIndex = index.filter(entry => entry.checkpointId !== checkpointId);
+    const filteredIndex = index.filter((entry) => entry.checkpointId !== checkpointId);
     await this.saveCheckpointIndex(filteredIndex);
   }
 }

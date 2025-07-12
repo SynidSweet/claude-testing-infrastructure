@@ -1,20 +1,21 @@
-import { IdentifiedGap, GapPriority, CoverageAnalysis } from '../TestGapAnalyzer';
-import { GeneratedTest, TestType } from '../../generators/TestGenerator';
+import type { IdentifiedGap, CoverageAnalysis } from '../TestGapAnalyzer';
+import { GapPriority } from '../TestGapAnalyzer';
+import type { GeneratedTest } from '../../generators/TestGenerator';
+import { TestType } from '../../generators/TestGenerator';
 
 /**
  * Gap Identifier - Identifies specific gaps requiring AI generation
- * 
+ *
  * Analyzes coverage data to determine business logic, edge case,
  * and integration gaps that need logical test generation.
  */
 export class GapIdentifier {
-
   /**
    * Identify specific gaps requiring AI generation
    */
   async identifyLogicalTestingGaps(
-    _sourceContent: string, 
-    coverage: CoverageAnalysis, 
+    _sourceContent: string,
+    coverage: CoverageAnalysis,
     _test: GeneratedTest
   ): Promise<IdentifiedGap[]> {
     const gaps: IdentifiedGap[] = [];
@@ -26,7 +27,7 @@ export class GapIdentifier {
         description: gap,
         priority: GapPriority.HIGH,
         estimatedEffort: 'medium',
-        suggestedTestType: TestType.UNIT
+        suggestedTestType: TestType.UNIT,
       });
     }
 
@@ -37,7 +38,7 @@ export class GapIdentifier {
         description: gap,
         priority: GapPriority.MEDIUM,
         estimatedEffort: 'low',
-        suggestedTestType: TestType.UNIT
+        suggestedTestType: TestType.UNIT,
       });
     }
 
@@ -48,7 +49,7 @@ export class GapIdentifier {
         description: gap,
         priority: GapPriority.HIGH,
         estimatedEffort: 'high',
-        suggestedTestType: TestType.INTEGRATION
+        suggestedTestType: TestType.INTEGRATION,
       });
     }
 
