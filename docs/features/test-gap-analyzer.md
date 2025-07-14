@@ -162,16 +162,16 @@ Generated Tests → TestGapAnalyzer (Orchestrator)
 ### Command Usage
 ```bash
 # Basic gap analysis
-node dist/cli/index.js analyze-gaps /path/to/project
+node dist/src/cli/index.js analyze-gaps /path/to/project
 
 # Custom threshold and output
-node dist/cli/index.js analyze-gaps /path/to/project \
+node dist/src/cli/index.js analyze-gaps /path/to/project \
   --threshold 5 \
   --output gap-report.json \
   --format json
 
 # Markdown report generation
-node dist/cli/index.js analyze-gaps /path/to/project \
+node dist/src/cli/index.js analyze-gaps /path/to/project \
   --format markdown \
   --output gap-analysis.md \
   --verbose

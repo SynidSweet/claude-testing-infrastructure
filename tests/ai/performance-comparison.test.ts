@@ -28,9 +28,10 @@ describe('AI Test Performance Comparison', () => {
       
       // Traditional complex setup
       const child_process = require('child_process');
-      jest.spyOn(child_process, 'execSync').mockImplementation((cmd: string) => {
-        if (cmd.includes('--version')) return 'claude version 1.0.0';
-        if (cmd.includes('config get')) return 'authenticated';
+      jest.spyOn(child_process, 'execSync').mockImplementation((cmd: unknown) => {
+        const cmdStr = String(cmd);
+        if (cmdStr.includes('--version')) return 'claude version 1.0.0';
+        if (cmdStr.includes('config get')) return 'authenticated';
         return '';
       });
 
@@ -75,8 +76,8 @@ describe('AI Test Performance Comparison', () => {
             missingScenarios: ['test scenario'],
             dependencies: [],
             frameworkInfo: {
-              language: 'javascript',
-              testFramework: 'jest',
+              language: 'javascript' as const,
+              testFramework: 'jest' as const,
               moduleType: 'commonjs',
               hasTypeScript: false,
             },

@@ -3,6 +3,7 @@
  */
 
 import { ClaudeTestingError } from '../utils/error-handling';
+import type { AITask, AITaskResult, AITaskBatch } from '../ai/AITaskPreparation';
 
 /**
  * Base error class for AI-related operations
@@ -219,3 +220,26 @@ export function isNodeError(error: unknown): error is NodeJS.ErrnoException {
 export type ClaudeAuthResult =
   | { authenticated: true }
   | { authenticated: false; error: AIAuthenticationError; canDegrade: boolean };
+
+/**
+ * Event data structures for AI operations
+ */
+export interface TaskEventData {
+  task: AITask;
+  result?: AITaskResult;
+  error?: Error;
+  degraded?: boolean;
+}
+
+export interface BatchEventData {
+  batch?: AITaskBatch;
+  results?: AITaskResult[];
+  stats?: {
+    totalTasks: number;
+    completedTasks: number;
+    failedTasks: number;
+    totalTokens: number;
+    totalCost: number;
+    duration: number;
+  };
+}

@@ -105,7 +105,7 @@ Tracks long-term project evolution:
 
 ### Primary Command
 ```bash
-node dist/cli/index.js incremental /path/to/project [options]
+node dist/src/cli/index.js incremental /path/to/project [options]
 ```
 
 ### Key Options
@@ -119,13 +119,13 @@ node dist/cli/index.js incremental /path/to/project [options]
 ### Baseline Management
 ```bash
 # Create a new baseline
-node dist/cli/index.js incremental /path/to/project --baseline
+node dist/src/cli/index.js incremental /path/to/project --baseline
 
 # Compare with specific baseline
-node dist/cli/index.js incremental /path/to/project --compare-baseline <id>
+node dist/src/cli/index.js incremental /path/to/project --compare-baseline <id>
 
 # View statistics and history
-node dist/cli/index.js incremental /path/to/project --stats
+node dist/src/cli/index.js incremental /path/to/project --stats
 ```
 
 ## Directory Structure
@@ -151,31 +151,31 @@ project-root/
 ### Initial Setup
 ```bash
 # First-time generation creates initial state
-node dist/cli/index.js test /path/to/project
+node dist/src/cli/index.js test /path/to/project
 
 # Create initial baseline for future comparisons
-node dist/cli/index.js incremental /path/to/project --baseline
+node dist/src/cli/index.js incremental /path/to/project --baseline
 ```
 
 ### Development Workflow
 ```bash
 # Check for changes and update tests
-node dist/cli/index.js incremental /path/to/project
+node dist/src/cli/index.js incremental /path/to/project
 
 # Preview changes without executing
-node dist/cli/index.js incremental /path/to/project --dry-run
+node dist/src/cli/index.js incremental /path/to/project --dry-run
 
 # View current statistics
-node dist/cli/index.js incremental /path/to/project --stats
+node dist/src/cli/index.js incremental /path/to/project --stats
 ```
 
 ### Cost Management
 ```bash
 # Limit AI generation costs
-node dist/cli/index.js incremental /path/to/project --cost-limit 2.50
+node dist/src/cli/index.js incremental /path/to/project --cost-limit 2.50
 
 # Skip AI generation for quick structural updates only  
-node dist/cli/index.js incremental /path/to/project --skip-ai
+node dist/src/cli/index.js incremental /path/to/project --skip-ai
 ```
 
 ## Performance Characteristics
@@ -217,8 +217,8 @@ node dist/cli/index.js incremental /path/to/project --skip-ai
 # Example GitHub Actions integration
 - name: Incremental Test Generation
   run: |
-    node dist/cli/index.js incremental . --cost-limit 5.00
-    node dist/cli/index.js run . --coverage
+    node dist/src/cli/index.js incremental . --cost-limit 5.00
+    node dist/src/cli/index.js run . --coverage
 ```
 
 ## Error Handling

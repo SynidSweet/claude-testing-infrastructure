@@ -31,9 +31,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Validate environment
+      - name: Validate environment and dependencies
         run: |
-          echo "🔍 Environment validation..."
+          echo "🔍 Environment and dependency validation..."
           echo "Node.js version: $(node --version)"
           echo "npm version: $(npm --version)"
           echo "OS: ${{ matrix.os }}"
@@ -49,6 +49,18 @@ jobs:
           # Check package.json syntax
           node -pe 'JSON.parse(require("fs").readFileSync("package.json", "utf8"))' > /dev/null
           echo "✅ package.json syntax valid"
+          
+          # Basic package.json and package-lock.json consistency check
+          echo "📦 Checking package consistency..."
+          PACKAGE_VERSION=$(node -pe 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).version')
+          LOCK_VERSION=$(node -pe 'JSON.parse(require("fs").readFileSync("package-lock.json", "utf8")).version')
+          
+          if [ "$PACKAGE_VERSION" != "$LOCK_VERSION" ]; then
+            echo "❌ Version mismatch: package.json ($PACKAGE_VERSION) vs package-lock.json ($LOCK_VERSION)"
+            echo "Please synchronize package versions before committing"
+            exit 1
+          fi
+          echo "✅ Package versions synchronized"
           
           # Run security audit before install
           echo "🔒 Running security audit..."
@@ -74,6 +86,21 @@ jobs:
             exit 1
           }
           echo "✅ Dependencies installed successfully"
+
+      - name: Run comprehensive dependency validation
+        run: |
+          echo "🔍 Running comprehensive dependency validation..."
+          npm run validate:dependencies 2>&1 | tee dependency-validation.log || {
+            echo "❌ DEPENDENCY VALIDATION FAILED"
+            echo "📋 Dependency validation troubleshooting:"
+            echo "  - Check for package-lock.json synchronization issues"
+            echo "  - Verify Node.js version compatibility"
+            echo "  - Review security vulnerabilities"
+            echo "  - Check for dependency conflicts"
+            echo "📋 Full dependency validation log available in artifacts"
+            exit 1
+          }
+          echo "✅ Dependency validation passed"
 
       - name: Build infrastructure
         run: |
@@ -200,7 +227,7 @@ jobs:
           echo "✅ Integration tests passed"
         env:
           CI: true  # This ensures AI tests are automatically skipped via Jest config
-          SKIP_INTEGRATION_TESTS: "true"  # Temporarily skip integration tests until hang issues resolved
+          # SKIP_INTEGRATION_TESTS: "true"  # Re-enabled after fixing hang issues
           # SKIP_TESTS: "truth-validation,documentation-parser"  # Comma-separated list of tests to skip
 
       - name: Collect failure artifacts
@@ -229,6 +256,11 @@ jobs:
           # Collect build artifacts if they exist
           if [ -f build.log ]; then
             cp build.log failure-artifacts/
+          fi
+          
+          # Collect dependency validation logs
+          if [ -f dependency-validation.log ]; then
+            cp dependency-validation.log failure-artifacts/
           fi
           
           # Collect test logs
@@ -563,14 +595,18 @@ jobs:
       - name: Run production readiness check
         run: |
           echo "🔍 Running production readiness validation..."
-          npm run validation:production
+          npm run validation:production -- --skip-ai-tests
         env:
           SKIP_AI_TESTS: 1  # Skip AI tests for faster CI execution
+          CI_ENVIRONMENT: true  # Indicate CI environment to skip AI validation
 
       - name: Generate validation report
         run: |
           echo "📊 Generating comprehensive validation report..."
           npm run validation:report -- --skip-ai-tests --output validation-report.md
+        env:
+          SKIP_AI_TESTS: 1
+          CI_ENVIRONMENT: true
         
       - name: Upload validation report
         uses: actions/upload-artifact@v4
@@ -583,6 +619,9 @@ jobs:
         run: |
           echo "🚀 Running deployment readiness checklist..."
           npm run validation:deployment -- --skip-ai-tests --output deployment-checklist.json
+        env:
+          SKIP_AI_TESTS: 1
+          CI_ENVIRONMENT: true
           
       - name: Upload deployment checklist
         if: github.ref == 'refs/heads/main'

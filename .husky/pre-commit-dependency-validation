@@ -1,0 +1,26 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Pre-commit hook with comprehensive dependency validation
+echo "🔍 Running pre-commit checks with dependency validation..."
+
+# Run dependency validation first (fast check)
+echo "📦 Validating dependencies..."
+npm run validate:dependencies
+
+# If dependency validation fails, stop here
+if [ $? -ne 0 ]; then
+    echo "❌ Dependency validation failed. Please fix dependency issues before committing."
+    echo "💡 Run 'npm run validate:dependencies' for detailed information."
+    exit 1
+fi
+
+# Run standard pre-commit checks
+echo "🔧 Running quality checks..."
+npm run precommit
+
+# Run truth validation
+echo "🔍 Validating documentation claims against reality..."
+npm run truth-validation:precommit
+
+echo "✅ All pre-commit checks passed!"

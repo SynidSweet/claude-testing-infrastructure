@@ -31,16 +31,16 @@ Process Monitoring provides cross-platform utilities for detecting and diagnosin
 ### Monitor Command
 ```bash
 # Basic process monitoring
-node dist/cli/index.js monitor
+node dist/src/cli/index.js monitor
 
 # Focus on testing-related processes only
-node dist/cli/index.js monitor --testing-only
+node dist/src/cli/index.js monitor --testing-only
 
 # Check for high-resource processes only
-node dist/cli/index.js monitor --high-resource-only
+node dist/src/cli/index.js monitor --high-resource-only
 
 # Custom resource thresholds
-node dist/cli/index.js monitor --cpu-threshold 30 --memory-threshold 200
+node dist/src/cli/index.js monitor --cpu-threshold 30 --memory-threshold 200
 ```
 
 ### Command Options
@@ -114,7 +114,7 @@ const testingPatterns = [
 Process monitoring integrates seamlessly with watch mode:
 
 ```bash
-node dist/cli/index.js watch /path/to/project --monitor-processes
+node dist/src/cli/index.js watch /path/to/project --monitor-processes
 ```
 
 **Features**:

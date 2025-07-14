@@ -19,6 +19,7 @@ export interface TemplateRegistrationResult {
   success: boolean;
   error?: string | undefined;
   existingTemplate?: TemplateInfo | undefined;
+  overridden?: boolean | undefined;
 }
 
 /**
@@ -66,7 +67,7 @@ export class TemplateRegistry {
   /**
    * Register a template in the registry
    */
-  registerTemplate(template: Template): TemplateRegistrationResult {
+  registerTemplate(template: Template, allowOverride: boolean = false): TemplateRegistrationResult {
     if (!template || !template.name || !template.language) {
       return {
         success: false,
@@ -78,6 +79,25 @@ export class TemplateRegistry {
     const existingTemplate = this.templates.get(key);
 
     if (existingTemplate) {
+      // Check if it's the same template by comparing name and constructor
+      // If it's the same template, allow re-registration silently (idempotent)
+      if (
+        existingTemplate.name === template.name &&
+        existingTemplate.constructor === template.constructor
+      ) {
+        return { success: true };
+      }
+
+      // If override is allowed, replace the existing template
+      if (allowOverride) {
+        this.templates.set(key, template);
+        return {
+          success: true,
+          overridden: true,
+          existingTemplate: this.createTemplateInfo(existingTemplate),
+        };
+      }
+
       return {
         success: false,
         error: `Template with key '${key}' already exists`,
@@ -276,9 +296,9 @@ export class TemplateRegistry {
     return {
       name: template.name,
       language: template.language,
-      framework: template.framework || undefined,
-      testType: template.testType || undefined,
-      description: template.getMetadata?.()?.description || undefined,
+      framework: template.framework ?? undefined,
+      testType: template.testType ?? undefined,
+      description: template.getMetadata?.()?.description ?? undefined,
       supported: true,
     };
   }

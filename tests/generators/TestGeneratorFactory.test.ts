@@ -5,6 +5,7 @@ import { TestGeneratorConfig, GeneratedTest } from '../../src/generators/TestGen
 import { ProjectAnalysis } from '../../src/analyzers/ProjectAnalyzer';
 import { logger } from '../../src/utils/common-imports';
 import { createMockProjectAnalysis } from '../helpers/mockData';
+import type { MockLogger } from '../types/mock-interfaces';
 
 // Mock the logger
 jest.mock('../../src/utils/common-imports', () => ({
@@ -38,15 +39,15 @@ class TestJavaScriptGenerator extends BaseTestGenerator {
     };
   }
 
-  protected async analyzeSourceFile(filePath: string): Promise<any> {
+  protected async analyzeSourceFile(filePath: string): Promise<{ filePath: string }> {
     return { filePath };
   }
 
-  protected selectTestTemplate(_analysis: any): string {
+  protected selectTestTemplate(_analysis: { filePath: string }): string {
     return 'template';
   }
 
-  protected async generateTestContent(_template: string, _analysis: any): Promise<string> {
+  protected async generateTestContent(_template: string, _analysis: { filePath: string }): Promise<string> {
     return '// Test content';
   }
 
@@ -63,7 +64,11 @@ describe('TestGeneratorFactory', () => {
     jest.clearAllMocks();
     // Reset static state
     TestGeneratorFactory.setFeatureFlag(false);
-    (TestGeneratorFactory as any).languageGenerators.clear();
+    // Clear language generators using proper interface
+    const factory = TestGeneratorFactory as any;
+    if (factory.languageGenerators && typeof factory.languageGenerators.clear === 'function') {
+      factory.languageGenerators.clear();
+    }
 
     config = {
       projectPath: '/test/project',

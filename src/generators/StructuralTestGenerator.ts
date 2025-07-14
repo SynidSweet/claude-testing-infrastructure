@@ -529,16 +529,9 @@ export class StructuralTestGenerator extends TestGenerator {
         });
       }
 
-      // Also look for default exports
-      const defaultExportMatch = content.match(
-        /export\s+default\s+(?:class\s+(\w+)|function\s+(\w+)|(\w+))/
-      );
-      if (defaultExportMatch) {
-        const exportName = defaultExportMatch[1] ?? defaultExportMatch[2] ?? defaultExportMatch[3];
-        if (exportName?.trim()) {
-          exports.push(exportName.trim());
-        }
-      }
+      // Note: We don't add default export names to the exports array
+      // because they should be imported differently (import Name vs import { Name })
+      // Default exports are handled separately via hasDefaultExport
     }
 
     // Remove duplicates and empty strings

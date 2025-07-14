@@ -1,6 +1,6 @@
 # Watch Mode
 
-*Last updated: 2025-07-02 | Feature Status: ✅ Production Ready | Added optional process monitoring integration*
+*Last updated: 2025-07-13 | Feature Status: ✅ Production Ready | Added automatic test execution functionality*
 
 ## Overview
 
@@ -24,26 +24,32 @@ Watch Mode provides real-time file monitoring with automatic incremental test ge
 - **Seamless integration** with existing `IncrementalGenerator`
 - **Live progress feedback** with spinners and status updates
 - **Error handling** with graceful degradation
-- **Optional test execution** after generation
+- **Automatic test execution** after generation with `--auto-run`
+
+### Automatic Test Execution ✅ NEW
+- **Auto-run capability**: Tests run automatically after successful generation
+- **Performance optimized**: Coverage disabled in watch mode for speed
+- **Inline results**: Pass/fail statistics displayed immediately
+- **Error feedback**: First failure details shown for quick debugging
 
 ## CLI Interface
 
 ### Basic Usage
 ```bash
 # Start watching a project
-node dist/cli/index.js watch /path/to/project
+node dist/src/cli/index.js watch /path/to/project
 
 # Watch with custom debounce delay
-node dist/cli/index.js watch /path/to/project --debounce 1000
+node dist/src/cli/index.js watch /path/to/project --debounce 1000
 
 # Watch without automatic test generation (monitoring only)
-node dist/cli/index.js watch /path/to/project --no-generate
+node dist/src/cli/index.js watch /path/to/project --no-generate
 
 # Enable automatic test execution after generation
-node dist/cli/index.js watch /path/to/project --auto-run
+node dist/src/cli/index.js watch /path/to/project --auto-run
 
 # Enable process monitoring for resource usage tracking
-node dist/cli/index.js watch /path/to/project --monitor-processes
+node dist/src/cli/index.js watch /path/to/project --monitor-processes
 ```
 
 ### Command Options
@@ -163,7 +169,7 @@ Thank you for using Claude Testing Infrastructure! 🚀
 
 **Usage**:
 ```bash
-node dist/cli/index.js watch /path/to/project --monitor-processes
+node dist/src/cli/index.js watch /path/to/project --monitor-processes
 ```
 
 **Key Features**:
@@ -239,25 +245,25 @@ Watch mode leverages the existing `IncrementalGenerator` for test generation:
 ### Development Mode
 ```bash
 # Fast feedback with minimal delay
-node dist/cli/index.js watch . --debounce 200 --verbose
+node dist/src/cli/index.js watch . --debounce 200 --verbose
 ```
 
 ### Production Monitoring
 ```bash
 # Monitor changes without generating tests
-node dist/cli/index.js watch . --no-generate --stats-interval 60
+node dist/src/cli/index.js watch . --no-generate --stats-interval 60
 ```
 
 ### CI/CD Integration
 ```bash
 # Watch with automatic test execution
-node dist/cli/index.js watch . --auto-run --debounce 1000
+node dist/src/cli/index.js watch . --auto-run --debounce 1000
 ```
 
 ### Custom File Patterns
 ```bash
 # Watch specific patterns
-node dist/cli/index.js watch . \
+node dist/src/cli/index.js watch . \
   --include "**/*.{js,ts}" \
   --exclude "**/node_modules/**" \
   --exclude "**/dist/**"

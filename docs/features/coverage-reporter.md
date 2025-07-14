@@ -102,10 +102,10 @@ Orchestration → CoverageReporter → Final Results
 Available through enhanced test execution commands:
 ```bash
 # Run tests with coverage reporting
-node dist/cli/index.js run /path/to/project --coverage
+node dist/src/cli/index.js run /path/to/project --coverage
 
 # Generate coverage reports only
-node dist/cli/index.js analyze-coverage /path/to/project
+node dist/src/cli/index.js analyze-coverage /path/to/project
 ```
 
 ## Data Models

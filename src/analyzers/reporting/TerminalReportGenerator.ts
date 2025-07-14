@@ -236,7 +236,7 @@ ${'─'.repeat(30)}
       nextSteps = `
 ${this.colorize('🚀 Next Steps', 'bold')}
 ${'─'.repeat(15)}
-1. Run: ${this.colorize('node dist/cli/index.js test --only-logical', 'cyan')}
+1. Run: ${this.colorize('node dist/src/cli/index.js test --only-logical', 'cyan')}
 2. Review generated logical tests
 3. Integrate with your CI/CD pipeline
 4. Monitor coverage improvements

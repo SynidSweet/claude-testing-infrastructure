@@ -14,7 +14,7 @@ const fs = require('fs-extra');
 console.log('🚀 Starting Comprehensive E2E Validation\n');
 
 const projectRoot = path.join(__dirname, '../..');
-const cliPath = path.join(projectRoot, 'dist/cli/index.js');
+const cliPath = path.join(projectRoot, 'dist/src/cli/index.js');
 const testProjects = path.join(__dirname, 'test-projects');
 
 // Test results tracking

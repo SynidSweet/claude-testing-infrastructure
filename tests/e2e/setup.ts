@@ -17,7 +17,7 @@ beforeAll(async () => {
   
   // Verify CLI is built
   try {
-    const buildCheck = await execAsync('node dist/cli/index.js --version', {
+    const buildCheck = await execAsync('node dist/src/cli/index.js --version', {
       cwd: path.resolve('.')
     });
     console.log(`✅ CLI available: ${buildCheck.stdout.trim()}`);
@@ -32,7 +32,7 @@ beforeAll(async () => {
       console.log('✅ Build completed successfully');
       
       // Verify again
-      const verifyBuild = await execAsync('node dist/cli/index.js --version', {
+      const verifyBuild = await execAsync('node dist/src/cli/index.js --version', {
         cwd: path.resolve('.')
       });
       console.log(`✅ CLI now available: ${verifyBuild.stdout.trim()}`);

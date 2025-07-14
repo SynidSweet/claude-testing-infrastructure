@@ -1,4 +1,33 @@
-# Claude Testing Infrastructure v2.0 - AI Agent Guide
+
+## 🚀 Task & Sprint Management System
+Project: **claude-testing-infrastructure** | Team Prefix: **CTI**
+
+### Available Commands
+- **`/user:carry-on`** → Continue with active sprint tasks using JSON system
+- **`/user:focus`** → Set project focus with sprint discipline
+- **`/user:document`** → Update docs and task status
+
+### Sprint Discipline Workflow
+1. **Always check active sprint**: `claude-tasks sprint current`
+2. **Only work on sprint tasks** (sprint discipline!)
+3. **Add new tasks to backlog**: `claude-tasks backlog add "task"`
+4. **Plan sprints from backlog**: `claude-tasks sprint plan --interactive`
+
+### Key Commands
+```bash
+# Sprint Management
+claude-tasks sprint current              # Show active sprint with tasks
+claude-tasks sprint plan --interactive   # Plan new sprint
+
+# Task Management  
+claude-tasks task create "Task title"    # Create new task
+claude-tasks task update TASK-ID --status=completed
+
+# Backlog Management
+claude-tasks backlog list               # Show backlog
+claude-tasks backlog add "New task"     # Add to backlog
+```
+\n# Claude Testing Infrastructure v2.0 - AI Agent Guide
 
 ⚠️ **NOTICE**: This file has been superseded by `AI_AGENT_GUIDE.md` as the primary, stable entry point. This file is preserved for compatibility but may be modified during AI sessions.
 
@@ -45,57 +74,57 @@ npm run build
 ### Step 2.5: Verify Installation Success
 ```bash
 # Ensure CLI is available after build (CRITICAL)
-node dist/cli/index.js --version
+node dist/src/cli/index.js --version
 # Should output: 2.0.0
 
 # Test basic functionality
-node dist/cli/index.js --help
+node dist/src/cli/index.js --help
 # Should show command help without errors
 ```
 
 ### Step 3: Analyze your target project
 ```bash
 # Basic analysis
-node dist/cli/index.js analyze /path/to/your/project
+node dist/src/cli/index.js analyze /path/to/your/project
 
 # With output file
-node dist/cli/index.js analyze /path/to/your/project --output analysis.json
+node dist/src/cli/index.js analyze /path/to/your/project --output analysis.json
 ```
 
 ### Step 4: Generate tests
 ```bash
 # Generate all tests (structural + AI-powered logical)
-node dist/cli/index.js test /path/to/your/project
+node dist/src/cli/index.js test /path/to/your/project
 
 # Only structural tests (no Claude CLI required)
-node dist/cli/index.js test /path/to/your/project --only-structural
+node dist/src/cli/index.js test /path/to/your/project --only-structural
 
 # Only logical tests (requires Claude CLI with Max subscription)
-node dist/cli/index.js test /path/to/your/project --only-logical
+node dist/src/cli/index.js test /path/to/your/project --only-logical
 
 # With custom config
-node dist/cli/index.js test /path/to/your/project --config my-config.json
+node dist/src/cli/index.js test /path/to/your/project --config my-config.json
 ```
 
 ### Step 5: Incremental updates (recommended for development)
 ```bash
 # Smart test updates based on Git changes (cost-efficient)
-node dist/cli/index.js incremental /path/to/your/project
+node dist/src/cli/index.js incremental /path/to/your/project
 
 # Preview changes without executing
-node dist/cli/index.js incremental /path/to/your/project --dry-run
+node dist/src/cli/index.js incremental /path/to/your/project --dry-run
 
 # Create baseline for future comparisons
-node dist/cli/index.js incremental /path/to/your/project --baseline
+node dist/src/cli/index.js incremental /path/to/your/project --baseline
 
 # View statistics and history
-node dist/cli/index.js incremental /path/to/your/project --stats
+node dist/src/cli/index.js incremental /path/to/your/project --stats
 ```
 
 ### Step 6: Watch mode (alternative for development)
 ```bash
 # Auto-update tests as code changes
-node dist/cli/index.js watch /path/to/your/project
+node dist/src/cli/index.js watch /path/to/your/project
 ```
 
 ## 📊 Key Features
@@ -130,25 +159,25 @@ node dist/cli/index.js watch /path/to/your/project
 ### New Project Setup
 ```bash
 # Analyze and generate initial test suite
-node dist/cli/index.js test /path/to/new/project
+node dist/src/cli/index.js test /path/to/new/project
 
 # Create initial baseline for incremental updates
-node dist/cli/index.js incremental /path/to/new/project --baseline
+node dist/src/cli/index.js incremental /path/to/new/project --baseline
 
 # Set up incremental development workflow
-node dist/cli/index.js incremental /path/to/new/project --dry-run
+node dist/src/cli/index.js incremental /path/to/new/project --dry-run
 ```
 
 ### Existing Project Enhancement
 ```bash
 # Analyze current test coverage
-node dist/cli/index.js analyze /path/to/project --format markdown
+node dist/src/cli/index.js analyze /path/to/project --format markdown
 
 # Generate missing tests incrementally (cost-efficient)
-node dist/cli/index.js incremental /path/to/project
+node dist/src/cli/index.js incremental /path/to/project
 
 # View update statistics and history
-node dist/cli/index.js incremental /path/to/project --stats
+node dist/src/cli/index.js incremental /path/to/project --stats
 ```
 
 ### CI/CD Integration
@@ -156,15 +185,15 @@ node dist/cli/index.js incremental /path/to/project --stats
 # In your GitHub Actions workflow
 - name: Incremental Test Generation
   run: |
-    node dist/cli/index.js incremental . --cost-limit 5.00
-    node dist/cli/index.js run . --coverage
+    node dist/src/cli/index.js incremental . --cost-limit 5.00
+    node dist/src/cli/index.js run . --coverage
 
 # Alternative: Full generation for critical branches
 - name: Full Test Generation
   if: github.ref == 'refs/heads/main'
   run: |
-    node dist/cli/index.js test . --only-structural
-    node dist/cli/index.js run . --coverage
+    node dist/src/cli/index.js test . --only-structural
+    node dist/src/cli/index.js run . --coverage
 ```
 
 ## 🔧 Configuration
@@ -217,7 +246,7 @@ Create `.claude-testing.config.json` in your **target project root** (not in the
 2. **AI features require Claude CLI** - Install Claude CLI and verify Max subscription authentication
 3. **Tests are stored in `.claude-testing/`** - Add to target project's .gitignore
 4. **Pull updates regularly** - `git pull origin main` in the infrastructure directory
-5. **Always use `node dist/cli/index.js`** - Don't use `npx claude-testing` (not published to npm)
+5. **Always use `node dist/src/cli/index.js`** - Don't use `npx claude-testing` (not published to npm)
 
 ## ❓ Troubleshooting
 
@@ -227,20 +256,20 @@ Create `.claude-testing.config.json` in your **target project root** (not in the
 cd claude-testing-infrastructure
 
 # Verify build succeeded
-node dist/cli/index.js --version
+node dist/src/cli/index.js --version
 # Should show: 2.0.0
 
 # If build is missing, rebuild
 npm run build
 
 # Always use full path to CLI
-node dist/cli/index.js --help
+node dist/src/cli/index.js --help
 ```
 
 ### "No tests generated" or "Project path does not exist"
 ```bash
 # Check analysis results first
-node dist/cli/index.js analyze /path/to/project
+node dist/src/cli/index.js analyze /path/to/project
 
 # Verify the target project path exists
 ls -la /path/to/project
@@ -259,10 +288,10 @@ claude config get
 claude usage
 
 # Try structural tests only (no AI required)
-node dist/cli/index.js test /path/to/project --only-structural
+node dist/src/cli/index.js test /path/to/project --only-structural
 
 # Test AI functionality separately
-node dist/cli/index.js analyze-gaps /path/to/project
+node dist/src/cli/index.js analyze-gaps /path/to/project
 ```
 
 ### "Build failed" or TypeScript errors
@@ -295,12 +324,12 @@ npm install
 npm run build
 
 # Step 2.5: Verify build
-node dist/cli/index.js --version  # Should show: 2.0.0
+node dist/src/cli/index.js --version  # Should show: 2.0.0
 
 # Step 3: Use with your project
-node dist/cli/index.js analyze ../my-target-project
-node dist/cli/index.js test ../my-target-project --only-structural
-node dist/cli/index.js run ../my-target-project --coverage
+node dist/src/cli/index.js analyze ../my-target-project
+node dist/src/cli/index.js test ../my-target-project --only-structural
+node dist/src/cli/index.js run ../my-target-project --coverage
 
 # Check results
 ls -la ../my-target-project/.claude-testing/

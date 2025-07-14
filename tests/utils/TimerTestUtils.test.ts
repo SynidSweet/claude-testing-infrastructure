@@ -46,8 +46,10 @@ describe('TimerTestUtils', () => {
 
   afterEach(() => {
     // Ensure clean state after each test
-    jest.useRealTimers();
     jest.clearAllTimers();
+    jest.useRealTimers();
+    // Additional cleanup to prevent worker process issues
+    TimerTestUtils.cleanupTimers();
   });
 
   describe('Timer Setup and Cleanup', () => {
@@ -201,8 +203,17 @@ describe('TimerTestUtils', () => {
   });
 
   describe('Heartbeat Testing Patterns', () => {
+    let activeIntervals: NodeJS.Timeout[] = [];
+    
     beforeEach(() => {
       TimerTestUtils.setupFakeTimers();
+      activeIntervals = [];
+    });
+
+    afterEach(() => {
+      // Clean up any active intervals to prevent resource leaks
+      activeIntervals.forEach(intervalId => clearInterval(intervalId));
+      activeIntervals = [];
     });
 
     test('should test heartbeat pattern with multiple iterations', async () => {
@@ -211,6 +222,7 @@ describe('TimerTestUtils', () => {
       
       // Set up heartbeat mechanism
       const intervalId = setInterval(heartbeatCallback, heartbeatInterval);
+      activeIntervals.push(intervalId);
 
       // First iteration - advance exactly to first heartbeat
       jest.advanceTimersByTime(heartbeatInterval);
@@ -225,6 +237,7 @@ describe('TimerTestUtils', () => {
       expect(heartbeatCallback).toHaveBeenCalledTimes(3);
       
       clearInterval(intervalId);
+      activeIntervals = activeIntervals.filter(id => id !== intervalId);
     });
 
     test('should test progressive timeout warnings', async () => {
@@ -254,8 +267,17 @@ describe('TimerTestUtils', () => {
   });
 
   describe('Process Lifecycle Testing', () => {
+    let activeIntervals: NodeJS.Timeout[] = [];
+    
     beforeEach(() => {
       TimerTestUtils.setupFakeTimers();
+      activeIntervals = [];
+    });
+
+    afterEach(() => {
+      // Clean up any active intervals to prevent resource leaks
+      activeIntervals.forEach(intervalId => clearInterval(intervalId));
+      activeIntervals = [];
     });
 
     test('should test process lifecycle events', async () => {
@@ -287,6 +309,7 @@ describe('TimerTestUtils', () => {
       
       // Set up resource monitoring
       const intervalId = setInterval(resourceCheckCallback, checkInterval);
+      activeIntervals.push(intervalId);
 
       // Advance time precisely
       jest.advanceTimersByTime(monitoringDuration);
@@ -295,6 +318,7 @@ describe('TimerTestUtils', () => {
       expect(resourceCheckCallback).toHaveBeenCalledTimes(4);
       
       clearInterval(intervalId);
+      activeIntervals = activeIntervals.filter(id => id !== intervalId);
     });
   });
 
@@ -465,6 +489,8 @@ describe('MockTimerService', () => {
   });
 
   afterEach(() => {
+    // Ensure complete cleanup to prevent worker process issues
+    mockTimer.clearAll();
     mockTimer.reset();
   });
 
@@ -615,8 +641,10 @@ describe('Timer Test Helpers', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    // Comprehensive cleanup to prevent worker process issues
     jest.clearAllTimers();
+    jest.useRealTimers();
+    TimerTestUtils.cleanupTimers();
   });
 
   test('should provide convenient helper functions', () => {

@@ -42,31 +42,3 @@ export * from './types/contexts';
 // Export template engine
 export { TestTemplateEngine } from './templates/TestTemplateEngine';
 export type { Template, TemplateContext } from './templates/TestTemplateEngine';
-
-// Legacy interfaces (deprecated - use TestGenerator instead)
-export interface Generator {
-  name: string;
-  generate(config: GeneratorConfig): Promise<GeneratorResult>;
-}
-
-export interface GeneratorConfig {
-  // Add configuration properties
-  targetPath?: string;
-  framework?: string;
-  options?: Record<string, unknown>;
-}
-
-export interface GeneratorResult {
-  success: boolean;
-  files?: string[];
-  errors?: string[];
-}
-
-// Placeholder function (deprecated - use TestGenerator instead)
-export function generateTestsDeprecated(_config: GeneratorConfig): GeneratorResult {
-  // TODO: Implement test generation logic
-  return {
-    success: true,
-    files: [],
-  };
-}

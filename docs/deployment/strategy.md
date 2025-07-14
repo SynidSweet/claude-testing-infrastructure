@@ -1,13 +1,20 @@
 # Deployment Strategy
 
-## Branch Structure
+*Last updated: 2025-07-12 | CI/CD branch triggers updated*
+
+## Branch Structure & CI/CD Triggers
 
 ### main (default)
 - Full development environment
 - Complete test suite (400+ tests)
-- CI/CD pipelines
+- CI/CD pipelines trigger on push
 - Development dependencies
 - Coverage tools
+
+### CI/CD Workflow Triggers
+- **Push triggers**: main, develop, feature/*, fix/*
+- **Pull request triggers**: main, develop
+- **Current branch**: fix/production-code-quality-cleanup (triggers CI)
 
 ### deploy/clean
 - Core infrastructure only

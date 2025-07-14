@@ -155,6 +155,14 @@ export class JavaScriptTestGenerator extends BaseTestGenerator {
   }
 
   /**
+   * Public wrapper to generate a test for a specific file
+   * Used by the adapter system
+   */
+  public async generateTestForFilePublic(filePath: string): Promise<GeneratedTest | null> {
+    return this.generateTestForFile(filePath);
+  }
+
+  /**
    * Generate a test for a specific JavaScript/TypeScript file
    */
   protected async generateTestForFile(filePath: string): Promise<GeneratedTest | null> {

@@ -7,6 +7,9 @@
 import { logger } from './logger';
 import { AIRateLimitError, AINetworkError, AITimeoutError } from '../types/ai-error-types';
 
+// Re-export error types for convenience
+export { AITimeoutError, AINetworkError, AIRateLimitError };
+
 export interface RetryOptions {
   maxAttempts?: number;
   initialDelay?: number;

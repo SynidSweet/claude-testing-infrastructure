@@ -102,12 +102,12 @@ describe('ConfigurationMerger', () => {
 
     it('should merge multiple sources in precedence order', () => {
       const sources: ConfigurationSource[] = [
-        createSource(ConfigurationSourceType.DEFAULT, {
+        createSource(ConfigurationSourceType.DEFAULTS, {
           testFramework: 'jest',
           include: ['src/**/*.js'],
           features: { coverage: false }
         }),
-        createSource(ConfigurationSourceType.PROJECT, {
+        createSource(ConfigurationSourceType.PROJECT_CONFIG, {
           include: ['lib/**/*.ts'],
           features: { coverage: true, logicalTests: false }
         }),
@@ -127,8 +127,8 @@ describe('ConfigurationMerger', () => {
 
     it('should skip unloaded sources', () => {
       const sources: ConfigurationSource[] = [
-        createSource(ConfigurationSourceType.DEFAULT, { testFramework: 'jest' }),
-        createSource(ConfigurationSourceType.PROJECT, { include: ['test'] }, false), // not loaded
+        createSource(ConfigurationSourceType.DEFAULTS, { testFramework: 'jest' }),
+        createSource(ConfigurationSourceType.PROJECT_CONFIG, { include: ['test'] }, false), // not loaded
         createSource(ConfigurationSourceType.CLI_ARGS, { features: { coverage: true } })
       ];
 
@@ -143,14 +143,14 @@ describe('ConfigurationMerger', () => {
     it('should collect errors and warnings from all sources', () => {
       const sources: ConfigurationSource[] = [
         createSource(
-          ConfigurationSourceType.DEFAULT, 
+          ConfigurationSourceType.DEFAULTS, 
           { testFramework: 'jest' },
           true,
           ['Error 1'],
           ['Warning 1']
         ),
         createSource(
-          ConfigurationSourceType.PROJECT,
+          ConfigurationSourceType.PROJECT_CONFIG,
           { include: ['test'] },
           true,
           ['Error 2', 'Error 3'],
@@ -172,7 +172,7 @@ describe('ConfigurationMerger', () => {
     it('should mark result as invalid if any source has errors', () => {
       const sources: ConfigurationSource[] = [
         createSource(
-          ConfigurationSourceType.DEFAULT,
+          ConfigurationSourceType.DEFAULTS,
           {
             testFramework: 'jest',
             aiModel: 'sonnet',
@@ -208,7 +208,7 @@ describe('ConfigurationMerger', () => {
 
     it('should handle complete configuration validation', () => {
       const sources: ConfigurationSource[] = [
-        createSource(ConfigurationSourceType.DEFAULT, {
+        createSource(ConfigurationSourceType.DEFAULTS, {
           include: ['src/**/*.ts'],
           exclude: ['**/*.test.*'],
           testFramework: 'jest',
@@ -232,7 +232,7 @@ describe('ConfigurationMerger', () => {
 
     it('should handle partial configuration validation', () => {
       const sources: ConfigurationSource[] = [
-        createSource(ConfigurationSourceType.PROJECT, {
+        createSource(ConfigurationSourceType.PROJECT_CONFIG, {
           include: ['src/**/*.ts']
         })
       ];

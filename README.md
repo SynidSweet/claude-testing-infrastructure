@@ -21,13 +21,13 @@ npm install
 npm run build
 
 # Analyze any project
-node dist/cli/index.js analyze /path/to/your/project
+node dist/src/cli/index.js analyze /path/to/your/project
 
 # Generate comprehensive tests
-node dist/cli/index.js test /path/to/your/project
+node dist/src/cli/index.js test /path/to/your/project
 
 # Run tests with coverage
-node dist/cli/index.js run /path/to/your/project --coverage
+node dist/src/cli/index.js run /path/to/your/project --coverage
 ```
 This maintains tests externally while providing complete testing infrastructure that updates via `git pull`.
 
@@ -86,22 +86,22 @@ npm run build
 
 2. **Analyze Your Project**
    ```bash
-   node dist/cli/index.js analyze /path/to/your/project
+   node dist/src/cli/index.js analyze /path/to/your/project
    ```
 
 3. **Generate Tests**
    ```bash
-   node dist/cli/index.js test /path/to/your/project
+   node dist/src/cli/index.js test /path/to/your/project
    ```
 
 4. **Run Tests with Coverage**
    ```bash
-   node dist/cli/index.js run /path/to/your/project --coverage
+   node dist/src/cli/index.js run /path/to/your/project --coverage
    ```
 
 5. **Watch Mode for Development**
    ```bash
-   node dist/cli/index.js watch /path/to/your/project
+   node dist/src/cli/index.js watch /path/to/your/project
    ```
 
 ## 🎓 Examples
@@ -197,13 +197,13 @@ When implementing testing for a project:
 
 2. **Analyze Project Structure**
    ```bash
-   node dist/cli/index.js analyze /path/to/your/project
+   node dist/src/cli/index.js analyze /path/to/your/project
    ```
 
 3. **Generate and Run Tests**
    ```bash
-   node dist/cli/index.js test /path/to/your/project
-   node dist/cli/index.js run /path/to/your/project --coverage
+   node dist/src/cli/index.js test /path/to/your/project
+   node dist/src/cli/index.js run /path/to/your/project --coverage
    ```
 
 4. **Customize as Needed**
@@ -216,15 +216,15 @@ When implementing testing for a project:
 
 ### Production CLI Commands
 ```bash
-node dist/cli/index.js analyze <path>     # Analyze project structure
-node dist/cli/index.js test <path>        # Generate comprehensive tests
-node dist/cli/index.js run <path>         # Run generated tests
-node dist/cli/index.js watch <path>       # Watch mode for development
+node dist/src/cli/index.js analyze <path>     # Analyze project structure
+node dist/src/cli/index.js test <path>        # Generate comprehensive tests
+node dist/src/cli/index.js run <path>         # Run generated tests
+node dist/src/cli/index.js watch <path>       # Watch mode for development
 
 # Additional options
-node dist/cli/index.js test <path> --only-structural  # Skip AI generation
-node dist/cli/index.js run <path> --coverage          # With coverage report
-node dist/cli/index.js test <path> --config <file>    # Custom configuration
+node dist/src/cli/index.js test <path> --only-structural  # Skip AI generation
+node dist/src/cli/index.js run <path> --coverage          # With coverage report
+node dist/src/cli/index.js test <path> --config <file>    # Custom configuration
 ```
 
 ## 📋 Configuration
@@ -305,4 +305,24 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-*Built with ❤️ for AI agents and developers who value comprehensive testing*
+*Built with ❤️ for AI agents and developers who value comprehensive testing*\n
+## Task & Sprint Management
+
+This project uses a JSON-based Task & Sprint Management System for organized development.
+
+**Team Prefix**: `CTI`
+
+### Quick Commands
+```bash
+# Check current sprint and tasks
+claude-tasks sprint current
+
+# Add new tasks to backlog
+claude-tasks backlog add "Feature description"
+
+# Plan new sprint from backlog
+claude-tasks sprint plan --interactive
+```
+
+### Sprint Discipline
+When a sprint is active, work **only** on sprint tasks. This ensures focused development and clear progress tracking.

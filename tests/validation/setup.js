@@ -28,7 +28,7 @@ global.testUtils = {
   },
 
   // CLI command for consistent usage
-  CLI_COMMAND: 'node dist/cli/index.js',
+  CLI_COMMAND: 'node dist/src/cli/index.js',
 
   // Validation thresholds
   QUALITY_THRESHOLDS: {
@@ -104,7 +104,7 @@ global.testUtils = {
     const execAsync = promisify(exec);
     
     try {
-      const result = await execAsync('node dist/cli/index.js --version', {
+      const result = await execAsync('node dist/src/cli/index.js --version', {
         cwd: require('path').resolve('.'),
         timeout: 10000
       });

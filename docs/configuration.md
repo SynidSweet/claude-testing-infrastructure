@@ -20,16 +20,16 @@ The easiest way to set up configuration is using the `init-config` command with 
 
 ```bash
 # Auto-detect project type and create config
-node dist/cli/index.js init-config /path/to/project
+node dist/src/cli/index.js init-config /path/to/project
 
 # Use specific template
-node dist/cli/index.js init-config /path/to/project --template react-typescript
+node dist/src/cli/index.js init-config /path/to/project --template react-typescript
 
 # Interactive setup with customization
-node dist/cli/index.js init-config /path/to/project --interactive
+node dist/src/cli/index.js init-config /path/to/project --interactive
 
 # List available templates
-node dist/cli/index.js init-config --list
+node dist/src/cli/index.js init-config --list
 ```
 
 Available templates:
@@ -598,7 +598,7 @@ The configuration is validated against a JSON schema. You can validate your conf
 
 ```bash
 # Validate configuration during analysis
-node dist/cli/index.js analyze /path/to/project --validate-config
+node dist/src/cli/index.js analyze /path/to/project --validate-config
 
 # The schema is located at schemas/claude-testing.config.schema.json
 ```
@@ -868,7 +868,7 @@ export CLAUDE_TESTING_COVERAGE_THRESHOLD=90
 export CLAUDE_TESTING_INCLUDE="src/**/*.ts,lib/**/*.ts"
 export CLAUDE_TESTING_EXCLUDE="**/*.test.*,**/node_modules/**"
 
-node dist/cli/index.js test /path/to/project
+node dist/src/cli/index.js test /path/to/project
 ```
 
 ### User Configuration
@@ -931,7 +931,7 @@ export CLAUDE_TESTING_COVERAGE_ENABLED=true
 
 **CLI Command**:
 ```bash
-node dist/cli/index.js test /project --ai-model sonnet
+node dist/src/cli/index.js test /project --ai-model sonnet
 ```
 
 **Result**: The effective configuration will be:
@@ -1001,10 +1001,10 @@ To see which configuration sources are being used:
 ```bash
 # Enable debug logging
 export CLAUDE_TESTING_LOG_LEVEL=debug
-node dist/cli/index.js test /project
+node dist/src/cli/index.js test /project
 
 # Or use CLI flag (when implemented)
-node dist/cli/index.js test /project --show-config-sources
+node dist/src/cli/index.js test /project --show-config-sources
 ```
 
 ---

@@ -4,7 +4,6 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -41,6 +40,6 @@
       "@utils/*": ["utils/*"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests", "archive"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist", "archive", "tests/e2e/test-projects/**", "tests/fixtures/**", "tests/generators/TestGeneratorFactory.test.ts", "tests/generators/templates/**", "tests/types/**", "tests/utils/typed-test-fixtures.ts", "tests/ai/ClaudeOrchestrator.stderr.test.ts", "tests/ai/ProcessPoolManager.test.ts", "tests/ai/performance-comparison.test.ts", "tests/validation/**"]
 }

@@ -59,8 +59,8 @@ module.exports = {
   bail: false,
   
   // Memory and heap optimizations
-  detectOpenHandles: false,
-  forceExit: false,
+  detectOpenHandles: true, // Enable to identify resource leaks
+  forceExit: true, // Force exit to prevent hanging workers
   logHeapUsage: false,
   workerIdleMemoryLimit: '256MB', // Conservative for CPU-bound tests
   

@@ -7,7 +7,7 @@
 
 import { ClaudeOrchestrator } from '../../src/ai/ClaudeOrchestrator';
 import { RealTimer } from '../../src/utils/RealTimer';
-import { OptimizedAITestUtils, optimizedAITestHelpers } from '../../src/utils/OptimizedAITestUtils';
+import { optimizedAITestHelpers } from '../../src/utils/OptimizedAITestUtils';
 
 // Mock child_process and fs
 jest.mock('child_process');

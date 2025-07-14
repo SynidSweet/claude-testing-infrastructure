@@ -1,4 +1,6 @@
 import { spawn } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 import {
   TestRunner,
   type TestRunnerConfig,
@@ -63,12 +65,14 @@ interface JestConfig {
   testEnvironment?: string;
   testMatch?: string[];
   passWithNoTests?: boolean;
+  rootDir?: string;
   setupFilesAfterEnv?: string[];
   preset?: string;
   extensionsToTreatAsEsm?: string[];
   moduleNameMapper?: Record<string, string>;
   transform?: Record<string, string>;
   transformIgnorePatterns?: string[];
+  testPathIgnorePatterns?: string[];
   collectCoverage?: boolean;
   coverageDirectory?: string;
   coverageReporters?: string[];
@@ -222,7 +226,22 @@ export class JestRunner extends TestRunner {
 
     // Generate Jest configuration based on module system
     const jestConfig = this.generateJestConfig();
-    args.push('--config', JSON.stringify(jestConfig));
+
+    // Write Jest config to a temporary file
+    // Use ES modules format if the project is using ES modules
+    const moduleSystem = this.analysis.moduleSystem;
+    const isESM = moduleSystem.type === 'esm';
+
+    const configPath = path.join(
+      this.config.testPath,
+      isESM ? 'jest.config.mjs' : 'jest.config.js'
+    );
+    const configContent = isESM
+      ? `export default ${JSON.stringify(jestConfig, null, 2)};`
+      : `module.exports = ${JSON.stringify(jestConfig, null, 2)};`;
+    fs.writeFileSync(configPath, configContent);
+
+    args.push('--config', configPath);
     args.push('--passWithNoTests');
     args.push('--json'); // Get JSON output for parsing
 
@@ -285,6 +304,20 @@ export class JestRunner extends TestRunner {
     const jestCommand = this.findJestExecutable();
 
     return { command: jestCommand, args };
+  }
+
+  protected override getEnvironment(): Record<string, string> {
+    const baseEnv = super.getEnvironment();
+
+    // Add Node.js experimental options for ES modules
+    if (this.analysis.moduleSystem.type === 'esm') {
+      return {
+        ...baseEnv,
+        NODE_OPTIONS: '--experimental-vm-modules',
+      };
+    }
+
+    return baseEnv;
   }
 
   /**
@@ -503,27 +536,84 @@ export class JestRunner extends TestRunner {
   private generateJestConfig(): JestConfig {
     const moduleSystem = this.analysis.moduleSystem;
 
+    // Using current directory as root for Jest execution
+
     // Base configuration
     const config: JestConfig = {
       testEnvironment: 'node',
       testMatch: ['**/*.test.{js,ts,jsx,tsx}'],
       passWithNoTests: true,
-      setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
+      rootDir: '.',
+      // Only include setupFiles if they exist in the target project
+      ...(this.hasSetupFile() && {
+        setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
+      }),
+      testPathIgnorePatterns: [
+        '<rootDir>/node_modules/',
+        // Ignore nested .claude-testing directories to prevent recursive test execution
+        '<rootDir>/\\.claude-testing/.*\\.claude-testing/',
+      ],
     };
 
     // Configure for ES modules
     if (moduleSystem.type === 'esm') {
-      config.preset = 'ts-jest/presets/default-esm';
-      config.extensionsToTreatAsEsm = ['.ts'];
-      config.moduleNameMapper = {
-        '^(\\.{1,2}/.*)\\.js$': '$1',
-      };
-      config.transform = {
-        '^.+\\.tsx?$': 'ts-jest',
-      };
+      // Check if project is TypeScript-based
+      const isTypeScript = moduleSystem.fileExtensionPattern === 'ts';
+
+      if (isTypeScript) {
+        // TypeScript ES modules configuration
+        config.preset = 'ts-jest/presets/default-esm';
+        config.extensionsToTreatAsEsm = ['.ts', '.tsx'];
+        config.moduleNameMapper = {
+          '^(\\.{1,2}/.*)\\.js$': '$1',
+        };
+        config.transform = {
+          '^.+\\.tsx?$': 'ts-jest',
+        };
+      } else {
+        // JavaScript ES modules configuration
+        // Only include .jsx in extensionsToTreatAsEsm if project has "type": "module"
+        // as .js files are automatically treated as ES modules in that case
+        const hasPackageJsonTypeModule =
+          moduleSystem.hasPackageJsonType && moduleSystem.packageJsonType === 'module';
+        config.extensionsToTreatAsEsm = hasPackageJsonTypeModule ? ['.jsx'] : ['.js', '.jsx'];
+        config.moduleNameMapper = {
+          '^(\\.{1,2}/.*)\\.jsx?$': '$1',
+        };
+
+        // Check if this is a React project by looking for React in frameworks or JSX files
+        const allSourceFiles = this.analysis.languages.flatMap((lang) => lang.files);
+        const hasReact =
+          this.analysis.frameworks?.some((f) => f.name === 'react') ||
+          allSourceFiles.some((f: string) => f.endsWith('.jsx') || f.endsWith('.tsx'));
+
+        if (hasReact) {
+          // React ES modules configuration - requires jsdom for DOM testing
+          config.testEnvironment = 'jsdom'; // Required for React component testing
+          config.transform = {};
+          config.transformIgnorePatterns = ['node_modules/(?!(.*\\.mjs$))'];
+          // Mock React.createElement for JSX support in ES modules
+          config.setupFilesAfterEnv = config.setupFilesAfterEnv ?? [];
+          config.setupFilesAfterEnv.push('<rootDir>/setupTests.js');
+        } else {
+          config.transform = {};
+          config.testEnvironment = 'node';
+        }
+      }
     } else {
       // CommonJS configuration
       config.transform = {};
+
+      // Check if this is a React project for CommonJS too
+      const allSourceFiles = this.analysis.languages.flatMap((lang) => lang.files);
+      const hasReact =
+        this.analysis.frameworks?.some((f) => f.name === 'react') ||
+        allSourceFiles.some((f: string) => f.endsWith('.jsx') || f.endsWith('.tsx'));
+      if (hasReact) {
+        config.testEnvironment = 'jsdom'; // Required for React component testing
+        config.setupFilesAfterEnv = config.setupFilesAfterEnv ?? [];
+        config.setupFilesAfterEnv.push('<rootDir>/setupTests.js');
+      }
     }
 
     // Add coverage configuration if enabled
@@ -551,6 +641,15 @@ export class JestRunner extends TestRunner {
   private findJestExecutable(): string {
     // For now, default to npx jest which should work in most cases
     return 'npx';
+  }
+
+  private hasSetupFile(): boolean {
+    try {
+      const setupPath = path.join(this.config.projectPath, 'setupTests.js');
+      return fs.existsSync(setupPath);
+    } catch {
+      return false;
+    }
   }
 
   private extractUncoveredLinesFromReport(

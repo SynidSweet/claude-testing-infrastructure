@@ -24,8 +24,7 @@ export class EnhancedTypeScriptTemplate implements Template {
       exports,
       hasDefaultExport,
       useESM,
-      importPathWithExtension,
-      relativeImportPath
+      importPathWithExtension
     );
 
     let testContent = `${importStatement}
@@ -64,7 +63,7 @@ describe('${moduleName}', () => {
 
   private getAsyncPatterns(context: TemplateContext): FileAsyncPatterns | null {
     const metadata = (context as any).metadata;
-    return metadata?.asyncPatterns || null;
+    return metadata?.asyncPatterns ?? null;
   }
 
   private normalizeImportPath(importPath: string): string {
@@ -96,8 +95,7 @@ describe('${moduleName}', () => {
     exports: string[],
     hasDefaultExport: boolean,
     useESM: boolean,
-    importPathWithExtension: string,
-    relativeImportPath: string
+    importPathWithExtension: string
   ): string {
     if (useESM) {
       if (hasDefaultExport && exports.length > 0) {
@@ -111,11 +109,11 @@ describe('${moduleName}', () => {
       }
     } else {
       if (hasDefaultExport) {
-        return `const ${moduleName} = require('${relativeImportPath}');`;
+        return `const ${moduleName} = require('${importPathWithExtension}');`;
       } else if (exports.length > 0) {
-        return `const { ${exports.join(', ')} } = require('${relativeImportPath}');`;
+        return `const { ${exports.join(', ')} } = require('${importPathWithExtension}');`;
       } else {
-        return `const ${moduleName} = require('${relativeImportPath}');`;
+        return `const ${moduleName} = require('${importPathWithExtension}');`;
       }
     }
   }

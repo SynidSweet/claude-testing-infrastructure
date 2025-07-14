@@ -24,17 +24,12 @@ describe('MCP Server Detection', () => {
     const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
     
     try {
-      const packageJson = {
-        name: 'test-fastmcp-server',
-        version: '1.0.0',
-        dependencies: {
-          fastmcp: '^2.0.0',
-        },
-      };
+      // FastMCP is a Python package, so create requirements.txt
+      const requirementsContent = 'fastmcp==2.0.0\nuvicorn>=0.15.0\n';
 
       await fs.writeFile(
-        path.join(tempDir, 'package.json'),
-        JSON.stringify(packageJson, null, 2)
+        path.join(tempDir, 'requirements.txt'),
+        requirementsContent
       );
 
       const analyzer = new ProjectAnalyzer(tempDir);

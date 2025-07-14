@@ -185,7 +185,13 @@ export class ModuleSystemAnalyzer {
   getImportExtension(moduleInfo: FileModuleSystemInfo): string {
     if (moduleInfo.type === 'esm' || moduleInfo.fileModuleType === 'esm') {
       // ES modules require extensions for relative imports
-      return moduleInfo.fileExtension === '.ts' || moduleInfo.fileExtension === '.tsx' ? '' : '.js';
+      if (moduleInfo.fileExtension === '.ts' || moduleInfo.fileExtension === '.tsx') {
+        // TypeScript files compile to .js, so use .js extension
+        return '.js';
+      } else {
+        // JavaScript and JSX files keep their original extension
+        return moduleInfo.fileExtension;
+      }
     }
     // CommonJS doesn't require extensions
     return '';

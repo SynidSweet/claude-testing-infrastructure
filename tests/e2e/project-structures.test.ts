@@ -12,7 +12,7 @@ import fs from 'fs/promises';
 import { TestFixtureManager } from '../fixtures/shared/TestFixtureManager';
 
 const execAsync = promisify(exec);
-const CLI_COMMAND = 'node dist/cli/index.js';
+const CLI_COMMAND = 'node dist/src/cli/index.js';
 
 describe('Project Structures End-to-End Validation', () => {
   let fixtureManager: TestFixtureManager;
@@ -48,7 +48,8 @@ describe('Project Structures End-to-End Validation', () => {
       
       // Verify React-specific test patterns
       const testFiles = await getGeneratedTestFiles(projectPath);
-      const reactTestContent = await fs.readFile(testFiles[0], 'utf-8');
+      expect(testFiles.length).toBeGreaterThan(0);
+      const reactTestContent = await fs.readFile(testFiles[0]!, 'utf-8');
       expect(reactTestContent).toMatch(/@testing-library\/react|render|screen|describe.*App|it.*should be defined/i);
       
       console.log(`✅ React project structure handled correctly (${testsGenerated} tests)`);
@@ -73,7 +74,8 @@ describe('Project Structures End-to-End Validation', () => {
       
       // Verify CommonJS-specific test patterns
       const testFiles = await getGeneratedTestFiles(projectPath);
-      const nodeTestContent = await fs.readFile(testFiles[0], 'utf-8');
+      expect(testFiles.length).toBeGreaterThan(0);
+      const nodeTestContent = await fs.readFile(testFiles[0]!, 'utf-8');
       expect(nodeTestContent).toMatch(/require\(|const.*=.*require/);
       
       console.log(`✅ Node.js CommonJS structure handled correctly (${testsGenerated} tests)`);
@@ -120,7 +122,8 @@ describe('Project Structures End-to-End Validation', () => {
       
       // Verify Python-specific test patterns
       const testFiles = await getGeneratedTestFiles(projectPath);
-      const pythonTestContent = await fs.readFile(testFiles[0], 'utf-8');
+      expect(testFiles.length).toBeGreaterThan(0);
+      const pythonTestContent = await fs.readFile(testFiles[0]!, 'utf-8');
       expect(pythonTestContent).toMatch(/import pytest|def test_|assert/);
       
       console.log(`✅ Python structure handled correctly (${testsGenerated} tests)`);

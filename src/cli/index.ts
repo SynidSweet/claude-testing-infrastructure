@@ -54,6 +54,7 @@ program
   .option('-v, --verbose', 'Show detailed analysis information')
   .option('--validate-config', 'Validate .claude-testing.config.json configuration')
   .option('--show-patterns', 'Display suggested file discovery patterns')
+  .option('--dry-run', 'Preview analysis without creating any files')
   .action((projectPath: string, options: AnalyzeOptions, command: Command) =>
     executeCLICommand('project analysis', () => analyzeCommand(projectPath, options, command), {
       showStack: Boolean(options.verbose),

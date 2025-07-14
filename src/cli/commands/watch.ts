@@ -10,15 +10,14 @@
 
 import { Command } from 'commander';
 import { chalk, ora, path, fs, logger } from '../../utils/common-imports';
-import type { FileChangeEvent } from '../../utils/FileWatcher';
-import { FileWatcher } from '../../utils/FileWatcher';
-import type { DebouncedEvent } from '../../utils/Debouncer';
-import { FileChangeDebouncer } from '../../utils/Debouncer';
+import { FileWatcher, type FileChangeEvent } from '../../utils/FileWatcher';
+import { FileChangeDebouncer, type DebouncedEvent } from '../../utils/Debouncer';
 import { IncrementalGenerator } from '../../state/IncrementalGenerator';
 import { ProjectAnalyzer } from '../../utils/analyzer-imports';
 import { ConfigurationService } from '../../config/ConfigurationService';
 import { FileDiscoveryServiceFactory } from '../../services/FileDiscoveryServiceFactory';
 import { type StandardCliOptions, executeCommand, type CommandContext } from '../utils';
+import { TestRunnerFactory, type TestRunnerConfig } from '../../runners';
 
 interface WatchOptions extends StandardCliOptions {
   /** Debounce delay for file changes in milliseconds */
@@ -119,7 +118,7 @@ async function watchModeHandler(
     if (config.output?.logLevel && options.verbose) {
       logger.level = 'debug';
     } else if (config.output?.logLevel) {
-      logger.level = config.output.logLevel as any;
+      logger.level = config.output.logLevel as 'error' | 'warn' | 'info' | 'debug';
     }
 
     // Initialize project analysis (for future enhancements)
@@ -130,7 +129,7 @@ async function watchModeHandler(
     await configService.loadConfiguration();
     const fileDiscovery = FileDiscoveryServiceFactory.create(configService);
     const projectAnalyzer = new ProjectAnalyzer(resolvedPath, fileDiscovery);
-    await projectAnalyzer.analyzeProject();
+    const analysis = await projectAnalyzer.analyzeProject();
 
     // Initialize incremental generator if test generation is enabled
     if (!options.noGenerate) {
@@ -140,41 +139,55 @@ async function watchModeHandler(
 
     // Set up file watcher
     spinner.text = 'Setting up file watcher...';
-    const watcherConfig: any = {
+    const watcherConfig: {
+      projectPath: string;
+      verbose: boolean;
+      includePatterns?: string[];
+      ignorePatterns?: string[];
+    } = {
       projectPath: resolvedPath,
-      verbose: options.verbose || false,
+      verbose: options.verbose ?? false,
     };
 
     // Use configuration for include/exclude patterns
     if (options.include) {
       watcherConfig.includePatterns = options.include;
-    } else if (config.include) {
+    } else if (config.include && Array.isArray(config.include)) {
       watcherConfig.includePatterns = config.include;
     }
 
     if (options.exclude) {
       watcherConfig.ignorePatterns = options.exclude;
-    } else if (config.exclude) {
+    } else if (config.exclude && Array.isArray(config.exclude)) {
       watcherConfig.ignorePatterns = config.exclude;
     }
 
     fileWatcher = new FileWatcher(watcherConfig);
 
     // Set up debouncer for file changes
-    const debounceDelay = parseInt(options.debounce || '500');
+    const debounceDelay = parseInt(options.debounce ?? '500');
     // Check if watch configuration has a debounce setting
-    const configDebounce = config.watch?.debounceMs || debounceDelay;
+    const configDebounce = config.watch?.debounceMs ?? debounceDelay;
 
     debouncer = new FileChangeDebouncer({
       delay: options.debounce ? debounceDelay : configDebounce,
       maxBatchSize: 10,
       maxWaitTime: 3000,
       groupBy: 'extension', // Group by file type for better batching
-      verbose: options.verbose || false,
+      verbose: options.verbose ?? false,
     });
 
     // Set up event handlers
-    setupEventHandlers(fileWatcher, debouncer, incrementalGenerator, stats, options);
+    setupEventHandlers(
+      fileWatcher,
+      debouncer,
+      incrementalGenerator,
+      stats,
+      options,
+      resolvedPath,
+      analysis,
+      fileDiscovery
+    );
 
     // Start watching
     spinner.text = 'Starting file watcher...';
@@ -188,7 +201,7 @@ async function watchModeHandler(
     displayStatus(resolvedPath, stats, options);
 
     // Set up periodic statistics if requested
-    const statsIntervalSeconds = parseInt(options.statsInterval || '30');
+    const statsIntervalSeconds = parseInt(options.statsInterval ?? '30');
     let statsTimer: NodeJS.Timeout | null = null;
 
     if (statsIntervalSeconds > 0) {
@@ -198,7 +211,8 @@ async function watchModeHandler(
     }
 
     // Set up graceful shutdown
-    const cleanup = async () => {
+    const cleanup = async (): Promise<void> => {
+      // eslint-disable-next-line no-console
       console.log('\n' + chalk.yellow('Shutting down watch mode...'));
 
       if (statsTimer) {
@@ -217,8 +231,8 @@ async function watchModeHandler(
       process.exit(0);
     };
 
-    process.on('SIGINT', cleanup);
-    process.on('SIGTERM', cleanup);
+    process.on('SIGINT', () => void cleanup());
+    process.on('SIGTERM', () => void cleanup());
 
     // Keep process alive
     process.stdin.resume();
@@ -243,13 +257,17 @@ function setupEventHandlers(
   debouncer: FileChangeDebouncer,
   incrementalGenerator: IncrementalGenerator | null,
   stats: WatchStats,
-  options: WatchOptions
+  options: WatchOptions,
+  projectPath: string,
+  analysis: unknown,
+  fileDiscovery: unknown
 ): void {
   // File watcher events
   fileWatcher.on('fileChange', (event: FileChangeEvent) => {
     stats.totalChangeEvents++;
     stats.lastActivity = new Date();
 
+    // eslint-disable-next-line no-console
     console.log(chalk.dim(`${formatTime()} ${getChangeIcon(event.type)} ${event.relativePath}`));
 
     // Convert to debouncer format
@@ -263,66 +281,174 @@ function setupEventHandlers(
     debouncer.debounce(debounceEvent);
   });
 
-  fileWatcher.on('error', (error) => {
-    console.log(chalk.red(`File watcher error: ${error.message}`));
-    logger.error('File watcher error', { error: error.message });
+  fileWatcher.on('error', (error: unknown) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.log(chalk.red(`File watcher error: ${errorMessage}`));
+    logger.error('File watcher error', { error: errorMessage });
   });
 
   // Debouncer events
-  debouncer.on('debounced', async (event: DebouncedEvent<any>, groupKey: string) => {
-    stats.totalBatches++;
-    stats.lastActivity = new Date();
-
-    const fileCount = event.events.length;
-    const uniqueFiles = new Set(event.events.map((e) => e.filePath)).size;
-
-    console.log(
-      chalk.blue(
-        `${formatTime()} 🔄 Processing ${fileCount} changes (${uniqueFiles} files) in ${groupKey}`
-      )
+  debouncer.on('debounced', (event: DebouncedEvent<unknown>, groupKey: string) => {
+    void handleDebouncedEvent(
+      event,
+      groupKey,
+      stats,
+      options,
+      incrementalGenerator,
+      projectPath,
+      analysis,
+      fileDiscovery
     );
+  });
+}
 
-    if (!options.noGenerate && incrementalGenerator) {
-      try {
-        stats.totalGenerations++;
+async function handleDebouncedEvent(
+  event: DebouncedEvent<unknown>,
+  groupKey: string,
+  stats: WatchStats,
+  options: WatchOptions,
+  incrementalGenerator: IncrementalGenerator | null,
+  projectPath: string,
+  analysis: unknown,
+  fileDiscovery: unknown
+): Promise<void> {
+  stats.totalBatches++;
+  stats.lastActivity = new Date();
 
-        // Generate tests for changed files
-        const spinner = ora({
-          text: 'Generating tests...',
-          color: 'blue',
-          spinner: 'dots',
-        }).start();
+  const fileCount = event.events.length;
+  const uniqueFiles = new Set(
+    event.events.map((e: unknown) => {
+      const eventObj = e as { filePath?: string };
+      return String(eventObj.filePath ?? 'unknown');
+    })
+  ).size;
 
-        const result = await incrementalGenerator.generateIncremental();
+  // eslint-disable-next-line no-console
+  console.log(
+    chalk.blue(
+      `${formatTime()} 🔄 Processing ${fileCount} changes (${uniqueFiles} files) in ${groupKey}`
+    )
+  );
 
-        stats.successfulGenerations++;
-        const testCount = result.newTests.length + result.updatedTests.length;
-        spinner.succeed(chalk.green(`Generated ${testCount} tests (${result.totalTime}ms)`));
+  if (!options.noGenerate && incrementalGenerator) {
+    try {
+      stats.totalGenerations++;
 
-        if (testCount > 0 && options.autoRun) {
-          // TODO: Add automatic test execution
-          console.log(chalk.gray('  Auto-run tests feature coming soon...'));
+      // Generate tests for changed files
+      const spinner = ora({
+        text: 'Generating tests...',
+        color: 'blue',
+        spinner: 'dots',
+      }).start();
+
+      const result = await incrementalGenerator.generateIncremental();
+
+      stats.successfulGenerations++;
+      const testCount = result.newTests.length + result.updatedTests.length;
+      spinner.succeed(chalk.green(`Generated ${testCount} tests (${result.totalTime}ms)`));
+
+      if (testCount > 0 && options.autoRun) {
+        // Execute tests automatically
+        await runTestsAutomatically(projectPath, analysis, fileDiscovery);
+      }
+    } catch (error: unknown) {
+      stats.failedGenerations++;
+      // eslint-disable-next-line no-console
+      console.log(chalk.red(`Test generation error: ${String(error)}`));
+      logger.error('Test generation error', { error });
+    }
+  }
+}
+
+/**
+ * Run tests automatically after generation
+ */
+async function runTestsAutomatically(
+  projectPath: string,
+  analysis: unknown,
+  fileDiscovery: unknown
+): Promise<void> {
+  const testSpinner = ora({
+    text: 'Running tests...',
+    color: 'yellow',
+    spinner: 'dots',
+  }).start();
+
+  try {
+    // Check if tests exist
+    const testPath = path.join(projectPath, '.claude-testing');
+    try {
+      await fs.stat(testPath);
+    } catch {
+      testSpinner.fail('No tests found to run');
+      return;
+    }
+
+    // Create test runner configuration
+    const config: TestRunnerConfig = {
+      projectPath,
+      testPath,
+      framework: (analysis as { frameworks?: string[] })?.frameworks?.[0] ?? 'jest', // Use detected framework
+      coverage: { enabled: false }, // Disable coverage in watch mode for performance
+      watch: false, // Don't use test framework's watch mode
+    };
+
+    // Create and run tests
+    const runner = TestRunnerFactory.createRunner(
+      config,
+      analysis as any, // TODO: Define proper type for analysis
+      fileDiscovery as any // TODO: Define proper type for fileDiscovery
+    );
+    const result = await runner.run();
+
+    if (result.success) {
+      testSpinner.succeed(
+        chalk.green(`Tests passed: ${result.passed}/${result.tests} (${result.duration}ms)`)
+      );
+    } else {
+      testSpinner.fail(chalk.red(`Tests failed: ${result.failed}/${result.tests} failures`));
+
+      // Display first few failures for quick feedback
+      if (result.failures && result.failures.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log(chalk.dim('\n  First failure:'));
+        const firstFailure = result.failures[0];
+        if (firstFailure) {
+          // eslint-disable-next-line no-console
+          console.log(chalk.red(`  ${firstFailure.suite}: ${firstFailure.test}`));
+          if (firstFailure.message) {
+            // eslint-disable-next-line no-console
+            console.log(chalk.gray(`  ${firstFailure.message.split('\n')[0]}`));
+          }
         }
-      } catch (error: unknown) {
-        stats.failedGenerations++;
-        console.log(chalk.red(`Test generation error: ${error}`));
-        logger.error('Test generation error', { error });
       }
     }
-  });
+  } catch (error: unknown) {
+    testSpinner.fail(chalk.red(`Test execution failed: ${String(error)}`));
+    logger.error('Auto-run test execution failed', { error });
+  }
 }
 
 /**
  * Display initial status information
  */
 function displayStatus(projectPath: string, stats: WatchStats, options: WatchOptions): void {
+  // eslint-disable-next-line no-console
   console.log(chalk.cyan('\n👁  Watch Mode Active'));
+  // eslint-disable-next-line no-console
   console.log(chalk.dim('────────────────────'));
+  // eslint-disable-next-line no-console
   console.log(`📁 Project: ${chalk.white(path.basename(projectPath))}`);
+  // eslint-disable-next-line no-console
   console.log(`📊 Files watched: ${chalk.white(stats.filesWatched.toString())}`);
-  console.log(`⚡ Debounce: ${chalk.white(options.debounce || '500')}ms`);
+  // eslint-disable-next-line no-console
+  console.log(`⚡ Debounce: ${chalk.white(options.debounce ?? '500')}ms`);
+  // eslint-disable-next-line no-console
   console.log(`🔧 Auto-generate: ${chalk.white(options.noGenerate ? 'disabled' : 'enabled')}`);
+  // eslint-disable-next-line no-console
   console.log(`🏃 Auto-run: ${chalk.white(options.autoRun ? 'enabled' : 'disabled')}`);
+  // eslint-disable-next-line no-console
   console.log(chalk.dim('\nWatching for changes... Press Ctrl+C to stop\n'));
 }
 
@@ -336,12 +462,17 @@ function displayStats(stats: WatchStats): void {
       ? Math.round((stats.successfulGenerations / stats.totalGenerations) * 100)
       : 0;
 
+  // eslint-disable-next-line no-console
   console.log(chalk.dim('\n📊 Watch Statistics'));
+  // eslint-disable-next-line no-console
   console.log(chalk.dim(`   Uptime: ${formatDuration(uptime)}`));
+  // eslint-disable-next-line no-console
   console.log(
     chalk.dim(`   Changes: ${stats.totalChangeEvents} events, ${stats.totalBatches} batches`)
   );
+  // eslint-disable-next-line no-console
   console.log(chalk.dim(`   Generations: ${stats.totalGenerations} (${successRate}% success)`));
+  // eslint-disable-next-line no-console
   console.log(chalk.dim(`   Last activity: ${formatTimeAgo(stats.lastActivity)}\n`));
 }
 
@@ -351,15 +482,23 @@ function displayStats(stats: WatchStats): void {
 function displayFinalStats(stats: WatchStats): void {
   const totalDuration = Date.now() - stats.startTime.getTime();
 
+  // eslint-disable-next-line no-console
   console.log(chalk.cyan('\n📊 Final Watch Statistics'));
+  // eslint-disable-next-line no-console
   console.log(chalk.dim('─────────────────────────'));
+  // eslint-disable-next-line no-console
   console.log(`Total uptime: ${formatDuration(Math.floor(totalDuration / 1000))}`);
+  // eslint-disable-next-line no-console
   console.log(`File changes: ${stats.totalChangeEvents}`);
+  // eslint-disable-next-line no-console
   console.log(`Change batches: ${stats.totalBatches}`);
+  // eslint-disable-next-line no-console
   console.log(`Test generations: ${stats.totalGenerations}`);
+  // eslint-disable-next-line no-console
   console.log(
     `Success rate: ${stats.totalGenerations > 0 ? Math.round((stats.successfulGenerations / stats.totalGenerations) * 100) : 0}%`
   );
+  // eslint-disable-next-line no-console
   console.log(chalk.green('\nThank you for using Claude Testing Infrastructure! 🚀\n'));
 }
 

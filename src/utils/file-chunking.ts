@@ -250,9 +250,8 @@ export class FileChunker {
       content.match(/^export\s+(const|let|function|class|interface|type)\s+\w+/gm) ?? [];
     exports.push(...namedExports.map((e) => e.replace(/^export\s+/, '')));
 
-    // Default export
-    const defaultExport = content.match(/^export\s+default\s+\w+/gm) ?? [];
-    exports.push(...defaultExport);
+    // Note: Default exports are handled separately in templates
+    // They should not be added to the named exports array
 
     return exports;
   }

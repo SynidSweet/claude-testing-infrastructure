@@ -1,6 +1,5 @@
 import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
+import * as path from 'path';
 
 export interface ProjectFixture {
   id: string;
@@ -36,7 +35,10 @@ export class TestFixtureManager {
 
   async initialize(): Promise<void> {
     if (!this.tempBaseDir) {
-      this.tempBaseDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-testing-fixtures-'));
+      // Use project directory instead of system tmp for CI/security compliance
+      const projectTempDir = path.join(process.cwd(), '.temp-fixtures');
+      await fs.mkdir(projectTempDir, { recursive: true });
+      this.tempBaseDir = await fs.mkdtemp(path.join(projectTempDir, 'claude-testing-fixtures-'));
     }
   }
 
@@ -79,7 +81,10 @@ export class TestFixtureManager {
 
   async createTemporaryProject(templateId: string): Promise<string> {
     const fixture = await this.getFixture(templateId);
-    const tempPath = await fs.mkdtemp(path.join(os.tmpdir(), `test-project-${templateId}-`));
+    // Use project directory instead of system tmp for CI/security compliance
+    const projectTempDir = path.join(process.cwd(), '.temp-test-projects');
+    await fs.mkdir(projectTempDir, { recursive: true });
+    const tempPath = await fs.mkdtemp(path.join(projectTempDir, `test-project-${templateId}-`));
     
     // Copy fixture to temporary location for isolation
     await this.copyDirectory(fixture.path, tempPath);

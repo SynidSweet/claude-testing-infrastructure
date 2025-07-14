@@ -158,7 +158,7 @@ Ensure TypeScript compilation completes successfully with no errors, producing f
 
 #### Success Criteria
 - [ ] `npm run build` completes with 0 TypeScript errors
-- [ ] `node dist/cli/index.js --version` returns version successfully
+- [ ] `node dist/src/cli/index.js --version` returns version successfully
 - [ ] CLI commands are functional after build
 - [ ] No runtime errors in basic CLI operations
 

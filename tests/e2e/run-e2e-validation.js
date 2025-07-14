@@ -15,7 +15,7 @@ const chalk = require('chalk');
 class E2EValidator {
   constructor() {
     this.projectRoot = path.join(__dirname, '../..');
-    this.cliPath = path.join(this.projectRoot, 'dist/cli/index.js');
+    this.cliPath = path.join(this.projectRoot, 'dist/src/cli/index.js');
     this.testProjectsDir = path.join(__dirname, 'test-projects');
     this.results = {
       projects: [],

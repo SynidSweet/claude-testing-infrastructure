@@ -53,7 +53,7 @@ user/
 
 3. Generate tests for your project
    ```bash
-   node dist/cli/index.js test /path/to/your/project
+   node dist/src/cli/index.js test /path/to/your/project
    ```
 
 ## What Happens Next
@@ -68,7 +68,7 @@ Generate comprehensive tests for your project.
 
 ### Usage
 ```bash
-node dist/cli/index.js test <project-path> [options]
+node dist/src/cli/index.js test <project-path> [options]
 ```
 
 ### Options
@@ -79,10 +79,10 @@ node dist/cli/index.js test <project-path> [options]
 ### Examples
 ```bash
 # Basic usage
-node dist/cli/index.js test ./my-project
+node dist/src/cli/index.js test ./my-project
 
 # Generate only structural tests
-node dist/cli/index.js test ./my-project --only-structural
+node dist/src/cli/index.js test ./my-project --only-structural
 ```
 
 ### Common Issues

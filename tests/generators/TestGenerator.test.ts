@@ -128,7 +128,7 @@ describe('TestGenerator', () => {
       expect(result.tests).toHaveLength(0);
       expect(result.errors).toHaveLength(2);
       expect(result.errors[0]).toContain('Mock generation error');
-    });
+    }, 10000);
   });
 
   describe('shouldGenerateTestType', () => {

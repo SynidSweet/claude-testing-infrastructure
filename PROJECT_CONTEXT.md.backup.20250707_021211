@@ -30,15 +30,15 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 ## 🚀 Core Features & User Journeys
 
 ### Primary User Flows
-1. **Configuration Setup**: `node dist/cli/index.js init-config` - Initialize project configuration with pre-built templates for common frameworks
-2. **Project Analysis**: `node dist/cli/index.js analyze /path/to/project` - Detects languages, frameworks, and generates recommendations
-3. **Test Generation Preview**: `node dist/cli/index.js test /path/to/project --dry-run` - Preview test generation without creating files
-4. **Test Generation**: `node dist/cli/index.js test /path/to/project` - Creates comprehensive structural tests with AI-powered logical tests
-5. **Test Execution**: `node dist/cli/index.js run /path/to/project --coverage` - Runs tests with coverage reporting and gap analysis
-6. **Incremental Updates**: `node dist/cli/index.js incremental /path/to/project` - Smart test updates based on Git changes
-7. **Batched AI Generation**: `node dist/cli/index.js generate-logical-batch /path/to/project` - Configurable batch processing for large projects
-8. **Watch Mode**: `node dist/cli/index.js watch /path/to/project` - Real-time file monitoring with automatic incremental test generation
-9. **Process Monitoring**: `node dist/cli/index.js monitor` - Monitor system processes for resource usage and testing-related activity
+1. **Configuration Setup**: `node dist/src/cli/index.js init-config` - Initialize project configuration with pre-built templates for common frameworks
+2. **Project Analysis**: `node dist/src/cli/index.js analyze /path/to/project` - Detects languages, frameworks, and generates recommendations
+3. **Test Generation Preview**: `node dist/src/cli/index.js test /path/to/project --dry-run` - Preview test generation without creating files
+4. **Test Generation**: `node dist/src/cli/index.js test /path/to/project` - Creates comprehensive structural tests with AI-powered logical tests
+5. **Test Execution**: `node dist/src/cli/index.js run /path/to/project --coverage` - Runs tests with coverage reporting and gap analysis
+6. **Incremental Updates**: `node dist/src/cli/index.js incremental /path/to/project` - Smart test updates based on Git changes
+7. **Batched AI Generation**: `node dist/src/cli/index.js generate-logical-batch /path/to/project` - Configurable batch processing for large projects
+8. **Watch Mode**: `node dist/src/cli/index.js watch /path/to/project` - Real-time file monitoring with automatic incremental test generation
+9. **Process Monitoring**: `node dist/src/cli/index.js monitor` - Monitor system processes for resource usage and testing-related activity
 10. **Production Validation**: `npm run validation:production` - Comprehensive production readiness assessment with quality gates
 11. **Validation Reporting**: `npm run validation:report` - Generate detailed validation reports with quality metrics and recommendations
 12. **Deployment Checklist**: `npm run validation:deployment` - Automated pre/during/post deployment validation checklist
@@ -162,15 +162,15 @@ AI-powered decoupled testing infrastructure that generates comprehensive tests w
 npm install && npm run build
 
 # Initialize configuration for your project type
-node dist/cli/index.js init-config /path/to/project    # Auto-detect and set up config
+node dist/src/cli/index.js init-config /path/to/project    # Auto-detect and set up config
 
 # Complete workflow with any project
-node dist/cli/index.js analyze /path/to/project --show-config-sources  # Detect languages/frameworks + debug config
-node dist/cli/index.js test /path/to/project --dry-run  # Preview test generation
-node dist/cli/index.js test /path/to/project        # Generate comprehensive tests
-node dist/cli/index.js run /path/to/project --coverage  # Execute with coverage
-node dist/cli/index.js incremental /path/to/project # Smart updates based on Git changes
-node dist/cli/index.js monitor --testing-only       # Monitor system processes for debugging
+node dist/src/cli/index.js analyze /path/to/project --show-config-sources  # Detect languages/frameworks + debug config
+node dist/src/cli/index.js test /path/to/project --dry-run  # Preview test generation
+node dist/src/cli/index.js test /path/to/project        # Generate comprehensive tests
+node dist/src/cli/index.js run /path/to/project --coverage  # Execute with coverage
+node dist/src/cli/index.js incremental /path/to/project # Smart updates based on Git changes
+node dist/src/cli/index.js monitor --testing-only       # Monitor system processes for debugging
 ```
 
 ### Test Execution Modes

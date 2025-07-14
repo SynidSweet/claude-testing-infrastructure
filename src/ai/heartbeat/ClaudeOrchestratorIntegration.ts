@@ -57,7 +57,7 @@ export function createHeartbeatMonitor(
 /**
  * Maps HeartbeatMonitor events to ClaudeOrchestrator events
  */
-export function setupEventMapping(monitor: HeartbeatMonitor, orchestrator: EventEmitter): void {
+export function mapMonitorEvents(monitor: HeartbeatMonitor, orchestrator: EventEmitter): void {
   // Map health check events
   monitor.on('healthCheck', () => {
     // Internal health check - no direct mapping needed
@@ -156,6 +156,25 @@ export function setupEventMapping(monitor: HeartbeatMonitor, orchestrator: Event
   monitor.on('progress', (taskId, markers) => {
     orchestrator.emit('process:progress', { taskId, markers });
   });
+}
+
+/**
+ * Legacy function expected by ProcessPoolManager for backward compatibility
+ * This function creates and configures the heartbeat monitoring system
+ */
+export function setupEventMapping(poolManager: EventEmitter): {
+  heartbeatAdapter: HeartbeatMonitorAdapter;
+} {
+  // Create a new heartbeat monitor with default configuration
+  const monitor = createHeartbeatMonitor();
+
+  // Set up event mapping between the monitor and pool manager
+  mapMonitorEvents(monitor, poolManager);
+
+  // Create and return the adapter
+  const heartbeatAdapter = new HeartbeatMonitorAdapter(monitor);
+
+  return { heartbeatAdapter };
 }
 
 /**

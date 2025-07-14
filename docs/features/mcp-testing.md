@@ -1,6 +1,6 @@
 # MCP Server Testing Support
 
-*Last updated: 2025-07-01 | Created by: /document command | Initial implementation*
+*Last updated: 2025-07-13 | Updated by: /document command | FastMCP detection enhanced with Python dependency support*
 
 ## Overview
 
@@ -12,9 +12,11 @@ The MCP (Model Context Protocol) testing feature provides specialized testing pa
 
 Enhanced project analyzer that detects MCP servers by:
 
-- **Package dependencies**: `@modelcontextprotocol/sdk`, `fastmcp`, `mcp-framework`
+- **Package dependencies**: 
+  - **Node.js**: `@modelcontextprotocol/sdk` for official SDK
+  - **Python**: `fastmcp` in `requirements.txt` for FastMCP framework ✅ ENHANCED
 - **Configuration files**: `mcp.json`, `.mcp/config.json`
-- **Framework detection**: FastMCP vs official SDK vs custom implementations
+- **Framework detection**: FastMCP (Python) vs official SDK (Node.js) vs custom implementations ✅ MULTI-LANGUAGE
 - **Transport identification**: STDIO and HTTP+SSE
 
 ### 2. MCP Types (`src/types/mcp-types.ts`)
@@ -89,10 +91,10 @@ When MCP server is detected, generates:
 ### Basic MCP Server Testing
 ```bash
 # Analyze MCP server
-node dist/cli/index.js analyze /path/to/mcp-server
+node dist/src/cli/index.js analyze /path/to/mcp-server
 
 # Generate MCP tests
-node dist/cli/index.js test /path/to/mcp-server
+node dist/src/cli/index.js test /path/to/mcp-server
 
 # Run generated tests
 cd /path/to/mcp-server/.claude-testing
@@ -103,13 +105,13 @@ npm test
 
 #### FastMCP Servers
 ```bash
-node dist/cli/index.js test /path/to/fastmcp-server
+node dist/src/cli/index.js test /path/to/fastmcp-server
 # Automatically detects FastMCP and uses framework-specific patterns
 ```
 
 #### Official SDK Servers
 ```bash
-node dist/cli/index.js test /path/to/official-sdk-server
+node dist/src/cli/index.js test /path/to/official-sdk-server
 # Detects @modelcontextprotocol/sdk usage
 ```
 

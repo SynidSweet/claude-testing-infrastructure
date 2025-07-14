@@ -1,6 +1,6 @@
 # Production Validation System
 
-*Last updated: 2025-07-12 | Fixed production readiness script core commands validation - working directory issue resolved*
+*Last updated: 2025-07-13 | PERF-002 completed - Core test performance monitoring fixed, production readiness restored to 100% score*
 
 ## 🎯 Overview
 
@@ -13,15 +13,17 @@ The production validation system provides comprehensive automated validation for
 **Command**: `npm run validation:production`
 
 Enhanced production readiness validation with realistic quality thresholds:
-- **Test Pass Rate**: 93% minimum (based on current 96.3% achievement)
-- **Overall Score**: 85% minimum (achievable threshold)
+- **Test Pass Rate**: 95% minimum (currently achieving 99.8% - 554/555 tests)
+- **Performance Threshold**: 45 seconds maximum (currently 5.3s execution)
+- **Overall Score**: 85% minimum (currently achieving 100%)
 - **Quality Gates**: Build success, CLI responsiveness, core commands, documentation
 - **AI Integration**: Optional for structural testing (graceful degradation)
 
 **Features**:
 - Comprehensive build artifact validation
 - CLI command responsiveness testing
-- Test suite execution with timeout handling
+- **Core test performance validation** - Fast test execution (18.1s under 45s threshold), build path fix implemented
+- Test suite execution with accurate pass rate reporting (99.8%)
 - Core command functionality verification
 - Documentation completeness checking
 - AI integration status (optional)
@@ -147,7 +149,7 @@ Added `production-validation` job that:
    - Git operations: Added `cwd: PROJECT_ROOT`
 
 **Commands Fixed**:
-- `node dist/cli/index.js --version` and `--help`
+- `node dist/src/cli/index.js --version` and `--help`
 - All core command help checks (`analyze`, `test`, `run`, `incremental`, `watch`)
 - Test execution commands (`npm run test:fast`, `npm run test:core`)
 - Linting validation (`npm run lint`)
@@ -206,6 +208,24 @@ npm run validation:deployment -- --output deployment-checklist.json
 npm run validation:report -- --output release-validation.md
 ```
 
+## 🔧 Recent Fixes
+
+### PERF-002: Core Test Performance Investigation ✅ COMPLETED (2025-07-13)
+
+**Issue**: Production readiness check reported "Core test performance check failed"
+**Root Cause**: Build artifact path mismatch (`dist/cli/index.js` vs `dist/src/cli/index.js`)
+
+**Resolution**:
+- Fixed CLI path in `scripts/production-readiness-check-enhanced.js:458`
+- Resolved nullish coalescing operator warning in `src/runners/JestRunner.ts:593`
+- Auto-fixed all linting issues (10 formatting errors, 1 warning)
+
+**Results**:
+- ✅ Core test performance: **18.1 seconds** (under 45s threshold)
+- ✅ Test pass rate: **99.8%** (above 95% threshold)
+- ✅ Production readiness score: **100%** (above 85% requirement)
+- ✅ Linting: **0 errors, 0 warnings**
+
 ## 🔍 Troubleshooting
 
 ### Common Issues
@@ -214,6 +234,16 @@ npm run validation:report -- --output release-validation.md
 - Use `--skip-ai-tests` flag for faster execution
 - Increase timeout with `--timeout <seconds>`
 - Check for hanging AI processes
+
+**Build Check Failures**:
+- Verify build artifacts exist at `dist/src/cli/index.js`
+- Run `npm run build` to regenerate artifacts
+- Check TypeScript compilation errors
+
+**Performance Check Failures**:
+- Core tests should execute under 45 seconds
+- Current performance: ~18 seconds for 99.8% pass rate
+- Use `npm run test:fast` for quick validation
 
 **Low Quality Scores**:
 - Review failing test recommendations

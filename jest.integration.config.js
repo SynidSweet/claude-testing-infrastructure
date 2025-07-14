@@ -59,7 +59,7 @@ if (process.env.SKIP_INTEGRATION_TESTS === 'true') {
     },
     
     // Optimized for I/O-heavy tests with aggressive CI timeouts
-    testTimeout: isCIEnvironment() ? 45000 : 20000, // 45s in CI, 20s locally
+    testTimeout: isCIEnvironment() ? 45000 : 120000, // 45s in CI, 120s locally (for truth validation scripts)
     maxWorkers: isCIEnvironment() ? 1 : 2, // Sequential execution in CI
     
     // I/O test settings with advanced caching

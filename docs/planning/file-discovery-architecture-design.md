@@ -621,13 +621,13 @@ export interface FileDiscoveryMetrics {
 **Diagnostic Tools:**
 ```typescript
 // Debug mode logging
-DEBUG=claude-testing:file-discovery node dist/cli/index.js analyze /project
+DEBUG=claude-testing:file-discovery node dist/src/cli/index.js analyze /project
 
 // Performance analysis
-node dist/cli/index.js analyze /project --file-discovery-stats
+node dist/src/cli/index.js analyze /project --file-discovery-stats
 
 // Cache inspection
-node dist/cli/index.js debug cache-stats
+node dist/src/cli/index.js debug cache-stats
 ```
 
 ## 🚀 Implementation Phases

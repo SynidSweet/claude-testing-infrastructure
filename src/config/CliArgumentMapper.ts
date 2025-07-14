@@ -267,7 +267,7 @@ export class CliArgumentMapper {
       const configObj = this.configToRecord(config);
       const incremental = this.ensureObject(configObj, 'incremental');
       Object.assign(incremental, {
-        baseline: cliArgs.baseline as BaselineOptions,
+        baseline: cliArgs.baseline,
         ...incremental,
       });
     }

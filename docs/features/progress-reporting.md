@@ -71,7 +71,7 @@ interface ProgressEvent {
 ### Basic Progress Reporting
 ```bash
 # Normal mode with progress bar
-node dist/cli/index.js test /path/to/project
+node dist/src/cli/index.js test /path/to/project
 
 # Output:
 # Generating tests... [45/100] 45% - ETA: 12s - Processing: .../src/components/Button.tsx
@@ -80,7 +80,7 @@ node dist/cli/index.js test /path/to/project
 ### Verbose Mode
 ```bash
 # Detailed file-by-file progress
-node dist/cli/index.js test /path/to/project --verbose
+node dist/src/cli/index.js test /path/to/project --verbose
 
 # Output:
 # Generating structural tests...

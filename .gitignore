@@ -73,6 +73,10 @@ temp/
 *.tmp
 *.temp
 
+# E2E test temporary directories
+.temp-fixtures/
+.temp-test-projects/
+
 # Session reports and analysis
 carry-on-session-report-*.md
 test-performance-investigation-report-*.md

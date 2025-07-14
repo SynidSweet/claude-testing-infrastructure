@@ -133,10 +133,10 @@ export function registerTemplatesFromFactories(templateRegistry: any, factoryReg
         }
       }
 
-      // Register enhanced templates if supported
+      // Register enhanced templates if supported (allow override since enhanced templates replace basic ones)
       const enhancedTemplates = factory.getEnhancedTemplates();
       for (const template of enhancedTemplates) {
-        const result = templateRegistry.registerTemplate(template);
+        const result = templateRegistry.registerTemplate(template, true);
         if (!result.success) {
           console.warn(`Failed to register enhanced template '${template.name}':`, result.error);
         }

@@ -2,7 +2,7 @@
 
 *Comprehensive guide for testing timer-based and async operations in the Claude Testing Infrastructure*
 
-*Last updated: 2025-07-08 | Added ClaudeOrchestrator proven configuration patterns*
+*Last updated: 2025-07-13 | Added resource cleanup patterns for Jest worker processes*
 
 ## 🎯 Purpose
 
@@ -420,6 +420,58 @@ afterEach(() => {
   jest.useRealTimers();
   jest.clearAllTimers();
 });
+```
+
+### Issue: Jest Worker Process Cleanup
+**Problem**: "Worker process has failed to exit gracefully" warnings due to resource leaks
+
+**Solution**: Track and clean up all intervals/timeouts
+```typescript
+// ✅ Correct - comprehensive interval cleanup
+describe('Timer Tests with Intervals', () => {
+  let activeIntervals: NodeJS.Timeout[] = [];
+  
+  beforeEach(() => {
+    jest.useFakeTimers();
+    activeIntervals = [];
+  });
+
+  afterEach(() => {
+    // Clean up all active intervals
+    activeIntervals.forEach(intervalId => clearInterval(intervalId));
+    activeIntervals = [];
+    
+    // Comprehensive Jest cleanup
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    // Add any additional cleanup if using TimerTestUtils
+    if (typeof TimerTestUtils !== 'undefined' && TimerTestUtils.cleanupTimers) {
+      TimerTestUtils.cleanupTimers();
+    }
+  });
+
+  test('should handle intervals without leaking', () => {
+    const intervalId = setInterval(() => {}, 1000);
+    activeIntervals.push(intervalId);
+    
+    // Test logic here
+    
+    clearInterval(intervalId);
+    activeIntervals = activeIntervals.filter(id => id !== intervalId);
+  });
+});
+```
+
+**Jest Configuration for Worker Cleanup**:
+```javascript
+// jest.config.js
+module.exports = {
+  // Enable detection of open handles
+  detectOpenHandles: true,
+  // Force exit if needed
+  forceExit: true,
+  // Other config...
+};
 ```
 
 ### Issue: Process Cleanup

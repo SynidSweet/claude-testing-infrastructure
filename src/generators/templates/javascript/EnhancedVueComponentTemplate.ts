@@ -46,7 +46,7 @@ export class EnhancedVueComponentTemplate implements Template {
 
   private getAsyncPatterns(context: TemplateContext): FileAsyncPatterns | null {
     const metadata = (context as any).metadata;
-    return metadata?.asyncPatterns || null;
+    return metadata?.asyncPatterns ?? null;
   }
 
   private normalizeImportPath(importPath: string): string {

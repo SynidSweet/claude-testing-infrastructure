@@ -1,0 +1,40 @@
+{
+  "timestamp": "20250714_020247",
+  "operation": "task_save",
+  "compressed": true,
+  "files": {
+    "tasks.json": {
+      "original_path": "/code/personal/claude-testing/.claude-tasks/data/tasks.json",
+      "backup_path": "/code/personal/claude-testing/.claude-tasks/backups/backup_20250714_020247_task_save/tasks.json.gz",
+      "checksum": "c51a8242920c145950aa0f98091f4f9c9d990efdc93495b30c3201a047ba0d68",
+      "size": 1126200,
+      "compressed": true
+    },
+    "sprints.json": {
+      "original_path": "/code/personal/claude-testing/.claude-tasks/data/sprints.json",
+      "backup_path": "/code/personal/claude-testing/.claude-tasks/backups/backup_20250714_020247_task_save/sprints.json.gz",
+      "checksum": "c12341467e1c89f2026c1acc413aefd6a4b1392abca4afa0dfab096cc8e73cb7",
+      "size": 3067,
+      "compressed": true
+    },
+    "backlog.json": {
+      "original_path": "/code/personal/claude-testing/.claude-tasks/data/backlog.json",
+      "backup_path": "/code/personal/claude-testing/.claude-tasks/backups/backup_20250714_020247_task_save/backlog.json.gz",
+      "checksum": "85ee0ef42264a420fa43bec938e1ba6190616f64fde9ea8a12cb968e24484ed3",
+      "size": 16266,
+      "compressed": true
+    },
+    "config.json": {
+      "original_path": "/code/personal/claude-testing/.claude-tasks/config.json",
+      "backup_path": "/code/personal/claude-testing/.claude-tasks/backups/backup_20250714_020247_task_save/config.json.gz",
+      "checksum": "b5bd149341e5d7bd1b803c43184d36ae28077ec5bd6b5477c553616ed76f9566",
+      "size": 245,
+      "compressed": true
+    }
+  },
+  "config_snapshot": {
+    "project_name": "claude-testing-infrastructure",
+    "team_prefix": "CTI",
+    "backup_retention_days": 30
+  }
+}

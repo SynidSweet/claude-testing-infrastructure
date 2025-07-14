@@ -2,11 +2,49 @@
 
 *Documentation for the inheritance-based template engine architecture*
 
-*Last updated: 2025-07-10 | Updated by: /document command | TEMPLATE-REF-003 completed - Template Factory System with plugin architecture implemented*
+*Last updated: 2025-07-13 | Template factory system integration complete: TemplateOrchestrator now uses factory pattern for centralized template creation with automatic registration*
 
 ## Overview
 
-The template engine system provides multi-format coverage report generation using an inheritance-based architecture. All template engines extend a common BaseTemplateEngine abstract class that provides shared functionality and consistent interfaces.
+The template engine system provides modular test template generation with a dual architecture:
+
+1. **Coverage Report Templates** - Inheritance-based system for multi-format coverage reports
+2. **Test Generation Templates** - Modular TemplateOrchestrator pattern with factory integration for test creation (✅ **FACTORY INTEGRATED 2025-07-13**)
+
+### Test Generation Template Architecture ✅ **NEWLY DECOMPOSED**
+
+**Previous**: Single monolithic `TestTemplateEngine.ts` (1,774 lines)  
+**Current**: Modular architecture with factory pattern integration:
+
+```
+src/generators/templates/
+├── TestTemplateEngine.ts (facade, 196 lines) - Backward compatibility
+├── TemplateOrchestrator.ts (core logic, 287 lines) - Template management with factory integration
+├── core/ - Factory pattern system ✅ NEW
+│   ├── TemplateFactory.ts - Abstract factory base class
+│   ├── JavaScriptTemplateFactory.ts - JavaScript/TypeScript template factory
+│   ├── PythonTemplateFactory.ts - Python template factory
+│   ├── TemplateRegistry.ts - Centralized template management
+│   └── index.ts - Factory system utilities
+├── javascript/ - Jest-based templates
+│   ├── JestJavaScriptTemplate.ts
+│   ├── JestReactComponentTemplate.ts
+│   ├── JestExpressApiTemplate.ts
+│   ├── JestTypeScriptTemplate.ts
+│   └── JestReactTypeScriptTemplate.ts
+└── python/ - pytest-based templates
+    ├── PytestTemplate.ts
+    ├── PytestFastApiTemplate.ts
+    └── PytestDjangoTemplate.ts
+```
+
+**Patterns**: 
+- **Facade pattern**: `TestTemplateEngine` maintains API compatibility while delegating to `TemplateOrchestrator`
+- **Factory pattern**: `TemplateOrchestrator` uses factory system for centralized template creation and automatic registration
+
+### Coverage Report Template Architecture
+
+The coverage report system provides multi-format generation using an inheritance-based architecture. All template engines extend a common BaseTemplateEngine abstract class that provides shared functionality and consistent interfaces.
 
 ## Architecture
 
@@ -54,6 +92,40 @@ The BaseTemplateEngine now features complete TypeScript type safety with proper 
 - **`getNestedValue(obj: Record<string, unknown>, path: string): unknown`** - Safe nested property access with proper type guards
 
 **Imports Added**: `FileCoverage`, `CoverageSuggestion` from existing coverage analysis interfaces for consistency with the broader type system.
+
+#### Nullish Coalescing Operator Enhancements ✅ COMPLETED (2025-07-13)
+Enhanced type safety across the template system by applying nullish coalescing operator (`??`) in strategic locations:
+
+**Template Async Pattern Getters**:
+```typescript
+// Enhanced JavaScript template classes
+private getAsyncPatterns(context: TemplateContext): FileAsyncPatterns | null {
+  const metadata = (context as any).metadata;
+  return metadata?.asyncPatterns ?? null;  // Only fallback on null/undefined
+}
+```
+
+**Template Framework/TestType Handling**:
+```typescript
+// TemplateOrchestrator and TemplateRegistry
+const templateInfo = {
+  framework: template.framework ?? undefined,  // Preserves empty strings
+  testType: template.testType ?? undefined,
+  description: template.getMetadata?.()?.description ?? undefined,
+  warnings: validation.warnings ?? undefined
+};
+```
+
+**Key Files Enhanced**:
+- `EnhancedVueComponentTemplate.ts`, `EnhancedTypeScriptTemplate.ts`, `EnhancedReactComponentTemplate.ts`
+- `EnhancedJestJavaScriptTemplate.ts`, `EnhancedAngularComponentTemplate.ts`
+- `TemplateOrchestrator.ts`, `TemplateRegistry.ts`, `TemplateFactory.ts`, `TemplateEngine.ts`
+- `command-patterns.ts` (CLI configuration handling)
+
+**Benefits**:
+- **Type Safety**: Preserves falsy values (0, false, "") that should not trigger fallbacks
+- **Intent Clarity**: Code explicitly handles only null/undefined scenarios  
+- **Template Reliability**: Critical for framework/testType handling where empty strings are valid
 
 ## Template Registry Architecture System ✅ NEW (2025-07-10)
 
@@ -285,6 +357,113 @@ console.log(`- Frameworks: ${capabilities.supportedFrameworks.join(', ')}`);
 console.log(`- Enhanced: ${capabilities.supportsEnhanced}`);
 ```
 
+### Template Registration Enhancements ✅ NEW (2025-07-12)
+
+#### Override-Capable Template Registration
+The template registration system now supports intelligent template override for enhanced template replacement:
+
+```typescript
+// Enhanced TemplateRegistry with override support
+interface TemplateRegistrationResult {
+  success: boolean;
+  error?: string | undefined;
+  existingTemplate?: TemplateInfo | undefined;
+  overridden?: boolean | undefined;  // NEW: Indicates template replacement
+}
+
+class TemplateRegistry {
+  registerTemplate(template: Template, allowOverride: boolean = false): TemplateRegistrationResult;
+}
+```
+
+#### Idempotent Registration System
+**Problem Solved**: Eliminated duplicate template registration warnings during test execution
+- Enhanced templates can now cleanly override basic templates
+- Factory system uses override capability for enhanced template registration
+- TestTemplateEngine properly handles template replacement without warnings
+
+#### Implementation Details
+```typescript
+// TestTemplateEngine enhanced template registration
+private registerEnhancedTemplates(): void {
+  // Enhanced templates override basic ones cleanly
+  this.registerTemplate(new EnhancedJestJavaScriptTemplate(), true);
+  this.registerTemplate(new EnhancedReactComponentTemplate(), true);
+  this.registerTemplate(new EnhancedTypeScriptTemplate(), true);
+}
+
+// Factory system supports override for enhanced templates
+const result = templateRegistry.registerTemplate(template, true);
+// No warnings for enhanced template replacement
+```
+
+#### Benefits Delivered
+1. **Clean Test Output** - Eliminated console warnings during test execution
+2. **Idempotent Registration** - Same template can be registered multiple times safely
+3. **Enhanced Template Override** - Proper replacement pattern for template enhancement
+4. **Backward Compatibility** - Existing registration behavior preserved
+
+### Import Path Generation ✅ FIXED (2025-07-12)
+
+#### CommonJS Import Path Issue Resolution
+**Problem Solved**: Generated tests were using incorrect import paths with TypeScript extensions that Jest cannot resolve
+
+**Root Cause**: Template engines were generating CommonJS require statements with `.ts` extensions:
+```javascript
+// ❌ Problematic - Jest cannot resolve .ts extensions
+const Calculator = require('../index.ts');
+
+// ✅ Fixed - Jest can resolve without extension
+const Calculator = require('../index');
+```
+
+#### Implementation Details
+**Fixed across all template engines**:
+- **TestTemplateEngine.ts** - Core template classes (JestJavaScriptTemplate, JestReactTypeScriptTemplate, JestReactComponentTemplate)
+- **EnhancedJestJavaScriptTemplate.ts** - Enhanced JavaScript test generation
+- **EnhancedTypeScriptTemplate.ts** - Enhanced TypeScript test generation
+
+**Technical Solution**:
+```typescript
+// Before fix - used raw relative path with .ts extension
+const commonjsPath = relativeImportPath;
+if (hasDefaultExport) {
+  importStatement = `const ${moduleName} = require('${commonjsPath}');`;
+}
+
+// After fix - removed TypeScript extensions from CommonJS imports
+const pathWithoutTsExt = relativeImportPath.replace(/\.tsx?$/, '');
+const commonjsPath = pathWithoutTsExt;
+if (hasDefaultExport) {
+  importStatement = `const ${moduleName} = require('${commonjsPath}');`;
+}
+```
+
+#### Benefits Delivered
+1. **Jest Compatibility** - Generated tests now execute properly with Jest test runner
+2. **Production Readiness** - Restored 100% production readiness score
+3. **Template Consistency** - All template engines now handle import paths uniformly
+4. **Framework Support** - Fixed for all supported frameworks (React, Vue, Angular, Node.js)
+
+#### Template Engine Coverage
+- ✅ **JestJavaScriptTemplate** - Basic JavaScript test generation
+- ✅ **JestReactTypeScriptTemplate** - TypeScript React component tests
+- ✅ **JestReactComponentTemplate** - React component tests
+- ✅ **EnhancedJestJavaScriptTemplate** - Advanced JavaScript patterns
+- ✅ **EnhancedTypeScriptTemplate** - Advanced TypeScript patterns
+
+#### Jest Configuration Enhancement
+**Additional Fix**: Enhanced Jest configuration to prevent recursive test execution issues
+
+```typescript
+// JestRunner.ts - Added testPathIgnorePatterns
+testPathIgnorePatterns: [
+  '/node_modules/',
+  // Ignore nested .claude-testing directories to prevent recursive test execution
+  '\\.claude-testing/.*\\.claude-testing/',
+],
+```
+
 ### Benefits Delivered
 
 #### Enhanced Extensibility
@@ -292,11 +471,13 @@ console.log(`- Enhanced: ${capabilities.supportsEnhanced}`);
 2. **Language Factories** - Structured approach to language-specific template creation
 3. **Framework Support** - Clear framework capabilities discovery and validation
 4. **Template Caching** - Performance optimization for enhanced template instantiation
+5. **Override Support** - ✅ NEW: Clean template replacement without warnings
 
 #### Developer Experience
 1. **Type Safety** - Full TypeScript support with proper interfaces and validation
 2. **Clear APIs** - Intuitive factory interfaces for template creation
 3. **Error Handling** - Comprehensive error messages and validation feedback
+4. **Clean Output** - ✅ NEW: Warning-free test execution with proper template override
 4. **Auto-Discovery** - Automatic template registration with capability detection
 
 #### System Architecture

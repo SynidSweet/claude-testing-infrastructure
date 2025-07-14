@@ -102,7 +102,7 @@ export class TemplateEngine {
             success: false,
             error: `Context validation failed: ${validation.errors?.join(', ')}`,
             template,
-            warnings: validation.warnings || undefined,
+            warnings: validation.warnings ?? undefined,
           };
         }
       }
@@ -151,7 +151,7 @@ export class TemplateEngine {
         error: options.includeErrorDetails
           ? `Template generation failed: ${error}`
           : 'Template generation failed',
-        template: this.findBestTemplate(context) || undefined,
+        template: this.findBestTemplate(context) ?? undefined,
       };
     }
   }

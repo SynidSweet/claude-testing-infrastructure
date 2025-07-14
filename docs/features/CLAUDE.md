@@ -2,7 +2,7 @@
 
 *Quick navigation for AI agents working with specific features and components*
 
-*Last updated: 2025-07-11 | Updated by: /document command | Added E2E validation infrastructure documentation - TASK-E2E-001 complete*
+*Last updated: 2025-07-13 | Updated by: /document command | TS-WORKFLOW-001 completed - Enhanced workflow event system with filtering and middleware*
 
 ## 🎯 Purpose
 
@@ -37,23 +37,49 @@ This guide helps AI agents understand and work with individual features of the C
 - `tests/services/enhanced-file-discovery.test.ts` - 25 new test cases ✅ NEW
 **Features**: Const enums for languages/frameworks, discriminated union error types, fluent pattern builder API, deterministic cache keys, detailed validation with error codes
 
-### Project Analysis
-**Purpose**: Detect languages, frameworks, and project structure  
+### Adapter System ✅ ENHANCED WITH REGISTRY PATTERN
+**Purpose**: Extensible adapter system for language and framework integration  
+**Status**: Complete adapter interface architecture with registry pattern implemented  
+**Key Files**:
+- `src/adapters/index.ts` - Core adapter interfaces and registry system ✅ ENHANCED
+- `src/analyzers/ProjectAnalyzer.ts` - Uses adapter pattern for language detection
+**Features**: Language adapter registry, framework adapter registry, standardized interfaces for test generation, test runner abstraction, proper nullish coalescing patterns
+**Architecture**: Separate interfaces for `LanguageAdapter` (language-specific test generation) and `FrameworkAdapter` (test framework integration) with centralized registry maps for registration and retrieval
+
+### Project Analysis  
+**Purpose**: Detect languages, frameworks, and project structure using adapter pattern  
 **Key File**: `src/analyzers/ProjectAnalyzer.ts`  
 **Adapters**: `JavaScriptAdapter`, `PythonAdapter`  
 **Enhancement**: ✅ Fully integrated with FileDiscoveryService via singleton factory pattern for consistent file scanning with caching and fallback support
 
-### Test Generation ✅ ENHANCED TEMPLATE CLASS EXTRACTION COMPLETED
-**Purpose**: Create comprehensive test files with confidence-based template selection system and modular template classes  
+### Test Generation ✅ TEMPLATE FACTORY SYSTEM INTEGRATION COMPLETED
+**Purpose**: Create comprehensive test files with modular template orchestrator architecture and factory pattern integration  
 **Key Files**: 
 - `src/generators/TestGenerator.ts` - Orchestrator
 - `src/generators/StructuralTestGenerator.ts` - Basic tests
-- `src/generators/templates/TestTemplateEngine.ts` - Enhanced with TemplateRegistry architecture ✅ MIGRATED
-- `src/generators/templates/core/TemplateRegistry.ts` - Centralized template management with confidence scoring ✅ NEW
-- `src/generators/templates/core/TemplateEngine.ts` - Template execution engine with performance monitoring ✅ NEW
-- `src/generators/templates/javascript/` - Enhanced template classes in separate files ✅ EXTRACTED
-- `src/generators/types/contexts.ts` - Rich language and framework context types for enhanced templates
-**Recent Enhancement**: Extracted 5 enhanced template classes (1,765 lines → 5 focused files) into separate modules under `src/generators/templates/javascript/` for improved maintainability. All template functionality preserved with better code organization.
+- `src/generators/templates/TestTemplateEngine.ts` - Facade pattern (196 lines) ✅ MODERNIZED
+- `src/generators/templates/TemplateOrchestrator.ts` - Core template management with factory integration (287 lines) ✅ FACTORY INTEGRATED
+- `src/generators/templates/core/` - Factory pattern system for centralized template creation ✅ NEW
+  - `TemplateFactory.ts` - Abstract factory base class
+  - `JavaScriptTemplateFactory.ts` - JavaScript/TypeScript template factory
+  - `PythonTemplateFactory.ts` - Python template factory
+  - `TemplateRegistry.ts` - Centralized template management with confidence scoring
+- `src/generators/templates/javascript/` - Jest-based templates (5 templates) ✅ EXTRACTED
+- `src/generators/templates/python/` - pytest-based templates (3 templates) ✅ EXTRACTED
+**Recent Achievement**: Complete Template Factory System integration - TemplateOrchestrator now uses factory pattern for centralized template creation with automatic registration from JavaScriptTemplateFactory and PythonTemplateFactory. All tests passing (37/37).
+**Documentation**: [`template-engines.md`](./template-engines.md) - Complete architecture guide including factory system
+
+### Enhanced Workflow Event System ✅ NEW (2025-07-13)
+**Purpose**: Advanced event handling with filtering, middleware, and observability  
+**Status**: Complete implementation with comprehensive testing (TS-WORKFLOW-001)  
+**Key Files**:
+- `src/workflows/EnhancedWorkflowEventEmitter.ts` - Core enhanced event emitter (520 lines)
+- `src/types/workflow-event-types.ts` - Type definitions and common utilities (384 lines)
+- `src/workflows/AIEnhancedTestingWorkflow.ts` - Integration with main workflow
+- `tests/workflows/EnhancedWorkflowEventEmitter.test.ts` - Comprehensive test suite (13/13 tests passing)
+**Features**: Event filtering, middleware pipeline, error recovery, metrics collection, tracing, priority-based execution, batch processing
+**Integration**: Seamlessly integrated with AIEnhancedTestingWorkflow with backward compatibility
+**Documentation**: [`enhanced-workflow-event-system.md`](./enhanced-workflow-event-system.md) - Complete architecture and usage guide
 
 ### AI Integration
 **Purpose**: Generate logical tests using Claude  
@@ -91,16 +117,18 @@ This guide helps AI agents understand and work with individual features of the C
 - `src/state/ChangeDetector.ts` - Git diff analysis
 - `src/state/IncrementalTestGenerator.ts` - Selective generation
 
-### Test Execution
+### Test Execution ✅ JEST CONFIGURATION FIXED
 **Purpose**: Run tests and generate coverage reports  
+**Status**: Jest working directory issues resolved (2025-07-12)
 **Key Files**:
 - `src/runners/TestRunner.ts` - Execution orchestrator
-- `src/runners/JestRunner.ts` - Jest test execution ✅ Integrated with FileDiscoveryService via singleton factory
+- `src/runners/JestRunner.ts` - Jest test execution ✅ Working directory fix implemented, proper rootDir calculation
 - `src/runners/PytestRunner.ts` - Pytest test execution ✅ Integrated with FileDiscoveryService via singleton factory
 - `src/runners/TestRunnerFactory.ts` - Test runner creation ✅ Automatic FileDiscoveryService provisioning via singleton factory
 - `src/runners/CoverageReporter.ts` - Coverage analysis
 - `src/runners/CoverageVisualizer.ts` - Report generation
 - `src/runners/templates/` - Consolidated template engine system
+**Recent Fix**: Jest configuration now properly calculates rootDir relative to test execution directory, resolving test discovery failures
 
 ### Progress Reporting ✅ NEW
 **Purpose**: Real-time progress tracking for test generation  
@@ -122,14 +150,16 @@ This guide helps AI agents understand and work with individual features of the C
 - `tests/utils/ProcessMonitor.test.ts` - Comprehensive test coverage
 **Features**: High-resource process detection, testing framework recognition, cross-platform compatibility, watch mode integration
 
-### Production Validation ✅ NEW
+### Production Validation ✅ PRODUCTION READY  
 **Purpose**: Comprehensive production readiness validation and deployment automation  
+**Status**: Production-ready with 100% CI/CD score achieved, PERF-002 performance monitoring fixed
 **Key Files**:
-- `scripts/production-readiness-check.js` - Enhanced production readiness checker with realistic thresholds
+- `scripts/production-readiness-check-enhanced.js` - Enhanced production readiness checker with CI/CD status detection ✅ BUILD PATH FIXED
 - `scripts/generate-validation-report.js` - Validation report generator with markdown/JSON output
 - `scripts/production-deployment-checklist.js` - Automated deployment validation checklist
-- `.github/workflows/test.yml` - CI/CD integration with production validation job
-**Features**: Quality gate validation, realistic thresholds (93% test pass rate, 85% overall score), comprehensive reporting, deployment automation
+- `.github/workflows/test.yml` - Production-ready CI/CD workflow with optimized test execution ✅ STABILIZED
+**Features**: Quality gate validation, core test performance monitoring (18.1s under 45s threshold), comprehensive reporting, deployment automation, CI/CD in-progress status handling, build artifact validation, linting integration
+**Recent Achievement**: PERF-002 completed - Performance monitoring restored to 100% reliability, build path mismatch resolved ✅
 
 ## 📦 Working with Features
 
@@ -296,16 +326,17 @@ const analysis = await analyzer.analyze(projectPath);
 - **Batch optimization**: Modify `AITaskPreparation`
 - **Error handling**: Enhance `ClaudeOrchestrator`
 
-### Truth Validation System ✅ PHASE 4 COMPLETE
+### Truth Validation System ✅ PERFORMANCE OPTIMIZED
 **Purpose**: Ensure documentation claims match actual project status  
-**Status**: Phase 4 complete (12/16 tasks done) - Workflow integration operational  
+**Status**: System operational with 90-95% performance improvement - scripts execute in <5 seconds  
 **Key Files**:
-- `scripts/status-aggregator.js` - Single source of truth for project status
+- `scripts/status-aggregator.js` - Optimized single source of truth (~1s execution)
+- `scripts/test-suite-blocker-detector.js` - Fast blocker detection (~1-2s execution)
 - `scripts/documentation-claim-parser.js` - Extracts claims from documentation
 - `scripts/truth-validation-engine.js` - Validates claims against reality
 - `scripts/status-documentation-updater.js` - Automated documentation updates
 - `scripts/precommit-truth-validation.js` - Pre-commit validation hook
-**Features**: Automated status tracking, claim validation, blocker detection, pre-commit hooks, audit trails
+**Features**: Automated status tracking, claim validation, blocker detection, pre-commit hooks, audit trails, cached test results, parallel operations, silent mode for clean JSON output
 **Documentation**: [`truth-validation-system.md`](./truth-validation-system.md)
 
 ### Incremental Testing Feature
@@ -548,7 +579,7 @@ class FeatureRepository {
 - Monitor: `ProcessMonitor.detectHighResourceProcesses()`
 - Filter: `ProcessMonitor.getTestingProcesses()`
 - Display: `ProcessMonitor.formatProcessInfo()`
-- CLI: `node dist/cli/index.js monitor`
+- CLI: `node dist/src/cli/index.js monitor`
 - Integration: Watch mode `--monitor-processes`
 
 ### Production Validation ✅ NEW
@@ -558,14 +589,15 @@ class FeatureRepository {
 - Thresholds: 93% test pass rate, 85% overall score
 - CI Integration: Automatic validation with artifact generation
 
-### Truth Validation System ✅ PHASE 6 IN PROGRESS (93.75% COMPLETE)
-- Status Aggregator: `scripts/status-aggregator.js` - Collect actual project metrics
+### Truth Validation System ✅ PERFORMANCE OPTIMIZED
+- Status Aggregator: `scripts/status-aggregator.js` - Optimized status collection (~1s execution)
+- Test Blocker Detector: `scripts/test-suite-blocker-detector.js` - Fast blocker detection (~1-2s execution)
 - Claim Parser: `scripts/documentation-claim-parser.js` - Extract documentation claims
 - Truth Engine: `scripts/truth-validation-engine.js` - Compare claims vs reality
-- Blocker Detectors: Test suite, infrastructure, code quality analyzers
 - Pre-commit Hook: `scripts/precommit-truth-validation.js` - Prevent false claims
 - Auto-updater: `scripts/status-documentation-updater.js` - Keep docs accurate
 - Production Integration: Enhanced validation with CI/CD status checking
+- Performance: 90-95% execution time improvement (from hanging to <5 seconds)
 
 ### E2E Validation Infrastructure ✅ NEW (TASK-E2E-001 COMPLETE)
 - Test Projects: JavaScript/Express, Python/FastAPI, TypeScript/React

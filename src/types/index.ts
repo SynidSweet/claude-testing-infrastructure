@@ -20,4 +20,5 @@ export * from './enhanced-file-discovery-types';
 export * from './ai-error-types';
 export * from './ai-task-types';
 export * from './ai-workflow-types';
+export * from './workflow-event-types';
 export * from './error-types';

@@ -20,6 +20,7 @@ export interface AnalyzeOptions extends StandardCliOptions {
   format?: 'json' | 'markdown' | 'console';
   validateConfig?: boolean;
   showPatterns?: boolean;
+  dryRun?: boolean;
 }
 
 export async function analyzeCommand(
@@ -38,6 +39,11 @@ export async function analyzeCommand(
     options,
     command,
     async (_context: CommandContext) => {
+      // Check for dry run mode
+      if (options.dryRun) {
+        console.log(chalk.blue('\n🔍 DRY RUN MODE - Analysis preview only\n'));
+      }
+
       logger.info(`Starting analysis of project: ${projectPath}`);
 
       let fileDiscovery: any;
@@ -73,6 +79,13 @@ export async function analyzeCommand(
 
       // Format and display results
       await displayAnalysisResults(analysis, options);
+
+      // Show dry run footer if in dry run mode
+      if (options.dryRun) {
+        console.log(chalk.blue('\n🔍 Dry run complete - analysis preview only'));
+        console.log(chalk.gray('To perform full analysis with file operations:'));
+        console.log(chalk.gray('  • Remove --dry-run flag and run the command again'));
+      }
     },
     {
       commandName: 'analyze',

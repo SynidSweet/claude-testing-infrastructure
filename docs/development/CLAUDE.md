@@ -1,6 +1,6 @@
 # Development Guide - AI Agent Guide
 
-*Last updated: 2025-07-12 | Configuration System Type Safety - TypeScript Excellence initiative advanced*
+*Last updated: 2025-07-13 | Updated by: /document command | E2E test infrastructure standardized, CLI path references corrected*
 
 *Quick navigation for AI agents working on Claude Testing Infrastructure development*
 
@@ -27,7 +27,7 @@ npm install
 npm run build
 
 # Verify build
-node dist/cli/index.js --version  # Should show: 2.0.0
+node dist/src/cli/index.js --version  # Should show: 2.0.0
 ```
 
 ## 📐 Coding Conventions
@@ -128,6 +128,13 @@ describe('ComponentName', () => {
 - **Unit tests**: Individual components (`*.test.ts`)
 - **Integration tests**: Component interactions
 - **E2E tests**: Full command execution
+
+### Testing Patterns
+- **Service Testing**: ProcessPoolManager pattern with comprehensive mocking (96.19% coverage achieved)
+  - Mock external dependencies (ProcessMonitor, HeartbeatMonitor)
+  - Test event emission and lifecycle management
+  - Comprehensive coverage of process registration, monitoring, and cleanup
+  - Mock timers for timeout and scheduling behavior
 
 ### Running Tests
 ```bash
@@ -281,6 +288,7 @@ npm run build            # Build project
 npm test                 # Run tests
 npm run lint             # Check code style
 npm run type-check       # Verify types
+npm run validate:dependencies # Check dependency synchronization & security
 npm run type-safety:check # Automated type safety validation
 npm run precommit:enhanced # Full workflow with type checking
 ```

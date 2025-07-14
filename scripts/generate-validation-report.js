@@ -114,10 +114,10 @@ class ValidationReportGenerator {
 
   async checkCLIStatus() {
     try {
-      const { stdout: version } = await execAsync('node dist/cli/index.js --version', { 
+      const { stdout: version } = await execAsync('node dist/src/cli/index.js --version', { 
         timeout: 10000 
       });
-      const { stdout: help } = await execAsync('node dist/cli/index.js --help', { 
+      const { stdout: help } = await execAsync('node dist/src/cli/index.js --help', { 
         timeout: 10000 
       });
       
@@ -187,7 +187,7 @@ class ValidationReportGenerator {
     
     for (const command of commands) {
       try {
-        await execAsync(`node dist/cli/index.js ${command.cmd}`, { timeout: 5000 });
+        await execAsync(`node dist/src/cli/index.js ${command.cmd}`, { timeout: 5000 });
         results.push({ name: command.name, working: true });
       } catch (error) {
         results.push({ 

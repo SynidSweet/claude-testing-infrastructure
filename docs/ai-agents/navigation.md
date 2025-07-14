@@ -66,21 +66,21 @@ cd claude-testing-infrastructure
 npm install && npm run build
 
 # Analyze target project
-node dist/cli/index.js analyze /path/to/target/project
+node dist/src/cli/index.js analyze /path/to/target/project
 
 # Generate comprehensive tests
-node dist/cli/index.js test /path/to/target/project
+node dist/src/cli/index.js test /path/to/target/project
 
 # Run tests with coverage
-node dist/cli/index.js run /path/to/target/project --coverage
+node dist/src/cli/index.js run /path/to/target/project --coverage
 ```
 
 ### Task: Add testing to a Python project
 ```bash
 # Same workflow - language adapter automatically detects Python
-node dist/cli/index.js analyze /path/to/python/project
-node dist/cli/index.js test /path/to/python/project --only-structural
-node dist/cli/index.js run /path/to/python/project --coverage
+node dist/src/cli/index.js analyze /path/to/python/project
+node dist/src/cli/index.js test /path/to/python/project --only-structural
+node dist/src/cli/index.js run /path/to/python/project --coverage
 ```
 
 ### Task: Understand the architecture
@@ -123,7 +123,7 @@ class PythonAnalyzer implements IProjectAnalyzer { /* Python-specific */ }
 ✅ **RIGHT**: Each language needs specific handling through adapters
 
 ### ❌ WRONG: "We should use npx claude-testing commands"
-✅ **RIGHT**: Always use `node dist/cli/index.js` - infrastructure is not published to npm
+✅ **RIGHT**: Always use `node dist/src/cli/index.js` - infrastructure is not published to npm
 
 ### ❌ WRONG: "Complex detection logic should be simplified"
 ✅ **RIGHT**: It handles real-world edge cases intentionally
@@ -176,7 +176,7 @@ npm run test:coverage
 npm run build
 
 # CLI integration test
-node dist/cli/index.js --help
+node dist/src/cli/index.js --help
 ```
 
 ### Adding New Features
@@ -208,7 +208,7 @@ From `/docs/planning/REFACTORING_PLAN.md`:
 - Test after each change using the comprehensive test suite
 - Update documentation immediately after implementation
 - Consider both languages when changing shared code
-- Always use the correct CLI commands (`node dist/cli/index.js`)
+- Always use the correct CLI commands (`node dist/src/cli/index.js`)
 
 ### Common Patterns
 ```bash
@@ -220,9 +220,9 @@ if (await this.hasFile('package.json')) {
 }
 
 # CLI usage pattern (for users)
-node dist/cli/index.js analyze /path/to/project
-node dist/cli/index.js test /path/to/project
-node dist/cli/index.js run /path/to/project --coverage
+node dist/src/cli/index.js analyze /path/to/project
+node dist/src/cli/index.js test /path/to/project
+node dist/src/cli/index.js run /path/to/project --coverage
 ```
 
 ## 🔄 Quick Commands
@@ -230,25 +230,25 @@ node dist/cli/index.js run /path/to/project --coverage
 ### Most Used Commands
 ```bash
 # Analyze project structure and capabilities
-node dist/cli/index.js analyze /path/to/project
+node dist/src/cli/index.js analyze /path/to/project
 
 # Generate comprehensive tests
-node dist/cli/index.js test /path/to/project
+node dist/src/cli/index.js test /path/to/project
 
 # Run tests with coverage analysis
-node dist/cli/index.js run /path/to/project --coverage
+node dist/src/cli/index.js run /path/to/project --coverage
 
 # Incremental updates (cost-efficient for development)
-node dist/cli/index.js incremental /path/to/project
+node dist/src/cli/index.js incremental /path/to/project
 
 # Watch mode for continuous development
-node dist/cli/index.js watch /path/to/project
+node dist/src/cli/index.js watch /path/to/project
 
 # AI-powered gap analysis
-node dist/cli/index.js analyze-gaps /path/to/project
+node dist/src/cli/index.js analyze-gaps /path/to/project
 
 # Check all available commands
-node dist/cli/index.js --help
+node dist/src/cli/index.js --help
 ```
 
 ### Build and Development

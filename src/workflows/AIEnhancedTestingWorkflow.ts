@@ -28,11 +28,21 @@ import type {
   WorkflowPhase,
   WorkflowEvents,
   StructuralTestFile,
-  WorkflowEventHandler,
   WorkflowState,
   PhaseResults,
   PhaseResult,
 } from '../types/ai-workflow-types';
+import { EnhancedWorkflowEventEmitterImpl } from './EnhancedWorkflowEventEmitter';
+import {
+  CommonFilters,
+  CommonMiddleware,
+  type EnhancedWorkflowEventEmitter,
+  type EventListenerConfig,
+  type EventProcessingResult,
+  type EventContext,
+  type EventMetrics,
+  type EventTrace,
+} from '../types/workflow-event-types';
 
 export interface TestRunResults {
   results: TestResult;
@@ -103,15 +113,78 @@ export interface WorkflowDetailedReport {
 export class AIEnhancedTestingWorkflow extends EventEmitter {
   private startTime: number = 0;
   private workflowState: WorkflowState;
+  private enhancedEventEmitter: EnhancedWorkflowEventEmitter;
 
-  // Type-safe event emission
+  // Enhanced type-safe event emission with filtering and middleware
+  public async emitEnhanced<K extends keyof WorkflowEvents>(
+    event: K,
+    data: WorkflowEvents[K]
+  ): Promise<EventProcessingResult> {
+    // Emit enhanced event
+    const context: Partial<EventContext> = {
+      workflowId: `workflow-${this.startTime}`,
+    };
+    if (this.workflowState?.currentPhase) {
+      context.phase = this.workflowState.currentPhase;
+    }
+    const result = await this.enhancedEventEmitter.emit(event, data, context);
+
+    // Also emit standard event for compatibility
+    super.emit(event, data);
+
+    return result;
+  }
+
+  // Enhanced type-safe event listener with configuration
+  public onEnhanced<K extends keyof WorkflowEvents>(
+    event: K,
+    config: EventListenerConfig<K>
+  ): string {
+    return this.enhancedEventEmitter.on(event, config);
+  }
+
+  // Override emit to use enhanced version
   public emit<K extends keyof WorkflowEvents>(event: K, data: WorkflowEvents[K]): boolean {
+    // Use enhanced emitter asynchronously but return synchronously for compatibility
+    this.emitEnhanced(event, data).catch((error) => {
+      logger.error('Enhanced event emission failed:', error);
+    });
     return super.emit(event, data);
   }
 
-  // Type-safe event listener
-  public on<K extends keyof WorkflowEvents>(event: K, listener: WorkflowEventHandler<K>): this {
-    return super.on(event, listener);
+  // Add event filter
+  public addFilter<K extends keyof WorkflowEvents>(
+    eventName: K,
+    filter: (
+      eventName: K,
+      data: WorkflowEvents[K],
+      context: EventContext
+    ) => boolean | Promise<boolean>
+  ): string {
+    return this.enhancedEventEmitter.addFilter(eventName, filter);
+  }
+
+  // Add middleware
+  public addMiddleware<K extends keyof WorkflowEvents>(
+    eventName: K,
+    middleware: (
+      eventName: K,
+      data: WorkflowEvents[K],
+      context: EventContext,
+      next: () => Promise<void>
+    ) => Promise<void>
+  ): string {
+    return this.enhancedEventEmitter.addMiddleware(eventName, middleware);
+  }
+
+  // Get event metrics
+  public getEventMetrics(): EventMetrics {
+    return this.enhancedEventEmitter.getMetrics();
+  }
+
+  // Get event traces
+  public getEventTraces(limit?: number): EventTrace[] {
+    return this.enhancedEventEmitter.getTraces(limit);
   }
 
   // Initialize workflow state
@@ -210,8 +283,94 @@ export class AIEnhancedTestingWorkflow extends EventEmitter {
       ...config,
     };
 
+    // Initialize enhanced event emitter with default configuration
+    this.enhancedEventEmitter = new EnhancedWorkflowEventEmitterImpl({
+      enableMetrics: true,
+      enableTracing: this.config.verbose ?? false,
+      maxListeners: 20,
+      errorThreshold: 3,
+      defaultTimeout: 10000,
+    });
+
+    // Set up default middleware and filters
+    this.setupDefaultEventHandling();
+
     // Initialize workflow state
     this.workflowState = this.initializeState();
+  }
+
+  /**
+   * Set up default event handling with filters and middleware
+   */
+  private setupDefaultEventHandling(): void {
+    // Add logging middleware to all events
+    this.enhancedEventEmitter.addMiddleware(
+      'workflow:start',
+      CommonMiddleware.loggingMiddleware(logger)
+    );
+    this.enhancedEventEmitter.addMiddleware(
+      'workflow:complete',
+      CommonMiddleware.loggingMiddleware(logger)
+    );
+    this.enhancedEventEmitter.addMiddleware(
+      'workflow:error',
+      CommonMiddleware.loggingMiddleware(logger)
+    );
+    this.enhancedEventEmitter.addMiddleware(
+      'phase:start',
+      CommonMiddleware.loggingMiddleware(logger)
+    );
+    this.enhancedEventEmitter.addMiddleware(
+      'phase:complete',
+      CommonMiddleware.loggingMiddleware(logger)
+    );
+
+    // Add timing middleware to track processing times
+    this.enhancedEventEmitter.addMiddleware('phase:start', CommonMiddleware.timingMiddleware());
+    this.enhancedEventEmitter.addMiddleware('phase:complete', CommonMiddleware.timingMiddleware());
+
+    // Add rate limiting to prevent event spam (max 100 events per second)
+    this.enhancedEventEmitter.addFilter('ai:task-complete', CommonFilters.rateLimitFilter(100));
+
+    // Add phase-based filtering for AI events (only during ai-generation phase)
+    this.enhancedEventEmitter.addFilter('ai:skipped', CommonFilters.phaseFilter(['ai-generation']));
+    this.enhancedEventEmitter.addFilter(
+      'ai:task-complete',
+      CommonFilters.phaseFilter(['ai-generation'])
+    );
+
+    // Add validation middleware for workflow events
+    this.enhancedEventEmitter.addMiddleware(
+      'workflow:start',
+      CommonMiddleware.validationMiddleware(
+        (data) => typeof data === 'object' && data !== null && 'projectPath' in data
+      )
+    );
+
+    this.enhancedEventEmitter.addMiddleware(
+      'workflow:complete',
+      CommonMiddleware.validationMiddleware(
+        (data) => typeof data === 'object' && data !== null && 'result' in data
+      )
+    );
+
+    this.enhancedEventEmitter.addMiddleware(
+      'phase:start',
+      CommonMiddleware.validationMiddleware(
+        (data) => typeof data === 'object' && data !== null && 'phase' in data
+      )
+    );
+
+    // Set up error handling for event processing
+    this.enhancedEventEmitter.on('workflow:error', {
+      handler: (data: { error: AIWorkflowError }) => {
+        logger.error('Workflow error event processed:', data.error);
+      },
+      priority: 100, // High priority for error handling
+      errorHandler: (error: AIWorkflowError) => {
+        logger.error('Error in workflow error handler:', error);
+      },
+    });
   }
 
   /**

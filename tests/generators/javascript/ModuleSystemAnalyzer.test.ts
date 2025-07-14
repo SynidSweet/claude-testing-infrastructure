@@ -319,7 +319,7 @@ module.exports.bar = bar;`);
       expect(analyzer.getImportExtension(moduleInfo)).toBe('.js');
     });
 
-    it('should return empty extension for TypeScript files', () => {
+    it('should return .js extension for TypeScript files in ESM mode', () => {
       const analyzer = new ModuleSystemAnalyzer({ projectPath: mockProjectPath });
       
       const moduleInfo = {
@@ -330,7 +330,7 @@ module.exports.bar = bar;`);
         fileExtensionPattern: 'ts' as const,
       };
 
-      expect(analyzer.getImportExtension(moduleInfo)).toBe('');
+      expect(analyzer.getImportExtension(moduleInfo)).toBe('.js');
     });
 
     it('should return empty extension for CommonJS', () => {

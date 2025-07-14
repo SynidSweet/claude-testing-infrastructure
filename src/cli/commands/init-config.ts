@@ -176,8 +176,8 @@ export class ConfigInitializer {
       console.log('');
     });
 
-    console.log('Usage: node dist/cli/index.js init-config --template "react-typescript"');
-    console.log('   or: node dist/cli/index.js init-config --interactive\n');
+    console.log('Usage: node dist/src/cli/index.js init-config --template "react-typescript"');
+    console.log('   or: node dist/src/cli/index.js init-config --interactive\n');
   }
 
   private async interactiveSelection(): Promise<TemplateInfo> {
@@ -353,13 +353,13 @@ export class ConfigInitializer {
   private async showNextSteps(template: TemplateInfo): Promise<void> {
     console.log('🎯 Next Steps:\n');
     console.log('1. Analyze your project:');
-    console.log(`   node dist/cli/index.js analyze ${this.targetPath}\n`);
+    console.log(`   node dist/src/cli/index.js analyze ${this.targetPath}\n`);
 
     console.log('2. Generate tests:');
-    console.log(`   node dist/cli/index.js test ${this.targetPath}\n`);
+    console.log(`   node dist/src/cli/index.js test ${this.targetPath}\n`);
 
     console.log('3. Run tests with coverage:');
-    console.log(`   node dist/cli/index.js run ${this.targetPath} --coverage\n`);
+    console.log(`   node dist/src/cli/index.js run ${this.targetPath} --coverage\n`);
 
     console.log('📖 Documentation:');
     console.log('   - Configuration Guide: docs/configuration.md');

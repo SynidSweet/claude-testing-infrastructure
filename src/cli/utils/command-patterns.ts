@@ -84,7 +84,7 @@ export async function executeCommand<T>(
 
     // Load configuration with standardized handling
     const configResult = await loadStandardConfiguration(projectPath, {
-      customConfigPath: options.config || undefined,
+      customConfigPath: options.config ?? undefined,
       cliArgs: options,
       validateConfig,
       exitOnValidationError: exitOnConfigError,

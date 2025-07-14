@@ -205,7 +205,7 @@ export async function testCommand(
           // Show next steps for dry run
           console.log(chalk.gray('To actually generate tests:'));
           console.log(chalk.gray(`  • Remove --dry-run flag and run the command again`));
-          console.log(chalk.gray(`  • Or use: node dist/cli/index.js test ${projectPath}`));
+          console.log(chalk.gray(`  • Or use: node dist/src/cli/index.js test ${projectPath}`));
         } else {
           console.log(chalk.green('\n✓ Test generation completed successfully\n'));
           console.log(chalk.cyan('📊 Generation Statistics:'));

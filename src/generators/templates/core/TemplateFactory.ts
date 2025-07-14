@@ -210,7 +210,7 @@ export class TemplateFactoryRegistry {
       return {
         success: false,
         error: `Factory with name '${factoryName}' already exists`,
-        existingFactory: this.factories.get(factoryName) || undefined,
+        existingFactory: this.factories.get(factoryName) ?? undefined,
       };
     }
 

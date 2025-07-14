@@ -9,6 +9,7 @@ import * as child_process from 'child_process';
 import * as fs from 'fs/promises';
 import { TimerTestUtils } from '../../src/utils/TimerTestUtils';
 import { RealTimer } from '../../src/utils/RealTimer';
+import type { MockChildProcess } from '../types/mock-interfaces';
 // AI error types are imported to ensure they exist but not directly used in assertions
 
 // Mock child_process and fs
@@ -29,13 +30,22 @@ jest.mock('../../src/utils/retry-helper', () => ({
 }));
 
 // Helper to create a mock process
-function createMockProcess() {
-  const proc = new EventEmitter() as any;
+function createMockProcess(): MockChildProcess {
+  const proc = new EventEmitter() as MockChildProcess;
   proc.stdout = new EventEmitter();
   proc.stderr = new EventEmitter();
-  proc.kill = jest.fn();
+  proc.stdin = new EventEmitter();
+  proc.stdio = [proc.stdin, proc.stdout, proc.stderr];
+  proc.connected = false;
+  proc.spawnargs = ['claude'];
+  proc.spawnfile = 'claude';
+  proc.kill = jest.fn(() => true);
   proc.killed = false;
   proc.pid = 12345;
+  proc.exitCode = null;
+  proc.signalCode = null;
+  proc.ref = jest.fn();
+  proc.unref = jest.fn();
   return proc;
 }
 
@@ -501,8 +511,8 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       const mockProcess = createMockProcess();
       jest.spyOn(child_process, 'spawn').mockReturnValue(mockProcess);
       
-      const detectedErrors: any[] = [];
-      orchestrator.on('error:detected', (error) => {
+      const detectedErrors: { type: string; message: string; details?: any }[] = [];
+      orchestrator.on('error:detected', (error: { type: string; message: string; details?: any }) => {
         detectedErrors.push(error);
       });
 
@@ -549,8 +559,8 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       await processPromise.catch(() => {}); // Ignore error
       
       expect(detectedErrors).toHaveLength(1);
-      expect(detectedErrors[0].type).toBe('auth');
-      expect(detectedErrors[0].severity).toBe('fatal');
+      expect(detectedErrors[0]?.type).toBe('auth');
+      expect(detectedErrors[0]?.error.message).toMatch(/authentication/i);
     });
   });
 });

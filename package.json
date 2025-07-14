@@ -4,10 +4,10 @@
   "description": "AI-powered decoupled testing infrastructure that generates comprehensive tests without modifying target projects",
   "main": "dist/index.js",
   "bin": {
-    "claude-testing": "./dist/cli/index.js"
+    "claude-testing": "./dist/src/cli/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/src/runners/templates && cp -r src/runners/templates/*.html dist/src/runners/templates/ 2>/dev/null || true && cp -r templates dist/ 2>/dev/null || true",
     "dev": "tsc --watch",
     "test": "jest",
     "test:fast": "jest --config jest.unit.config.js",
@@ -59,12 +59,17 @@
     "precommit": "npm run quality:check && npm run test:fast",
     "precommit:enhanced": "npm run quality:check && npm run type-safety:check && npm run test:fast",
     "precommit:truth-validation": "npm run quality:check && npm run test:fast && npm run truth-validation:precommit",
+    "validate:dependencies": "node scripts/dependency-validation.js",
+    "validate:dependencies:strict": "node scripts/dependency-validation.js --strict",
+    "validate:dependencies:json": "node scripts/dependency-validation.js --json",
     "quality:check": "npm run lint && npm run format:check && npm run build:check",
     "build:check": "tsc --noEmit",
     "type-safety:check": "node scripts/type-safety-check.js",
     "type-safety:strict": "TYPE_SAFETY_STRICT=true node scripts/type-safety-check.js",
     "type-safety:report": "node scripts/type-safety-check.js && cat .type-safety-summary.md",
-    "test:local-comprehensive": "npm test"
+    "test:local-comprehensive": "npm test",
+    "validate:production:comprehensive": "node scripts/production-readiness-comprehensive-validation.js",
+    "sprint:validate": "node scripts/production-readiness-comprehensive-validation.js"
   },
   "keywords": [
     "testing",

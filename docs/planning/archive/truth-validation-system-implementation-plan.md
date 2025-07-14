@@ -63,7 +63,7 @@ Implement comprehensive truth validation system with automated blocker detection
 **Validation Steps**:
 1. Push to branch and verify CI runs without Node.js warnings
 2. Check CI logs show "Node.js: v20.x.x" 
-3. Verify commander works: `npm install && npm run build && node dist/cli/index.js --version`
+3. Verify commander works: `npm install && npm run build && node dist/src/cli/index.js --version`
 
 **Dependencies**: None
 
@@ -636,10 +636,10 @@ cd test-project-validation
 
 # Initialize representative project
 # Test full workflow
-node ../dist/cli/index.js analyze .
-node ../dist/cli/index.js test . --dry-run
-node ../dist/cli/index.js test .
-node ../dist/cli/index.js run . --coverage
+node ../dist/src/cli/index.js analyze .
+node ../dist/src/cli/index.js test . --dry-run
+node ../dist/src/cli/index.js test .
+node ../dist/src/cli/index.js run . --coverage
 
 # Validate outputs
 ls .claude-testing/

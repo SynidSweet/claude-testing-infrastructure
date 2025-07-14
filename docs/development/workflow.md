@@ -1,710 +1,356 @@
 # Development Workflow
 
-*Complete setup and development practices for the Claude Testing Infrastructure*
-
-*Last updated: 2025-07-10 | Jest Configuration Optimization - Added performance-optimized test configurations and enhanced pre-commit workflow*
-
-## 🔒 CRITICAL: Infrastructure Usage
-
-**This is testing infrastructure - clone into your project and use as-is:**
-
-- ✅ **Clone** this repo anywhere (works independently of target projects)
-- ✅ **Use** without modifying any infrastructure files
-- ✅ **Pull** updates regularly: `git pull origin main`
-- ✅ **Report** bugs via GitHub issues (mention `@claude` for automated assistance)
-- ❌ **NEVER** modify files in this testing infrastructure
+*Last updated: 2025-07-13 | Added dependency validation system and enhanced pre-commit hooks*
 
 ## Getting Started
 
 ### Prerequisites
-- **Node.js**: 18.0.0 or higher (for infrastructure)
-- **Git**: For cloning and updates
-- **Target runtime**: Python 3.9+ for Python projects being tested
+
+- **Node.js**: Version 20+ (ES2022 support required)
+- **npm**: Version 8+ (comes with Node.js)
+- **Git**: For version control and incremental features
+- **Claude CLI**: Required for AI features (Max subscription needed)
 
 ### Initial Setup
+
 ```bash
-# 1. Clone the infrastructure
-git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
-cd claude-testing-infrastructure
-
-# 2. Install dependencies and build
-npm install
-npm run build
-
-# 3. Verify installation (clean output expected)
-node dist/cli/index.js --version
-node dist/cli/index.js --help
-```
-
-### Quick Verification
-```bash
-# Test with a sample project
-node dist/cli/index.js analyze /path/to/any/project
-node dist/cli/index.js test /path/to/any/project --only-structural
-node dist/cli/index.js run /path/to/any/project
-```
-
-## Test Execution Strategy
-
-### Test Suite Categories
-The test suite uses optimized Jest configurations for maximum performance and reliability:
-
-#### 1. Fast Tests (`npm run test:fast`) 
-- **Purpose**: Quick feedback during development
-- **Configuration**: `jest.unit.config.js` - optimized for CPU-bound tests
-- **Scope**: Unit tests for utils, generators, analyzers, and config modules  
-- **Performance**: 465 tests in ~13 seconds
-- **Workers**: 100% (CPU-optimized)
-- **Use when**: Making code changes, need rapid validation
-
-#### 2. Core Tests (`npm run test:core`)
-- **Purpose**: Infrastructure validation before commits  
-- **Strategy**: Sequential execution of unit + integration tests
-- **Performance**: 521 tests in ~20 seconds (60-75% faster than previous timeout issues)
-- **Scope**: Unit tests + integration tests (excludes AI validation)
-- **Use when**: Before committing changes, validating functionality  
-
-#### 3. Integration Tests (`npm run test:integration`)
-- **Purpose**: I/O-heavy test validation
-- **Configuration**: `jest.integration.config.js` - optimized for filesystem operations
-- **Performance**: 56 tests in ~7 seconds
-- **Workers**: Limited (I/O-optimized)
-- **Scope**: Configuration tests, file operations, project validation
-
-#### 4. Full Tests (`npm run test:full`)
-- **Purpose**: Comprehensive validation
-- **Configuration**: `jest.performance.config.js` - advanced optimizations
-- **Scope**: All tests including AI validation
-- **Target time**: < 10 minutes
-- **Use when**: Before releases, after major changes
-
-### Test Execution Guidelines
-```bash
-# During development - quick feedback (465 tests in ~13s)
-npm run test:fast
-
-# Before commits - ensure stability (521 tests in ~20s)
-npm run test:core
-
-# Integration testing only (56 tests in ~7s)  
-npm run test:integration
-
-# Before releases - full validation
-npm run test:full
-
-# For AI validation specifically
-npm run test:ai-validation
-
-# Watch mode during development
-npm run test:watch
-```
-
-### Jest Configuration Optimizations
-Performance-optimized Jest configurations provide significant speed improvements:
-- **CPU-bound tests**: Maximum worker utilization for parallel processing
-- **I/O-bound tests**: Limited workers to reduce filesystem contention  
-- **Environment detection**: Automatic CI/local optimizations
-- **Cache management**: Separated cache directories for different test types
-- **Memory management**: Worker idle limits and heap optimization
-
-## Production CLI Commands
-
-### Core Workflow
-```bash
-# 1. Analyze project structure
-node dist/cli/index.js analyze /path/to/project [--output analysis.json] [--format json|markdown|console]
-
-# 2. Preview test generation (recommended)
-node dist/cli/index.js test /path/to/project --dry-run [--verbose]
-
-# 3. Generate comprehensive tests
-node dist/cli/index.js test /path/to/project [--config config.json] [--only-structural|--only-logical]
-
-# 4. Run tests with coverage
-node dist/cli/index.js run /path/to/project [--coverage] [--framework jest|pytest] [--watch]
-
-# 5. Analyze gaps for AI generation
-node dist/cli/index.js analyze-gaps /path/to/project [--format json|markdown|text] [--threshold 3]
-```
-
-### Advanced Options
-```bash
-# Watch mode for development
-node dist/cli/index.js watch /path/to/project
-
-# Coverage with thresholds
-node dist/cli/index.js run /path/to/project --coverage --threshold "statements:80,branches:70"
-
-# Generate JUnit reports for CI/CD
-node dist/cli/index.js run /path/to/project --junit --coverage
-
-# Production readiness validation
-npm run validation:production
-```
-
-### Production Validation
-```bash
-# Comprehensive production readiness check
-npm run validation:production
-
-# Direct script execution
-node scripts/production-readiness-check.js
-
-# Check exit code for automation
-npm run validation:production && echo "Production ready" || echo "Needs fixes"
-```
-
-## Development Environment Setup
-
-### For Infrastructure Development
-```bash
-# Clone for development
+# Clone the repository
 git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
 cd claude-testing-infrastructure
 
 # Install dependencies
 npm install
 
-# Development build (watch mode)
-npm run dev
+# Build the project
+npm run build
 
-# Run infrastructure tests
-npm test
-npm run test:coverage
-
-# Lint and format
-npm run lint
-npm run format
+# Verify installation
+node dist/src/cli/index.js --version
+# Should output: 2.0.0
 ```
+
+### Claude CLI Setup (Local Development Only)
+
+**🚨 IMPORTANT: Claude CLI is for local development only and should NOT be expected in CI/production environments.**
+
+```bash
+# Install Claude CLI if not present
+# Follow instructions at https://claude.ai/cli
+
+# Verify authentication
+claude --version
+claude config get
+
+# Test AI functionality
+node dist/src/cli/index.js analyze-gaps /path/to/test/project
+```
+
+**CI/Production Strategy:**
+- ✅ **Structural tests**: Always run (no AI required)
+- ⚠️ **AI tests**: Automatically skipped via `SKIP_AI_TESTS=1` environment variable
+- 🎯 **Production validation**: Configured to skip AI checks in CI environment
+- 📋 **Local validation**: Run full AI validation locally before pushing
+
+## Development Environment
+
+### Project Structure
+
+```
+claude-testing/
+├── src/               # TypeScript source code
+├── dist/              # Compiled JavaScript (gitignored)
+├── tests/             # Test suites
+├── scripts/           # Build and utility scripts
+├── docs/              # Documentation
+├── templates/         # Configuration templates
+└── .claude-testing/   # Runtime test output (gitignored)
+```
+
+### Configuration Files
+
+- **tsconfig.json**: TypeScript configuration (strict mode)
+- **jest.config.js**: Test runner configuration
+- **.eslintrc.js**: Linting rules
+- **.prettierrc**: Code formatting rules
 
 ### Environment Variables
+
 ```bash
-# .env file for development
-LOG_LEVEL=debug
-DEBUG=claude-testing:*
+# Optional: Set log level
+export CLAUDE_TESTING_LOG_LEVEL=debug
 
-# For AI features (Phase 5.3) - Claude Code CLI Integration
-# No API key needed if using Claude Code CLI with Max subscription
-# ANTHROPIC_API_KEY=sk-...  # Only needed for direct API access
+# Optional: Set Claude model preference
+export CLAUDE_TESTING_AI_MODEL=claude-3-5-sonnet-20241022
 
-# Timeout configuration for complex AI operations
-BASH_DEFAULT_TIMEOUT_MS=900000  # 15 minutes default
-BASH_MAX_TIMEOUT_MS=1800000     # 30 minutes maximum
-
-# For testing different scenarios
-TEST_PROJECT_PATH=/path/to/test/project
-COVERAGE_THRESHOLD=80
+# Optional: Disable color output
+export NO_COLOR=1
 ```
 
-## 🚀 Comprehensive CI/CD Testing Strategy
+## Core Development Workflow
 
-The Claude Testing Infrastructure implements a dual-testing strategy designed to provide comprehensive local validation while maintaining fast CI feedback loops:
+### 1. Making Changes
 
-### 📊 Testing Philosophy
-
-**Dual-Environment Strategy**:
-- **Local Development**: Comprehensive testing including AI validation
-- **CI/CD Pipeline**: Core infrastructure tests with fast execution
-
-### 🏠 Local Development Testing
-
-**Full Test Suite** - All tests including AI validation:
 ```bash
-# Complete local testing (includes AI validation)
+# Create a feature branch
+git checkout -b feature/your-feature-name
+
+# Make your changes in src/
+# Follow existing patterns and conventions
+
+# Build to test changes
+npm run build
+
+# Test your changes
 npm test
-
-# Pre-commit quality gates
-npm run precommit  # Runs: lint + format + build + full tests
-
-# Comprehensive with coverage
-npm run test:coverage
 ```
 
-**Local Testing Features**:
-- ✅ AI validation tests run by default
-- ✅ Claude CLI integration testing
-- ✅ End-to-end workflow validation
-- ✅ Test quality metrics and timeouts
-- ✅ Production readiness checks
-
-### ☁️ CI/CD Pipeline Testing
-
-**Core Infrastructure Tests** - Fast, reliable CI execution:
-```bash
-# CI automatically skips AI tests (via Jest environment detection)
-CI=true npm test
-
-# Manual simulation of CI environment
-SKIP_AI_TESTS=1 npm test
-```
-
-**CI Pipeline Features**:
-- ✅ Multi-platform testing (Ubuntu, macOS)
-- ✅ Multi-version Node.js support (18, 20)
-- ✅ Automatic AI test exclusion
-- ✅ Quality gates (lint, format, build)
-- ✅ Security scanning
-- ✅ Coverage reporting for PRs
-
-### 🎯 Environment Detection
-
-**Automatic CI Detection** (Jest Configuration):
-```javascript
-// AI tests are automatically skipped when:
-// - CI=true (standard CI environment)
-// - GITHUB_ACTIONS=true
-// - Other CI environment variables detected
-```
-
-**Test Environment Utilities**:
-```bash
-# Check environment programmatically
-node -e "
-const { isClaudeCLIAvailable, isCIEnvironment } = require('./tests/utils/test-environment');
-console.log('Claude CLI:', await isClaudeCLIAvailable());
-console.log('CI Environment:', isCIEnvironment());
-"
-```
-
-### 🔧 Pre-Commit Hooks
-
-**Quality Gates** - Comprehensive local validation:
-```bash
-# Automatic pre-commit validation
-git commit  # Triggers: precommit script
-
-# Bypass for faster iteration
-git commit --no-verify
-
-# Manual quality check
-npm run quality:check  # lint + format + build
-```
-
-**Pre-commit includes**:
-- ESLint code quality checks
-- Prettier format validation
-- **Fast TypeScript compilation verification** (`tsc --noEmit`)
-- Complete test suite with AI validation
-
-### Build Verification Enhancement (2025-07-10)
-
-The pre-commit process now includes optimized build verification:
+### 2. Running Tests
 
 ```bash
-# Quality check process (runs in pre-commit)
-npm run quality:check
+# Fast unit tests (6s)
+npm run test:fast
 
-# Individual steps:
-npm run lint           # ESLint code quality
-npm run format:check   # Prettier format validation  
-npm run build:check    # Fast TypeScript compilation (no emit)
+# Core tests before commit (30s)
+npm run test:core
 
-# Fast build check only (optimized for pre-commit)
-npm run build:check    # ~4 seconds vs ~8 seconds for full build
-```
+# Full test suite (10 minutes)
+npm run test:full
 
-**Benefits**:
-- **Faster feedback**: Type-check only build is 50% faster than full build
-- **Early error detection**: Catches TypeScript errors before commit
-- **Clear error messages**: Detailed compilation errors with file locations
-- **No slowdown**: Optimized for pre-commit workflow speed
-
-### 📈 Testing Metrics
-
-**Current Status**:
-- **Core Tests**: 329/358 passing (91.9% success rate)
-- **Environment Handling**: ✅ Automatic CI detection
-- **AI Validation**: ✅ Graceful skipping when unavailable
-- **Quality Gates**: ✅ Pre-commit hooks enforced
-
-**Coverage Goals**:
-- Core infrastructure: 90%+ test coverage
-- Critical paths: 100% test coverage
-- AI validation: Comprehensive end-to-end testing
-
-### 🛠️ Infrastructure Testing
-
-```bash
-# Run full test suite (current status: 329/358 passing ✅)
-npm test
+# Specific test file
+npm test src/analyzers/ProjectAnalyzer.test.ts
 
 # Watch mode during development
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
-
-# Specific test files
-npm test -- --testPathPattern="ProjectAnalyzer"
-
-# Run specific component tests
-npm test -- tests/generators/TestTemplateEngine.test.ts
-npm test -- tests/analyzers/TestGapAnalyzer.test.ts
+npm test -- --watch
 ```
 
-### Test Suite Status
-- **Current**: Generated test quality significantly improved with proper class detection and React configuration
-- **Class Detection**: Added intelligent detection to differentiate classes from functions for proper instantiation
-- **React Testing**: Enhanced setupTests.js with @testing-library/jest-dom imports and window.matchMedia mocks
-- **Module Imports**: Fixed module existence tests for named-export-only modules
-- **TypeScript Support**: Verified proper removal of .ts/.tsx extensions in generated test imports
-- **Template Improvements**: Both TestTemplateEngine and JavaScriptEnhancedTemplates now generate valid tests
-- **Impact**: Generated tests now compile and execute correctly across all project types
-
-### Environment-Aware Test Execution
+### 3. Code Quality Checks
 
 ```bash
-# Run tests with AI validation tests skipped (for CI environments)
-SKIP_AI_TESTS=1 npm test
+# Run linting
+npm run lint
 
-# Run full test suite including AI validation (requires Claude CLI)
-npm test
-
-# Check environment availability programmatically
-node -e "
-const { isClaudeCLIAvailable, isCIEnvironment } = require('./tests/utils/test-environment.ts');
-console.log('Claude CLI:', await isClaudeCLIAvailable());
-console.log('CI Environment:', isCIEnvironment());
-"
-```
-
-### Generated Test Validation
-```bash
-# Test structural generation only
-node dist/cli/index.js test ./examples/test-examples --only-structural
-
-# Validate generated tests run successfully
-node dist/cli/index.js run ./examples/test-examples
-
-# Check coverage reports
-node dist/cli/index.js run ./examples/test-examples --coverage
-
-# Test mixed project validation (JavaScript + Python)
-npm test -- --testPathPattern="mixed-test-harness.test.ts"
-
-# Test individual mixed project fixtures
-node dist/cli/index.js analyze tests/fixtures/validation-projects/mixed-minimal
-node dist/cli/index.js test tests/fixtures/validation-projects/mixed-complex
-```
-
-## Development Practices
-
-### Git Workflow
-```bash
-# Feature development
-git checkout -b feature/new-adapter
-git add src/adapters/new-adapter.ts
-git commit -m "feat: add support for new framework"
-git push origin feature/new-adapter
-
-# Create pull request
-gh pr create --title "Add support for new framework" --body "Description..."
-```
-
-### Code Quality
-```bash
-# Before committing
+# Fix linting issues
 npm run lint:fix
+
+# Run type checking
+npm run typecheck
+
+# Format code
 npm run format
-npm test
 
-# TypeScript checking
-npx tsc --noEmit
+# Validate dependencies
+npm run validate:dependencies
 
-# Build verification
-npm run build
+# Complete validation
+npm run validation:full
 ```
 
-### Release Process
-1. **Version bump**: Update `package.json` version
-2. **Build**: `npm run build`
-3. **Test**: `npm test` (all tests must pass)
-4. **Tag**: `git tag v2.x.x`
-5. **Publish**: Automated via GitHub Actions
+### 4. Testing Your Changes
 
-## Debugging Approaches
-
-### Verbose Logging
-```bash
-# Enable debug logging
-DEBUG=claude-testing:* node dist/cli/index.js analyze /path/to/project
-
-# Specific component debugging
-DEBUG=claude-testing:analyzer node dist/cli/index.js analyze /path/to/project
-DEBUG=claude-testing:generator node dist/cli/index.js test /path/to/project
-DEBUG=claude-testing:runner node dist/cli/index.js run /path/to/project
-```
-
-### Common Debugging Scenarios
-```bash
-# Project not detected properly
-node dist/cli/index.js analyze /path/to/project --verbose
-
-# Tests not generating
-node dist/cli/index.js test /path/to/project --debug
-
-# Test execution failing
-node dist/cli/index.js run /path/to/project --debug --verbose
-
-# Coverage issues
-node dist/cli/index.js run /path/to/project --coverage --debug
-```
-
-### Step-by-Step Verification
-```bash
-# 1. Verify project detection
-node dist/cli/index.js analyze /path/to/project --format json
-
-# 2. Check generated test structure
-ls -la /path/to/project/.claude-testing/
-
-# 3. Validate test syntax
-npx eslint /path/to/project/.claude-testing/**/*.test.js
-python -m py_compile /path/to/project/.claude-testing/**/*.py
-
-# 4. Run tests individually
-cd /path/to/project/.claude-testing && npm test
-cd /path/to/project/.claude-testing && python -m pytest
-```
-
-## Performance Optimization
-
-### Build Performance
-```bash
-# Incremental builds
-npm run dev  # Uses tsc --watch
-
-# Clean builds
-npm run prebuild  # Cleans dist/
-npm run build
-```
-
-### Test Performance
-```bash
-# Parallel test execution
-npm test -- --maxWorkers=4
-
-# Specific test suites
-npm test -- tests/analyzers/
-npm test -- tests/generators/
-
-# AI Agent Validation Tests
-npm run test:ai-validation      # Full validation suite (20 min timeout)
-npm run test:ai-quick          # Critical tests only
-npm run validation:report      # Generate validation report
-npm run validation:production  # Production readiness check
-```
-
-### AI Agent Validation Workflow
-
-The infrastructure now includes comprehensive validation for AI agent functionality:
+#### Manual Testing
 
 ```bash
-# 1. Run connectivity tests (verify Claude CLI integration)
-npm run test:ai-validation -- --testNamePattern="connectivity"
-
-# 2. Run quality validation tests
-npm run test:ai-validation -- --testNamePattern="quality"
-
-# 3. Run full end-to-end validation
-npm run test:ai-validation -- --testNamePattern="production"
-
-# 4. Generate comprehensive report
-npm run validation:report > validation-results.md
+# Test with a sample project
+node dist/src/cli/index.js analyze /path/to/test/project
+node dist/src/cli/index.js test /path/to/test/project --dry-run
+node dist/src/cli/index.js test /path/to/test/project
+node dist/src/cli/index.js run /path/to/test/project --coverage
 ```
 
-**Validation Coverage**:
-- AI generation hanging detection (15-minute timeouts)
-- Model recognition (sonnet/haiku/opus aliases)
-- Test quality metrics (assertions vs TODOs)
-- End-to-end workflow validation
-- Production readiness gates (70% quality, 90% success rate)
+#### Integration Testing
 
-## Troubleshooting
+```bash
+# Run E2E tests
+npm run test:e2e
+
+# Test with real projects
+npm run test:integration
+```
+
+### 5. Documentation Updates
+
+After making changes:
+
+```bash
+# Update relevant documentation
+# - API changes: Update docs/api/
+# - New features: Update docs/features/
+# - Architecture: Update docs/architecture/
+
+# Update PROJECT_CONTEXT.md if needed
+```
+
+## Common Development Tasks
+
+### Adding a New CLI Command
+
+1. Create command file in `src/cli/commands/`
+2. Implement command logic following existing patterns
+3. Register in `src/cli/index.ts`
+4. Add tests in `tests/cli/commands/`
+5. Update documentation in `docs/commands/`
+
+### Adding Language Support
+
+1. Create new adapter in `src/adapters/`
+2. Implement language detection in ProjectAnalyzer
+3. Add templates in `src/generators/templates/`
+4. Create test runner in `src/runners/`
+5. Add comprehensive tests
+
+### Modifying AI Integration
+
+1. Changes go in `src/ai/` directory
+2. Update ClaudeOrchestrator for process management
+3. Modify AITaskPreparation for prompt changes
+4. Test with mock AI responses first
+5. Validate with real Claude CLI
+
+## Debugging
+
+### Enable Debug Logging
+
+```bash
+# Set debug log level
+export CLAUDE_TESTING_LOG_LEVEL=debug
+
+# Run with verbose output
+node dist/src/cli/index.js analyze /path --verbose
+```
 
 ### Common Issues
 
-1. **"Command not found"**
-   ```bash
-   # Ensure you're in the infrastructure directory
-   cd claude-testing-infrastructure
-   npm run build
-   ```
-
-2. **"TypeScript errors"**
-   ```bash
-   # Check TypeScript configuration
-   npx tsc --noEmit
-   npm run lint
-   ```
-
-3. **"Tests not generating"**
-   ```bash
-   # Verify project analysis
-   node dist/cli/index.js analyze /path/to/project --verbose
-   
-   # Check file permissions
-   ls -la /path/to/project/.claude-testing/
-   ```
-
-4. **"Coverage not working"**
-   ```bash
-   # Verify test runner
-   node dist/cli/index.js run /path/to/project --debug
-   
-   # Check coverage configuration
-   cat /path/to/project/.claude-testing/jest.config.js
-   ```
-
-5. **"jest-environment-jsdom cannot be found"**
-   ```bash
-   # This is a known issue for React projects
-   # Jest 28+ requires explicit installation of jest-environment-jsdom
-   # The infrastructure generates tests that may require this dependency
-   
-   # Temporary workaround for testing:
-   cd /path/to/project/.claude-testing
-   npm install --save-dev jest-environment-jsdom
-   
-   # This is tracked as a known limitation for React test generation
-   ```
-
-### CI/CD Troubleshooting
-
-6. **"AI tests running in CI when they shouldn't"**
-   ```bash
-   # Verify CI environment detection
-   CI=true node -e "
-   const { isCIEnvironment } = require('./tests/utils/test-environment');
-   console.log('CI detected:', isCIEnvironment());
-   "
-   
-   # Check Jest configuration
-   CI=true npm test -- --listTests | grep -c "ai-agents" || echo "AI tests correctly skipped"
-   ```
-
-7. **"Pre-commit hook not running"**
-   ```bash
-   # Check hook exists and is executable
-   ls -la .husky/pre-commit
-   chmod +x .husky/pre-commit
-   
-   # Test hook manually
-   npm run precommit
-   
-   # Bypass if needed for emergency commits
-   git commit --no-verify -m "emergency fix"
-   ```
-
-8. **"GitHub Actions failing on lint"**
-   ```bash
-   # Fix lint issues locally first
-   npm run lint:fix
-   npm run format
-   
-   # Verify clean before pushing
-   npm run quality:check
-   ```
-
-9. **"CI tests passing but local tests failing"**
-   ```bash
-   # Ensure local environment matches CI
-   CI=true npm test  # Simulate CI locally
-   
-   # Check if AI tests are the difference
-   npm test  # Full local suite
-   ```
-
-10. **"Environment detection not working"**
-   ```bash
-   # Debug environment detection
-   node -e "
-   const env = require('./tests/utils/test-environment');
-   console.log('Environment info:', env.getEnvironmentInfo());
-   "
-   
-   # Reset cached values if needed
-   node -e "
-   const env = require('./tests/utils/test-environment');
-   env.resetEnvironmentCache();
-   console.log('Cache reset');
-   "
-   ```
-
-## Pre-commit Hooks and CI/CD Workflow
-
-### Local Development with Pre-commit Hooks
-
-The project uses Husky for git hooks to ensure code quality before commits:
-
+#### Build Failures
 ```bash
-# Pre-commit hook automatically runs:
-- npm run build       # Ensure TypeScript compiles
-- npm test           # Run test suite  
-- npm run lint       # Check code style (if configured)
-
-# To skip hooks in emergency (use sparingly):
-git commit --no-verify -m "Emergency fix"
+# Clean and rebuild
+rm -rf dist/ node_modules/
+npm install
+npm run build
 ```
 
-### CI/CD Pipeline Structure
+#### Test Failures
+```bash
+# Check for timing issues
+npm run test:optimized  # Uses simplified timers
 
-```yaml
-# .github/workflows/main.yml runs:
-1. Checkout code
-2. Setup Node.js  
-3. Install dependencies
-4. Run build
-5. Run tests
-6. Run linting
-7. Generate coverage reports
+# Run specific test in isolation
+npm test -- --testNamePattern="specific test name"
 ```
 
-### Production Validation
+#### AI Generation Issues
+```bash
+# Test Claude CLI directly
+claude --help
 
-Before deployment, run comprehensive validation:
+# Check API limits
+node dist/src/cli/index.js analyze-gaps /path --dry-run
+```
+
+## Git Workflow
+
+### Branch Naming
+- Features: `feature/description`
+- Fixes: `fix/description`
+- Refactoring: `refactor/description`
+- Documentation: `docs/description`
+
+### Commit Messages
+```
+type(scope): brief description
+
+Longer explanation if needed.
+
+Fixes #123
+```
+
+Types: feat, fix, docs, style, refactor, test, chore
+
+### Pull Request Process
+
+1. Ensure all tests pass
+2. Update documentation
+3. Add/update tests for changes
+4. Request review
+5. Address feedback
+6. Squash commits if needed
+
+## Performance Optimization
+
+### Development Performance
 
 ```bash
-# Full production readiness check
+# Use optimized test configuration
+npm run test:optimized
+
+# Skip AI tests during development
+npm test -- --testPathIgnorePatterns=ai
+
+# Use watch mode for faster feedback
+npm test -- --watch
+```
+
+### Runtime Performance
+
+- Use FileDiscoveryService caching
+- Batch AI operations
+- Enable incremental generation
+- Configure appropriate timeouts
+
+## CI/CD Integration
+
+### GitHub Actions
+
+The project uses GitHub Actions for:
+- Running tests on PRs
+- Code quality checks
+- Dependency validation and security checks
+- Coverage reporting
+- Production validation
+
+### Local CI Simulation
+
+```bash
+# Run same checks as CI
+npm run ci:local
+
+# Production readiness check
 npm run validation:production
-
-# Individual validation steps:
-npm run build                    # Build validation
-npm test                        # Test suite validation  
-node dist/cli/index.js --version # CLI validation
 ```
 
-### Troubleshooting CI/CD Issues
+## Troubleshooting
 
-#### Pre-commit Hook Failures
-```bash
-# Reset hooks if corrupted
-rm -rf .husky
-npm run prepare  # Reinstalls hooks
+### Module Resolution Issues
+- Ensure `npm run build` completed successfully
+- Check for circular dependencies
+- Verify import paths
 
-# Debug specific failures
-npm run build    # Check TypeScript errors
-npm test -- --verbose  # Detailed test output
-```
+### Timer Test Issues
+- Use MockTimer for deterministic tests
+- Inject timer dependencies
+- Avoid real setTimeout in tests
 
-#### GitHub Actions Failures
-1. Check Actions tab for specific error
-2. Run failing command locally
-3. Common issues:
-   - Node version mismatch
-   - Missing environment variables
-   - Timeout in AI tests
+### Configuration Loading
+- Check precedence: CLI > env > project > user > defaults
+- Use `--show-config-sources` flag
+- Verify JSON syntax in config files
 
-### Best Practices
+## Best Practices
 
-1. **Always commit buildable code** - Pre-commit hooks enforce this
-2. **Fix test failures immediately** - Don't push broken tests
-3. **Update snapshots carefully** - Review before committing
-4. **Monitor CI status** - Address failures quickly
-5. **Use production validation** - Before major releases
+1. **Follow existing patterns** - Consistency is key
+2. **Write tests first** - TDD approach preferred
+3. **Document as you go** - Update docs with code
+4. **Use TypeScript strictly** - Avoid `any` types
+5. **Handle errors gracefully** - Use Result pattern
+6. **Optimize for AI agents** - Clear, predictable code
+7. **Maintain backward compatibility** - Don't break APIs
 
-## See Also
-- 📖 **Development Conventions**: [`./conventions.md`](./conventions.md)
-- 📖 **Important Gotchas**: [`./gotchas.md`](./gotchas.md)
-- 📖 **Commands Reference**: [`../reference/commands.md`](../reference/commands.md)
-- 📖 **User Getting Started**: [`../user/getting-started.md`](../user/getting-started.md)
+## Resources
+
+- **Architecture Guide**: [`/docs/architecture/overview.md`](../architecture/overview.md)
+- **Conventions**: [`/docs/development/conventions.md`](./conventions.md)
+- **API Reference**: [`/docs/api/`](../api/)
+- **Planning**: [`/docs/planning/`](../planning/)
+
+---
+
+**Development Philosophy**: Build robust, testable, and maintainable code that serves both human developers and AI agents effectively.
