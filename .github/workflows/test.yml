@@ -126,7 +126,7 @@ jobs:
       - name: Verify CLI availability
         run: |
           echo "Testing CLI availability..."
-          CLI_OUTPUT=$(node dist/cli/index.js --version)
+          CLI_OUTPUT=$(node dist/src/cli/index.js --version)
           echo "CLI output: $CLI_OUTPUT"
           
           # Extract version number
@@ -486,13 +486,13 @@ jobs:
           
           # Test CLI functionality
           echo "💻 CLI functionality check..."
-          node dist/cli/index.js --help > cli-help.log 2>&1 || {
+          node dist/src/cli/index.js --help > cli-help.log 2>&1 || {
             echo "❌ CLI help command failed"
             cat cli-help.log
             exit 1
           }
           
-          node dist/cli/index.js --version > cli-version.log 2>&1 || {
+          node dist/src/cli/index.js --version > cli-version.log 2>&1 || {
             echo "❌ CLI version command failed"
             cat cli-version.log
             exit 1
