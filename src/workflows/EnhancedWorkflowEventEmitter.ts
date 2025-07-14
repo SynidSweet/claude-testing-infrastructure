@@ -350,7 +350,10 @@ export class EnhancedWorkflowEventEmitterImpl implements EnhancedWorkflowEventEm
       addedAt: Date.now(),
     };
 
-    this.listenerRegistry.set(listenerId, entry as unknown as ListenerRegistryEntry<keyof WorkflowEvents>);
+    this.listenerRegistry.set(
+      listenerId,
+      entry as unknown as ListenerRegistryEntry<keyof WorkflowEvents>
+    );
     return listenerId;
   }
 
