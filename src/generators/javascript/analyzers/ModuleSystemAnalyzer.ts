@@ -190,7 +190,7 @@ export class ModuleSystemAnalyzer {
         return '.js';
       } else {
         // JavaScript and JSX files keep their original extension
-        return moduleInfo.fileExtension;
+        return moduleInfo.fileExtension || '';
       }
     }
     // CommonJS doesn't require extensions

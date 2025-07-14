@@ -6,8 +6,8 @@
  */
 
 import { EnhancedWorkflowEventEmitterImpl } from '../../src/workflows/EnhancedWorkflowEventEmitter';
-import { AIWorkflowError } from '../../src/types/ai-error-types';
-import type { EventListenerConfig } from '../../src/types/workflow-event-types';
+// import { AIWorkflowError } from '../../src/types/ai-error-types';
+// import type { EventListenerConfig } from '../../src/types/workflow-event-types';
 
 describe('EnhancedWorkflowEventEmitter', () => {
   let emitter: EnhancedWorkflowEventEmitterImpl;
@@ -137,13 +137,13 @@ describe('EnhancedWorkflowEventEmitter', () => {
       const executionOrder: string[] = [];
       let eventReceived = false;
 
-      emitter.addMiddleware('workflow:start', async (eventName, data, context, next) => {
+      emitter.addMiddleware('workflow:start', async (_eventName, _data, _context, next) => {
         executionOrder.push('middleware1-before');
         await next();
         executionOrder.push('middleware1-after');
       });
 
-      emitter.addMiddleware('workflow:start', async (eventName, data, context, next) => {
+      emitter.addMiddleware('workflow:start', async (_eventName, _data, _context, next) => {
         executionOrder.push('middleware2-before');
         await next();
         executionOrder.push('middleware2-after');
@@ -191,7 +191,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       expect(result.success).toBe(false);
       expect(result.middlewareErrors).toHaveLength(1);
-      expect(result.middlewareErrors[0].message).toContain('Middleware error');
+      expect(result.middlewareErrors[0]?.message).toContain('Middleware error');
       expect(eventReceived).toBe(true); // Handler still executes despite middleware error
     });
   });
@@ -212,7 +212,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       expect(result.success).toBe(false);
       expect(result.handlerErrors).toHaveLength(1);
-      expect(result.handlerErrors[0].message).toContain('Handler error');
+      expect(result.handlerErrors[0]?.message).toContain('Handler error');
 
       const listeners = emitter.getListeners('workflow:start');
       const listener = listeners.find(l => l.id === listenerId);
@@ -279,9 +279,9 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       const traces = emitter.getTraces();
       expect(traces).toHaveLength(1);
-      expect(traces[0].eventName).toBe('workflow:start');
-      expect(traces[0].handlerCount).toBe(1);
-      expect(traces[0].filtered).toBe(false);
+      expect(traces[0]?.eventName).toBe('workflow:start');
+      expect(traces[0]?.handlerCount).toBe(1);
+      expect(traces[0]?.filtered).toBe(false);
     });
   });
 
@@ -361,8 +361,8 @@ describe('EnhancedWorkflowEventEmitter', () => {
       const results = await emitter.emitBatch(batch);
 
       expect(results).toHaveLength(2);
-      expect(results[0].success).toBe(true);
-      expect(results[1].success).toBe(true);
+      expect(results[0]?.success).toBe(true);
+      expect(results[1]?.success).toBe(true);
       expect(eventCount).toBe(2);
     });
   });

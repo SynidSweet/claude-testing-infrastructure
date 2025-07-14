@@ -350,7 +350,7 @@ export class EnhancedWorkflowEventEmitterImpl implements EnhancedWorkflowEventEm
       addedAt: Date.now(),
     };
 
-    this.listenerRegistry.set(listenerId, entry as ListenerRegistryEntry<keyof WorkflowEvents>);
+    this.listenerRegistry.set(listenerId, entry as unknown as ListenerRegistryEntry<keyof WorkflowEvents>);
     return listenerId;
   }
 
@@ -418,7 +418,7 @@ export class EnhancedWorkflowEventEmitterImpl implements EnhancedWorkflowEventEm
 
     this.pipelines
       .get(eventName)!
-      .set(pipelineId, config as EventPipelineConfig<keyof WorkflowEvents>);
+      .set(pipelineId, config as unknown as EventPipelineConfig<keyof WorkflowEvents>);
     return pipelineId;
   }
 
@@ -482,10 +482,10 @@ export class EnhancedWorkflowEventEmitterImpl implements EnhancedWorkflowEventEm
     if (eventName) {
       return allListeners.filter(
         (listener) => listener.eventName === eventName
-      ) as ListenerRegistryEntry<K>[];
+      ) as unknown as ListenerRegistryEntry<K>[];
     }
 
-    return allListeners as ListenerRegistryEntry<K>[];
+    return allListeners as unknown as ListenerRegistryEntry<K>[];
   }
 
   /**
