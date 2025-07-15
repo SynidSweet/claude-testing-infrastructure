@@ -62,7 +62,7 @@ jobs:
       - name: Verify CLI availability
         run: |
           echo "Testing CLI availability..."
-          CLI_OUTPUT=$(node dist/cli/index.js --version)
+          CLI_OUTPUT=$(node dist/src/cli/index.js --version)
           echo "CLI output: $CLI_OUTPUT"
           
           # Extract just the version number (last line)
