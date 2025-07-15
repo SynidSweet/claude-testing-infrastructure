@@ -5,7 +5,7 @@
  * reducing code duplication and improving maintainability.
  */
 
-import { ora } from '../../utils/common-imports';
+import { ora, path } from '../../utils/common-imports';
 import type { Ora } from 'ora';
 import { displayConfigurationSources } from '../../utils/config-display';
 import {
@@ -79,11 +79,14 @@ export async function executeCommand<T>(
   const spinner = ora(loadingText).start();
 
   try {
+    // Resolve project path to absolute path to ensure consistent path calculations
+    const resolvedProjectPath = path.resolve(projectPath);
+
     // Get parent options with type safety
     const parentOptions = getParentOptions(command);
 
     // Load configuration with standardized handling
-    const configResult = await loadStandardConfiguration(projectPath, {
+    const configResult = await loadStandardConfiguration(resolvedProjectPath, {
       customConfigPath: options.config ?? undefined,
       cliArgs: options,
       validateConfig,
@@ -103,7 +106,7 @@ export async function executeCommand<T>(
       return {
         success: true,
         context: {
-          projectPath,
+          projectPath: resolvedProjectPath,
           options,
           parentOptions,
           config: configResult,
@@ -113,7 +116,7 @@ export async function executeCommand<T>(
 
     // Create command context
     const context: CommandContext = {
-      projectPath,
+      projectPath: resolvedProjectPath,
       options,
       parentOptions,
       config: configResult,
