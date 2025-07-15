@@ -48,43 +48,18 @@ describe('ProjectAnalyzer', () => {
     });
 
     it('should detect TypeScript project with Vue', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.VUE_PROJECT);
-      
-      try {
-        // Add TypeScript to the existing Vue project
-        const packageJson = JSON.parse(await fs.readFile(path.join(tempDir, 'package.json'), 'utf-8'));
-        packageJson.devDependencies.typescript = '^4.0.0';
-        await fs.writeFile(
-          path.join(tempDir, 'package.json'),
-          JSON.stringify(packageJson, null, 2)
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.TYPESCRIPT_VUE_PROJECT);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
 
-        // Create TypeScript files
-        await fs.writeFile(
-          path.join(tempDir, 'main.ts'),
-          'import { createApp } from "vue";\nimport App from "./App.vue";\ncreateApp(App).mount("#app");'
-        );
+      // Check languages
+      expect(result.languages.map(l => l.name)).toContain('typescript');
 
-        // Create test file
-        await fs.writeFile(
-          path.join(tempDir, 'App.test.ts'),
-          'import { mount } from "@vue/test-utils";\nimport App from "./App.vue";\ntest("renders vue app", () => { mount(App); });'
-        );
+      // Check frameworks
+      expect(result.frameworks.map(f => f.name)).toContain('vue');
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-
-        // Check languages
-        expect(result.languages.map(l => l.name)).toContain('typescript');
-
-        // Check frameworks
-        expect(result.frameworks.map(f => f.name)).toContain('vue');
-
-        // Check testing setup
-        expect(result.testingSetup.testFrameworks).toContain('vitest');
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      // Check testing setup
+      expect(result.testingSetup.testFrameworks).toContain('vitest');
     });
 
     it('should detect Python FastAPI project', async () => {
@@ -144,36 +119,15 @@ describe('ProjectAnalyzer', () => {
     });
 
     it('should calculate complexity metrics correctly', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        // Create files of varying sizes
-        await fs.writeFile(
-          path.join(tempDir, 'small.js'),
-          'console.log("hello");'
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.COMPLEXITY_TEST_PROJECT);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
 
-        await fs.writeFile(
-          path.join(tempDir, 'medium.js'),
-          Array(50).fill('console.log("line");').join('\n')
-        );
-
-        await fs.writeFile(
-          path.join(tempDir, 'large.js'),
-          Array(200).fill('console.log("line");').join('\n')
-        );
-
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-
-        expect(result.complexity.totalFiles).toBe(3);
-        expect(result.complexity.totalLines).toBeGreaterThan(250);
-        expect(result.complexity.averageFileSize).toBeGreaterThan(80);
-        expect(result.complexity.largestFiles).toHaveLength(3);
-        expect(result.complexity.largestFiles[0]?.path).toContain('large.js');
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(result.complexity.totalFiles).toBe(3);
+      expect(result.complexity.totalLines).toBeGreaterThan(250);
+      expect(result.complexity.averageFileSize).toBeGreaterThan(80);
+      expect(result.complexity.largestFiles).toHaveLength(3);
+      expect(result.complexity.largestFiles[0]?.path).toContain('large.js');
     });
   });
 
@@ -185,23 +139,13 @@ describe('ProjectAnalyzer', () => {
     });
 
     it('should handle malformed package.json', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.MALFORMED_PACKAGE_JSON);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
       
-      try {
-        await fs.writeFile(
-          path.join(tempDir, 'package.json'),
-          '{ invalid json'
-        );
-
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-        
-        // Should not crash, just treat as no package.json
-        expect(result.dependencies.production).toEqual({});
-        expect(result.dependencies.development).toEqual({});
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      // Should not crash, just treat as no package.json
+      expect(result.dependencies.production).toEqual({});
+      expect(result.dependencies.development).toEqual({});
     });
 
     it('should handle unreadable files gracefully', async () => {

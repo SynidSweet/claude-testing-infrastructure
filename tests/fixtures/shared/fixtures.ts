@@ -89,7 +89,19 @@ export const FIXTURE_TEMPLATES = {
   FLASK_PROJECT: 'flask-project',
   DJANGO_PROJECT: 'django-project',
   MCP_SERVER: 'mcp-server',
-  MIXED_PROJECT: 'mixed-project'
+  MIXED_PROJECT: 'mixed-project',
+  // New templates for specific test scenarios
+  TYPESCRIPT_VUE_PROJECT: 'typescript-vue-project',
+  NEXTJS_PROJECT: 'nextjs-project',
+  FASTMCP_PROJECT: 'fastmcp-project',
+  MCP_WITH_CONFIG: 'mcp-with-config',
+  MULTI_FRAMEWORK_PROJECT: 'multi-framework-project',
+  COMPLEXITY_TEST_PROJECT: 'complexity-test-project',
+  MALFORMED_PACKAGE_JSON: 'malformed-package-json',
+  EMPTY_PACKAGE_JSON: 'empty-package-json',
+  NO_DEPS_PACKAGE_JSON: 'no-deps-package-json',
+  PYTHON_CASE_VARIATIONS: 'python-case-variations',
+  REACT_NO_DOM_PROJECT: 'react-no-dom-project'
 } as const;
 
 export type FixtureTemplateId = typeof FIXTURE_TEMPLATES[keyof typeof FIXTURE_TEMPLATES];

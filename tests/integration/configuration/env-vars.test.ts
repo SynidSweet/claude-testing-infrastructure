@@ -4,14 +4,14 @@
 
 import { ConfigurationService } from '../../../src/config/ConfigurationService';
 import { fs, path } from '../../../src/utils/common-imports';
-import os from 'os';
+import { createTemporaryProject, FIXTURE_TEMPLATES } from '../../fixtures/shared/fixtures';
 
 describe('Environment Variable Configuration Integration', () => {
   let tempDir: string;
   let originalEnv: NodeJS.ProcessEnv;
   
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-testing-env-'));
+    tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
     originalEnv = { ...process.env };
     
     // Clear any existing CLAUDE_TESTING_ env vars

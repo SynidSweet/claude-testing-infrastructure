@@ -1,6 +1,5 @@
 import { ProjectAnalyzer } from '../../../src/analyzers/ProjectAnalyzer';
-import { getSharedFixture, createTemporaryProject, cleanupTemporaryProject, setupFixtureLifecycle, FIXTURE_TEMPLATES } from '../../fixtures/shared';
-import { fs, path } from '../../../src/utils/common-imports';
+import { getSharedFixture, setupFixtureLifecycle, FIXTURE_TEMPLATES } from '../../fixtures/shared';
 
 describe('ProjectAnalyzer Framework Detection', () => {
   setupFixtureLifecycle();
@@ -18,28 +17,13 @@ describe('ProjectAnalyzer Framework Detection', () => {
     });
 
     it('should detect React without react-dom', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        const packageJson = {
-          dependencies: {
-            react: '^18.0.0',
-          },
-        };
-        await fs.writeFile(
-          path.join(tempDir, 'package.json'),
-          JSON.stringify(packageJson, null, 2)
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.REACT_NO_DOM_PROJECT);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
+      const reactFramework = result.frameworks.find((f: any) => f.name === 'react');
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-        const reactFramework = result.frameworks.find((f: any) => f.name === 'react');
-
-        expect(reactFramework).toBeDefined();
-        expect(reactFramework?.confidence).toBeGreaterThan(0.6);
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(reactFramework).toBeDefined();
+      expect(reactFramework?.confidence).toBeGreaterThan(0.6);
     });
   });
 
@@ -84,36 +68,14 @@ describe('ProjectAnalyzer Framework Detection', () => {
 
   describe('Next.js Framework Detection', () => {
     it('should detect Next.js with app configuration', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        const packageJson = {
-          dependencies: {
-            next: '^13.4.0',
-            react: '^18.2.0',
-            'react-dom': '^18.2.0',
-          },
-          scripts: {
-            dev: 'next dev',
-            build: 'next build',
-            start: 'next start',
-          },
-        };
-        await fs.writeFile(
-          path.join(tempDir, 'package.json'),
-          JSON.stringify(packageJson, null, 2)
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.NEXTJS_PROJECT);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
+      const nextFramework = result.frameworks.find((f: any) => f.name === 'nextjs');
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-        const nextFramework = result.frameworks.find((f: any) => f.name === 'nextjs');
-
-        expect(nextFramework).toBeDefined();
-        expect(nextFramework?.confidence).toBeGreaterThanOrEqual(0.7);
-        expect(nextFramework?.version).toBe('^13.4.0');
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(nextFramework).toBeDefined();
+      expect(nextFramework?.confidence).toBeGreaterThanOrEqual(0.7);
+      expect(nextFramework?.version).toBe('^13.4.0');
     });
   });
 
@@ -180,30 +142,17 @@ describe('ProjectAnalyzer Framework Detection', () => {
 
   describe('MCP Server Detection', () => {
     it('should detect FastMCP server', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        // FastMCP is a Python package, so create requirements.txt
-        const requirementsContent = 'fastmcp==1.0.0\nuvicorn>=0.15.0\n';
-        
-        await fs.writeFile(
-          path.join(tempDir, 'requirements.txt'),
-          requirementsContent
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.FASTMCP_PROJECT);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
+      const fastmcpFramework = result.frameworks.find((f: any) => f.name === 'fastmcp');
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-        const fastmcpFramework = result.frameworks.find((f: any) => f.name === 'fastmcp');
-
-        expect(fastmcpFramework).toBeDefined();
-        expect(fastmcpFramework?.confidence).toBeGreaterThanOrEqual(0.7);
-        expect(fastmcpFramework?.version).toBe('==1.0.0');
-        expect(result.projectType).toBe('mcp-server');
-        expect(result.mcpCapabilities).toBeDefined();
-        expect(result.mcpCapabilities?.framework).toBe('fastmcp');
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(fastmcpFramework).toBeDefined();
+      expect(fastmcpFramework?.confidence).toBeGreaterThanOrEqual(0.7);
+      expect(fastmcpFramework?.version).toBe('==1.0.0');
+      expect(result.projectType).toBe('mcp-server');
+      expect(result.mcpCapabilities).toBeDefined();
+      expect(result.mcpCapabilities?.framework).toBe('fastmcp');
     });
 
     it('should detect official MCP SDK', async () => {
@@ -220,148 +169,61 @@ describe('ProjectAnalyzer Framework Detection', () => {
     });
 
     it('should detect MCP capabilities from config file', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        const packageJson = {
-          dependencies: {
-            '@modelcontextprotocol/sdk': '^1.0.0',
-          },
-        };
-        await fs.writeFile(
-          path.join(tempDir, 'package.json'),
-          JSON.stringify(packageJson, null, 2)
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.MCP_WITH_CONFIG);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
 
-        const mcpConfig = {
-          tools: [
-            {
-              name: 'search',
-              description: 'Search for information',
-              inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
-            },
-          ],
-          resources: [
-            {
-              name: 'database',
-              uri: 'sqlite:///data.db',
-              mimeType: 'application/x-sqlite3',
-            },
-          ],
-          prompts: [
-            {
-              name: 'summarize',
-              description: 'Summarize text',
-            },
-          ],
-        };
-        await fs.writeFile(path.join(tempDir, 'mcp.json'), JSON.stringify(mcpConfig, null, 2));
-
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-
-        expect(result.mcpCapabilities?.tools).toHaveLength(1);
-        expect(result.mcpCapabilities?.tools[0]?.name).toBe('search');
-        expect(result.mcpCapabilities?.resources).toHaveLength(1);
-        expect(result.mcpCapabilities?.resources[0]?.name).toBe('database');
-        expect(result.mcpCapabilities?.prompts).toHaveLength(1);
-        expect(result.mcpCapabilities?.prompts[0]?.name).toBe('summarize');
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(result.mcpCapabilities?.tools).toHaveLength(1);
+      expect(result.mcpCapabilities?.tools[0]?.name).toBe('search');
+      expect(result.mcpCapabilities?.resources).toHaveLength(1);
+      expect(result.mcpCapabilities?.resources[0]?.name).toBe('database');
+      expect(result.mcpCapabilities?.prompts).toHaveLength(1);
+      expect(result.mcpCapabilities?.prompts[0]?.name).toBe('summarize');
     });
   });
 
   describe('Multiple Framework Detection', () => {
     it('should detect multiple frameworks in the same project', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        const packageJson = {
-          dependencies: {
-            react: '^18.0.0',
-            express: '^4.18.0',
-            next: '^13.0.0',
-          },
-        };
-        await fs.writeFile(
-          path.join(tempDir, 'package.json'),
-          JSON.stringify(packageJson, null, 2)
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.MULTI_FRAMEWORK_PROJECT);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
+      const frameworkNames = result.frameworks.map((f: any) => f.name);
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-        const frameworkNames = result.frameworks.map((f: any) => f.name);
-
-        expect(frameworkNames).toContain('react');
-        expect(frameworkNames).toContain('express');
-        expect(frameworkNames).toContain('nextjs');
-        expect(result.frameworks.length).toBeGreaterThanOrEqual(3);
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(frameworkNames).toContain('react');
+      expect(frameworkNames).toContain('express');
+      expect(frameworkNames).toContain('nextjs');
+      expect(result.frameworks.length).toBeGreaterThanOrEqual(3);
     });
   });
 
   describe('Edge Cases', () => {
     it('should handle empty package.json gracefully', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        await fs.writeFile(path.join(tempDir, 'package.json'), JSON.stringify({}, null, 2));
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.EMPTY_PACKAGE_JSON);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-
-        expect(result.frameworks).toHaveLength(0);
-        expect(result.dependencies.production).toEqual({});
-        expect(result.dependencies.development).toEqual({});
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(result.frameworks).toHaveLength(0);
+      expect(result.dependencies.production).toEqual({});
+      expect(result.dependencies.development).toEqual({});
     });
 
     it('should handle missing dependencies section', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        const packageJson = {
-          name: 'test-project',
-          version: '1.0.0',
-        };
-        await fs.writeFile(
-          path.join(tempDir, 'package.json'),
-          JSON.stringify(packageJson, null, 2)
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.NO_DEPS_PACKAGE_JSON);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-
-        expect(result.frameworks).toHaveLength(0);
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(result.frameworks).toHaveLength(0);
     });
 
     it('should handle case variations in Python dependencies', async () => {
-      const tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
-      
-      try {
-        await fs.writeFile(
-          path.join(tempDir, 'requirements.txt'),
-          'Django==4.2.0\nFlask==2.3.0\nFASTAPI==0.100.0'
-        );
+      const fixture = await getSharedFixture(FIXTURE_TEMPLATES.PYTHON_CASE_VARIATIONS);
+      const analyzer = new ProjectAnalyzer(fixture.path);
+      const result = await analyzer.analyzeProject();
+      const frameworkNames = result.frameworks.map((f: any) => f.name);
 
-        const analyzer = new ProjectAnalyzer(tempDir);
-        const result = await analyzer.analyzeProject();
-        const frameworkNames = result.frameworks.map((f: any) => f.name);
-
-        expect(frameworkNames).toContain('django');
-        expect(frameworkNames).toContain('flask');
-        // Note: FASTAPI in all caps might not be detected due to exact matching
-      } finally {
-        await cleanupTemporaryProject(tempDir);
-      }
+      expect(frameworkNames).toContain('django');
+      expect(frameworkNames).toContain('flask');
+      // Note: FASTAPI in all caps might not be detected due to exact matching
     });
   });
 });

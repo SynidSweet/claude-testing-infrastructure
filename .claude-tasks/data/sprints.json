@@ -1,126 +1,38 @@
 {
-  "SPRINT-2025-Q3-DEV01": {
-    "id": "SPRINT-2025-Q3-DEV01",
-    "title": "Development Sprint Q3 2025",
-    "description": "Focused development sprint with high capacity",
-    "status": "active",
-    "created_at": "2025-07-14T01:04:41.426480",
-    "updated_at": "2025-07-14T02:03:01.013281",
-    "start_date": "2025-07-14T01:04:41.426480",
-    "end_date": "2025-07-21T01:04:41.426480",
-    "capacity": {
-      "level": "high",
-      "hours_available": 60,
-      "agent_availability": {
-        "autonomous_hours": 48.0,
-        "supervised_hours": 12.0
-      }
-    },
-    "task_ids": [
-      "TASK-2025-002",
-      "TASK-2025-003",
-      "TASK-2025-004",
-      "TASK-2025-005",
-      "TASK-2025-006"
-    ],
-    "validation_metrics": {
-      "criteria": [
-        {
-          "id": "completion_rate",
-          "description": "Task completion rate",
-          "type": "completion",
-          "target": "80%",
-          "weight": 0.4,
-          "automated": true
-        },
-        {
-          "id": "quality_checks",
-          "description": "All quality checks pass",
-          "type": "quality",
-          "target": "100%",
-          "weight": 0.3,
-          "automated": true
-        },
-        {
-          "id": "documentation",
-          "description": "Documentation updated",
-          "type": "coverage",
-          "target": "Complete",
-          "weight": 0.3,
-          "automated": false
-        }
-      ],
-      "validation_gates": [
-        {
-          "stage": "mid_sprint",
-          "criteria_ids": [
-            "completion_rate"
-          ],
-          "required": false
-        },
-        {
-          "stage": "completion",
-          "criteria_ids": [
-            "completion_rate",
-            "quality_checks",
-            "documentation"
-          ],
-          "required": true
-        }
-      ],
-      "success_threshold": 0.8
-    },
-    "scope_protection": {
-      "boundaries": {
-        "in_scope": [
-          "Task & Sprint Management System development",
-          "JSON schema implementation",
-          "CLI framework development"
-        ],
-        "out_of_scope": [
-          "Live command system modifications",
-          "External integrations",
-          "UI development"
-        ]
+  "sprints": [
+    {
+      "id": "SPRINT-2025-Q3-DEV01",
+      "title": "Production Readiness Sprint",
+      "description": "Achieve 100% test passing with no timeouts, full CI/CD pipeline success, and complete production readiness for use as a test suite in other projects",
+      "status": "active",
+      "created_at": "2025-07-15T19:19:46.544744",
+      "updated_at": "2025-07-15T22:51:46.801436",
+      "start_date": "2025-07-15T19:20:37.241245",
+      "end_date": null,
+      "capacity": {
+        "level": "high",
+        "hours_available": 20
       },
-      "escalation_triggers": [
-        {
-          "condition": "Scope change request",
-          "action": "escalate"
-        },
-        {
-          "condition": "Live system modification request",
-          "action": "pause"
-        }
+      "task_ids": [
+        "TASK-2025-003",
+        "TASK-2025-002",
+        "TASK-2025-005",
+        "TASK-2025-004",
+        "TASK-2025-001",
+        "TASK-2025-006"
       ],
-      "approved_changes": []
-    },
-    "progress": {
-      "completion_percentage": 0,
-      "task_status_counts": {
-        "pending": 0,
-        "in_progress": 0,
-        "blocked": 0,
-        "completed": 0,
-        "failed": 0
-      },
-      "metrics_snapshot": {},
-      "velocity": {
-        "tasks_per_day": 0,
-        "estimated_completion": "2025-07-21T01:04:41.426480"
+      "progress": {
+        "total_tasks": 6,
+        "completed_tasks": 5,
+        "remaining_tasks": 0,
+        "completion_percentage": 100.0
       }
-    },
-    "history": [
-      {
-        "timestamp": "2025-07-14T01:04:41.426480",
-        "event": "created",
-        "actor": "claude-tasks-cli",
-        "details": "Sprint planned with high capacity for 1week",
-        "context": {
-          "capacity": "high",
-          "duration": "1week"
-        }
-      }
-    ]
+    }
+  ],
+  "metadata": {
+    "created_at": "2025-07-15T19:06:17.142398Z",
+    "version": "1.0.0",
+    "project_initialized": true,
+    "updated_at": "2025-07-15T22:51:46.803539Z"
   }
 }

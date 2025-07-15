@@ -818,6 +818,169 @@ const props = defineProps({
 </script>
           `
         }
+      },
+
+      'typescript-vue-project': {
+        type: 'node-js',
+        framework: 'vue',
+        packageManager: 'npm',
+        files: {
+          'package.json': {
+            name: 'test-typescript-vue-project',
+            version: '1.0.0',
+            dependencies: {
+              vue: '^3.3.0'
+            },
+            devDependencies: {
+              '@vue/cli': '^5.0.0',
+              '@vue/test-utils': '^2.4.0',
+              vitest: '^0.30.0',
+              typescript: '^4.0.0'
+            }
+          },
+          'main.ts': 'import { createApp } from "vue";\nimport App from "./App.vue";\ncreateApp(App).mount("#app");',
+          'App.vue': `<template>\n  <div id="app">\n    <h1>{{ message }}</h1>\n  </div>\n</template>\n\n<script lang="ts">\nexport default {\n  name: 'App',\n  data() {\n    return {\n      message: 'Hello Vue with TypeScript!'\n    }\n  }\n}\n</script>`,
+          'App.test.ts': 'import { mount } from "@vue/test-utils";\nimport App from "./App.vue";\ntest("renders vue app", () => { mount(App); });'
+        }
+      },
+
+      'nextjs-project': {
+        type: 'node-js',
+        framework: 'nextjs',
+        packageManager: 'npm',
+        files: {
+          'package.json': {
+            name: 'test-nextjs-project',
+            version: '1.0.0',
+            dependencies: {
+              next: '^13.4.0',
+              react: '^18.2.0',
+              'react-dom': '^18.2.0'
+            },
+            scripts: {
+              dev: 'next dev',
+              build: 'next build',
+              start: 'next start'
+            }
+          },
+          'next.config.js': 'module.exports = { reactStrictMode: true };',
+          'pages/index.js': 'export default function Home() { return <h1>Welcome to Next.js!</h1>; }'
+        }
+      },
+
+      'fastmcp-project': {
+        type: 'python',
+        framework: 'fastmcp',
+        files: {
+          'requirements.txt': 'fastmcp==1.0.0\nuvicorn>=0.15.0',
+          'main.py': 'from fastmcp import FastMCP\n\napp = FastMCP()\n\n@app.tool("hello")\ndef hello(name: str) -> str:\n    return f"Hello, {name}!"',
+          'mcp.json': '{\n  "name": "test-mcp-server",\n  "version": "1.0.0"\n}'
+        }
+      },
+
+      'mcp-with-config': {
+        type: 'mcp-server',
+        framework: 'mcp',
+        packageManager: 'npm',
+        files: {
+          'package.json': {
+            name: 'test-mcp-with-config',
+            version: '1.0.0',
+            dependencies: {
+              '@modelcontextprotocol/sdk': '^1.0.0'
+            }
+          },
+          'mcp.json': {
+            tools: [
+              {
+                name: 'search',
+                description: 'Search for information',
+                inputSchema: { type: 'object', properties: { query: { type: 'string' } } }
+              }
+            ],
+            resources: [
+              {
+                name: 'database',
+                uri: 'sqlite:///data.db',
+                mimeType: 'application/x-sqlite3'
+              }
+            ],
+            prompts: [
+              {
+                name: 'summarize',
+                description: 'Summarize text'
+              }
+            ]
+          }
+        }
+      },
+
+      'multi-framework-project': {
+        type: 'node-js',
+        packageManager: 'npm',
+        files: {
+          'package.json': {
+            name: 'test-multi-framework',
+            version: '1.0.0',
+            dependencies: {
+              react: '^18.0.0',
+              express: '^4.18.0',
+              next: '^13.0.0'
+            }
+          }
+        }
+      },
+
+      'complexity-test-project': {
+        type: 'node-js',
+        files: {
+          'small.js': 'console.log("hello");',
+          'medium.js': Array(50).fill('console.log("line");').join('\n'),
+          'large.js': Array(200).fill('console.log("line");').join('\n')
+        }
+      },
+
+      'malformed-package-json': {
+        type: 'node-js',
+        files: {
+          'package.json': '{ invalid json'
+        }
+      },
+
+      'empty-package-json': {
+        type: 'node-js',
+        files: {
+          'package.json': '{}'
+        }
+      },
+
+      'no-deps-package-json': {
+        type: 'node-js',
+        files: {
+          'package.json': '{\n  "name": "test-project",\n  "version": "1.0.0"\n}'
+        }
+      },
+
+      'python-case-variations': {
+        type: 'python',
+        files: {
+          'requirements.txt': 'Django==4.2.0\nFlask==2.3.0\nFASTAPI==0.100.0'
+        }
+      },
+
+      'react-no-dom-project': {
+        type: 'node-js',
+        framework: 'react',
+        packageManager: 'npm',
+        files: {
+          'package.json': {
+            name: 'test-react-no-dom',
+            version: '1.0.0',
+            dependencies: {
+              react: '^18.0.0'
+            }
+          }
+        }
       }
     };
 

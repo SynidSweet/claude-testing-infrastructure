@@ -12,9 +12,9 @@ import { ClaudeOrchestrator } from '../../src/ai/ClaudeOrchestrator';
 import { AITaskBatch } from '../../src/ai/AITaskPreparation';
 import { AITimeoutError, AINetworkError } from '../../src/types/ai-error-types';
 import { withRetry, CircuitBreaker } from '../../src/utils/retry-helper';
-import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { createTemporaryProject, FIXTURE_TEMPLATES } from '../fixtures/shared/fixtures';
 
 describe('Claude CLI Reliability Improvements', () => {
   jest.setTimeout(30000); // 30 second timeout for all tests to handle timing-sensitive operations
@@ -149,7 +149,7 @@ describe('Claude CLI Reliability Improvements', () => {
     let tempDir: string;
 
     beforeEach(async () => {
-      tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-test-'));
+      tempDir = await createTemporaryProject(FIXTURE_TEMPLATES.EMPTY);
     });
 
     afterEach(async () => {

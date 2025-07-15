@@ -1,9 +1,0 @@
-{
-  "project_name": "claude-testing-infrastructure",
-  "team_prefix": "CTI",
-  "auto_backup": true,
-  "task_id_format": "CTI-{year}-{seq:03d}",
-  "sprint_id_format": "SPRINT-{year}-{period}-{name}",
-  "log_level": "INFO",
-  "debug_mode": false
-}

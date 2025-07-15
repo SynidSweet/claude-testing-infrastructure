@@ -69,7 +69,11 @@
     "type-safety:report": "node scripts/type-safety-check.js && cat .type-safety-summary.md",
     "test:local-comprehensive": "npm test",
     "validate:production:comprehensive": "node scripts/production-readiness-comprehensive-validation.js",
-    "sprint:validate": "node scripts/production-readiness-comprehensive-validation.js"
+    "validate:comprehensive": "node scripts/comprehensive-validation-automation.js",
+    "validate:comprehensive:json": "node scripts/comprehensive-validation-automation.js --json",
+    "validate:comprehensive:strict": "node scripts/comprehensive-validation-automation.js --strict",
+    "validate:comprehensive:fast": "node scripts/comprehensive-validation-automation.js --fast",
+    "sprint:validate": "node scripts/comprehensive-validation-automation.js"
   },
   "keywords": [
     "testing",

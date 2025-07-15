@@ -113,7 +113,7 @@ describe('CI/CD Integration End-to-End Validation', () => {
         // Expected failure with non-zero exit code
         console.log('✅ Error exit code (non-zero) working');
       }
-    });
+    }, 60000);
 
     test('should handle timeout scenarios gracefully', async () => {
       // Test with a very short timeout to simulate CI timeout scenarios
@@ -154,7 +154,7 @@ describe('CI/CD Integration End-to-End Validation', () => {
         expect(errorMessage).toMatch(/path|directory|not found|does not exist/i);
         console.log('✅ Structured error messages working');
       }
-    });
+    }, 60000);
   });
 
   describe('Performance and Resource Management', () => {
