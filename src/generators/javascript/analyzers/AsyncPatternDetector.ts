@@ -35,7 +35,7 @@ export interface AsyncAnalysisOptions {
 
 /**
  * Detects asynchronous patterns in JavaScript/TypeScript code
- * 
+ *
  * This analyzer identifies:
  * - async/await usage
  * - Promise-based patterns (.then, .catch, Promise.all, etc.)
@@ -70,14 +70,14 @@ export class AsyncPatternDetector {
         filePath,
         patterns,
         hasAsyncPatterns,
-        ...(primaryPattern && { primaryPattern })
+        ...(primaryPattern && { primaryPattern }),
       };
     } catch (error) {
       logger.warn(`Failed to analyze async patterns in ${filePath}:`, error);
       return {
         filePath,
         patterns: [],
-        hasAsyncPatterns: false
+        hasAsyncPatterns: false,
       };
     }
   }
@@ -94,9 +94,9 @@ export class AsyncPatternDetector {
         sourceType: 'unambiguous',
         plugins: [
           'jsx',
-          ...(this.analyzeTypeScript && filePath.match(/\.tsx?$/) ? ['typescript' as const] : [])
+          ...(this.analyzeTypeScript && filePath.match(/\.tsx?$/) ? ['typescript' as const] : []),
         ],
-        errorRecovery: true
+        errorRecovery: true,
       });
 
       // Traverse the AST to find patterns
@@ -144,10 +144,12 @@ export class AsyncPatternDetector {
         },
         CallExpression: (path) => {
           // Check for Promise static methods
-          if (path.node.callee.type === 'MemberExpression' &&
-              path.node.callee.object.type === 'Identifier' &&
-              path.node.callee.object.name === 'Promise' &&
-              path.node.callee.property.type === 'Identifier') {
+          if (
+            path.node.callee.type === 'MemberExpression' &&
+            path.node.callee.object.type === 'Identifier' &&
+            path.node.callee.object.name === 'Promise' &&
+            path.node.callee.property.type === 'Identifier'
+          ) {
             const method = path.node.callee.property.name;
             if (['all', 'race', 'resolve', 'reject', 'allSettled', 'any'].includes(method)) {
               this.addPattern(patterns, 'promise', `Promise.${method}()`);
@@ -158,12 +160,20 @@ export class AsyncPatternDetector {
           const args = path.node.arguments;
           if (args.length > 0) {
             const lastArg = args[args.length - 1];
-            if (lastArg && (lastArg.type === 'ArrowFunctionExpression' || 
-                 lastArg.type === 'FunctionExpression') &&
-                lastArg.params.length >= 2) {
+            if (
+              lastArg &&
+              (lastArg.type === 'ArrowFunctionExpression' ||
+                lastArg.type === 'FunctionExpression') &&
+              lastArg.params.length >= 2
+            ) {
               const firstParam = lastArg.params[0];
-              if (firstParam && firstParam.type === 'Identifier' && 
-                  (firstParam.name === 'err' || firstParam.name === 'error' || firstParam.name === 'e')) {
+              if (
+                firstParam &&
+                firstParam.type === 'Identifier' &&
+                (firstParam.name === 'err' ||
+                  firstParam.name === 'error' ||
+                  firstParam.name === 'e')
+              ) {
                 this.addPattern(patterns, 'callback', 'error-first callback');
               }
             }
@@ -173,7 +183,7 @@ export class AsyncPatternDetector {
         // Detect yield expressions (generators)
         YieldExpression: () => {
           this.addPattern(patterns, 'generator', 'yield expression');
-        }
+        },
       });
 
       // Also check for common callback patterns using regex
@@ -182,7 +192,7 @@ export class AsyncPatternDetector {
           /\bcallback\s*\(/g,
           /\(err(?:or)?[,)]/g,
           /\.on\s*\(\s*['"]error['"]/g,
-          /\.once\s*\(\s*['"]error['"]/g
+          /\.once\s*\(\s*['"]error['"]/g,
         ];
 
         for (const pattern of callbackPatterns) {
@@ -192,13 +202,12 @@ export class AsyncPatternDetector {
               type: 'callback',
               confidence: 0.7,
               count: 1,
-              examples: ['callback pattern']
+              examples: ['callback pattern'],
             });
             break;
           }
         }
       }
-
     } catch (error) {
       logger.debug(`AST parsing failed for ${filePath}, falling back to regex detection`);
       // Fallback to regex-based detection
@@ -209,13 +218,15 @@ export class AsyncPatternDetector {
     }
 
     // Filter patterns by confidence threshold
-    return Array.from(patterns.values()).filter(p => p.confidence >= this.minConfidence);
+    return Array.from(patterns.values()).filter((p) => p.confidence >= this.minConfidence);
   }
 
   /**
    * Fallback regex-based pattern detection
    */
-  private async detectPatternsWithRegex(content: string): Promise<[AsyncPattern['type'], AsyncPattern][]> {
+  private async detectPatternsWithRegex(
+    content: string
+  ): Promise<[AsyncPattern['type'], AsyncPattern][]> {
     const patterns: Map<AsyncPattern['type'], AsyncPattern> = new Map();
 
     // async/await patterns
@@ -224,7 +235,7 @@ export class AsyncPatternDetector {
         type: 'async-await',
         confidence: 0.8,
         count: (content.match(/\basync\s/g) || []).length,
-        examples: []
+        examples: [],
       });
     }
 
@@ -234,7 +245,7 @@ export class AsyncPatternDetector {
         type: 'promise',
         confidence: 0.8,
         count: (content.match(/\.then\s*\(|\.catch\s*\(/g) || []).length,
-        examples: []
+        examples: [],
       });
     }
 
@@ -244,7 +255,7 @@ export class AsyncPatternDetector {
         type: 'callback',
         confidence: 0.7,
         count: (content.match(/\bcallback\s*\(/g) || []).length,
-        examples: []
+        examples: [],
       });
     }
 
@@ -254,7 +265,7 @@ export class AsyncPatternDetector {
         type: 'generator',
         confidence: 0.9,
         count: (content.match(/yield\s+/g) || []).length,
-        examples: []
+        examples: [],
       });
     }
 
@@ -280,7 +291,7 @@ export class AsyncPatternDetector {
         type,
         confidence: 0.9, // High confidence for AST-based detection
         count: 1,
-        examples: [example]
+        examples: [example],
       });
     }
   }
@@ -326,9 +337,9 @@ export class AsyncPatternDetector {
   } {
     const patternCounts: Record<string, number> = {
       'async-await': 0,
-      'promise': 0,
-      'callback': 0,
-      'generator': 0
+      promise: 0,
+      callback: 0,
+      generator: 0,
     };
 
     let filesWithAsync = 0;
@@ -356,7 +367,7 @@ export class AsyncPatternDetector {
       totalFiles: analyses.size,
       filesWithAsync,
       patternCounts: patternCounts as Record<AsyncPattern['type'], number>,
-      primaryPattern
+      primaryPattern,
     };
   }
 }

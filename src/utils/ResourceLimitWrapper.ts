@@ -5,9 +5,13 @@
  * with configurable CPU/memory limits and graceful shutdown handling.
  */
 
-import { ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
 import { logger } from './logger';
-import { ProcessMonitor, ProcessResourceUsage, ProcessHealthMetrics } from './ProcessMonitor';
+import {
+  ProcessMonitor,
+  type ProcessResourceUsage,
+  type ProcessHealthMetrics,
+} from './ProcessMonitor';
 
 export interface ResourceLimitConfig {
   /** Maximum CPU usage percentage before warning (default: 80) */
@@ -79,7 +83,6 @@ export class ResourceLimitWrapper {
     const warnings: string[] = [];
     let terminated = false;
     let terminationReason: string | undefined;
-    let finalResourceUsage: ProcessResourceUsage | undefined;
 
     if (!pid) {
       return {
@@ -100,8 +103,8 @@ export class ResourceLimitWrapper {
     this.processMonitor.startMonitoring(pid);
 
     // Set up resource violation tracking
-    let consecutiveCpuViolations = 0;
-    let consecutiveMemoryViolations = 0;
+    const consecutiveCpuViolations = 0;
+    const consecutiveMemoryViolations = 0;
 
     // Set up periodic resource checks
     const resourceCheckInterval = setInterval(() => {
@@ -111,7 +114,7 @@ export class ResourceLimitWrapper {
       }
 
       const healthMetrics = this.processMonitor.getHealthMetrics(pid);
-      
+
       if (!healthMetrics.isAlive) {
         logger.debug(`Process ${pid} is no longer alive, stopping monitoring`);
         clearInterval(resourceCheckInterval);
@@ -159,7 +162,7 @@ export class ResourceLimitWrapper {
     // Wait for process completion
     const exitResult = await new Promise<{ exitCode: number }>((resolve) => {
       process.on('exit', (code) => {
-        resolve({ exitCode: code || 0 });
+        resolve({ exitCode: code ?? 0 });
       });
 
       process.on('error', (error) => {
@@ -174,8 +177,7 @@ export class ResourceLimitWrapper {
     clearInterval(resourceCheckInterval);
 
     // Get final resource usage
-    const resourceUsage = this.processMonitor.getResourceUsage(pid);
-    finalResourceUsage = resourceUsage || undefined;
+    const finalResourceUsage = this.processMonitor.getResourceUsage(pid);
     this.processMonitor.stopMonitoring(pid);
 
     const success = !terminated && exitResult.exitCode === 0;
@@ -192,8 +194,8 @@ export class ResourceLimitWrapper {
     return {
       success,
       exitCode: exitResult.exitCode,
-      terminationReason: terminationReason || undefined,
-      finalResourceUsage,
+      terminationReason: terminationReason ?? undefined,
+      finalResourceUsage: finalResourceUsage ?? undefined,
       violations,
       warnings,
     };
@@ -220,7 +222,9 @@ export class ResourceLimitWrapper {
     if (usage.cpu > this.config.cpuKillThreshold) {
       consecutiveCpuViolations++;
       if (consecutiveCpuViolations >= this.config.violationThreshold) {
-        violations.push(`CPU usage exceeded kill threshold: ${usage.cpu.toFixed(1)}% > ${this.config.cpuKillThreshold}%`);
+        violations.push(
+          `CPU usage exceeded kill threshold: ${usage.cpu.toFixed(1)}% > ${this.config.cpuKillThreshold}%`
+        );
         logger.error(`Process ${pid} exceeded CPU kill threshold`, {
           processName,
           cpu: usage.cpu,
@@ -245,7 +249,9 @@ export class ResourceLimitWrapper {
     if (usage.memory > this.config.memoryKillThreshold) {
       consecutiveMemoryViolations++;
       if (consecutiveMemoryViolations >= this.config.violationThreshold) {
-        violations.push(`Memory usage exceeded kill threshold: ${usage.memory.toFixed(1)}% > ${this.config.memoryKillThreshold}%`);
+        violations.push(
+          `Memory usage exceeded kill threshold: ${usage.memory.toFixed(1)}% > ${this.config.memoryKillThreshold}%`
+        );
         logger.error(`Process ${pid} exceeded memory kill threshold`, {
           processName,
           memory: usage.memory,
@@ -278,7 +284,7 @@ export class ResourceLimitWrapper {
    */
   private terminateProcess(process: ChildProcess, reason: string): void {
     const pid = process.pid;
-    
+
     if (!pid || process.killed) {
       return;
     }
@@ -288,7 +294,7 @@ export class ResourceLimitWrapper {
     try {
       // First try graceful termination
       process.kill('SIGTERM');
-      
+
       // Force kill after 5 seconds if still running
       setTimeout(() => {
         if (!process.killed && process.pid) {

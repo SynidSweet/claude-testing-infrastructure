@@ -163,7 +163,7 @@ interface ActionableInsight {
 
 #### New Command Options
 ```bash
-node dist/cli/index.js analyze-gaps <project> [options]
+node dist/src/cli/index.js analyze-gaps <project> [options]
 
 Options:
   -f, --format <format>         Output format (json, markdown, text) [default: text]
@@ -247,13 +247,13 @@ interface VisualizationConfig {
 
 ### Basic Gap Analysis with Enhanced Output
 ```bash
-node dist/cli/index.js analyze-gaps ./my-project
+node dist/src/cli/index.js analyze-gaps ./my-project
 # Outputs beautiful terminal report with colors and structure
 ```
 
 ### Detailed Analysis with Code Context
 ```bash
-node dist/cli/index.js analyze-gaps ./my-project \
+node dist/src/cli/index.js analyze-gaps ./my-project \
   --include-details \
   --include-code-snippets \
   --format markdown \
@@ -262,7 +262,7 @@ node dist/cli/index.js analyze-gaps ./my-project \
 
 ### CI/CD Integration
 ```bash
-node dist/cli/index.js analyze-gaps ./project \
+node dist/src/cli/index.js analyze-gaps ./project \
   --format json \
   --output gap-analysis.json \
   --no-colors
@@ -270,7 +270,7 @@ node dist/cli/index.js analyze-gaps ./project \
 
 ### High-Level Summary Only
 ```bash
-node dist/cli/index.js analyze-gaps ./project \
+node dist/src/cli/index.js analyze-gaps ./project \
   --format text \
   --threshold 5
 ```

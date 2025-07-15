@@ -1,6 +1,11 @@
 import { logger, fs, path } from '../../../utils/common-imports';
 import type { ModuleSystemInfo } from '../../../analyzers/ProjectAnalyzer';
 
+interface PackageJsonContent {
+  type?: 'module' | 'commonjs';
+  [key: string]: unknown;
+}
+
 export interface FileModuleSystemInfo extends ModuleSystemInfo {
   /** File-specific module type (may differ from project default) */
   fileModuleType?: 'commonjs' | 'esm' | 'mixed';
@@ -27,7 +32,7 @@ export interface ModuleAnalysisOptions {
 
 /**
  * Analyzes JavaScript/TypeScript module systems at both project and file level
- * 
+ *
  * This analyzer provides:
  * - Project-level module system detection from package.json
  * - File-level module system analysis
@@ -36,7 +41,7 @@ export interface ModuleAnalysisOptions {
  */
 export class ModuleSystemAnalyzer {
   private projectModuleSystem: ModuleSystemInfo | null = null;
-  private packageJsonCache: any = null;
+  private packageJsonCache: PackageJsonContent | undefined | null = null;
 
   constructor(private options: ModuleAnalysisOptions) {}
 
@@ -126,7 +131,7 @@ export class ModuleSystemAnalyzer {
       try {
         const content = await fs.readFile(filePath, 'utf-8');
         const contentAnalysis = this.analyzeFileContent(content);
-        
+
         // Merge content analysis with file info
         fileInfo.importStyle = contentAnalysis.importStyle;
         fileInfo.exportStyle = contentAnalysis.exportStyle;
@@ -136,9 +141,15 @@ export class ModuleSystemAnalyzer {
         if (!fileInfo.fileModuleType) {
           if (contentAnalysis.importStyle === 'import' && contentAnalysis.exportStyle === 'esm') {
             fileInfo.fileModuleType = 'esm';
-          } else if (contentAnalysis.importStyle === 'require' && contentAnalysis.exportStyle === 'commonjs') {
+          } else if (
+            contentAnalysis.importStyle === 'require' &&
+            contentAnalysis.exportStyle === 'commonjs'
+          ) {
             fileInfo.fileModuleType = 'commonjs';
-          } else if (contentAnalysis.importStyle === 'both' || contentAnalysis.exportStyle === 'both') {
+          } else if (
+            contentAnalysis.importStyle === 'both' ||
+            contentAnalysis.exportStyle === 'both'
+          ) {
             fileInfo.fileModuleType = 'mixed';
           } else {
             // Use project default
@@ -174,7 +185,13 @@ export class ModuleSystemAnalyzer {
   getImportExtension(moduleInfo: FileModuleSystemInfo): string {
     if (moduleInfo.type === 'esm' || moduleInfo.fileModuleType === 'esm') {
       // ES modules require extensions for relative imports
-      return moduleInfo.fileExtension === '.ts' || moduleInfo.fileExtension === '.tsx' ? '' : '.js';
+      if (moduleInfo.fileExtension === '.ts' || moduleInfo.fileExtension === '.tsx') {
+        // TypeScript files compile to .js, so use .js extension
+        return '.js';
+      } else {
+        // JavaScript and JSX files keep their original extension
+        return moduleInfo.fileExtension || '';
+      }
     }
     // CommonJS doesn't require extensions
     return '';
@@ -186,7 +203,7 @@ export class ModuleSystemAnalyzer {
   private async analyzeProjectFromFiles(): Promise<ModuleSystemInfo> {
     try {
       const sourceFiles = await this.findSourceFiles();
-      
+
       if (sourceFiles.length === 0) {
         return {
           type: 'commonjs',
@@ -275,11 +292,12 @@ export class ModuleSystemAnalyzer {
     const hasImport = /\bimport\s+.*\s+from\s+['"`]/.test(content);
     const hasRequire = /\brequire\s*\(/.test(content);
     const hasDynamicImport = /\bimport\s*\(/.test(content);
-    
-    const hasEsmExport = /\bexport\s+(?:default\s+|(?:const|let|var|function|class)\s+)/.test(content) ||
-                         /\bexport\s*\{/.test(content);
-    const hasCjsExport = /\bmodule\.exports\s*=/.test(content) ||
-                         /\bexports\.\w+\s*=/.test(content);
+
+    const hasEsmExport =
+      /\bexport\s+(?:default\s+|(?:const|let|var|function|class)\s+)/.test(content) ||
+      /\bexport\s*\{/.test(content);
+    const hasCjsExport =
+      /\bmodule\.exports\s*=/.test(content) || /\bexports\.\w+\s*=/.test(content);
 
     let importStyle: 'require' | 'import' | 'both' | 'none';
     if (hasImport && hasRequire) {
@@ -313,16 +331,16 @@ export class ModuleSystemAnalyzer {
   /**
    * Read and cache package.json
    */
-  private async readPackageJson(): Promise<any> {
+  private async readPackageJson(): Promise<PackageJsonContent | undefined> {
     if (this.packageJsonCache !== null) {
       return this.packageJsonCache;
     }
 
     try {
-      const packageJsonPath = this.options.packageJsonPath || 
-                             path.join(this.options.projectPath, 'package.json');
+      const packageJsonPath =
+        this.options.packageJsonPath || path.join(this.options.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
-      this.packageJsonCache = JSON.parse(content);
+      this.packageJsonCache = JSON.parse(content) as PackageJsonContent;
       return this.packageJsonCache;
     } catch (error) {
       logger.debug('No package.json found or error reading it:', error);
@@ -336,11 +354,9 @@ export class ModuleSystemAnalyzer {
    */
   private async findSourceFiles(): Promise<string[]> {
     const fg = (await import('fast-glob')).default;
-    
-    const patterns = [
-      path.join(this.options.projectPath, '**/*.{js,jsx,mjs,cjs,ts,tsx}')
-    ];
-    
+
+    const patterns = [path.join(this.options.projectPath, '**/*.{js,jsx,mjs,cjs,ts,tsx}')];
+
     const ignore = [
       '**/node_modules/**',
       '**/dist/**',
@@ -358,7 +374,7 @@ export class ModuleSystemAnalyzer {
         absolute: true,
         onlyFiles: true,
       });
-      
+
       return files || [];
     } catch (error) {
       logger.error('Error finding source files:', error);
@@ -372,11 +388,11 @@ export class ModuleSystemAnalyzer {
   private async detectFileExtensionPattern(): Promise<'js' | 'mjs' | 'ts'> {
     try {
       const sourceFiles = await this.findSourceFiles();
-      
+
       let jsCount = 0;
       let mjsCount = 0;
       let tsCount = 0;
-      
+
       for (const file of sourceFiles) {
         const ext = path.extname(file);
         if (ext === '.ts' || ext === '.tsx') {
@@ -387,7 +403,7 @@ export class ModuleSystemAnalyzer {
           jsCount++;
         }
       }
-      
+
       // Return the most common pattern
       if (tsCount > jsCount && tsCount > mjsCount) {
         return 'ts';

@@ -1,6 +1,10 @@
 import { fs, path, fg, logger } from '../utils/common-imports';
-import type { FileDiscoveryService } from '../types/file-discovery-types';
-import { FileDiscoveryType } from '../types/file-discovery-types';
+import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
+import {
+  ProjectStructureDetector,
+  type ProjectStructureAnalysis,
+} from '../services/ProjectStructureDetector';
+import { ProjectAnalysisOrchestrator } from './services/ProjectAnalysisOrchestrator';
 
 export interface ProjectAnalysis {
   projectPath: string;
@@ -56,6 +60,28 @@ export interface DetectedPackageManager {
   lockFiles: string[];
 }
 
+export interface FrameworkDetectionResult {
+  detected: boolean;
+  confidence: number;
+  version?: string;
+  indicators: string[];
+  dependencies?: string[];
+}
+
+export interface PackageJsonContent {
+  name?: string;
+  version?: string;
+  type?: 'module' | 'commonjs';
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+  engines?: Record<string, string>;
+  main?: string;
+  module?: string;
+  types?: string;
+  [key: string]: unknown;
+}
+
 export interface ProjectStructure {
   rootFiles: string[];
   srcDirectory: string | undefined;
@@ -63,6 +89,8 @@ export interface ProjectStructure {
   configFiles: string[];
   buildOutputs: string[];
   entryPoints: string[];
+  // Enhanced structure analysis
+  smartAnalysis?: ProjectStructureAnalysis | undefined;
 }
 
 export interface Dependencies {
@@ -113,12 +141,14 @@ export interface MCPPrompt {
 
 export class ProjectAnalyzer {
   private projectPath: string;
+  private orchestrator: ProjectAnalysisOrchestrator;
 
   constructor(
     projectPath: string,
     private fileDiscovery?: FileDiscoveryService
   ) {
     this.projectPath = path.resolve(projectPath);
+    this.orchestrator = new ProjectAnalysisOrchestrator(projectPath);
   }
 
   async analyzeProject(): Promise<ProjectAnalysis> {
@@ -127,259 +157,45 @@ export class ProjectAnalyzer {
     // Validate project path exists
     try {
       await fs.access(this.projectPath);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Project path does not exist: ${this.projectPath}`);
     }
 
     try {
-      const [
-        languages,
-        frameworks,
-        packageManagers,
-        projectStructure,
-        dependencies,
-        testingSetup,
-        complexity,
-        moduleSystem,
-      ] = await Promise.all([
-        this.detectLanguages(),
-        this.detectFrameworks(),
+      // Use orchestrator for extracted services
+      const coordinatedAnalysis = await this.orchestrator.analyzeProject();
+
+      // Perform remaining analysis methods directly
+      const [packageManagers, projectStructure, testingSetup, moduleSystem] = await Promise.all([
         this.detectPackageManagers(),
         this.analyzeProjectStructure(),
-        this.analyzeDependencies(),
         this.analyzeTestingSetup(),
-        this.calculateComplexity(),
         this.analyzeModuleSystem(),
       ]);
 
-      // Check if this is an MCP server project
-      const isMCPServer = frameworks.some(f => f.name === 'mcp-server' || f.name === 'fastmcp');
-      
+      // Combine orchestrator results with remaining analysis
       const analysis: ProjectAnalysis = {
-        projectPath: this.projectPath,
-        languages,
-        frameworks,
+        ...coordinatedAnalysis,
         packageManagers,
         projectStructure,
-        dependencies,
         testingSetup,
-        complexity,
         moduleSystem,
-        projectType: isMCPServer ? 'mcp-server' : 'standard',
-      };
+      } as ProjectAnalysis;
 
       // Add MCP capabilities if this is an MCP server
-      if (isMCPServer) {
+      if (analysis.projectType === 'mcp-server') {
         const mcpCapabilities = await this.analyzeMCPCapabilities();
         analysis.mcpCapabilities = mcpCapabilities;
       }
 
       logger.info('Project analysis completed successfully');
       return analysis;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Project analysis failed:', error);
       throw new Error(
         `Failed to analyze project: ${error instanceof Error ? error.message : String(error)}`
       );
     }
-  }
-
-  private async detectLanguages(): Promise<DetectedLanguage[]> {
-    const languages: DetectedLanguage[] = [];
-
-    // JavaScript detection
-    const jsFiles = await this.findFiles(
-      ['**/*.js', '**/*.jsx'],
-      ['node_modules/**', 'dist/**', 'build/**']
-    );
-    if (jsFiles.length > 0) {
-      languages.push({
-        name: 'javascript',
-        confidence: Math.min(0.9, jsFiles.length / 10),
-        files: jsFiles.slice(0, 10), // Limit for performance
-      });
-    }
-
-    // TypeScript detection
-    const tsFiles = await this.findFiles(
-      ['**/*.ts', '**/*.tsx'],
-      ['node_modules/**', 'dist/**', 'build/**']
-    );
-    if (tsFiles.length > 0) {
-      languages.push({
-        name: 'typescript',
-        confidence: Math.min(0.9, tsFiles.length / 10),
-        files: tsFiles.slice(0, 10),
-      });
-    }
-
-    // Python detection
-    const pyFiles = await this.findFiles(['**/*.py'], ['__pycache__/**', '.venv/**', 'venv/**']);
-    if (pyFiles.length > 0) {
-      languages.push({
-        name: 'python',
-        confidence: Math.min(0.9, pyFiles.length / 10),
-        files: pyFiles.slice(0, 10),
-      });
-    }
-
-    return languages.sort((a, b) => b.confidence - a.confidence);
-  }
-
-  private async detectFrameworks(): Promise<DetectedFramework[]> {
-    const frameworks: DetectedFramework[] = [];
-    const packageJsonContent = await this.readPackageJson();
-    const pythonDeps = await this.readPythonDependencies();
-
-    // React detection
-    if (await this.hasReact(packageJsonContent)) {
-      const configFiles = await this.findFiles([
-        '**/package.json',
-        '**/.babelrc*',
-        '**/webpack.config.*',
-      ]);
-      frameworks.push({
-        name: 'react',
-        confidence: 0.9,
-        version:
-          packageJsonContent?.dependencies?.react || packageJsonContent?.devDependencies?.react,
-        configFiles,
-      });
-    }
-
-    // Vue detection
-    if (await this.hasVue(packageJsonContent)) {
-      const configFiles = await this.findFiles([
-        '**/package.json',
-        '**/vue.config.*',
-        '**/vite.config.*',
-      ]);
-      frameworks.push({
-        name: 'vue',
-        confidence: 0.9,
-        version: packageJsonContent?.dependencies?.vue || packageJsonContent?.devDependencies?.vue,
-        configFiles,
-      });
-    }
-
-    // Angular detection
-    if (await this.hasAngular(packageJsonContent)) {
-      const configFiles = await this.findFiles([
-        '**/angular.json',
-        '**/package.json',
-        '**/tsconfig.json',
-      ]);
-      frameworks.push({
-        name: 'angular',
-        confidence: 0.9,
-        version: packageJsonContent?.dependencies?.['@angular/core'],
-        configFiles,
-      });
-    }
-
-    // Express detection
-    if (await this.hasExpress(packageJsonContent)) {
-      const configFiles = await this.findFiles([
-        '**/package.json',
-        '**/app.js',
-        '**/server.js',
-        '**/index.js',
-      ]);
-      frameworks.push({
-        name: 'express',
-        confidence: 0.8,
-        version: packageJsonContent?.dependencies?.express,
-        configFiles,
-      });
-    }
-
-    // Next.js detection
-    if (await this.hasNextJs(packageJsonContent)) {
-      const configFiles = await this.findFiles(['**/next.config.*', '**/package.json']);
-      frameworks.push({
-        name: 'nextjs',
-        confidence: 0.9,
-        version: packageJsonContent?.dependencies?.next,
-        configFiles,
-      });
-    }
-
-    // FastAPI detection
-    if (await this.hasFastAPI(pythonDeps)) {
-      const configFiles = await this.findFiles([
-        '**/main.py',
-        '**/app.py',
-        '**/requirements.txt',
-        '**/pyproject.toml',
-      ]);
-      frameworks.push({
-        name: 'fastapi',
-        confidence: 0.9,
-        configFiles,
-      });
-    }
-
-    // Django detection
-    if (await this.hasDjango(pythonDeps)) {
-      const configFiles = await this.findFiles([
-        '**/manage.py',
-        '**/settings.py',
-        '**/requirements.txt',
-        '**/pyproject.toml',
-      ]);
-      frameworks.push({
-        name: 'django',
-        confidence: 0.9,
-        configFiles,
-      });
-    }
-
-    // Flask detection
-    if (await this.hasFlask(pythonDeps)) {
-      const configFiles = await this.findFiles([
-        '**/app.py',
-        '**/main.py',
-        '**/requirements.txt',
-        '**/pyproject.toml',
-      ]);
-      frameworks.push({
-        name: 'flask',
-        confidence: 0.8,
-        configFiles,
-      });
-    }
-
-    // MCP Server detection
-    if (await this.hasMCPServer(packageJsonContent)) {
-      const configFiles = await this.findFiles([
-        '**/mcp.json',
-        '**/.mcp/**',
-        '**/package.json',
-        '**/server.py',
-        '**/server.js',
-        '**/server.ts',
-      ]);
-      
-      const framework = await this.detectMCPFramework(packageJsonContent);
-      if (framework === 'fastmcp') {
-        frameworks.push({
-          name: 'fastmcp',
-          confidence: 0.95,
-          version: packageJsonContent?.dependencies?.fastmcp || packageJsonContent?.devDependencies?.fastmcp,
-          configFiles,
-        });
-      } else {
-        frameworks.push({
-          name: 'mcp-server',
-          confidence: 0.9,
-          version: packageJsonContent?.dependencies?.['@modelcontextprotocol/sdk'] || 
-                   packageJsonContent?.devDependencies?.['@modelcontextprotocol/sdk'],
-          configFiles,
-        });
-      }
-    }
-
-    return frameworks.sort((a, b) => b.confidence - a.confidence);
   }
 
   private async detectPackageManagers(): Promise<DetectedPackageManager[]> {
@@ -452,29 +268,55 @@ export class ProjectAnalyzer {
   }
 
   private async analyzeProjectStructure(): Promise<ProjectStructure> {
+    // Original basic analysis
     const rootFiles = await this.findFiles(['*'], [], { onlyFiles: true, deep: 1 });
 
-    // Common src directories
-    const srcCandidates = ['src', 'lib', 'app', 'source'];
-    let srcDirectory: string | undefined;
+    // Enhanced smart structure detection
+    const structureDetector = new ProjectStructureDetector(this.projectPath);
+    let smartAnalysis: ProjectStructureAnalysis | undefined;
 
-    for (const candidate of srcCandidates) {
-      const candidatePath = path.join(this.projectPath, candidate);
-      try {
-        const stat = await fs.stat(candidatePath);
-        if (stat.isDirectory()) {
-          srcDirectory = candidate;
-          break;
-        }
-      } catch {
-        // Directory doesn't exist, continue
-      }
+    try {
+      smartAnalysis = await structureDetector.analyzeStructure();
+      logger.info(
+        'Smart structure analysis complete: type=%s confidence=%d source_dirs=%d',
+        smartAnalysis.detectedStructure,
+        Math.round(smartAnalysis.confidence * 100),
+        smartAnalysis.sourceDirectories.length
+      );
+    } catch (error: unknown) {
+      logger.warn('Smart structure analysis failed, falling back to basic detection:', error);
     }
 
-    const testDirectories = await this.findDirectories(
-      ['**/test', '**/tests', '**/__tests__', '**/*.test.*'],
-      ['node_modules/**']
-    );
+    // Use smart analysis results if available, otherwise fallback to basic detection
+    let srcDirectory: string | undefined;
+    let testDirectories: string[] = [];
+
+    if (smartAnalysis && smartAnalysis.confidence > 0.5) {
+      // Use smart analysis results
+      const primarySource = smartAnalysis.sourceDirectories[0];
+      srcDirectory = primarySource?.path !== '.' ? primarySource?.path : undefined;
+      testDirectories = smartAnalysis.testDirectories.map((td) => td.path);
+    } else {
+      // Fallback to basic detection
+      const srcCandidates = ['src', 'lib', 'app', 'source'];
+      for (const candidate of srcCandidates) {
+        const candidatePath = path.join(this.projectPath, candidate);
+        try {
+          const stat = await fs.stat(candidatePath);
+          if (stat.isDirectory()) {
+            srcDirectory = candidate;
+            break;
+          }
+        } catch {
+          // Directory doesn't exist, continue
+        }
+      }
+      testDirectories = await this.findDirectories(
+        ['**/test', '**/tests', '**/__tests__', '**/*.test.*'],
+        ['node_modules/**']
+      );
+    }
+
     const configFiles = await this.findFiles([
       '**/package.json',
       '**/tsconfig.json',
@@ -512,17 +354,7 @@ export class ProjectAnalyzer {
       configFiles,
       buildOutputs,
       entryPoints,
-    };
-  }
-
-  private async analyzeDependencies(): Promise<Dependencies> {
-    const packageJsonContent = await this.readPackageJson();
-    const pythonDeps = await this.readPythonDependencies();
-
-    return {
-      production: packageJsonContent?.dependencies || {},
-      development: packageJsonContent?.devDependencies || {},
-      python: pythonDeps || undefined,
+      smartAnalysis,
     };
   }
 
@@ -538,8 +370,8 @@ export class ProjectAnalyzer {
 
     // Detect test frameworks from dependencies
     const allDeps = {
-      ...(packageJsonContent?.dependencies || {}),
-      ...(packageJsonContent?.devDependencies || {}),
+      ...(packageJsonContent?.dependencies ?? {}),
+      ...(packageJsonContent?.devDependencies ?? {}),
     };
 
     if (allDeps?.jest) testFrameworks.push('jest');
@@ -567,110 +399,23 @@ export class ProjectAnalyzer {
     };
   }
 
-  private async calculateComplexity(): Promise<ComplexityMetrics> {
-    const allFiles = await this.findFiles(
-      ['**/*.{js,ts,jsx,tsx,py}'],
-      ['node_modules/**', 'dist/**', 'build/**']
-    );
-    let totalLines = 0;
-    const fileSizes: Array<{ path: string; lines: number }> = [];
+  private async analyzeMCPCapabilities(): Promise<MCPCapabilities> {
+    const packageJson = await this.readPackageJson();
+    const pythonDeps = await this.readPythonDependencies();
 
-    for (const file of allFiles.slice(0, 100)) {
-      // Limit for performance
-      try {
-        const content = await fs.readFile(path.join(this.projectPath, file), 'utf-8');
-        const lines = content.split('\n').length;
-        totalLines += lines;
-        fileSizes.push({ path: file, lines });
-      } catch (error) {
-        // Skip files that can't be read
-        logger.debug(`Could not read file ${file}:`, error);
+    // Determine MCP framework type based on dependencies
+    let framework: 'fastmcp' | 'official-sdk' | 'custom' = 'custom';
+
+    // Check Python dependencies first (FastMCP is a Python package)
+    if (pythonDeps?.fastmcp) {
+      framework = 'fastmcp';
+    } else if (packageJson) {
+      const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+      if (deps?.['@modelcontextprotocol/sdk']) {
+        framework = 'official-sdk';
       }
     }
 
-    const averageFileSize = allFiles.length > 0 ? totalLines / allFiles.length : 0;
-    const largestFiles = fileSizes.sort((a, b) => b.lines - a.lines).slice(0, 10);
-
-    return {
-      totalFiles: allFiles.length,
-      totalLines,
-      averageFileSize,
-      largestFiles,
-    };
-  }
-
-  // Helper methods for framework detection
-  private async hasReact(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.react || deps?.['@types/react']);
-  }
-
-  private async hasVue(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.vue || deps?.['@vue/cli']);
-  }
-
-  private async hasAngular(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(deps?.['@angular/core'] || deps?.['@angular/cli']);
-  }
-
-  private async hasExpress(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!deps?.express;
-  }
-
-  private async hasNextJs(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!deps?.next;
-  }
-
-  private async hasFastAPI(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.fastapi || pythonDeps?.['fastapi[all]']);
-  }
-
-  private async hasDjango(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.django || pythonDeps?.Django);
-  }
-
-  private async hasFlask(pythonDeps: any): Promise<boolean> {
-    return !!(pythonDeps?.flask || pythonDeps?.Flask);
-  }
-
-  private async hasMCPServer(packageJson: any): Promise<boolean> {
-    if (!packageJson) return false;
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    return !!(
-      deps?.['@modelcontextprotocol/sdk'] || 
-      deps?.['@modelcontextprotocol/server'] ||
-      deps?.fastmcp ||
-      deps?.['mcp-framework'] ||
-      deps?.['@anthropic/mcp']
-    );
-  }
-
-  private async detectMCPFramework(packageJson: any): Promise<'fastmcp' | 'official-sdk' | 'custom'> {
-    if (!packageJson) return 'custom';
-    const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    
-    if (deps?.fastmcp) {
-      return 'fastmcp';
-    } else if (deps?.['@modelcontextprotocol/sdk']) {
-      return 'official-sdk';
-    }
-    
-    return 'custom';
-  }
-
-  private async analyzeMCPCapabilities(): Promise<MCPCapabilities> {
-    const packageJson = await this.readPackageJson();
-    const framework = await this.detectMCPFramework(packageJson);
-    
     // Basic capability detection - would be enhanced with actual AST parsing
     const capabilities: MCPCapabilities = {
       tools: [],
@@ -679,55 +424,80 @@ export class ProjectAnalyzer {
       transports: ['stdio'], // Default transport
       framework,
     };
-    
+
     // Check for HTTP+SSE transport indicators
-    const hasHttpIndicators = packageJson?.dependencies?.express || 
-                             packageJson?.dependencies?.fastify ||
-                             packageJson?.dependencies?.['@fastify/sse'] ||
-                             packageJson?.devDependencies?.express ||
-                             packageJson?.devDependencies?.fastify;
-    
+    const hasHttpIndicators =
+      packageJson?.dependencies?.express ??
+      packageJson?.dependencies?.fastify ??
+      packageJson?.dependencies?.['@fastify/sse'] ??
+      packageJson?.devDependencies?.express ??
+      packageJson?.devDependencies?.fastify;
+
     if (hasHttpIndicators) {
       capabilities.transports.push('http-sse');
     }
-    
+
     // Try to detect MCP configuration file
-    const mcpConfigFiles = await this.findFiles(['mcp.json', '.mcp/config.json', '**/mcp.json', '**/.mcp/config.json']);
+    const mcpConfigFiles = await this.findFiles([
+      'mcp.json',
+      '.mcp/config.json',
+      '**/mcp.json',
+      '**/.mcp/config.json',
+    ]);
     if (mcpConfigFiles.length > 0 && mcpConfigFiles[0]) {
       try {
         const configPath = path.join(this.projectPath, mcpConfigFiles[0]);
         const configContent = await fs.readFile(configPath, 'utf-8');
-        const config = JSON.parse(configContent);
-        
+
+        interface MCPConfig {
+          tools?: Array<{
+            name?: string;
+            description?: string;
+            inputSchema?: unknown;
+          }>;
+          resources?: Array<{
+            name?: string;
+            uri?: string;
+            mimeType?: string;
+          }>;
+          prompts?: Array<{
+            name?: string;
+            description?: string;
+            arguments?: unknown;
+          }>;
+        }
+
+        const config = JSON.parse(configContent) as MCPConfig;
+
         // Extract capabilities from config if available
         if (config.tools) {
-          capabilities.tools = config.tools.map((tool: any) => ({
-            name: tool.name || 'unknown',
-            description: tool.description,
-            inputSchema: tool.inputSchema,
+          capabilities.tools = config.tools.map((tool) => ({
+            name: tool.name ?? 'unknown',
+            ...(tool.description ? { description: tool.description } : {}),
+            ...(tool.inputSchema ? { inputSchema: tool.inputSchema } : {}),
           }));
         }
-        
+
         if (config.resources) {
-          capabilities.resources = config.resources.map((resource: any) => ({
-            name: resource.name || 'unknown',
-            uri: resource.uri || '',
-            mimeType: resource.mimeType,
+          capabilities.resources = config.resources.map((resource) => ({
+            name: resource.name ?? 'unknown',
+            uri: resource.uri ?? '',
+            ...(resource.mimeType ? { mimeType: resource.mimeType } : {}),
           }));
         }
-        
+
         if (config.prompts) {
-          capabilities.prompts = config.prompts.map((prompt: any) => ({
-            name: prompt.name || 'unknown',
-            description: prompt.description,
-            arguments: prompt.arguments,
+          capabilities.prompts = config.prompts.map((prompt) => ({
+            name: prompt.name ?? 'unknown',
+            ...(prompt.description ? { description: prompt.description } : {}),
+            ...(prompt.arguments ? { arguments: prompt.arguments } : {}),
           }));
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.debug('Could not parse MCP config file:', error);
       }
     }
-    
+
     return capabilities;
   }
 
@@ -735,7 +505,11 @@ export class ProjectAnalyzer {
   private async findFiles(
     patterns: string[],
     ignore: string[] = [],
-    options: any = {}
+    options: {
+      absolute?: boolean;
+      onlyFiles?: boolean;
+      deep?: number;
+    } = {}
   ): Promise<string[]> {
     // Use FileDiscoveryService if available, otherwise fall back to direct implementation
     if (this.fileDiscovery) {
@@ -745,14 +519,17 @@ export class ProjectAnalyzer {
           include: patterns,
           exclude: ignore,
           type: FileDiscoveryType.CUSTOM,
-          absolute: options.absolute,
+          absolute: options.absolute ?? false,
           includeDirectories: options.onlyFiles === false,
-          useCache: true
+          useCache: true,
         });
 
         return result.files;
-      } catch (error) {
-        logger.debug('Error using FileDiscoveryService, falling back to direct implementation:', error);
+      } catch (error: unknown) {
+        logger.debug(
+          'Error using FileDiscoveryService, falling back to direct implementation:',
+          error
+        );
         // Fall through to direct implementation
       }
     }
@@ -763,10 +540,10 @@ export class ProjectAnalyzer {
         cwd: this.projectPath,
         ignore,
         onlyFiles: options.onlyFiles !== false,
-        deep: options.deep,
+        deep: options.deep ?? 10,
         dot: false,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error finding files:', error);
       return [];
     }
@@ -780,18 +557,18 @@ export class ProjectAnalyzer {
         onlyDirectories: true,
         dot: false,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error finding directories:', error);
       return [];
     }
   }
 
-  private async readPackageJson(): Promise<any> {
+  private async readPackageJson(): Promise<PackageJsonContent | null> {
     try {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
       const content = await fs.readFile(packageJsonPath, 'utf-8');
-      return JSON.parse(content);
-    } catch (error) {
+      return JSON.parse(content) as PackageJsonContent;
+    } catch (error: unknown) {
       logger.debug('No package.json found or invalid JSON');
       return null;
     }
@@ -827,7 +604,7 @@ export class ProjectAnalyzer {
       }
 
       if (Object.keys(deps).length > 0) return deps;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('No pyproject.toml found');
     }
 
@@ -842,13 +619,13 @@ export class ProjectAnalyzer {
         if (line && !line.startsWith('#')) {
           const match = line.match(/^([a-zA-Z0-9_-]+)([>=<~!]+.*)?$/);
           if (match?.[1]) {
-            deps[match[1]] = match[2] || '*';
+            deps[match[1]] = match[2] ?? '*';
           }
         }
       });
 
       return Object.keys(deps).length > 0 ? deps : null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('No requirements.txt found');
     }
 
@@ -898,7 +675,7 @@ export class ProjectAnalyzer {
           fileExtensionPattern: await this.detectFileExtensionPattern(),
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error analyzing module system:', error);
       return {
         type: 'commonjs',
@@ -945,7 +722,7 @@ export class ProjectAnalyzer {
             cjsCount++;
           }
           // Files with both or neither don't contribute to the count
-        } catch (error) {
+        } catch (error: unknown) {
           logger.debug(`Error reading file ${filePath}:`, error);
         }
       }
@@ -967,7 +744,7 @@ export class ProjectAnalyzer {
         // Default to CommonJS if no clear pattern
         return { type: 'commonjs', confidence: 0.6 };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error detecting module type from files:', error);
       return { type: 'commonjs', confidence: 0.5 };
     }
@@ -994,9 +771,15 @@ export class ProjectAnalyzer {
   private async detectFileExtensionPattern(): Promise<'js' | 'mjs' | 'ts'> {
     try {
       // Check for common file patterns in the project
-      const tsFiles = await this.findFiles(['**/*.ts', '**/*.tsx'], ['node_modules/**', 'dist/**', 'build/**']);
-      const mjsFiles = await this.findFiles(['**/*.mjs'], ['node_modules/**', 'dist/**', 'build/**']);
-      
+      const tsFiles = await this.findFiles(
+        ['**/*.ts', '**/*.tsx'],
+        ['node_modules/**', 'dist/**', 'build/**']
+      );
+      const mjsFiles = await this.findFiles(
+        ['**/*.mjs'],
+        ['node_modules/**', 'dist/**', 'build/**']
+      );
+
       if (tsFiles.length > 0) {
         return 'ts';
       } else if (mjsFiles.length > 0) {
@@ -1004,7 +787,7 @@ export class ProjectAnalyzer {
       } else {
         return 'js';
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Error detecting file extension pattern:', error);
       return 'js';
     }

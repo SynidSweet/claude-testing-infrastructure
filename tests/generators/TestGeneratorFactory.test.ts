@@ -5,6 +5,7 @@ import { TestGeneratorConfig, GeneratedTest } from '../../src/generators/TestGen
 import { ProjectAnalysis } from '../../src/analyzers/ProjectAnalyzer';
 import { logger } from '../../src/utils/common-imports';
 import { createMockProjectAnalysis } from '../helpers/mockData';
+import type { MockLogger } from '../types/mock-interfaces';
 
 // Mock the logger
 jest.mock('../../src/utils/common-imports', () => ({
@@ -38,15 +39,15 @@ class TestJavaScriptGenerator extends BaseTestGenerator {
     };
   }
 
-  protected async analyzeSourceFile(filePath: string): Promise<any> {
+  protected async analyzeSourceFile(filePath: string): Promise<{ filePath: string }> {
     return { filePath };
   }
 
-  protected selectTestTemplate(_analysis: any): string {
+  protected selectTestTemplate(_analysis: { filePath: string }): string {
     return 'template';
   }
 
-  protected async generateTestContent(_template: string, _analysis: any): Promise<string> {
+  protected async generateTestContent(_template: string, _analysis: { filePath: string }): Promise<string> {
     return '// Test content';
   }
 
@@ -63,7 +64,11 @@ describe('TestGeneratorFactory', () => {
     jest.clearAllMocks();
     // Reset static state
     TestGeneratorFactory.setFeatureFlag(false);
-    (TestGeneratorFactory as any).languageGenerators.clear();
+    // Clear language generators using proper interface
+    const factory = TestGeneratorFactory as any;
+    if (factory.languageGenerators && typeof factory.languageGenerators.clear === 'function') {
+      factory.languageGenerators.clear();
+    }
 
     config = {
       projectPath: '/test/project',
@@ -148,9 +153,11 @@ describe('TestGeneratorFactory', () => {
       const configWithOverride = {
         ...config,
         testGeneration: {
-          engine: 'structural',
+          engine: 'structural' as const,
         },
-      } as any;
+      } as TestGeneratorConfig & {
+        testGeneration: { engine: 'structural' };
+      };
       
       const generator = await TestGeneratorFactory.createGenerator(configWithOverride, analysis);
       
@@ -206,7 +213,7 @@ describe('TestGeneratorFactory', () => {
       expect(generator).toBeInstanceOf(StructuralTestGenerator);
     });
 
-    it('should throw error when language-specific forced but no generator available', async () => {
+    it('should throw error when language-specific forced but no generator available', () => {
       TestGeneratorFactory.setFeatureFlag(true);
       // Don't register any generators
       
@@ -217,8 +224,8 @@ describe('TestGeneratorFactory', () => {
         },
       } as any;
       
-      await expect(TestGeneratorFactory.createGenerator(configWithOverride, analysis))
-        .rejects.toThrow('No generator registered for language: javascript');
+      expect(() => TestGeneratorFactory.createGenerator(configWithOverride, analysis))
+        .toThrow('No generator registered for language: javascript');
     });
   });
 
@@ -297,11 +304,11 @@ describe('TestGeneratorFactory', () => {
   });
 
   describe('createCompatibilityAdapter', () => {
-    it('should throw not implemented error', async () => {
+    it('should throw not implemented error', () => {
       const mockGenerator = {} as BaseTestGenerator;
       
-      await expect(TestGeneratorFactory.createCompatibilityAdapter(mockGenerator))
-        .rejects.toThrow('Compatibility adapter not yet implemented');
+      expect(() => TestGeneratorFactory.createCompatibilityAdapter(mockGenerator))
+        .toThrow('Compatibility adapter not yet implemented');
     });
   });
 });

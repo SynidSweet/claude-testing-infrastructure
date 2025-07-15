@@ -1,6 +1,6 @@
 /**
  * Registration helper for language-specific generators
- * 
+ *
  * This file registers all language-specific generators with the TestGeneratorFactory.
  * It should be called during CLI initialization to ensure generators are available.
  */
@@ -15,7 +15,7 @@ export function registerAllLanguageGenerators(): void {
   // Register JavaScript/TypeScript generator
   TestGeneratorFactory.registerLanguageGenerator('javascript', JavaScriptTestGenerator);
   TestGeneratorFactory.registerLanguageGenerator('typescript', JavaScriptTestGenerator);
-  
+
   // Future: Register Python generator when implemented
   // TestGeneratorFactory.registerLanguageGenerator('python', PythonTestGenerator);
 }

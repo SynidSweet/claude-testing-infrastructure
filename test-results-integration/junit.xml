@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="86" failures="0" errors="0" time="6.618">
+  <testsuite name="Mixed Project Test Harness" errors="0" failures="0" skipped="0" timestamp="2025-07-13T09:35:19" time="3.504" tests="14">
+    <testcase classname="Mixed Project Test Harness Minimal Mixed Project Validation should detect both JavaScript and Python files" name="Mixed Project Test Harness Minimal Mixed Project Validation should detect both JavaScript and Python files" time="0.337">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Minimal Mixed Project Validation should identify correct file counts per language" name="Mixed Project Test Harness Minimal Mixed Project Validation should identify correct file counts per language" time="0.208">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Minimal Mixed Project Validation should detect appropriate test frameworks for each language" name="Mixed Project Test Harness Minimal Mixed Project Validation should detect appropriate test frameworks for each language" time="0.193">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Minimal Mixed Project Validation should generate tests for both languages" name="Mixed Project Test Harness Minimal Mixed Project Validation should generate tests for both languages" time="0.237">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Minimal Mixed Project Validation should validate package configuration files" name="Mixed Project Test Harness Minimal Mixed Project Validation should validate package configuration files" time="0.002">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Complex Mixed Project Validation should detect multiple languages and frameworks" name="Mixed Project Test Harness Complex Mixed Project Validation should detect multiple languages and frameworks" time="0.287">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Complex Mixed Project Validation should handle TypeScript configuration" name="Mixed Project Test Harness Complex Mixed Project Validation should handle TypeScript configuration" time="0.28">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Complex Mixed Project Validation should detect backend and frontend separation" name="Mixed Project Test Harness Complex Mixed Project Validation should detect backend and frontend separation" time="0.279">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Complex Mixed Project Validation should generate comprehensive test suite" name="Mixed Project Test Harness Complex Mixed Project Validation should generate comprehensive test suite" time="0.305">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Complex Mixed Project Validation should handle complex dependencies correctly" name="Mixed Project Test Harness Complex Mixed Project Validation should handle complex dependencies correctly" time="0.002">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Cross-Language Integration Tests should handle projects with similar functionality across languages" name="Mixed Project Test Harness Cross-Language Integration Tests should handle projects with similar functionality across languages" time="0.43">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Cross-Language Integration Tests should validate test generation consistency across languages" name="Mixed Project Test Harness Cross-Language Integration Tests should validate test generation consistency across languages" time="0.5">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Configuration Validation should validate all required configuration files exist" name="Mixed Project Test Harness Configuration Validation should validate all required configuration files exist" time="0.002">
+    </testcase>
+    <testcase classname="Mixed Project Test Harness Configuration Validation should validate project structure integrity" name="Mixed Project Test Harness Configuration Validation should validate project structure integrity" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="FileDiscoveryService Integration" errors="0" failures="0" skipped="0" timestamp="2025-07-13T09:35:23" time="1.869" tests="8">
+    <testcase classname="FileDiscoveryService Integration Cross-Component Integration should work across all components consistently" name="FileDiscoveryService Integration Cross-Component Integration should work across all components consistently" time="0.699">
+    </testcase>
+    <testcase classname="FileDiscoveryService Integration Cross-Component Integration should maintain singleton pattern across components" name="FileDiscoveryService Integration Cross-Component Integration should maintain singleton pattern across components" time="0.201">
+    </testcase>
+    <testcase classname="FileDiscoveryService Integration Configuration Integration should respect user configuration patterns" name="FileDiscoveryService Integration Configuration Integration should respect user configuration patterns" time="0.187">
+    </testcase>
+    <testcase classname="FileDiscoveryService Integration Performance Validation should improve performance vs repeated file operations" name="FileDiscoveryService Integration Performance Validation should improve performance vs repeated file operations" time="0.185">
+    </testcase>
+    <testcase classname="FileDiscoveryService Integration Performance Validation should maintain reasonable memory usage" name="FileDiscoveryService Integration Performance Validation should maintain reasonable memory usage" time="0.185">
+    </testcase>
+    <testcase classname="FileDiscoveryService Integration Error Handling should handle invalid project paths gracefully" name="FileDiscoveryService Integration Error Handling should handle invalid project paths gracefully" time="0.087">
+    </testcase>
+    <testcase classname="FileDiscoveryService Integration Error Handling should recover from cache errors" name="FileDiscoveryService Integration Error Handling should recover from cache errors" time="0.191">
+    </testcase>
+    <testcase classname="FileDiscoveryService Integration Factory Reset Functionality should create new instance after reset" name="FileDiscoveryService Integration Factory Reset Functionality should create new instance after reset" time="0.004">
+    </testcase>
+  </testsuite>
+  <testsuite name="Configuration Validation Integration" errors="0" failures="0" skipped="0" timestamp="2025-07-13T09:35:25" time="0.252" tests="13">
+    <testcase classname="Configuration Validation Integration Validation Error Messages should provide helpful error messages for invalid values" name="Configuration Validation Integration Validation Error Messages should provide helpful error messages for invalid values" time="0.022">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Validation Error Messages should validate numeric ranges" name="Configuration Validation Integration Validation Error Messages should validate numeric ranges" time="0.009">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Validation Error Messages should validate enum values" name="Configuration Validation Integration Validation Error Messages should validate enum values" time="0.011">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Cross-Validation should perform cross-validation checks" name="Configuration Validation Integration Cross-Validation should perform cross-validation checks" time="0.01">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Cross-Validation should warn about AI features without Claude CLI" name="Configuration Validation Integration Cross-Validation should warn about AI features without Claude CLI" time="0.006">
+    </testcase>
+    <testcase classname="Configuration Validation Integration File Handling Edge Cases should handle empty configuration files" name="Configuration Validation Integration File Handling Edge Cases should handle empty configuration files" time="0.01">
+    </testcase>
+    <testcase classname="Configuration Validation Integration File Handling Edge Cases should handle very large configuration files" name="Configuration Validation Integration File Handling Edge Cases should handle very large configuration files" time="0.013">
+    </testcase>
+    <testcase classname="Configuration Validation Integration File Handling Edge Cases should handle malformed JSON gracefully" name="Configuration Validation Integration File Handling Edge Cases should handle malformed JSON gracefully" time="0.012">
+    </testcase>
+    <testcase classname="Configuration Validation Integration File Handling Edge Cases should handle missing configuration files" name="Configuration Validation Integration File Handling Edge Cases should handle missing configuration files" time="0.009">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Type Coercion should handle type mismatches gracefully" name="Configuration Validation Integration Type Coercion should handle type mismatches gracefully" time="0.008">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Complex Validation Scenarios should validate nested configuration correctly" name="Configuration Validation Integration Complex Validation Scenarios should validate nested configuration correctly" time="0.012">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Complex Validation Scenarios should handle circular references safely" name="Configuration Validation Integration Complex Validation Scenarios should handle circular references safely" time="0.009">
+    </testcase>
+    <testcase classname="Configuration Validation Integration Performance Validation should load configuration within performance limits" name="Configuration Validation Integration Performance Validation should load configuration within performance limits" time="0.011">
+    </testcase>
+  </testsuite>
+  <testsuite name="Truth Validation System E2E Tests" errors="0" failures="0" skipped="10" timestamp="2025-07-13T09:35:25" time="0.046" tests="12">
+    <testcase classname="Truth Validation System E2E Tests Core Components Status aggregator collects accurate metrics" name="Truth Validation System E2E Tests Core Components Status aggregator collects accurate metrics" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests Core Components Documentation claim parser extracts claims" name="Truth Validation System E2E Tests Core Components Documentation claim parser extracts claims" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests Core Components Truth validation engine detects discrepancies" name="Truth Validation System E2E Tests Core Components Truth validation engine detects discrepancies" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests Blocker Detection Test suite blocker detector runs successfully" name="Truth Validation System E2E Tests Blocker Detection Test suite blocker detector runs successfully" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests Blocker Detection Infrastructure blocker detector runs successfully" name="Truth Validation System E2E Tests Blocker Detection Infrastructure blocker detector runs successfully" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests Blocker Detection Code quality blocker detector identifies linting errors" name="Truth Validation System E2E Tests Blocker Detection Code quality blocker detector identifies linting errors" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests Workflow Integration Pre-commit validation script exists and is executable" name="Truth Validation System E2E Tests Workflow Integration Pre-commit validation script exists and is executable" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests Workflow Integration Documentation updater generates accurate updates" name="Truth Validation System E2E Tests Workflow Integration Documentation updater generates accurate updates" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests End-to-End Validation Complete validation workflow detects false claims" name="Truth Validation System E2E Tests End-to-End Validation Complete validation workflow detects false claims" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests End-to-End Validation Accurate claims pass validation without critical issues" name="Truth Validation System E2E Tests End-to-End Validation Accurate claims pass validation without critical issues" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests System Validation All required scripts exist" name="Truth Validation System E2E Tests System Validation All required scripts exist" time="0.002">
+    </testcase>
+    <testcase classname="Truth Validation System E2E Tests System Validation NPM scripts for truth validation exist" name="Truth Validation System E2E Tests System Validation NPM scripts for truth validation exist" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="In-Memory Filesystem Performance Integration" errors="0" failures="0" skipped="0" timestamp="2025-07-13T09:35:25" time="0.149" tests="4">
+    <testcase classname="In-Memory Filesystem Performance Integration ConfigurationService performance should load configuration from in-memory filesystem faster" name="In-Memory Filesystem Performance Integration ConfigurationService performance should load configuration from in-memory filesystem faster" time="0.013">
+    </testcase>
+    <testcase classname="In-Memory Filesystem Performance Integration ConfigurationService performance should handle multiple configuration loads efficiently" name="In-Memory Filesystem Performance Integration ConfigurationService performance should handle multiple configuration loads efficiently" time="0.017">
+    </testcase>
+    <testcase classname="In-Memory Filesystem Performance Integration Complex project structure loading should handle large project structures efficiently" name="In-Memory Filesystem Performance Integration Complex project structure loading should handle large project structures efficiently" time="0.01">
+    </testcase>
+    <testcase classname="In-Memory Filesystem Performance Integration Performance comparison insight should demonstrate significant speed improvement" name="In-Memory Filesystem Performance Integration Performance comparison insight should demonstrate significant speed improvement" time="0.006">
+    </testcase>
+  </testsuite>
+  <testsuite name="Command Configuration Integration" errors="0" failures="0" skipped="0" timestamp="2025-07-13T09:35:25" time="0.191" tests="16">
+    <testcase classname="Command Configuration Integration Analyze Command should map analyze command arguments correctly" name="Command Configuration Integration Analyze Command should map analyze command arguments correctly" time="0.016">
+    </testcase>
+    <testcase classname="Command Configuration Integration Analyze Command should handle console format flag" name="Command Configuration Integration Analyze Command should handle console format flag" time="0.008">
+    </testcase>
+    <testcase classname="Command Configuration Integration Test Command should map test command arguments correctly" name="Command Configuration Integration Test Command should map test command arguments correctly" time="0.018">
+    </testcase>
+    <testcase classname="Command Configuration Integration Test Command should handle onlyLogical flag" name="Command Configuration Integration Test Command should handle onlyLogical flag" time="0.006">
+    </testcase>
+    <testcase classname="Command Configuration Integration Test Command should handle mutually exclusive flags" name="Command Configuration Integration Test Command should handle mutually exclusive flags" time="0.003">
+    </testcase>
+    <testcase classname="Command Configuration Integration Run Command should map run command arguments correctly" name="Command Configuration Integration Run Command should map run command arguments correctly" time="0.004">
+    </testcase>
+    <testcase classname="Command Configuration Integration Run Command should handle partial threshold settings" name="Command Configuration Integration Run Command should handle partial threshold settings" time="0.005">
+    </testcase>
+    <testcase classname="Command Configuration Integration Incremental Command should map incremental command arguments correctly" name="Command Configuration Integration Incremental Command should map incremental command arguments correctly" time="0.006">
+    </testcase>
+    <testcase classname="Command Configuration Integration Watch Command should map watch command arguments correctly" name="Command Configuration Integration Watch Command should map watch command arguments correctly" time="0.005">
+    </testcase>
+    <testcase classname="Command Configuration Integration Generate-Logical-Batch Command should map batch generation arguments correctly" name="Command Configuration Integration Generate-Logical-Batch Command should map batch generation arguments correctly" time="0.004">
+    </testcase>
+    <testcase classname="Command Configuration Integration Command Interaction with Project Config should let CLI args override project config" name="Command Configuration Integration Command Interaction with Project Config should let CLI args override project config" time="0.006">
+    </testcase>
+    <testcase classname="Command Configuration Integration Command Interaction with Project Config should merge CLI args with project config" name="Command Configuration Integration Command Interaction with Project Config should merge CLI args with project config" time="0.006">
+    </testcase>
+    <testcase classname="Command Configuration Integration Error Scenarios should handle invalid threshold format gracefully" name="Command Configuration Integration Error Scenarios should handle invalid threshold format gracefully" time="0.007">
+    </testcase>
+    <testcase classname="Command Configuration Integration Error Scenarios should handle conflicting framework specifications" name="Command Configuration Integration Error Scenarios should handle conflicting framework specifications" time="0.008">
+    </testcase>
+    <testcase classname="Command Configuration Integration Real Command Scenarios should handle typical test generation scenario" name="Command Configuration Integration Real Command Scenarios should handle typical test generation scenario" time="0.006">
+    </testcase>
+    <testcase classname="Command Configuration Integration Real Command Scenarios should handle CI/CD test run scenario" name="Command Configuration Integration Real Command Scenarios should handle CI/CD test run scenario" time="0.006">
+    </testcase>
+  </testsuite>
+  <testsuite name="Configuration Precedence Integration" errors="0" failures="0" skipped="0" timestamp="2025-07-13T09:35:25" time="0.154" tests="6">
+    <testcase classname="Configuration Precedence Integration Complete Precedence Chain should respect full precedence order: CLI &gt; env &gt; custom &gt; project &gt; user &gt; defaults" name="Configuration Precedence Integration Complete Precedence Chain should respect full precedence order: CLI &gt; env &gt; custom &gt; project &gt; user &gt; defaults" time="0.019">
+    </testcase>
+    <testcase classname="Configuration Precedence Integration Complete Precedence Chain should handle partial configurations at each level" name="Configuration Precedence Integration Complete Precedence Chain should handle partial configurations at each level" time="0.013">
+    </testcase>
+    <testcase classname="Configuration Precedence Integration Deep Merge Behavior should properly deep merge nested objects" name="Configuration Precedence Integration Deep Merge Behavior should properly deep merge nested objects" time="0.009">
+    </testcase>
+    <testcase classname="Configuration Precedence Integration Deep Merge Behavior should handle array merging correctly" name="Configuration Precedence Integration Deep Merge Behavior should handle array merging correctly" time="0.009">
+    </testcase>
+    <testcase classname="Configuration Precedence Integration Source Tracking should accurately track which values came from which sources" name="Configuration Precedence Integration Source Tracking should accurately track which values came from which sources" time="0.011">
+    </testcase>
+    <testcase classname="Configuration Precedence Integration Source Tracking should show overridden values in source details" name="Configuration Precedence Integration Source Tracking should show overridden values in source details" time="0.008">
+    </testcase>
+  </testsuite>
+  <testsuite name="Environment Variable Configuration Integration" errors="0" failures="0" skipped="0" timestamp="2025-07-13T09:35:25" time="0.159" tests="13">
+    <testcase classname="Environment Variable Configuration Integration Environment Variable Parsing should parse string values correctly" name="Environment Variable Configuration Integration Environment Variable Parsing should parse string values correctly" time="0.012">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Environment Variable Parsing should parse comma-separated arrays correctly" name="Environment Variable Configuration Integration Environment Variable Parsing should parse comma-separated arrays correctly" time="0.005">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Environment Variable Parsing should parse boolean values correctly" name="Environment Variable Configuration Integration Environment Variable Parsing should parse boolean values correctly" time="0.004">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Environment Variable Parsing should parse numeric values correctly" name="Environment Variable Configuration Integration Environment Variable Parsing should parse numeric values correctly" time="0.004">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Environment Variable Parsing should parse nested object values correctly" name="Environment Variable Configuration Integration Environment Variable Parsing should parse nested object values correctly" time="0.007">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Special Cases should handle empty string values" name="Environment Variable Configuration Integration Special Cases should handle empty string values" time="0.004">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Special Cases should handle whitespace in comma-separated values" name="Environment Variable Configuration Integration Special Cases should handle whitespace in comma-separated values" time="0.004">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Special Cases should handle invalid numeric values gracefully" name="Environment Variable Configuration Integration Special Cases should handle invalid numeric values gracefully" time="0.004">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Special Cases should support all nested path variations" name="Environment Variable Configuration Integration Special Cases should support all nested path variations" time="0.008">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Environment Variable Precedence should override project config with env vars" name="Environment Variable Configuration Integration Environment Variable Precedence should override project config with env vars" time="0.006">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Environment Variable Precedence should be overridden by CLI args" name="Environment Variable Configuration Integration Environment Variable Precedence should be overridden by CLI args" time="0.004">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Real-world Scenarios should handle CI/CD environment setup" name="Environment Variable Configuration Integration Real-world Scenarios should handle CI/CD environment setup" time="0.004">
+    </testcase>
+    <testcase classname="Environment Variable Configuration Integration Real-world Scenarios should handle Docker environment with model switching" name="Environment Variable Configuration Integration Real-world Scenarios should handle Docker environment with model switching" time="0.007">
+    </testcase>
+  </testsuite>
+</testsuites>

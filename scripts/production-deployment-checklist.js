@@ -446,7 +446,7 @@ class ProductionDeploymentChecker {
     
     for (const cmd of commands) {
       try {
-        await execAsync(`node dist/cli/index.js ${cmd}`, { timeout: 5000 });
+        await execAsync(`node dist/src/cli/index.js ${cmd}`, { timeout: 5000 });
         workingCommands++;
       } catch (error) {
         // Command failed
@@ -475,7 +475,7 @@ class ProductionDeploymentChecker {
   async checkPerformance() {
     try {
       const start = Date.now();
-      await execAsync('node dist/cli/index.js --version', { timeout: 5000 });
+      await execAsync('node dist/src/cli/index.js --version', { timeout: 5000 });
       const duration = Date.now() - start;
       
       if (duration > 3000) {

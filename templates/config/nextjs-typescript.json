@@ -70,7 +70,7 @@
   "ai": {
     "maxCost": 3.50,
     "batchSize": 5,
-    "timeout": 300
+    "timeout": 300000
   },
   "output": {
     "verbose": false,

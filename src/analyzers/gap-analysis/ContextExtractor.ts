@@ -1,15 +1,14 @@
 import { fs, path, logger } from '../../utils/common-imports';
-import { TestContext, CodeSnippet } from '../TestGapAnalyzer';
+import type { TestContext, CodeSnippet } from '../TestGapAnalyzer';
 
 /**
  * Context Extractor - Extracts AI context information
- * 
+ *
  * Analyzes source files to extract relevant context information
  * for AI-powered test generation, including dependencies, framework
  * detection, and code snippets.
  */
 export class ContextExtractor {
-
   /**
    * Extract context information for AI generation
    */
@@ -17,7 +16,7 @@ export class ContextExtractor {
     const framework = this.detectSourceFramework(sourceContent);
     const language = this.detectSourceLanguage(filePath);
     const fileType = this.detectSourceFileType(sourceContent, filePath);
-    
+
     const dependencies = this.extractSourceDependencies(sourceContent);
     const codeSnippets = this.extractAIContextCodeSnippets(sourceContent);
     const relatedFiles = await this.findRelatedFiles(filePath);
@@ -28,7 +27,7 @@ export class ContextExtractor {
       language,
       fileType,
       codeSnippets,
-      relatedFiles
+      relatedFiles,
     };
   }
 
@@ -60,16 +59,20 @@ export class ContextExtractor {
    */
   private detectSourceFileType(content: string, filePath: string): TestContext['fileType'] {
     const fileName = path.basename(filePath).toLowerCase();
-    
-    if (content.includes('React.Component') || content.includes('function ') && content.includes('return')) {
+
+    if (
+      content.includes('React.Component') ||
+      (content.includes('function ') && content.includes('return'))
+    ) {
       return 'component';
     }
     if (fileName.includes('service') || content.includes('service')) return 'service';
     if (fileName.includes('util') || fileName.includes('helper')) return 'utility';
-    if (content.includes('router') || content.includes('app.') || content.includes('endpoint')) return 'api';
+    if (content.includes('router') || content.includes('app.') || content.includes('endpoint'))
+      return 'api';
     if (content.includes('model') || content.includes('schema')) return 'model';
     if (content.includes('hook') || fileName.includes('hook')) return 'hook';
-    
+
     return 'unknown';
   }
 
@@ -79,14 +82,14 @@ export class ContextExtractor {
   private extractSourceDependencies(content: string): string[] {
     const importRegex = /import\s+.*?from\s+['"]([^'"]+)['"]/g;
     const dependencies: string[] = [];
-    
+
     let match;
     while ((match = importRegex.exec(content)) !== null) {
       if (match[1]) {
         dependencies.push(match[1]);
       }
     }
-    
+
     return dependencies;
   }
 
@@ -95,20 +98,20 @@ export class ContextExtractor {
    */
   private extractAIContextCodeSnippets(content: string): CodeSnippet[] {
     const snippets: CodeSnippet[] = [];
-    
+
     // Look for function definitions
     const functionRegex = /(function\s+\w+|const\s+\w+\s*=.*?=>|def\s+\w+)/g;
-    
+
     let match;
     while ((match = functionRegex.exec(content)) !== null) {
       const startIndex = content.lastIndexOf('\n', match.index) + 1;
       const functionStart = content.slice(0, match.index).split('\n').length - 1;
-      
+
       // Find the end of the function (simple heuristic)
       let braceCount = 0;
       let endIndex = match.index;
       let foundStart = false;
-      
+
       for (let i = match.index; i < content.length; i++) {
         if (content[i] === '{') {
           braceCount++;
@@ -121,12 +124,14 @@ export class ContextExtractor {
           }
         }
       }
-      
+
       const snippet = content.slice(startIndex, endIndex);
       const functionEnd = content.slice(0, endIndex).split('\n').length - 1;
-      
-      if (snippet.length > 10 && snippet.length < 500) { // Reasonable size
-        const name = match[0].replace(/function\s+|const\s+|def\s+/, '').split(/\s|=/)[0] || 'unknown';
+
+      if (snippet.length > 10 && snippet.length < 500) {
+        // Reasonable size
+        const name =
+          match[0].replace(/function\s+|const\s+|def\s+/, '').split(/\s|=/)[0] || 'unknown';
         snippets.push({
           name,
           content: snippet,
@@ -134,11 +139,11 @@ export class ContextExtractor {
           hasAsyncOperations: /\b(async|await|Promise)\b/.test(snippet),
           hasConditionals: /\b(if|switch|case)\b/.test(snippet),
           hasLoops: /\b(for|while|forEach|map)\b/.test(snippet),
-          hasErrorHandling: /\b(try|catch|throw)\b/.test(snippet)
+          hasErrorHandling: /\b(try|catch|throw)\b/.test(snippet),
         });
       }
     }
-    
+
     return snippets.slice(0, 5); // Limit to 5 snippets for token efficiency
   }
 
@@ -149,18 +154,18 @@ export class ContextExtractor {
     try {
       const dir = path.dirname(filePath);
       const fileName = path.basename(filePath, path.extname(filePath));
-      
+
       // Look for related files in the same directory
       const files = await fs.readdir(dir);
       const related = files
-        .filter(file => {
+        .filter((file) => {
           const fileBase = path.basename(file, path.extname(file));
           return fileBase.includes(fileName) || fileName.includes(fileBase);
         })
-        .filter(file => file !== path.basename(filePath))
+        .filter((file) => file !== path.basename(filePath))
         .slice(0, 3); // Limit for token efficiency
-      
-      return related.map(file => path.join(dir, file));
+
+      return related.map((file) => path.join(dir, file));
     } catch (error) {
       logger.debug('Error finding related files', { filePath, error });
       return [];

@@ -1,6 +1,6 @@
 # ProjectAnalyzer Implementation
 
-*Last updated: 2025-06-29 | Module system detection validated and enhanced*
+*Last updated: 2025-07-06 | Added PackageJsonContent interface for type-safe framework detection*
 
 ## Overview
 
@@ -103,16 +103,16 @@ export interface ProjectAnalysis {
 ### Available Commands
 ```bash
 # Basic project analysis
-node dist/cli/index.js analyze /path/to/project
+node dist/src/cli/index.js analyze /path/to/project
 
 # Detailed analysis with verbose output
-node dist/cli/index.js analyze /path/to/project --verbose
+node dist/src/cli/index.js analyze /path/to/project --verbose
 
 # JSON output for integration
-node dist/cli/index.js analyze /path/to/project --format json --output analysis.json
+node dist/src/cli/index.js analyze /path/to/project --format json --output analysis.json
 
 # Markdown report generation  
-node dist/cli/index.js analyze /path/to/project --format markdown --output report.md
+node dist/src/cli/index.js analyze /path/to/project --format markdown --output report.md
 ```
 
 ### Output Formats

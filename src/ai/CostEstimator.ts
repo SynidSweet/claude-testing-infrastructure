@@ -9,6 +9,7 @@
  */
 
 import type { TestGapAnalysisResult, TestGap } from '../analyzers/TestGapAnalyzer';
+import type { TaskPriority } from '../types/ai-task-types';
 import {
   getModelInfo,
   resolveModelName,
@@ -174,7 +175,7 @@ export class CostEstimator {
 
     // Check against model limits
     const modelInfo = getModelInfo(this.defaultModel);
-    const modelLimit = modelInfo?.contextWindow || 200000;
+    const modelLimit = modelInfo?.contextWindow ?? 200000;
     const withinLimit = totalTokens < modelLimit * 0.8; // Keep 20% buffer
 
     return {
@@ -375,7 +376,7 @@ export class CostEstimator {
 
     // Batch optimization
     const highPriorityCount = report.gaps.filter(
-      (g) => g.priority === 'critical' || g.priority === 'high'
+      (g) => (g.priority as string) === 'critical' || (g.priority as string) === 'high'
     ).length;
     if (highPriorityCount > 10) {
       recommendations.push(
@@ -447,13 +448,13 @@ export class CostEstimator {
   /**
    * Map priority enum to number
    */
-  public mapPriorityToNumber(priority: any): number {
+  public mapPriorityToNumber(priority: TaskPriority): number {
     const priorityMap: Record<string, number> = {
       critical: 10,
       high: 8,
       medium: 5,
       low: 3,
     };
-    return priorityMap[priority] || 5;
+    return priorityMap[priority] ?? 5;
   }
 }

@@ -1,6 +1,67 @@
-# Development Patterns & Conventions
+# Development Conventions
 
-*Last updated: 2025-06-30 | Updated by: /document-all command | Discriminated union types patterns added*
+*Last updated: 2025-07-13 | Updated by: /document command | TypeScript type safety enhanced - all 'any' types eliminated in adapter system, strict type enforcement achieved*
+
+## Code Organization
+
+### Directory Structure
+
+```
+src/
+├── analyzers/        # Project analysis components
+├── generators/       # Test generation logic
+│   └── templates/    # Test templates by language/framework
+├── runners/          # Test execution engines
+├── ai/              # AI integration components
+│   └── heartbeat/   # Process health monitoring
+├── config/          # Configuration management
+│   └── loaders/     # Configuration source loaders
+├── services/        # Shared services
+├── state/           # State management
+├── types/           # TypeScript type definitions
+├── utils/           # Utility functions
+└── cli/             # Command-line interface
+    ├── commands/    # Individual CLI commands
+    └── utils/       # CLI-specific utilities
+```
+
+### File Naming
+
+- **Source files**: `kebab-case.ts` (e.g., `project-analyzer.ts`)
+- **Test files**: `*.test.ts` or `*.spec.ts`
+- **Type files**: `*-types.ts` for type definitions
+- **Constants**: `*-constants.ts` for shared constants
+- **Interfaces**: No `I` prefix (e.g., `ProjectAnalysis` not `IProjectAnalysis`)
+
+### Module Organization
+
+Each module should follow this structure:
+
+```typescript
+// 1. Imports (external first, then internal)
+import { external } from 'package';
+import { internal } from '../utils';
+
+// 2. Types and interfaces
+interface ModuleOptions {
+  // ...
+}
+
+// 3. Constants
+const DEFAULT_OPTIONS: ModuleOptions = {
+  // ...
+};
+
+// 4. Main class/function
+export class ModuleName {
+  // ...
+}
+
+// 5. Helper functions (if needed)
+function helperFunction(): void {
+  // ...
+}
+```
 
 ## Naming Conventions
 
@@ -11,8 +72,9 @@
 - **Directories**: kebab-case (`cli/commands`, `analyzers`)
 - **Constants**: SCREAMING_SNAKE_CASE (`DEFAULT_TIMEOUT`, `MAX_RETRIES`)
 
-### AI-Friendly Function Naming (Updated 2025-06-29)
-Functions should be **self-documenting** and clearly indicate their purpose and context:
+### AI-Friendly Function Naming
+
+Functions should be **self-documenting** and clearly indicate their purpose:
 
 #### Domain-Specific Naming
 - **Include domain context**: `analyzeCoverage()` → `analyzeStructuralTestCoverage()`
@@ -20,414 +82,556 @@ Functions should be **self-documenting** and clearly indicate their purpose and 
 - **Clarify data type**: `calculateComplexity()` → `calculateCodeComplexityMetrics()`
 - **Indicate target context**: `extractTestContext()` → `extractAITestContext()`
 
-#### Framework and Language Specificity
-- **Expand abbreviations**: `generateJSSetup()` → `generateJavaScriptTestSetup()`
-- **Include framework context**: `parse()` → `parseJestCoverageData()` or `parsePytestCoverageData()`
-- **Specify file operations**: `generateMockFile()` → `generateMockFileForDependencies()`
-
-#### Examples of Improved Function Names
+#### Examples
 ```typescript
-// BEFORE - Generic/unclear names
-analyze() → analyzeProject()
-generate() → generateAllTests()
-processSingle() → processSingleCoverageSource()
-analyzeGaps() → analyzeTestGaps()
-generateTestForFile() → generateStructuralTestForFile()
+// ❌ Bad - Generic/unclear names
+analyze()
+generate()
+processSingle()
 
-// AFTER - Self-documenting names that include context
-private analyzeStructuralTestCoverage(sourceContent: string, testContent: string): CoverageAnalysis
-private identifyLogicalTestingGaps(sourceContent: string, coverage: CoverageAnalysis): IdentifiedGap[]
-private calculateCodeComplexityMetrics(sourceContent: string, filePath: string): ComplexityScore
-private extractAITestContext(sourceContent: string): TestContext
+// ✅ Good - Self-documenting names
+analyzeStructuralTestCoverage()
+generateJavaScriptTestForFile()
+processSingleCoverageSource()
 ```
 
-#### Naming Pattern Guidelines
-1. **Start with action verb** that clearly describes what the function does
-2. **Include object/subject** the function operates on
-3. **Add domain context** (test, coverage, analysis, generation)
-4. **Specify scope** (single vs multiple, structural vs logical)
-5. **Avoid generic terms** like "process", "handle", "check" without context
+## TypeScript Standards
 
-## Code Organization Patterns
-### Directory Structure
-```
-src/
-├── cli/            # Command-line interface
-├── analyzers/      # Project analysis components
-├── generators/     # Test generation logic
-├── runners/        # Test execution systems
-├── adapters/       # Language-specific adapters
-└── utils/          # Shared utilities
-```
+### Strict Mode
 
-### Class Architecture
-- **Abstract base classes**: Provide common functionality and interfaces
-- **Concrete implementations**: Language/framework-specific logic
-- **Factory pattern**: Automatic adapter/runner selection
-- **Dependency injection**: Constructor-based with interface contracts
+The project uses TypeScript strict mode. Follow these rules:
 
-## Design Patterns Used
-### Language Adapter Pattern
-- **Purpose**: Handle JavaScript/TypeScript vs Python differences
-- **Implementation**: `BaseProjectAdapter` → `JavaScriptAdapter`/`PythonAdapter`
-- **Benefits**: Extensible for new languages, clear separation of concerns
-
-### Factory Pattern
-- **TestRunnerFactory**: Selects Jest vs pytest based on project analysis
-- **AdapterFactory**: Chooses appropriate language adapter
-- **Benefits**: Automatic configuration, reduces conditional logic
-
-### Strategy Pattern
-- **Coverage aggregation**: Union, intersection, latest, highest strategies
-- **Test generation**: Structural vs AI-powered logical generation
-- **Benefits**: Flexible approaches, easy to extend
-
-### Template Method Pattern
-- **Purpose**: Separate report content from presentation logic
-- **Implementation**: External HTML/Markdown templates with template engine
-- **Example**: `CoverageVisualizer` using `HtmlTemplateEngine` for report generation
-- **Benefits**: Reduces method complexity, improves maintainability, easier to customize
-
-### Validation Pattern ✅ NEW (2025-06-29)
-- **Purpose**: Prevent invalid operations with clear user guidance
-- **Implementation**: Pre-operation validation with bypass options
-- **Example**: Test generation ratio validation with `--force` override
-- **Pattern**:
-  ```typescript
-  // 1. Check skip conditions first
-  if (skipValidation) {
-    logger.debug('Validation skipped');
-    return;
-  }
-  
-  // 2. Perform validation logic
-  const ratio = calculateRatio();
-  
-  // 3. Provide clear error with guidance
-  if (ratio > threshold) {
-    const message = [
-      `⚠️  WARNING: Operation would create problematic state`,
-      `   Options:`,
-      `   • Review your configuration`,
-      `   • Use --force to bypass this check`,
-      `   To proceed anyway, add the --force flag.`
-    ].join('\n');
-    
-    throw new Error('Validation failed');
-  }
-  ```
-- **Benefits**: Prevents user errors, provides educational feedback, maintains escape hatch
-
-### CLI Options Pattern ✅ NEW (2025-06-29)
-- **Purpose**: Consistent flag behavior across all commands
-- **Standard flags**:
-  - `--verbose`: Detailed operation information
-  - `--force`: Skip validation checks
-  - `--config <path>`: Custom configuration file
-  - `--help`: Command usage information
-- **Implementation**: Commander.js with consistent option descriptions
-- **Validation**: Boolean flags converted with `!!` for type safety
-- **Benefits**: Predictable CLI experience, reduced cognitive load
-
-## Type System Patterns ✅ NEW (2025-06-30)
-
-### Discriminated Union Types
-The infrastructure uses discriminated union types for enhanced type safety and AI comprehension:
-
-#### Pattern Implementation
 ```typescript
-// Define discriminated union with 'type' field
-type OperationInput =
-  | { type: 'file'; path: string; encoding?: 'utf8' | 'binary' }
-  | { type: 'data'; content: string; format: 'json' | 'text' }
-  | { type: 'stream'; stream: ReadableStream; metadata?: object };
-
-// Create type guards with descriptive names
-export function isFileInput(input: OperationInput): input is Extract<OperationInput, { type: 'file' }> {
-  return input.type === 'file';
+// ❌ Bad - Implicit any
+function process(data) {
+  return data.map(item => item.value);
 }
 
-export function isDataInput(input: OperationInput): input is Extract<OperationInput, { type: 'data' }> {
-  return input.type === 'data';
-}
-
-// Use type guards for safe runtime checking
-function processInput(input: OperationInput) {
-  if (isFileInput(input)) {
-    // TypeScript knows input has 'path' and optional 'encoding'
-    return processFile(input.path, input.encoding);
-  } else if (isDataInput(input)) {
-    // TypeScript knows input has 'content' and 'format'
-    return processData(input.content, input.format);
-  }
-  // Handle remaining cases...
+// ✅ Good - Explicit types
+function process(data: DataItem[]): number[] {
+  return data.map(item => item.value);
 }
 ```
 
-#### Type Guard Naming Convention
-- **Prefix with domain**: `isAnalysisInput()`, `isCoverageInput()`, `isGenerationInput()`
-- **Include operation context**: `isAnalysisSuccessResult()`, `isCoverageErrorResult()`
-- **Avoid generic names**: Use `isCoverageSuccessResult()` not `isSuccessResult()`
+### Type Definitions
 
-#### Benefits
-- **AI Comprehension**: Self-documenting type definitions that AI agents can analyze
-- **Type Safety**: Compile-time guarantees about data structure
-- **IntelliSense**: Better autocomplete and error detection
-- **Runtime Safety**: Type guards enable safe runtime type checking
-
-📖 **See detailed type documentation**: [`/docs/features/discriminated-union-types.md`](../features/discriminated-union-types.md)
-
-## Error Handling Approach
-### Graceful Degradation
+1. **Use interfaces for objects**:
 ```typescript
+// ✅ Good
+interface UserConfig {
+  name: string;
+  options?: ConfigOptions;
+}
+
+// ❌ Avoid type aliases for objects
+type UserConfig = {
+  name: string;
+  options?: ConfigOptions;
+};
+```
+
+2. **Use discriminated unions**:
+```typescript
+// ✅ Good
+type Result = 
+  | { type: 'success'; data: string }
+  | { type: 'error'; error: Error };
+
+// ❌ Bad
+type Result = {
+  success: boolean;
+  data?: string;
+  error?: Error;
+};
+```
+
+3. **Avoid `any` types**:
+```typescript
+// ❌ Bad
+catch (error: any) {
+  console.error(error);
+}
+
+// ✅ Good
+catch (error: unknown) {
+  if (error instanceof Error) {
+    console.error(error.message);
+  }
+}
+```
+
+### Recent Type Safety Improvements
+
+**CICD-FIX-001 Completed (2025-07-13)**: Enhanced type safety across adapter system by eliminating all `any` types:
+
+1. **Adapter System**: Added proper interfaces for `PackageJsonContent`, `FileDiscoveryStats`, and `AdapterTestRunResult`
+2. **AI Types**: Replaced dynamic imports with proper type imports for `AITask`, `AITaskResult`, and `AITaskBatch`
+3. **Method Signatures**: Enhanced return types and removed unnecessary async keywords
+4. **Public Interfaces**: Added public wrapper methods for adapter access to protected functionality
+
+**Key Files Enhanced**:
+- `src/adapters/AdapterFactory.ts` - Fixed duplicate imports, added type constraints
+- `src/adapters/JavaScriptAdapter.ts` - Replaced `any` with `PackageJsonContent`, `FileDiscoveryStats`, `AdapterTestRunResult`
+- `src/adapters/PythonAdapter.ts` - Enhanced return types and method signatures
+- `src/types/ai-error-types.ts` - Proper TypeScript imports instead of dynamic imports
+- `src/generators/*/TestGenerator.ts` - Added public wrapper methods for adapter compatibility
+
+**Impact**: Zero linting errors, enhanced type safety, improved IDE support, better runtime error prevention.
+
+### Code Quality Standards
+
+**Recent Modernization (2025-07-13)**: Watch command modernized with comprehensive linting improvements:
+
+#### Async/Event Handler Patterns
+```typescript
+// ✅ Proper async event handler extraction
+debouncer.on('debounced', (event, groupKey) => {
+  void handleDebouncedEvent(event, groupKey, stats, options, ...);
+});
+
+async function handleDebouncedEvent(...params): Promise<void> {
+  // Async operations properly handled
+}
+```
+
+#### Console Statement Guidelines
+```typescript
+// ✅ Intentional console output with eslint disable
+// eslint-disable-next-line no-console
+console.log(chalk.blue(`Processing ${fileCount} changes`));
+```
+
+#### TypeScript Type Safety
+```typescript
+// ✅ Proper unknown handling in event callbacks
+const uniqueFiles = new Set(
+  event.events.map((e: unknown) => {
+    const eventObj = e as { filePath?: string };
+    return String(eventObj.filePath ?? 'unknown');
+  })
+).size;
+```
+
+#### Import Consolidation
+```typescript
+// ✅ Consolidated imports to avoid duplication
+import { FileWatcher, type FileChangeEvent } from '../../utils/FileWatcher';
+import { FileChangeDebouncer, type DebouncedEvent } from '../../utils/Debouncer';
+```
+
+#### Nullish Coalescing Operator Usage
+**Applied (2025-07-13)**: Enhanced type safety by using nullish coalescing operator (`??`) instead of logical OR (`||`) where appropriate:
+
+```typescript
+// ✅ Nullish coalescing for null/undefined fallback
+function getAsyncPatterns(context: TemplateContext): FileAsyncPatterns | null {
+  const metadata = (context as any).metadata;
+  return metadata?.asyncPatterns ?? null;  // Only fallback if null/undefined
+}
+
+// ✅ Template framework handling
+const info = {
+  framework: template.framework ?? undefined,  // Preserves empty string
+  testType: template.testType ?? undefined,
+  description: template.getMetadata?.()?.description ?? undefined,
+};
+
+// ❌ Logical OR - can cause unexpected behavior
+return metadata?.asyncPatterns || null;  // Falls back on falsy values like 0, false, ""
+
+// ✅ Nullish coalescing - only null/undefined trigger fallback
+return metadata?.asyncPatterns ?? null;   // Preserves 0, false, "" as valid values
+```
+
+**Key Benefits**:
+- **Type Safety**: Preserves falsy values that should not trigger fallbacks
+- **Intent Clarity**: Code clearly expresses null/undefined checking only
+- **Template System**: Critical for template framework/testType handling where empty strings are valid
+
+## Coding Patterns
+
+### Error Handling
+
+Use the domain-specific error handling pattern:
+
+```typescript
+import { handleDomainError } from '../utils/error-guards';
+
+export async function analyzeProject(path: string): Promise<ProjectAnalysis> {
+  try {
+    // Operation logic
+    return await performAnalysis(path);
+  } catch (error: unknown) {
+    throw handleDomainError(error, 'project', {
+      projectPath: path,
+      operation: 'analyze'
+    });
+  }
+}
+```
+
+### Async/Await
+
+Always use async/await over callbacks or raw promises:
+
+```typescript
+// ❌ Bad - Callbacks
+fs.readFile(path, (err, data) => {
+  if (err) handleError(err);
+  else processData(data);
+});
+
+// ❌ Bad - Promise chains
+readFile(path)
+  .then(data => processData(data))
+  .catch(err => handleError(err));
+
+// ✅ Good - Async/await
 try {
-  const result = await primaryMethod();
-  return result;
+  const data = await fs.promises.readFile(path);
+  await processData(data);
 } catch (error) {
-  logger.warn('Primary method failed, trying fallback');
-  return await fallbackMethod();
+  handleError(error);
 }
 ```
 
-### Comprehensive Logging
-- **Debug level**: Detailed execution traces for development
-- **Info level**: User-facing progress updates
-- **Warn level**: Non-critical failures with fallbacks
-- **Error level**: Critical failures requiring user intervention
+### Dependency Injection
 
-## Testing Strategy
-### Infrastructure Testing
-- **Framework**: Jest with TypeScript support
-- **Coverage target**: 80% overall, 70% branch coverage minimum
-- **Test organization**: Co-located in `tests/` directory
-- **Patterns**: Unit tests for core logic, integration tests for CLI commands
+Use dependency injection for testability:
 
-### Generated Test Strategy
-- **JavaScript/TypeScript**: Jest with React Testing Library for components
-- **Python**: pytest with pytest-cov for coverage
-- **API testing**: supertest for Node.js, httpx for Python
-- **Test data**: Factory patterns for consistent test fixtures
-
-## Configuration Management
-### TypeScript Configuration
-- **Strict mode**: All strict TypeScript options enabled
-- **Path mapping**: `@/*` aliases for clean imports
-- **Build output**: Compiled to `dist/` with source maps
-
-### Environment Variables
-```bash
-# Development
-DEBUG=claude-testing:*
-LOG_LEVEL=debug
-
-# Production
-LOG_LEVEL=info
-ANTHROPIC_API_KEY=sk-...  # For AI features
-```
-
-### Feature Detection
-- **Framework detection**: Based on package.json dependencies
-- **Language detection**: File extensions and configuration files
-- **Capability flags**: Framework-specific feature availability
-
-## Code Style Guidelines
-### TypeScript Patterns
 ```typescript
-// Interface definitions
-export interface ProjectAnalysis {
-  projectPath: string;
-  languages: DetectedLanguage[];
-  frameworks: DetectedFramework[];
-}
-
-// Class implementation
-export class ProjectAnalyzer {
+// ✅ Good - Injectable dependencies
+export class TestRunner {
   constructor(
-    private readonly config: AnalyzerConfig,
+    private readonly fileSystem: FileSystem,
+    private readonly timer: TestableTimer,
     private readonly logger: Logger
   ) {}
+}
 
-  async analyze(path: string): Promise<ProjectAnalysis> {
-    // Implementation
+// ❌ Bad - Hard-coded dependencies
+export class TestRunner {
+  private fileSystem = new FileSystem();
+  private timer = new RealTimer();
+  private logger = console;
+}
+```
+
+### Factory Pattern
+
+Use factories for complex object creation:
+
+```typescript
+export class TestGeneratorFactory {
+  static create(language: Language, config: Config): TestGenerator {
+    switch (language) {
+      case 'javascript':
+        return new JavaScriptTestGenerator(config);
+      case 'python':
+        return new PythonTestGenerator(config);
+      default:
+        throw new Error(`Unsupported language: ${language}`);
+    }
   }
 }
 ```
 
-### Import Organization
+## CLI Development Patterns
 
-#### Consolidated Import Pattern (Preferred)
-Use shared import utilities to reduce duplication and improve maintainability:
+### Command Structure
+
+All CLI commands should follow the standardized pattern:
 
 ```typescript
-// Consolidated imports (preferred)
-import { fs, path, fg, chalk, ora, logger } from '../utils/common-imports';
-import { ProjectAnalyzer, TestGapAnalyzer, TestGeneratorConfig } from '../utils/analyzer-imports';
-
-// Additional specific imports only when needed
-import { Command } from 'commander';
-import { FileWatcher } from '../utils/FileWatcher';
-```
-
-#### Legacy Import Pattern (Before Consolidation)
-```typescript
-// Node.js built-ins
-import { promises as fs } from 'fs';
-import path from 'path';
-
-// Third-party dependencies
-import fg from 'fast-glob';
-import chalk from 'chalk';
-
-// Internal imports
-import { logger } from '@/utils/logger';
-import { ProjectAnalysis } from '@/analyzers/types';
-```
-
-#### Import Utility Files
-- **`src/utils/common-imports.ts`**: Node.js core modules, logging, and external utilities (fs, path, logger, chalk, ora, fg)
-- **`src/utils/analyzer-imports.ts`**: Core analyzers, generators, runners, and their types
-
-### Modern Node.js API Usage
-- **File System Operations**: Use modern `fs.rm()` instead of deprecated `fs.rmdir()` for recursive directory removal
-- **Compatibility**: Always use the latest stable Node.js filesystem APIs to avoid deprecation warnings
-- **Example**: `await fs.rm(tempDir, { recursive: true })` for cleaning up test directories
-
-## CLI Consistency Patterns (Updated 2025-06-29)
-
-### Verbose Flag Implementation
-All major CLI commands should support consistent verbose output:
-
-#### Standard Pattern
-```typescript
-interface CommandOptions {
-  verbose?: boolean;
-  // ... other options
-}
-
-// CLI definition pattern
-.option('-v, --verbose', 'Show detailed [command] information')
-```
-
-#### Verbose Output Guidelines
-- **Use gray colored output** for verbose details: `chalk.gray()`
-- **Provide structured information**: Step-by-step process details
-- **Include configuration data**: Show what options are being used
-- **File-level feedback**: List each file being processed
-- **Consistent emojis**: 🔍 for verbose mode, ⚙️ for configuration, 📊 for analysis, etc.
-- **Final confirmation**: Indicate verbose mode was active in completion message
-
-#### Implementation Example
-```typescript
-if (options.verbose) {
-  console.log(chalk.gray(`🔍 Verbose mode enabled`));
-  console.log(chalk.gray(`📁 Project path: ${projectPath}`));
-  console.log(chalk.gray(`⚙️  Options: ${JSON.stringify(options, null, 2)}`));
+export async function analyzeCommand(
+  projectPath: string,
+  options: AnalyzeOptions
+): Promise<void> {
+  const startTime = Date.now();
+  
+  try {
+    // 1. Load configuration using utility
+    const config = await loadCommandConfig(projectPath, options);
+    
+    // 2. Create services with configuration
+    const analyzer = new ProjectAnalyzer(config);
+    
+    // 3. Execute command logic
+    const result = await analyzer.analyze(projectPath);
+    
+    // 4. Handle output
+    outputResult(result, options.format);
+    
+  } catch (error: unknown) {
+    handleCommandError(error, 'analyze', { projectPath });
+  } finally {
+    logExecutionTime(startTime);
+  }
 }
 ```
 
-#### Current Implementation Status
-- ✅ **analyze command**: Full verbose support with detailed analysis output
-- ✅ **test command**: Complete verbose logging throughout generation process
-- ✅ **run command**: Verbose flag added for test execution details
-- 🔄 **watch command**: Already has verbose support
-- ⚠️ **analyze-gaps, generate-logical**: Should be updated for consistency
+### Configuration Loading
 
-## Error Handling Patterns (Updated 2025-06-29)
-
-### Standardized Error Classes
-All error handling should use the centralized error handling system from `src/utils/error-handling.ts`:
+Always use the centralized configuration loading utility:
 
 ```typescript
-import { 
-  handleFileOperation, 
-  handleAnalysisOperation, 
-  handleValidation,
-  formatErrorMessage 
-} from '../utils/error-handling';
+import { loadCommandConfig } from '../utils/config-loader';
+
+// In command implementation
+const config = await loadCommandConfig(projectPath, cliOptions);
 ```
 
-#### Error Class Hierarchy
-- **ClaudeTestingError**: Base error class with context and timestamp
-- **AnalysisError**: For project analysis, gap analysis operations
-- **FileOperationError**: For file system operations (read, write, stat)
-- **ValidationError**: For input validation, path validation, config validation
-- **GenerationError**: For test generation operations
-- **TestExecutionError**: For test running operations
+## Testing Conventions
 
-#### Standard Error Handling Patterns
+### Test Structure
 
-**File Operations**:
 ```typescript
-const content = await handleFileOperation(
-  () => fs.readFile(filePath, 'utf-8'),
-  'reading configuration file',
-  filePath
-);
+describe('ComponentName', () => {
+  // Setup
+  let component: ComponentName;
+  
+  beforeEach(() => {
+    component = new ComponentName();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('methodName', () => {
+    it('should handle normal case', async () => {
+      // Arrange
+      const input = createTestInput();
+      
+      // Act
+      const result = await component.method(input);
+      
+      // Assert
+      expect(result).toEqual(expectedOutput);
+    });
+
+    it('should handle error case', async () => {
+      // Arrange
+      const invalidInput = createInvalidInput();
+      
+      // Act & Assert
+      await expect(component.method(invalidInput))
+        .rejects.toThrow(ValidationError);
+    });
+  });
+});
 ```
 
-**Analysis Operations**:
+### Mock Conventions
+
 ```typescript
-const analysis = await handleAnalysisOperation(
-  async () => {
-    const analyzer = new ProjectAnalyzer(projectPath);
-    return await analyzer.analyzeProject();
-  },
-  'project analysis',
-  projectPath
-);
+// Create mocks in __mocks__ directory or inline
+jest.mock('../services/FileService');
+
+// Type-safe mocks
+const mockFileService = {
+  readFile: jest.fn().mockResolvedValue('content'),
+  writeFile: jest.fn().mockResolvedValue(undefined)
+} as jest.Mocked<FileService>;
 ```
 
-**Validation Operations**:
+### Test Data
+
+Create test fixtures for reusability:
+
 ```typescript
-await handleValidation(
-  async () => {
-    const stats = await fs.stat(projectPath);
-    if (!stats.isDirectory()) {
-      throw new Error(`Path is not a directory: ${projectPath}`);
+// tests/fixtures/project-fixtures.ts
+export const createReactProject = (): ProjectAnalysis => ({
+  languages: ['javascript'],
+  frameworks: ['react'],
+  testFramework: 'jest',
+  // ... other properties
+});
+```
+
+## Documentation Standards
+
+### Code Comments
+
+Use JSDoc for public APIs:
+
+```typescript
+/**
+ * Analyzes a project to detect languages and frameworks
+ * @param projectPath - Absolute path to the project directory
+ * @param options - Optional analysis configuration
+ * @returns Project analysis results
+ * @throws {ProjectNotFoundError} When project path doesn't exist
+ * @example
+ * const analysis = await analyzer.analyze('/path/to/project');
+ */
+export async function analyze(
+  projectPath: string,
+  options?: AnalyzeOptions
+): Promise<ProjectAnalysis> {
+  // Implementation
+}
+```
+
+### Inline Comments
+
+Use inline comments sparingly for complex logic:
+
+```typescript
+// Use binary search for performance with large arrays
+const index = binarySearch(sortedArray, target);
+
+// Compensate for floating-point precision issues
+const rounded = Math.round(value * 100) / 100;
+```
+
+## Git Conventions
+
+### Branch Names
+
+- `feature/` - New features
+- `fix/` - Bug fixes
+- `refactor/` - Code refactoring
+- `docs/` - Documentation updates
+- `test/` - Test improvements
+- `chore/` - Maintenance tasks
+
+### Commit Messages
+
+Follow conventional commits:
+
+```
+type(scope): subject
+
+body
+
+footer
+```
+
+Examples:
+```
+feat(analyzer): add Python framework detection
+fix(cli): handle missing config file gracefully
+docs(api): update test generation examples
+refactor(templates): extract common template logic
+test(e2e): add incremental update scenarios
+```
+
+## Performance Guidelines
+
+### Caching
+
+Use caching for expensive operations:
+
+```typescript
+export class FileDiscoveryService {
+  private cache = new Map<string, CachedResult>();
+  
+  async discoverFiles(path: string): Promise<string[]> {
+    const cacheKey = this.getCacheKey(path);
+    const cached = this.cache.get(cacheKey);
+    
+    if (cached && !this.isExpired(cached)) {
+      return cached.data;
     }
-  },
-  'validating project path',
-  projectPath
-);
-```
-
-#### Error Display Pattern
-Always use `formatErrorMessage()` for consistent error display:
-
-```typescript
-} catch (error) {
-  spinner.fail('Operation failed');
-  console.error(chalk.red(`\n✗ ${formatErrorMessage(error)}`));
-  process.exit(1);
+    
+    const result = await this.performDiscovery(path);
+    this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+    return result;
+  }
 }
 ```
 
-#### Benefits
-- **Consistent error messages** across all modules
-- **Rich context information** for debugging
-- **Standardized logging** with proper error levels
-- **Type-safe error handling** with specific error classes
-- **Reduced code duplication** (eliminated 25+ duplicate error blocks)
+### Batch Operations
 
-## AI Integration Patterns
-### Cost-Aware Design
-- **Batch processing**: Group multiple test generations
-- **Token estimation**: Predict costs before AI calls
-- **Incremental updates**: Only regenerate changed tests
-- **Fallback logic**: Structural tests when AI unavailable
+Batch operations for efficiency:
 
-### Claude Integration (Phase 5.3)
 ```typescript
-interface AITestGenerator {
-  generateLogicalTests(
-    context: TestContext,
-    complexity: ComplexityScore
-  ): Promise<GeneratedTest[]>;
+// ❌ Bad - Individual operations
+for (const file of files) {
+  await processFile(file);
+}
+
+// ✅ Good - Batched operations
+const batchSize = 10;
+for (let i = 0; i < files.length; i += batchSize) {
+  const batch = files.slice(i, i + batchSize);
+  await Promise.all(batch.map(file => processFile(file)));
 }
 ```
 
-## See Also
-- 📖 **Development Workflow**: [`./workflow.md`](./workflow.md)
-- 📖 **Important Gotchas**: [`./gotchas.md`](./gotchas.md)
-- 📖 **Architecture Overview**: [`../architecture/overview.md`](../architecture/overview.md)
-- 📖 **Technical Stack**: [`../architecture/technical-stack.md`](../architecture/technical-stack.md)
+## Security Practices
+
+### Input Validation
+
+Always validate external input:
+
+```typescript
+export function validateProjectPath(path: string): void {
+  if (!path || typeof path !== 'string') {
+    throw new ValidationError('Project path must be a non-empty string');
+  }
+  
+  if (!isAbsolute(path)) {
+    throw new ValidationError('Project path must be absolute');
+  }
+  
+  if (!existsSync(path)) {
+    throw new ProjectNotFoundError(`Project not found: ${path}`);
+  }
+}
+```
+
+### Path Safety
+
+Use path utilities to prevent directory traversal:
+
+```typescript
+import { join, resolve, relative } from 'path';
+
+// ✅ Good - Safe path handling
+const safePath = resolve(baseDir, userInput);
+if (!safePath.startsWith(baseDir)) {
+  throw new SecurityError('Path traversal detected');
+}
+```
+
+## Logging Standards
+
+Use the configured logger:
+
+```typescript
+import { logger } from '../utils/logger';
+
+// Log levels
+logger.debug('Detailed information for debugging');
+logger.info('General information');
+logger.warn('Warning that doesn't prevent operation');
+logger.error('Error that prevents operation', error);
+
+// Structured logging
+logger.info('Analysis completed', {
+  projectPath: '/path/to/project',
+  duration: 1234,
+  filesAnalyzed: 56
+});
+```
+
+## Code Review Checklist
+
+Before submitting PR, ensure:
+
+- [ ] All tests pass (`npm test`)
+- [ ] No linting errors (`npm run lint`)
+- [ ] Type checking passes (`npm run typecheck`)
+- [ ] Coverage maintained (>90%)
+- [ ] Documentation updated
+- [ ] No `console.log` statements
+- [ ] No commented-out code
+- [ ] Error handling implemented
+- [ ] Performance considered
+- [ ] Security validated
+
+---
+
+**Convention Philosophy**: Maintain consistency, readability, and reliability while optimizing for both human developers and AI agents.

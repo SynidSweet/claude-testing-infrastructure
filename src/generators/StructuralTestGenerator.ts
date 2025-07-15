@@ -1,18 +1,20 @@
-import { fs, path, fg } from '../utils/common-imports';
-import type { TestGeneratorConfig, GeneratedTest, GeneratedFile } from './TestGenerator';
-import { TestGenerator, TestType } from './TestGenerator';
+import { fs, path, fg, logger } from '../utils/common-imports';
+import {
+  TestGenerator,
+  TestType,
+  type TestGeneratorConfig,
+  type GeneratedTest,
+  type GeneratedFile,
+} from './TestGenerator';
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
-import { logger } from '../utils/common-imports';
-import type { TemplateContext } from './templates/TestTemplateEngine';
-import { TestTemplateEngine } from './templates/TestTemplateEngine';
+import { TestTemplateEngine, type TemplateContext } from './templates/TestTemplateEngine';
 import { MCPProtocolComplianceTemplate } from './templates/MCPProtocolComplianceTemplate';
 import { MCPToolIntegrationTemplate } from './templates/MCPToolIntegrationTemplate';
 import { MCPMessageHandlingTemplate } from './templates/MCPMessageHandlingTemplate';
 import { MCPTransportTemplate } from './templates/MCPTransportTemplate';
 import { MCPChaosTemplate } from './templates/MCPChaosTemplate';
 import { isMCPProjectAnalysis } from '../types/mcp-types';
-import type { FileDiscoveryService } from '../types/file-discovery-types';
-import { FileDiscoveryType } from '../types/file-discovery-types';
+import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
 
 export interface StructuralTestGeneratorOptions {
   /** Patterns for files to include in test generation */
@@ -52,7 +54,7 @@ export class StructuralTestGenerator extends TestGenerator {
     private fileDiscovery?: FileDiscoveryService
   ) {
     super(config, analysis);
-    
+
     // Use configuration patterns if available, otherwise use defaults
     const defaultIncludePatterns = ['**/*.{js,ts,jsx,tsx,py}'];
     const defaultExcludePatterns = [
@@ -67,10 +69,12 @@ export class StructuralTestGenerator extends TestGenerator {
       '**/tests/**',
       '**/__tests__/**',
     ];
-    
+
     this.options = {
-      includePatterns: config.patterns?.include || options.includePatterns || defaultIncludePatterns,
-      excludePatterns: config.patterns?.exclude || options.excludePatterns || defaultExcludePatterns,
+      includePatterns:
+        config.patterns?.include ?? options.includePatterns ?? defaultIncludePatterns,
+      excludePatterns:
+        config.patterns?.exclude ?? options.excludePatterns ?? defaultExcludePatterns,
       generateMocks: true,
       generateSetup: true,
       includeTestData: false,
@@ -97,26 +101,26 @@ export class StructuralTestGenerator extends TestGenerator {
       type: FileDiscoveryType.TEST_GENERATION,
       languages: this.getDetectedLanguages(),
       absolute: true,
-      useCache: true
+      useCache: true,
     });
 
     logger.debug(`FileDiscoveryService found ${result.files.length} files`, {
       fromCache: result.fromCache,
       duration: result.duration,
-      stats: result.stats
+      stats: result.stats,
     });
 
     // Apply existing test filtering if configured
     if (this.options.skipExistingTests) {
       const filesWithoutTests: string[] = [];
-      
+
       for (const file of result.files) {
         const hasExistingTest = await this.hasExistingTest(file);
         if (!hasExistingTest) {
           filesWithoutTests.push(file);
         }
       }
-      
+
       return filesWithoutTests;
     }
 
@@ -134,7 +138,7 @@ export class StructuralTestGenerator extends TestGenerator {
 
     // Use relative patterns (no path.join) - fast-glob handles cwd option better
     const allFiles = await fg(this.options.includePatterns!, {
-      ignore: this.options.excludePatterns || [],
+      ignore: this.options.excludePatterns ?? [],
       cwd: this.config.projectPath,
       absolute: true,
       onlyFiles: true,
@@ -170,7 +174,7 @@ export class StructuralTestGenerator extends TestGenerator {
   }
 
   private getDetectedLanguages(): string[] {
-    return this.analysis.languages.map(lang => lang.name);
+    return this.analysis.languages.map((lang) => lang.name);
   }
 
   protected async generateStructuralTestForFile(filePath: string): Promise<GeneratedTest | null> {
@@ -185,17 +189,14 @@ export class StructuralTestGenerator extends TestGenerator {
       }
 
       // Generate test content based on file type and framework
-      const testContent = await this.generateTestFileContent(filePath, fileAnalysis);
+      const testContent = this.generateTestFileContent(filePath, fileAnalysis);
       const testPath = this.getTestFilePath(filePath, fileAnalysis.testType, fileAnalysis.language);
 
       // Generate additional files if needed
       const additionalFiles: GeneratedFile[] = [];
 
       if (this.options.generateMocks && fileAnalysis.dependencies.length > 0) {
-        const mockFile = await this.generateMockFileForDependencies(
-          filePath,
-          fileAnalysis.dependencies
-        );
+        const mockFile = this.generateMockFileForDependencies(filePath, fileAnalysis.dependencies);
         if (mockFile) {
           additionalFiles.push(mockFile);
         }
@@ -216,7 +217,7 @@ export class StructuralTestGenerator extends TestGenerator {
   }
 
   protected getTestFileExtension(language?: string): string {
-    const lang = language || this.getPrimaryLanguage();
+    const lang = language ?? this.getPrimaryLanguage();
     switch (lang) {
       case 'typescript':
         return '.test.ts';
@@ -271,7 +272,7 @@ export class StructuralTestGenerator extends TestGenerator {
     }
   }
 
-  private async generateTestFileContent(filePath: string, analysis: FileAnalysis): Promise<string> {
+  private generateTestFileContent(filePath: string, analysis: FileAnalysis): string {
     const templateEngine = new TestTemplateEngine();
     const fileName = path.basename(filePath, path.extname(filePath));
 
@@ -281,7 +282,7 @@ export class StructuralTestGenerator extends TestGenerator {
       exports: analysis.exports,
       hasDefaultExport: analysis.hasDefaultExport,
       testType: analysis.testType,
-      framework: this.getPrimaryFramework() || 'jest',
+      framework: this.getPrimaryFramework() ?? 'jest',
       language: analysis.language as 'javascript' | 'typescript' | 'python',
       isAsync: analysis.hasAsyncCode,
       isComponent: analysis.isComponent,
@@ -317,22 +318,22 @@ export class StructuralTestGenerator extends TestGenerator {
     // Calculate the relative path from the test file location to the source file
     const testPath = this.getTestFilePath(filePath, testType);
     const relativePath = path.relative(path.dirname(testPath), filePath);
-    
+
     // Convert to forward slashes for import statements
     const normalizedPath = relativePath.split(path.sep).join('/');
-    
+
     // Ensure the path starts with ./ or ../
     if (!normalizedPath.startsWith('./') && !normalizedPath.startsWith('../')) {
       return './' + normalizedPath;
     }
-    
+
     return normalizedPath;
   }
 
-  private async generateMockFileForDependencies(
+  private generateMockFileForDependencies(
     filePath: string,
     dependencies: string[]
-  ): Promise<GeneratedFile | null> {
+  ): GeneratedFile | null {
     if (dependencies.length === 0) {
       return null;
     }
@@ -404,7 +405,7 @@ export class StructuralTestGenerator extends TestGenerator {
       '.py': 'python',
     };
 
-    return extMap[ext] || null;
+    return extMap[ext] ?? null;
   }
 
   private getPrimaryLanguage(): string {
@@ -473,7 +474,7 @@ export class StructuralTestGenerator extends TestGenerator {
       // Python exports (functions and classes at module level)
       // Use more precise regex that doesn't match across lines
       const functionRegex = /^(?:async\s+)?def\s+(\w+)\s*\(/gm;
-      const classRegex = /^class\s+(\w+)\s*[:\(]/gm;
+      const classRegex = /^class\s+(\w+)\s*[:()]/gm;
 
       let match;
       while ((match = functionRegex.exec(content)) !== null) {
@@ -528,20 +529,13 @@ export class StructuralTestGenerator extends TestGenerator {
         });
       }
 
-      // Also look for default exports
-      const defaultExportMatch = content.match(
-        /export\s+default\s+(?:class\s+(\w+)|function\s+(\w+)|(\w+))/
-      );
-      if (defaultExportMatch) {
-        const exportName = defaultExportMatch[1] || defaultExportMatch[2] || defaultExportMatch[3];
-        if (exportName?.trim()) {
-          exports.push(exportName.trim());
-        }
-      }
+      // Note: We don't add default export names to the exports array
+      // because they should be imported differently (import Name vs import { Name })
+      // Default exports are handled separately via hasDefaultExport
     }
 
     // Remove duplicates and empty strings
-    return [...new Set(exports.filter((exp) => exp && exp.trim()))];
+    return [...new Set(exports.filter((exp) => exp?.trim()))];
   }
 
   private extractDependencies(content: string, language: string): string[] {
@@ -560,8 +554,8 @@ export class StructuralTestGenerator extends TestGenerator {
       }
     } else {
       // Match both named imports and side-effect imports
-      const namedImports = content.match(/import.*?from\s+['"`]([^'"`]+)['"`]/g) || [];
-      const sideEffectImports = content.match(/import\s+['"`]([^'"`]+)['"`]/g) || [];
+      const namedImports = content.match(/import.*?from\s+['"`]([^'"`]+)['"`]/g) ?? [];
+      const sideEffectImports = content.match(/import\s+['"`]([^'"`]+)['"`]/g) ?? [];
 
       [...namedImports, ...sideEffectImports].forEach((imp) => {
         const match = imp.match(/['"`]([^'"`]+)['"`]/);
@@ -584,7 +578,7 @@ export class StructuralTestGenerator extends TestGenerator {
   private isComponent(filePath: string, content: string): boolean {
     const fileName = path.basename(filePath);
     const isReactFile =
-      fileName.match(/\.(jsx|tsx)$/) ||
+      !!fileName.match(/\.(jsx|tsx)$/) ||
       content.includes('React') ||
       content.includes('jsx') ||
       (content.includes('return (') && content.includes('<'));
@@ -779,13 +773,15 @@ Object.defineProperty(window, 'matchMedia', {
    */
   private validatePatterns(): void {
     // Check for valid pattern formats
-    const invalidIncludePatterns = this.options.includePatterns?.filter(pattern => 
-      !pattern || typeof pattern !== 'string' || pattern.trim() === ''
-    ) || [];
+    const invalidIncludePatterns =
+      this.options.includePatterns?.filter(
+        (pattern) => !pattern || typeof pattern !== 'string' || pattern.trim() === ''
+      ) ?? [];
 
-    const invalidExcludePatterns = this.options.excludePatterns?.filter(pattern => 
-      !pattern || typeof pattern !== 'string' || pattern.trim() === ''
-    ) || [];
+    const invalidExcludePatterns =
+      this.options.excludePatterns?.filter(
+        (pattern) => !pattern || typeof pattern !== 'string' || pattern.trim() === ''
+      ) ?? [];
 
     if (invalidIncludePatterns.length > 0) {
       logger.warn('Invalid include patterns found', { patterns: invalidIncludePatterns });
@@ -797,9 +793,10 @@ Object.defineProperty(window, 'matchMedia', {
 
     // Log pattern validation for debugging
     logger.debug('Pattern validation completed', {
-      includeCount: this.options.includePatterns?.length || 0,
-      excludeCount: this.options.excludePatterns?.length || 0,
-      hasNodeModulesExclude: this.options.excludePatterns?.some(p => p.includes('node_modules')) || false,
+      includeCount: this.options.includePatterns?.length ?? 0,
+      excludeCount: this.options.excludePatterns?.length ?? 0,
+      hasNodeModulesExclude:
+        this.options.excludePatterns?.some((p) => p.includes('node_modules')) ?? false,
     });
   }
 
@@ -887,7 +884,6 @@ Object.defineProperty(window, 'matchMedia', {
 
       // Update results count
       existingResults.push(...mcpTests);
-      
     } catch (error) {
       logger.error('Failed to generate MCP tests', { error });
       throw error;

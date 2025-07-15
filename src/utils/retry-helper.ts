@@ -1,11 +1,14 @@
 /**
  * Retry helper utility with exponential backoff and intelligent retry strategies
- * 
+ *
  * Provides robust retry logic for transient failures in Claude CLI operations
  */
 
 import { logger } from './logger';
 import { AIRateLimitError, AINetworkError, AITimeoutError } from '../types/ai-error-types';
+
+// Re-export error types for convenience
+export { AITimeoutError, AINetworkError, AIRateLimitError };
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -13,7 +16,9 @@ export interface RetryOptions {
   maxDelay?: number;
   backoffFactor?: number;
   jitter?: boolean;
-  retryableErrors?: Array<new (...args: any[]) => Error>;
+  retryableErrors?: Array<
+    typeof AITimeoutError | typeof AINetworkError | typeof AIRateLimitError | typeof Error
+  >;
   onRetry?: (error: Error, attempt: number, delay: number) => void;
   // Intelligent retry enhancements
   adaptiveTimeout?: boolean;
@@ -58,16 +63,19 @@ const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'taskContext' | 'failurePatte
  * Failure pattern detector for learning from previous failures
  */
 export class FailurePatternDetector {
-  private patterns = new Map<string, {
-    count: number;
-    lastSeen: Date;
-    successfulRetryStrategies: string[];
-    avgTimeToSuccess: number;
-  }>();
+  private patterns = new Map<
+    string,
+    {
+      count: number;
+      lastSeen: Date;
+      successfulRetryStrategies: string[];
+      avgTimeToSuccess: number;
+    }
+  >();
 
   recordFailure(error: Error, _taskContext?: TaskRetryContext): void {
     const pattern = this.categorizeError(error);
-    const existing = this.patterns.get(pattern) || {
+    const existing = this.patterns.get(pattern) ?? {
       count: 0,
       lastSeen: new Date(),
       successfulRetryStrategies: [],
@@ -137,24 +145,44 @@ export class FailurePatternDetector {
 
   private categorizeError(error: Error): string {
     const message = error.message.toLowerCase();
-    
-    if (error instanceof AITimeoutError || message.includes('timeout') || message.includes('timed out')) {
+
+    if (
+      error instanceof AITimeoutError ||
+      message.includes('timeout') ||
+      message.includes('timed out')
+    ) {
       return 'timeout';
     }
-    if (error instanceof AIRateLimitError || message.includes('rate limit') || message.includes('quota')) {
+    if (
+      error instanceof AIRateLimitError ||
+      message.includes('rate limit') ||
+      message.includes('quota')
+    ) {
       return 'rate-limit';
     }
-    if (error instanceof AINetworkError || message.includes('network') || message.includes('connection')) {
+    if (
+      error instanceof AINetworkError ||
+      message.includes('network') ||
+      message.includes('connection')
+    ) {
       return 'network';
     }
     if (message.includes('authentication') || message.includes('auth')) {
       return 'authentication';
     }
-    
+
     return 'unknown';
   }
 
-  getPatternStats(): Map<string, any> {
+  getPatternStats(): Map<
+    string,
+    {
+      count: number;
+      lastSeen: Date;
+      successfulRetryStrategies: string[];
+      avgTimeToSuccess: number;
+    }
+  > {
     return new Map(this.patterns);
   }
 }
@@ -163,8 +191,10 @@ export class FailurePatternDetector {
  * Check if an error is retryable based on error type and context
  */
 function isRetryableError(
-  error: Error, 
-  retryableErrors: Array<new (...args: any[]) => Error>,
+  error: Error,
+  retryableErrors: Array<
+    typeof AITimeoutError | typeof AINetworkError | typeof AIRateLimitError | typeof Error
+  >,
   context?: TaskRetryContext,
   patterns?: FailurePatternDetector
 ): boolean {
@@ -178,28 +208,28 @@ function isRetryableError(
     // Context-aware retry decision
     if (context && patterns) {
       // Don't retry if we've seen this error pattern too many times for this task
-      const recentFailures = context.previousFailures.filter(f => 
-        f.includes(error.constructor.name) || f.includes(error.message.slice(0, 50))
+      const recentFailures = context.previousFailures.filter(
+        (f) => f.includes(error.constructor.name) || f.includes(error.message.slice(0, 50))
       ).length;
-      
+
       if (recentFailures >= 3) {
         logger.warn(`Skipping retry for task ${context.taskId} - too many similar failures`);
         return false;
       }
-      
+
       // Don't retry complex tasks with timeouts as aggressively
       if (error instanceof AITimeoutError && context.complexity === 'high') {
         return context.previousAttempts < 2;
       }
     }
-    
+
     return true;
   }
 
   // Check for specific error messages that indicate transient failures
   const transientMessages = [
     'ECONNREFUSED',
-    'ECONNRESET', 
+    'ECONNRESET',
     'ETIMEDOUT',
     'ENOTFOUND',
     'ENETUNREACH',
@@ -213,7 +243,7 @@ function isRetryableError(
 
   const errorMessage = error.message.toLowerCase();
   const isTransient = transientMessages.some((msg) => errorMessage.includes(msg.toLowerCase()));
-  
+
   // Apply context-aware filtering for transient errors too
   if (isTransient && context) {
     // Be more conservative with retries for high-complexity tasks
@@ -221,7 +251,7 @@ function isRetryableError(
       return false;
     }
   }
-  
+
   return isTransient;
 }
 
@@ -238,33 +268,36 @@ function calculateDelay(
   _error?: Error
 ): number {
   let baseDelay = initialDelay;
-  
+
   // Adaptive timeout based on task context
   if (context) {
     // Adjust base delay based on task complexity and estimated tokens
-    const complexityMultiplier = {
-      'low': 0.8,
-      'medium': 1.0,
-      'high': 1.5,
-    }[context.complexity] || 1.0;
-    
+    const complexityMultiplier =
+      {
+        low: 0.8,
+        medium: 1.0,
+        high: 1.5,
+      }[context.complexity] ?? 1.0;
+
     // Adjust based on estimated tokens (more tokens = potentially longer processing)
-    const tokenMultiplier = Math.min(1 + (context.estimatedTokens / 10000), 3.0);
-    
+    const tokenMultiplier = Math.min(1 + context.estimatedTokens / 10000, 3.0);
+
     baseDelay = baseDelay * complexityMultiplier * tokenMultiplier;
-    
+
     // Use historical success time if available
     if (context.averageSuccessTime && context.averageSuccessTime > 0) {
       // If this task type typically takes longer, wait a bit longer
       const historicalMultiplier = Math.min(context.averageSuccessTime / 30000, 2.0);
       baseDelay = Math.max(baseDelay, baseDelay * historicalMultiplier);
     }
-    
-    logger.debug(`Adaptive delay for task ${context.taskId}: base=${initialDelay}ms, ` +
-                `adjusted=${Math.round(baseDelay)}ms (complexity=${context.complexity}, ` +
-                `tokens=${context.estimatedTokens})`);
+
+    logger.debug(
+      `Adaptive delay for task ${context.taskId}: base=${initialDelay}ms, ` +
+        `adjusted=${Math.round(baseDelay)}ms (complexity=${context.complexity}, ` +
+        `tokens=${context.estimatedTokens})`
+    );
   }
-  
+
   // Exponential backoff: delay = baseDelay * (backoffFactor ^ attempt)
   let delay = baseDelay * Math.pow(backoffFactor, attempt - 1);
 
@@ -290,18 +323,18 @@ export async function withRetry<T>(
 ): Promise<RetryResult<T>> {
   const startTime = Date.now();
   let lastError: Error | undefined;
-  let adaptedOptions = { ...DEFAULT_OPTIONS, ...options };
-  
+  const adaptedOptions = { ...DEFAULT_OPTIONS, ...options };
+
   // Override retryableErrors if explicitly provided (including empty arrays)
   if (options.retryableErrors !== undefined) {
     adaptedOptions.retryableErrors = options.retryableErrors;
   }
-  
+
   // Initialize failure pattern detector if not provided but context-aware retry is enabled
   if (adaptedOptions.contextAware && !adaptedOptions.failurePatterns) {
     adaptedOptions.failurePatterns = new FailurePatternDetector();
   }
-  
+
   // Record task context for adaptive retry
   if (adaptedOptions.taskContext) {
     adaptedOptions.taskContext.previousAttempts = 0;
@@ -309,24 +342,30 @@ export async function withRetry<T>(
 
   for (let attempt = 1; attempt <= adaptedOptions.maxAttempts; attempt++) {
     try {
-      logger.debug(`Executing operation, attempt ${attempt}/${adaptedOptions.maxAttempts}${
-        adaptedOptions.taskContext ? ` (task: ${adaptedOptions.taskContext.taskId})` : ''
-      }`);
-      
+      logger.debug(
+        `Executing operation, attempt ${attempt}/${adaptedOptions.maxAttempts}${
+          adaptedOptions.taskContext ? ` (task: ${adaptedOptions.taskContext.taskId})` : ''
+        }`
+      );
+
       const result = await operation();
-      
+
       // Record successful retry strategy if this was a retry
       if (attempt > 1 && lastError && adaptedOptions.failurePatterns) {
         const timeToSuccess = Date.now() - startTime;
-        adaptedOptions.failurePatterns.recordSuccess(lastError, 'exponential-backoff', timeToSuccess);
-        
+        adaptedOptions.failurePatterns.recordSuccess(
+          lastError,
+          'exponential-backoff',
+          timeToSuccess
+        );
+
         // Update task context with successful timing
         if (adaptedOptions.taskContext) {
-          const avgTime = adaptedOptions.taskContext.averageSuccessTime || 0;
+          const avgTime = adaptedOptions.taskContext.averageSuccessTime ?? 0;
           adaptedOptions.taskContext.averageSuccessTime = (avgTime + timeToSuccess) / 2;
         }
       }
-      
+
       return {
         success: true,
         result,
@@ -335,7 +374,7 @@ export async function withRetry<T>(
       };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       // Update task context with failure
       if (adaptedOptions.taskContext) {
         adaptedOptions.taskContext.previousAttempts = attempt;
@@ -343,39 +382,50 @@ export async function withRetry<T>(
           `${lastError.constructor.name}: ${lastError.message.slice(0, 100)}`
         );
       }
-      
+
       // Record failure pattern
       if (adaptedOptions.failurePatterns) {
         adaptedOptions.failurePatterns.recordFailure(lastError, adaptedOptions.taskContext);
-        
+
         // Get intelligent retry recommendation if this is an early attempt
         if (attempt === 1 && adaptedOptions.contextAware) {
           const recommendation = adaptedOptions.failurePatterns.getRecommendedStrategy(lastError);
-          
+
           // Adapt retry options based on recommendation
-          adaptedOptions.maxAttempts = Math.max(adaptedOptions.maxAttempts, recommendation.maxAttempts);
-          adaptedOptions.initialDelay = Math.max(adaptedOptions.initialDelay, recommendation.initialDelay);
+          adaptedOptions.maxAttempts = Math.max(
+            adaptedOptions.maxAttempts,
+            recommendation.maxAttempts
+          );
+          adaptedOptions.initialDelay = Math.max(
+            adaptedOptions.initialDelay,
+            recommendation.initialDelay
+          );
           adaptedOptions.backoffFactor = recommendation.backoffFactor;
-          
-          logger.info(`Applied intelligent retry strategy: ${recommendation.strategy} ` +
-                     `(attempts: ${recommendation.maxAttempts}, delay: ${recommendation.initialDelay}ms)`);
+
+          logger.info(
+            `Applied intelligent retry strategy: ${recommendation.strategy} ` +
+              `(attempts: ${recommendation.maxAttempts}, delay: ${recommendation.initialDelay}ms)`
+          );
         }
       }
-      
+
       logger.debug(`Operation failed on attempt ${attempt}: ${lastError.message}`);
 
       // Check if we should retry using context-aware logic
-      const shouldRetry = attempt < adaptedOptions.maxAttempts && 
+      const shouldRetry =
+        attempt < adaptedOptions.maxAttempts &&
         isRetryableError(
-          lastError, 
-          adaptedOptions.retryableErrors, 
-          adaptedOptions.taskContext, 
+          lastError,
+          adaptedOptions.retryableErrors,
+          adaptedOptions.taskContext,
           adaptedOptions.failurePatterns
         );
-        
+
       if (!shouldRetry) {
-        logger.debug(`Not retrying: attempt=${attempt}/${adaptedOptions.maxAttempts}, ` +
-                    `retryable=${isRetryableError(lastError, adaptedOptions.retryableErrors)}`);
+        logger.debug(
+          `Not retrying: attempt=${attempt}/${adaptedOptions.maxAttempts}, ` +
+            `retryable=${isRetryableError(lastError, adaptedOptions.retryableErrors)}`
+        );
         break;
       }
 
@@ -392,7 +442,7 @@ export async function withRetry<T>(
 
       logger.info(
         `Intelligent retry: waiting ${delay}ms before attempt ${attempt + 1}/${adaptedOptions.maxAttempts} ` +
-        `(strategy: ${adaptedOptions.failurePatterns?.getRecommendedStrategy(lastError).strategy || 'default'})`
+          `(strategy: ${adaptedOptions.failurePatterns?.getRecommendedStrategy(lastError).strategy ?? 'default'})`
       );
 
       // Call retry callback
@@ -406,7 +456,7 @@ export async function withRetry<T>(
   // All attempts failed
   return {
     success: false,
-    error: lastError || new Error('All retry attempts failed'),
+    error: lastError ?? new Error('All retry attempts failed'),
     attempts: adaptedOptions.maxAttempts,
     totalDuration: Date.now() - startTime,
   };
@@ -417,13 +467,13 @@ export async function withRetry<T>(
  */
 export function Retry(options: RetryOptions = {}) {
   return function (
-    _target: any,
-    _propertyKey: string,
+    _target: unknown,
+    _propertyKey: string | symbol,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
-    const originalMethod = descriptor.value;
+    const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]): Promise<unknown> {
       const result = await withRetry(() => originalMethod.apply(this, args), options);
 
       if (!result.success) {
@@ -457,25 +507,27 @@ export class CircuitBreaker {
     // Check if circuit is open
     if (this.state === 'open') {
       const timeSinceLastFailure = Date.now() - this.lastFailureTime;
-      
+
       if (timeSinceLastFailure < this.recoveryTimeout) {
-        throw new Error('Circuit breaker is open - operation blocked to prevent cascading failures');
+        throw new Error(
+          'Circuit breaker is open - operation blocked to prevent cascading failures'
+        );
       }
-      
+
       // Try half-open state
       this.state = 'half-open';
     }
 
     try {
       const result = await operation();
-      
+
       // Success - reset circuit
       if (this.state === 'half-open' || this.failureCount > 0) {
         this.failureCount = 0;
         this.state = 'closed';
         logger.info('Circuit breaker reset to closed state');
       }
-      
+
       return result;
     } catch (error) {
       this.failureCount++;
@@ -485,7 +537,7 @@ export class CircuitBreaker {
         this.state = 'open';
         logger.warn(
           `Circuit breaker opened after ${this.failureCount} failures. ` +
-          `Will retry after ${this.recoveryTimeout}ms`
+            `Will retry after ${this.recoveryTimeout}ms`
         );
       }
 

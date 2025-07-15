@@ -84,13 +84,13 @@ New command-line flags for chunking control:
 
 ```bash
 # Enable chunking (default: true)
-node dist/cli/index.js test /path/to/project --enable-chunking
+node dist/src/cli/index.js test /path/to/project --enable-chunking
 
 # Custom chunk size (default: 3500 tokens)
-node dist/cli/index.js test /path/to/project --chunk-size 4000
+node dist/src/cli/index.js test /path/to/project --chunk-size 4000
 
 # Disable chunking for testing
-node dist/cli/index.js test /path/to/project --no-enable-chunking
+node dist/src/cli/index.js test /path/to/project --no-enable-chunking
 ```
 
 ### Automatic Operation

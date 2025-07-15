@@ -5,8 +5,8 @@
  */
 
 // Export the base TestGenerator class and related types
-export {
-  TestGenerator,
+export { TestGenerator } from './TestGenerator';
+export type {
   TestGeneratorConfig,
   TestGeneratorOptions,
   TestGenerationResult,
@@ -18,18 +18,19 @@ export {
 } from './TestGenerator';
 
 // Export concrete implementations
-export { StructuralTestGenerator, StructuralTestGeneratorOptions } from './StructuralTestGenerator';
+export { StructuralTestGenerator } from './StructuralTestGenerator';
+export type { StructuralTestGeneratorOptions } from './StructuralTestGenerator';
 
 // Export base abstractions for language-specific generators
-export { 
-  BaseTestGenerator,
+export { BaseTestGenerator } from './base/BaseTestGenerator';
+export type {
   LanguageContext,
   LanguageFeatures,
   ImportStyle,
   TestingPattern,
   SourceFileAnalysis,
   ExportedItem,
-  ImportStatement
+  ImportStatement,
 } from './base/BaseTestGenerator';
 
 // Export factory for creating generators
@@ -39,32 +40,5 @@ export { TestGeneratorFactory } from './TestGeneratorFactory';
 export * from './types/contexts';
 
 // Export template engine
-export { TestTemplateEngine, Template, TemplateContext } from './templates/TestTemplateEngine';
-
-// Legacy interfaces (deprecated - use TestGenerator instead)
-export interface Generator {
-  name: string;
-  generate(config: GeneratorConfig): Promise<GeneratorResult>;
-}
-
-export interface GeneratorConfig {
-  // Add configuration properties
-  targetPath?: string;
-  framework?: string;
-  options?: Record<string, any>;
-}
-
-export interface GeneratorResult {
-  success: boolean;
-  files?: string[];
-  errors?: string[];
-}
-
-// Placeholder function (deprecated - use TestGenerator instead)
-export async function generateTestsDeprecated(_config: GeneratorConfig): Promise<GeneratorResult> {
-  // TODO: Implement test generation logic
-  return {
-    success: true,
-    files: [],
-  };
-}
+export { TestTemplateEngine } from './templates/TestTemplateEngine';
+export type { Template, TemplateContext } from './templates/TestTemplateEngine';

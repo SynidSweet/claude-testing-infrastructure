@@ -43,7 +43,7 @@ export interface CoverageSource {
   data: CoverageData;
   framework: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -84,12 +84,12 @@ export class CoverageAggregator {
   /**
    * Add a coverage source to be aggregated
    */
-  addSource(data: CoverageData, framework: string, metadata?: Record<string, any>): void {
+  addSource(data: CoverageData, framework: string, metadata?: Record<string, unknown>): void {
     this.sources.push({
       data,
       framework,
       timestamp: new Date(),
-      metadata: metadata || {},
+      metadata: metadata ?? {},
     });
 
     logger.debug('Added coverage source', {
@@ -103,7 +103,7 @@ export class CoverageAggregator {
    * Add multiple coverage sources at once
    */
   addSources(
-    sources: Array<{ data: CoverageData; framework: string; metadata?: Record<string, any> }>
+    sources: Array<{ data: CoverageData; framework: string; metadata?: Record<string, unknown> }>
   ): void {
     for (const source of sources) {
       this.addSource(source.data, source.framework, source.metadata);
@@ -244,7 +244,7 @@ export class CoverageAggregator {
       case 'intersection':
         return this.intersectionFileCoverage(coverages, filePath);
       case 'latest':
-        return coverages[coverages.length - 1] || this.createEmptyFileCoverage(filePath); // Assume last is latest
+        return coverages[coverages.length - 1] ?? this.createEmptyFileCoverage(filePath); // Assume last is latest
       case 'highest':
         return this.highestFileCoverage(coverages, filePath);
       default:
@@ -291,7 +291,7 @@ export class CoverageAggregator {
   private intersectionFileCoverage(coverages: FileCoverage[], filePath: string): FileCoverage {
     // Intersection: A line is covered only if it's covered in ALL sources
     if (coverages.length === 1) {
-      return coverages[0] || this.createEmptyFileCoverage(filePath);
+      return coverages[0] ?? this.createEmptyFileCoverage(filePath);
     }
 
     if (coverages.length === 0) {
@@ -399,7 +399,7 @@ export class CoverageAggregator {
         if (!this.shouldIncludeFile(area.file)) continue;
 
         // Create unique key for deduplication
-        const key = `${area.file}:${area.line}:${area.type}:${area.function || ''}`;
+        const key = `${area.file}:${area.line}:${area.type}:${area.function ?? ''}`;
 
         if (!areasMap.has(key)) {
           areasMap.set(key, { ...area });

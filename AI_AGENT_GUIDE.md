@@ -71,69 +71,69 @@ npm run build
 ### Step 2.5: Verify Installation Success
 ```bash
 # Ensure CLI is available after build (CRITICAL)
-node dist/cli/index.js --version
+node dist/src/cli/index.js --version
 # Should output: 2.0.0
 
 # Test basic functionality
-node dist/cli/index.js --help
+node dist/src/cli/index.js --help
 # Should show command help without errors
 ```
 
 ### Step 3: Analyze your target project
 ```bash
 # Basic analysis
-node dist/cli/index.js analyze /path/to/your/project
+node dist/src/cli/index.js analyze /path/to/your/project
 
 # With output file
-node dist/cli/index.js analyze /path/to/your/project --output analysis.json
+node dist/src/cli/index.js analyze /path/to/your/project --output analysis.json
 ```
 
 ### Step 4: Generate tests
 ```bash
 # Generate all tests (structural + AI-powered logical)
-node dist/cli/index.js test /path/to/your/project
+node dist/src/cli/index.js test /path/to/your/project
 
 # Only structural tests (no Claude CLI required)
-node dist/cli/index.js test /path/to/your/project --only-structural
+node dist/src/cli/index.js test /path/to/your/project --only-structural
 
 # Only logical tests (requires Claude CLI with Max subscription)
-node dist/cli/index.js test /path/to/your/project --only-logical
+node dist/src/cli/index.js test /path/to/your/project --only-logical
 
 # Generate logical tests in configurable batches (recommended for large projects)
-node dist/cli/index.js generate-logical-batch /path/to/your/project --batch-size 10
+node dist/src/cli/index.js generate-logical-batch /path/to/your/project --batch-size 10
 
 # Resume interrupted batch processing
-node dist/cli/index.js generate-logical-batch /path/to/your/project --resume
+node dist/src/cli/index.js generate-logical-batch /path/to/your/project --resume
 
 # With custom config
-node dist/cli/index.js test /path/to/your/project --config my-config.json
+node dist/src/cli/index.js test /path/to/your/project --config my-config.json
 ```
 
 ### Step 5: Incremental updates (recommended for development)
 ```bash
 # Smart test updates based on Git changes (cost-efficient)
-node dist/cli/index.js incremental /path/to/your/project
+node dist/src/cli/index.js incremental /path/to/your/project
 
 # Preview changes without executing
-node dist/cli/index.js incremental /path/to/your/project --dry-run
+node dist/src/cli/index.js incremental /path/to/your/project --dry-run
 
 # Create baseline for future comparisons
-node dist/cli/index.js incremental /path/to/your/project --baseline
+node dist/src/cli/index.js incremental /path/to/your/project --baseline
 
 # View statistics and history
-node dist/cli/index.js incremental /path/to/your/project --stats
+node dist/src/cli/index.js incremental /path/to/your/project --stats
 ```
 
 ### Step 6: Watch mode (alternative for development)
 ```bash
 # Auto-update tests as code changes
-node dist/cli/index.js watch /path/to/your/project
+node dist/src/cli/index.js watch /path/to/your/project
 ```
 
 ### Step 7: MCP Server Testing (specialized)
 ```bash
 # For MCP (Model Context Protocol) server projects
-node dist/cli/index.js test /path/to/mcp-server
+node dist/src/cli/index.js test /path/to/mcp-server
 
 # MCP testing includes:
 # - Protocol compliance (JSON-RPC 2.0)
@@ -201,61 +201,61 @@ node dist/cli/index.js test /path/to/mcp-server
 ### New Project Setup
 ```bash
 # Analyze and generate initial test suite
-node dist/cli/index.js test /path/to/new/project
+node dist/src/cli/index.js test /path/to/new/project
 
 # Create initial baseline for incremental updates
-node dist/cli/index.js incremental /path/to/new/project --baseline
+node dist/src/cli/index.js incremental /path/to/new/project --baseline
 
 # Set up incremental development workflow
-node dist/cli/index.js incremental /path/to/new/project --dry-run
+node dist/src/cli/index.js incremental /path/to/new/project --dry-run
 ```
 
 ### Existing Project Enhancement
 ```bash
 # Analyze current test coverage
-node dist/cli/index.js analyze /path/to/project --format markdown
+node dist/src/cli/index.js analyze /path/to/project --format markdown
 
 # Generate missing tests incrementally (cost-efficient)
-node dist/cli/index.js incremental /path/to/project
+node dist/src/cli/index.js incremental /path/to/project
 
 # View update statistics and history
-node dist/cli/index.js incremental /path/to/project --stats
+node dist/src/cli/index.js incremental /path/to/project --stats
 ```
 
 ### Large Project AI Test Generation (Batched Processing)
 ```bash
 # Start batched AI test generation (ideal for 50+ files)
-node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 10
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --batch-size 10
 
 # Continue processing next batch (after previous batch completes)
-node dist/cli/index.js generate-logical-batch /path/to/large/project
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project
 
 # Resume if interrupted (preserves state across sessions)
-node dist/cli/index.js generate-logical-batch /path/to/large/project --resume
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --resume
 
 # Check current progress and cost statistics
-node dist/cli/index.js generate-logical-batch /path/to/large/project --stats
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --stats
 
 # Preview batches without executing (cost estimation)
-node dist/cli/index.js generate-logical-batch /path/to/large/project --dry-run
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --dry-run
 
 # Clean up state and start fresh
-node dist/cli/index.js generate-logical-batch /path/to/large/project --clean
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --clean
 
 # Process with cost limits per batch
-node dist/cli/index.js generate-logical-batch /path/to/large/project --cost-limit 2.00
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --cost-limit 2.00
 
 # Use smaller batches for complex files or budget constraints
-node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 5
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --batch-size 5
 ```
 
 ### MCP Server Testing
 ```bash
 # Analyze MCP server project
-node dist/cli/index.js analyze /path/to/mcp-server
+node dist/src/cli/index.js analyze /path/to/mcp-server
 
 # Generate comprehensive MCP tests
-node dist/cli/index.js test /path/to/mcp-server
+node dist/src/cli/index.js test /path/to/mcp-server
 
 # Generated tests include:
 # - .claude-testing/mcp-protocol-compliance.test.js
@@ -270,11 +270,11 @@ cd /path/to/mcp-server/.claude-testing
 npm test
 
 # For FastMCP servers
-node dist/cli/index.js test /path/to/fastmcp-server
+node dist/src/cli/index.js test /path/to/fastmcp-server
 # Detects FastMCP framework automatically
 
 # For servers using official SDK
-node dist/cli/index.js test /path/to/official-mcp-server
+node dist/src/cli/index.js test /path/to/official-mcp-server
 # Detects @modelcontextprotocol/sdk usage
 ```
 
@@ -283,15 +283,15 @@ node dist/cli/index.js test /path/to/official-mcp-server
 # In your GitHub Actions workflow
 - name: Incremental Test Generation
   run: |
-    node dist/cli/index.js incremental . --cost-limit 5.00
-    node dist/cli/index.js run . --coverage
+    node dist/src/cli/index.js incremental . --cost-limit 5.00
+    node dist/src/cli/index.js run . --coverage
 
 # Alternative: Full generation for critical branches
 - name: Full Test Generation
   if: github.ref == 'refs/heads/main'
   run: |
-    node dist/cli/index.js test . --only-structural
-    node dist/cli/index.js run . --coverage
+    node dist/src/cli/index.js test . --only-structural
+    node dist/src/cli/index.js run . --coverage
 ```
 
 ## 🧪 Test Execution
@@ -310,16 +310,16 @@ The Claude Testing Infrastructure generates tests in a completely separate `.cla
 #### Method 1: Using the Infrastructure Runner (Recommended)
 ```bash
 # Run all generated tests with coverage
-node dist/cli/index.js run /path/to/your/project --coverage
+node dist/src/cli/index.js run /path/to/your/project --coverage
 
 # Run tests without coverage
-node dist/cli/index.js run /path/to/your/project
+node dist/src/cli/index.js run /path/to/your/project
 
 # Run with specific reporter
-node dist/cli/index.js run /path/to/your/project --reporter junit
+node dist/src/cli/index.js run /path/to/your/project --reporter junit
 
 # Generate coverage in multiple formats
-node dist/cli/index.js run /path/to/your/project --coverage --format html,json
+node dist/src/cli/index.js run /path/to/your/project --coverage --format html,json
 ```
 
 #### Method 2: Direct Execution from .claude-testing Directory
@@ -382,7 +382,7 @@ jobs:
           git clone https://github.com/SynidSweet/claude-testing-infrastructure.git
           cd claude-testing-infrastructure
           npm install && npm run build
-          node dist/cli/index.js run ../${{ github.workspace }} --coverage
+          node dist/src/cli/index.js run ../${{ github.workspace }} --coverage
 ```
 
 #### GitLab CI Example
@@ -566,7 +566,7 @@ Create `.claude-testing.config.json` in your **target project root** (not in the
 2. **AI features require Claude CLI** - Install Claude CLI and verify Max subscription authentication
 3. **Tests are stored in `.claude-testing/`** - Add to target project's .gitignore
 4. **Pull updates regularly** - `git pull origin main` in the infrastructure directory
-5. **Always use `node dist/cli/index.js`** - Commands are correct as shown above
+5. **Always use `node dist/src/cli/index.js`** - Commands are correct as shown above
 6. **Git repository required** - Target projects must be Git repositories for incremental features
 7. **Cost considerations** - AI generation uses Claude API (estimate ~$0.50-$5.00 per medium project)
 8. **System requirements** - Node.js 18+, 2GB+ RAM, several GB disk space for large projects
@@ -579,20 +579,20 @@ Create `.claude-testing.config.json` in your **target project root** (not in the
 cd claude-testing-infrastructure
 
 # Verify build succeeded
-node dist/cli/index.js --version
+node dist/src/cli/index.js --version
 # Should show: 2.0.0
 
 # If build is missing, rebuild
 npm run build
 
 # Always use full path to CLI
-node dist/cli/index.js --help
+node dist/src/cli/index.js --help
 ```
 
 ### "No tests generated" or "Project path does not exist"
 ```bash
 # Check analysis results first
-node dist/cli/index.js analyze /path/to/project
+node dist/src/cli/index.js analyze /path/to/project
 
 # Verify the target project path exists
 ls -la /path/to/project
@@ -672,13 +672,13 @@ claude chat  # Complete the login flow
 **Workarounds**:
 ```bash
 # Option 1: Use structural tests only (no AI required)
-node dist/cli/index.js test /path/to/project --only-structural
+node dist/src/cli/index.js test /path/to/project --only-structural
 
 # Option 2: Test gap analysis without AI generation
-node dist/cli/index.js analyze-gaps /path/to/project
+node dist/src/cli/index.js analyze-gaps /path/to/project
 
 # Option 3: Use dry-run mode to preview generation
-node dist/cli/index.js test /path/to/project --only-logical --dry-run
+node dist/src/cli/index.js test /path/to/project --only-logical --dry-run
 ```
 
 **Enhanced Error Handling** (v2.0 improvements):
@@ -697,7 +697,7 @@ The infrastructure now provides detailed error messages for common issues:
 ```bash
 # Default: 15 minutes per AI task
 # For complex projects, increase timeout:
-node dist/cli/index.js test /path/to/project --timeout 1800000  # 30 minutes
+node dist/src/cli/index.js test /path/to/project --timeout 1800000  # 30 minutes
 
 # Timeouts prevent infinite hangs and provide clear error messages:
 # - "AI generation timed out after X seconds"
@@ -727,8 +727,8 @@ node --version
 ```bash
 # This is normal - Commander.js displays errors for --version and --help
 # The commands work correctly despite error messages
-node dist/cli/index.js --version  # Shows version but also logs error
-node dist/cli/index.js --help     # Shows help but also logs error
+node dist/src/cli/index.js --version  # Shows version but also logs error
+node dist/src/cli/index.js --help     # Shows help but also logs error
 
 # These errors are harmless and expected behavior
 ```
@@ -739,19 +739,19 @@ node dist/cli/index.js --help     # Shows help but also logs error
 echo '{"include": ["src/**/*.{js,ts,jsx,tsx,py}"], "exclude": ["node_modules/**", "dist/**", "build/**"]}' > .claude-testing.config.json
 
 # Monitor memory usage for very large projects
-node dist/cli/index.js analyze /path/to/large/project --only-structural
+node dist/src/cli/index.js analyze /path/to/large/project --only-structural
 ```
 
 ### Network or AI generation failures
 ```bash
 # If Claude API is unreachable, use structural tests only
-node dist/cli/index.js test /path/to/project --only-structural
+node dist/src/cli/index.js test /path/to/project --only-structural
 
 # Check API cost before large operations
-node dist/cli/index.js analyze-gaps /path/to/project --dry-run
+node dist/src/cli/index.js analyze-gaps /path/to/project --dry-run
 
 # Set cost limits for safety
-node dist/cli/index.js incremental /path/to/project --cost-limit 5.00
+node dist/src/cli/index.js incremental /path/to/project --cost-limit 5.00
 ```
 
 ## 📝 Complete Working Example
@@ -773,12 +773,12 @@ npm install
 npm run build
 
 # Step 2.5: Verify build
-node dist/cli/index.js --version  # Should show: 2.0.0
+node dist/src/cli/index.js --version  # Should show: 2.0.0
 
 # Step 3: Use with your project
-node dist/cli/index.js analyze ../my-target-project
-node dist/cli/index.js test ../my-target-project --only-structural
-node dist/cli/index.js run ../my-target-project --coverage
+node dist/src/cli/index.js analyze ../my-target-project
+node dist/src/cli/index.js test ../my-target-project --only-structural
+node dist/src/cli/index.js run ../my-target-project --coverage
 
 # Check results
 ls -la ../my-target-project/.claude-testing/

@@ -1,0 +1,22 @@
+
+✓ Project Analysis Complete
+
+📁 Project: /code/personal/claude-testing/tests/fixtures/validation-projects/react-es-modules
+
+🔤 Languages:
+  • javascript (50% confidence)
+
+🚀 Frameworks:
+  • react v^19.1.0 (90% confidence)
+
+🧪 Testing Setup:
+  • Has tests: ❌
+  • Test frameworks: jest
+
+📊 Project Complexity:
+  • Total files: 5
+  • Total lines: 1,475
+  • Average file size: 295 lines
+
+✨ Analysis complete! Use --format json or --verbose for more details.
+

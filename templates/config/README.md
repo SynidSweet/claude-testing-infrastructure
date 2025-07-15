@@ -81,7 +81,7 @@ Edit the copied file to match your project structure:
 Run analysis to verify your configuration works:
 
 ```bash
-node dist/cli/index.js analyze /path/to/your/project --show-config-sources
+node dist/src/cli/index.js analyze /path/to/your/project --show-config-sources
 ```
 
 ## Template Customization Guide
@@ -228,7 +228,7 @@ Enable for active development projects:
 ### Configuration Not Loading
 ```bash
 # Verify file location and syntax
-node dist/cli/index.js analyze /path/to/project --debug
+node dist/src/cli/index.js analyze /path/to/project --debug
 ```
 
 ### Coverage Too Strict

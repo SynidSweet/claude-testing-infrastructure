@@ -9,6 +9,7 @@
  */
 
 import { EventEmitter } from 'events';
+import path from 'path';
 import { logger } from './logger';
 
 export interface DebouncedEvent<T> {
@@ -64,8 +65,8 @@ export class Debouncer<T> extends EventEmitter {
       delay: 300, // 300ms default debounce
       maxBatchSize: 50, // Process if more than 50 events
       maxWaitTime: 2000, // Never wait more than 2 seconds
-      groupBy: () => 'default', // Group all events together by default
-      shouldMerge: () => false, // Don't merge events by default
+      groupBy: (): string => 'default', // Group all events together by default
+      shouldMerge: (): boolean => false, // Don't merge events by default
       verbose: false,
       ...config,
     };
@@ -83,7 +84,7 @@ export class Debouncer<T> extends EventEmitter {
         groupKey,
         eventType:
           typeof event === 'object' && event !== null
-            ? (event as any).type || 'unknown'
+            ? ((event as Record<string, unknown>).type?.toString() ?? 'unknown')
             : typeof event,
       });
     }
@@ -261,17 +262,19 @@ export class FileChangeDebouncer extends Debouncer<FileChangeDebounceEvent> {
       typeof config.groupBy === 'function'
         ? config.groupBy
         : config.groupBy === 'extension'
-          ? (event: FileChangeDebounceEvent) => event.extension || 'unknown'
+          ? (event: FileChangeDebounceEvent): string => event.extension ?? 'unknown'
           : config.groupBy === 'directory'
-            ? (event: FileChangeDebounceEvent) => {
-                const path = require('path');
+            ? (event: FileChangeDebounceEvent): string => {
                 return path.dirname(event.filePath);
               }
             : config.groupBy === 'file'
-              ? (event: FileChangeDebounceEvent) => event.filePath
-              : () => 'files'; // Default: group all file changes together
+              ? (event: FileChangeDebounceEvent): string => event.filePath
+              : (): string => 'files'; // Default: group all file changes together
 
-    const shouldMergeFn = (event1: FileChangeDebounceEvent, event2: FileChangeDebounceEvent) => {
+    const shouldMergeFn = (
+      event1: FileChangeDebounceEvent,
+      event2: FileChangeDebounceEvent
+    ): boolean => {
       // Merge events for the same file (keep latest)
       return event1.filePath === event2.filePath;
     };

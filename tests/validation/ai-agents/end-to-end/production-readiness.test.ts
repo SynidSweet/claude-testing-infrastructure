@@ -13,7 +13,7 @@ import path from 'path';
 import fs from 'fs/promises';
 
 const execAsync = promisify(exec);
-const CLI_COMMAND = 'node dist/cli/index.js';
+const CLI_COMMAND = 'node dist/src/cli/index.js';
 
 interface ProductionReadinessResults {
   aiGenerationWorking: boolean;
@@ -188,7 +188,7 @@ describe('Production Readiness Validation - End-to-End', () => {
         );
         
         for (const importLine of importLines) {
-          if (!importLine.match(/\.js['"]$/)) {
+          if (!importLine.match(/\.(js|jsx)['"];$/)) {
             importIssueCount++;
             console.log(`❌ Import path issue in ${testFile}: ${importLine.trim()}`);
           }

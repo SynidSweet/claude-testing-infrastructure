@@ -1,9 +1,19 @@
-import type { CoverageParser, CoverageData, CoverageThresholds } from './CoverageParser';
-import { CoverageParserFactory } from './CoverageParser';
-import type { AggregatedCoverageData, AggregationConfig } from './CoverageAggregator';
-import { CoverageAggregator } from './CoverageAggregator';
-import type { CoverageReportConfig, CoverageGapAnalysis } from './CoverageVisualizer';
-import { CoverageVisualizer } from './CoverageVisualizer';
+import {
+  CoverageParserFactory,
+  type CoverageParser,
+  type CoverageData,
+  type CoverageThresholds,
+} from './CoverageParser';
+import {
+  CoverageAggregator,
+  type AggregatedCoverageData,
+  type AggregationConfig,
+} from './CoverageAggregator';
+import {
+  CoverageVisualizer,
+  type CoverageReportConfig,
+  type CoverageGapAnalysis,
+} from './CoverageVisualizer';
 import { logger } from '../utils/common-imports';
 
 /**
@@ -98,7 +108,7 @@ export class CoverageReporter {
       logger.info('Processing single coverage source', { framework: this.config.framework });
 
       // Parse coverage data
-      const data = await this.parser.parse(coverageData);
+      const data = this.parser.parse(coverageData);
 
       // Generate reports
       const gapAnalysis = this.visualizer.analyzeGaps(data);
@@ -152,7 +162,7 @@ export class CoverageReporter {
     sources: Array<{
       data: string | object;
       framework: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }>
   ): Promise<CoverageReport> {
     const startTime = Date.now();
@@ -174,7 +184,7 @@ export class CoverageReporter {
           this.config.thresholds
         );
 
-        const parsedData = await parser.parse(source.data);
+        const parsedData = parser.parse(source.data);
         this.aggregator.addSource(parsedData, source.framework, source.metadata);
       }
 
@@ -230,9 +240,9 @@ export class CoverageReporter {
   /**
    * Generate only gap analysis without full reports
    */
-  async analyzeGapsOnly(coverageData: string | object): Promise<CoverageGapAnalysis> {
+  analyzeGapsOnly(coverageData: string | object): CoverageGapAnalysis {
     try {
-      const data = await this.parser.parse(coverageData);
+      const data = this.parser.parse(coverageData);
       return this.visualizer.analyzeGaps(data);
     } catch (error) {
       logger.error('Failed to analyze coverage gaps', { error });
@@ -245,14 +255,14 @@ export class CoverageReporter {
   /**
    * Check if coverage meets thresholds without generating reports
    */
-  async checkThresholds(coverageData: string | object): Promise<{
+  checkThresholds(coverageData: string | object): {
     meetsThreshold: boolean;
     summary: CoverageData['summary'];
     thresholds?: CoverageThresholds;
     violations: string[];
-  }> {
+  } {
     try {
-      const data = await this.parser.parse(coverageData);
+      const data = this.parser.parse(coverageData);
       const violations: string[] = [];
 
       if (data.thresholds) {
@@ -292,7 +302,12 @@ export class CoverageReporter {
   /**
    * Get statistics about the current aggregator state
    */
-  getAggregatorStats() {
+  getAggregatorStats(): {
+    count: number;
+    frameworks: string[];
+    totalFiles: number;
+    dateRange: { earliest: Date; latest: Date } | null;
+  } {
     return this.aggregator.getSourceStats();
   }
 
@@ -422,7 +437,7 @@ export class CoverageReporterFactory {
       ...(options.thresholds && { thresholds: options.thresholds }),
       ...(options.failOnThreshold !== undefined && { failOnThreshold: options.failOnThreshold }),
       aggregation: {
-        strategy: options.aggregationStrategy || 'union',
+        strategy: options.aggregationStrategy ?? 'union',
         preserveMetadata: true,
       },
       reporting: {

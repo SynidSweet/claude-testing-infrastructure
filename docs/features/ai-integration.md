@@ -1,10 +1,12 @@
 # AI Integration Features
 
-*Last updated: 2025-07-02 | Updated by: /document command | Integrated centralized model mapping system for consistent model recognition*
+*Last updated: 2025-07-12 | Updated by: /document command | Clarified AI tests as local development tools, not CI/CD features*
 
 ## Overview
 
 The Claude Testing Infrastructure includes powerful AI-powered test generation capabilities that leverage Claude to create comprehensive logical tests based on gap analysis. This system intelligently identifies where structural tests fall short and generates meaningful test cases that validate business logic, edge cases, and integration scenarios.
+
+**🚨 IMPORTANT**: AI features are designed for **local development only**. Claude CLI integration requires authentication and is not intended for CI/CD environments. Production pipelines should rely on structural test generation only.
 
 ## Architecture
 
@@ -77,7 +79,7 @@ Comprehensive model configuration management:
 Generate AI-powered logical tests based on gap analysis:
 
 ```bash
-node dist/cli/index.js generate-logical <projectPath> [options]
+node dist/src/cli/index.js generate-logical <projectPath> [options]
 
 Options:
   -g, --gap-report <path>     Path to existing gap analysis report
@@ -95,16 +97,16 @@ Options:
 Example:
 ```bash
 # Generate logical tests with budget limit
-node dist/cli/index.js generate-logical ./my-project --budget 5.00 --model sonnet
+node dist/src/cli/index.js generate-logical ./my-project --budget 5.00 --model sonnet
 
 # Use existing gap report
-node dist/cli/index.js generate-logical ./my-project -g ./gap-report.json
+node dist/src/cli/index.js generate-logical ./my-project -g ./gap-report.json
 
 # Dry run to see cost estimates
-node dist/cli/index.js generate-logical ./my-project --dry-run
+node dist/src/cli/index.js generate-logical ./my-project --dry-run
 
 # Enable batch mode for large projects
-node dist/cli/index.js generate-logical ./my-project --batch-mode --batch-size 10
+node dist/src/cli/index.js generate-logical ./my-project --batch-mode --batch-size 10
 ```
 
 ### generate-logical-batch ✅ NEW
@@ -112,7 +114,7 @@ node dist/cli/index.js generate-logical ./my-project --batch-mode --batch-size 1
 Dedicated batched AI test generation with state persistence and resume functionality:
 
 ```bash
-node dist/cli/index.js generate-logical-batch <projectPath> [options]
+node dist/src/cli/index.js generate-logical-batch <projectPath> [options]
 
 Options:
   -g, --gap-report <path>     Path to existing gap analysis report
@@ -133,25 +135,25 @@ Options:
 Examples:
 ```bash
 # Start batched processing for large project
-node dist/cli/index.js generate-logical-batch ./large-project --batch-size 10
+node dist/src/cli/index.js generate-logical-batch ./large-project --batch-size 10
 
 # Continue processing next batch
-node dist/cli/index.js generate-logical-batch ./large-project
+node dist/src/cli/index.js generate-logical-batch ./large-project
 
 # Resume interrupted processing
-node dist/cli/index.js generate-logical-batch ./large-project --resume
+node dist/src/cli/index.js generate-logical-batch ./large-project --resume
 
 # Check current progress
-node dist/cli/index.js generate-logical-batch ./large-project --stats
+node dist/src/cli/index.js generate-logical-batch ./large-project --stats
 
 # Preview batches without executing
-node dist/cli/index.js generate-logical-batch ./large-project --dry-run
+node dist/src/cli/index.js generate-logical-batch ./large-project --dry-run
 
 # Start fresh (clean previous state)
-node dist/cli/index.js generate-logical-batch ./large-project --clean
+node dist/src/cli/index.js generate-logical-batch ./large-project --clean
 
 # Control costs per batch
-node dist/cli/index.js generate-logical-batch ./large-project --cost-limit 2.00
+node dist/src/cli/index.js generate-logical-batch ./large-project --cost-limit 2.00
 ```
 
 ### test-ai
@@ -159,7 +161,7 @@ node dist/cli/index.js generate-logical-batch ./large-project --cost-limit 2.00
 Complete AI-enhanced testing workflow (analyze → generate → test → AI enhance):
 
 ```bash
-node dist/cli/index.js test-ai <projectPath> [options]
+node dist/src/cli/index.js test-ai <projectPath> [options]
 
 Options:
   -m, --model <model>         Claude model (opus, sonnet, haiku) [default: sonnet]
@@ -176,13 +178,13 @@ Options:
 Example:
 ```bash
 # Complete workflow with AI enhancement
-node dist/cli/index.js test-ai ./my-project --budget 10.00
+node dist/src/cli/index.js test-ai ./my-project --budget 10.00
 
 # Structural tests only (no AI)
-node dist/cli/index.js test-ai ./my-project --no-ai
+node dist/src/cli/index.js test-ai ./my-project --no-ai
 
 # Generate but don't run tests
-node dist/cli/index.js test-ai ./my-project --no-run
+node dist/src/cli/index.js test-ai ./my-project --no-run
 ```
 
 ## AI Task Preparation
@@ -322,7 +324,7 @@ const claudeEnv = {
 #### Model Configuration with Fallback
 ```bash
 # Use latest model with automatic fallback for Max subscription limits
-node dist/cli/index.js generate-logical /path/to/project --model opus --timeout 1800
+node dist/src/cli/index.js generate-logical /path/to/project --model opus --timeout 1800
 
 # The system automatically falls back to sonnet when opus usage limits are reached
 ```
@@ -390,13 +392,13 @@ Recommendations:
 ### 1. Start with Gap Analysis
 Always run gap analysis first to understand what needs AI generation:
 ```bash
-node dist/cli/index.js analyze-gaps ./project
+node dist/src/cli/index.js analyze-gaps ./project
 ```
 
 ### 2. Use Budget Controls
 Set reasonable budgets to control costs:
 ```bash
-node dist/cli/index.js generate-logical ./project --budget 5.00
+node dist/src/cli/index.js generate-logical ./project --budget 5.00
 ```
 
 ### 3. Review Generated Tests

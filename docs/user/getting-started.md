@@ -38,82 +38,82 @@ npm run build
 ### Step 2: Initialize Configuration
 ```bash
 # Auto-detect project type and create configuration
-node dist/cli/index.js init-config /path/to/your/project
+node dist/src/cli/index.js init-config /path/to/your/project
 
 # Use a specific template (react-typescript, vue-typescript, etc.)
-node dist/cli/index.js init-config /path/to/your/project --template react-typescript
+node dist/src/cli/index.js init-config /path/to/your/project --template react-typescript
 
 # Interactive setup with customization
-node dist/cli/index.js init-config /path/to/your/project --interactive
+node dist/src/cli/index.js init-config /path/to/your/project --interactive
 
 # List all available templates
-node dist/cli/index.js init-config --list
+node dist/src/cli/index.js init-config --list
 ```
 
 ### Step 3: Analyze Your Project
 ```bash
 # Analyze any project (shows what we detected)
-node dist/cli/index.js analyze /path/to/your/project
+node dist/src/cli/index.js analyze /path/to/your/project
 
 # Detailed analysis with verbose output
-node dist/cli/index.js analyze /path/to/your/project --verbose
+node dist/src/cli/index.js analyze /path/to/your/project --verbose
 
 # Save analysis to file for review
-node dist/cli/index.js analyze /path/to/your/project --output analysis.json --format json
+node dist/src/cli/index.js analyze /path/to/your/project --output analysis.json --format json
 
 # Validate configuration file (if you have .claude-testing.config.json)
-node dist/cli/index.js analyze /path/to/your/project --validate-config
+node dist/src/cli/index.js analyze /path/to/your/project --validate-config
 ```
 
 ### Step 4: Generate Tests
 ```bash
 # Generate comprehensive test suite
-node dist/cli/index.js test /path/to/your/project
+node dist/src/cli/index.js test /path/to/your/project
 
 # Generate with detailed progress information
-node dist/cli/index.js test /path/to/your/project --verbose
+node dist/src/cli/index.js test /path/to/your/project --verbose
 
 # Generate only structural tests (faster, no AI required)
-node dist/cli/index.js test /path/to/your/project --only-structural
+node dist/src/cli/index.js test /path/to/your/project --only-structural
 ```
 
 ### Step 5: Run Tests
 ```bash
 # Run all generated tests
-node dist/cli/index.js run /path/to/your/project
+node dist/src/cli/index.js run /path/to/your/project
 
 # Run with coverage reporting
-node dist/cli/index.js run /path/to/your/project --coverage
+node dist/src/cli/index.js run /path/to/your/project --coverage
 
 # Run in watch mode during development
-node dist/cli/index.js run /path/to/your/project --watch
+node dist/src/cli/index.js run /path/to/your/project --watch
 ```
 
 ### Step 6: Analyze Test Gaps (NEW in v2.0)
 ```bash
 # Analyze gaps in test coverage with beautiful reporting
-node dist/cli/index.js analyze-gaps /path/to/your/project
+node dist/src/cli/index.js analyze-gaps /path/to/your/project
 
 # Generate detailed Markdown report
-node dist/cli/index.js analyze-gaps /path/to/your/project --format markdown --output gaps.md --include-details
+node dist/src/cli/index.js analyze-gaps /path/to/your/project --format markdown --output gaps.md --include-details
 
 # Get structured JSON data for CI/CD integration
-node dist/cli/index.js analyze-gaps /path/to/your/project --format json --output gaps.json
+node dist/src/cli/index.js analyze-gaps /path/to/your/project --format json --output gaps.json
 ```
 
 ### Step 7: AI-Powered Logical Test Generation (NEW in v2.0)
 ```bash
 # Generate intelligent logical tests using Claude Code CLI
-node dist/cli/index.js generate-logical /path/to/your/project
+node dist/src/cli/index.js generate-logical /path/to/your/project
 
 # Use latest model with automatic fallback for Max subscription
-node dist/cli/index.js generate-logical /path/to/your/project --model opus --timeout 1800
+node dist/src/cli/index.js generate-logical /path/to/your/project --model opus --timeout 1800
 
 # Budget-controlled generation with cost optimization
-node dist/cli/index.js generate-logical /path/to/your/project --budget 5.00 --min-complexity 3
+node dist/src/cli/index.js generate-logical /path/to/your/project --budget 5.00 --min-complexity 3
 
 # Dry run to see what would be generated
-node dist/cli/index.js generate-logical /path/to/your/project --dry-run --output ./ai-analysis
+node dist/src/cli/index.js generate-logical /path/to/your/project --dry-run --output ./ai-analysis
 ```
 
 **Timeout Configuration**: The system automatically configures extended timeouts (15-30 minutes) for complex AI analysis while preserving your standard 2-minute timeout for other Claude Code operations through session isolation.
@@ -131,7 +131,7 @@ node dist/cli/index.js generate-logical /path/to/your/project --dry-run --output
 # └── public/
 
 # Generate tests
-node dist/cli/index.js test ./my-react-app
+node dist/src/cli/index.js test ./my-react-app
 
 # Output: ./my-react-app/.claude-testing/
 # ├── setupTests.js
@@ -140,7 +140,7 @@ node dist/cli/index.js test ./my-react-app
 #     └── (mirror of your src/ with .test.js files)
 
 # Run tests
-node dist/cli/index.js run ./my-react-app --coverage
+node dist/src/cli/index.js run ./my-react-app --coverage
 ```
 
 ### Python FastAPI Backend
@@ -154,7 +154,7 @@ node dist/cli/index.js run ./my-react-app --coverage
 #     └── routes/
 
 # Generate tests
-node dist/cli/index.js test ./my-api
+node dist/src/cli/index.js test ./my-api
 
 # Output: ./my-api/.claude-testing/
 # ├── conftest.py
@@ -163,7 +163,7 @@ node dist/cli/index.js test ./my-api
 #     └── (mirror of your app/ with test_*.py files)
 
 # Run tests
-node dist/cli/index.js run ./my-api --coverage
+node dist/src/cli/index.js run ./my-api --coverage
 ```
 
 ### Full-Stack Project (JavaScript + Python)
@@ -176,23 +176,23 @@ node dist/cli/index.js run ./my-api --coverage
 #     └── requirements.txt
 
 # Analyze both parts
-node dist/cli/index.js analyze ./full-stack-app/frontend
-node dist/cli/index.js analyze ./full-stack-app/backend
+node dist/src/cli/index.js analyze ./full-stack-app/frontend
+node dist/src/cli/index.js analyze ./full-stack-app/backend
 
 # Generate tests for each
-node dist/cli/index.js test ./full-stack-app/frontend
-node dist/cli/index.js test ./full-stack-app/backend
+node dist/src/cli/index.js test ./full-stack-app/frontend
+node dist/src/cli/index.js test ./full-stack-app/backend
 
 # Run tests for each
-node dist/cli/index.js run ./full-stack-app/frontend --coverage
-node dist/cli/index.js run ./full-stack-app/backend --coverage
+node dist/src/cli/index.js run ./full-stack-app/frontend --coverage
+node dist/src/cli/index.js run ./full-stack-app/backend --coverage
 ```
 
 ## 📊 Understanding the Output
 
 ### Analysis Results
 ```bash
-node dist/cli/index.js analyze ./my-project --verbose
+node dist/src/cli/index.js analyze ./my-project --verbose
 ```
 
 Shows:
@@ -219,7 +219,7 @@ your-project/
 
 ### Test Execution Results
 ```bash
-node dist/cli/index.js run ./my-project --coverage
+node dist/src/cli/index.js run ./my-project --coverage
 ```
 
 Provides:
@@ -253,7 +253,7 @@ Create `.claude-testing.config.json` in your project:
 ### Configuration Validation ✅ NEW
 ```bash
 # Validate your configuration file
-node dist/cli/index.js analyze /path/to/your/project --validate-config
+node dist/src/cli/index.js analyze /path/to/your/project --validate-config
 
 # Example output:
 # 📋 Configuration Validation Results
@@ -316,13 +316,13 @@ Currently supported:
 ls -la your-project/.claude-testing/
 
 # Regenerate tests if missing
-node dist/cli/index.js test your-project --only-structural
+node dist/src/cli/index.js test your-project --only-structural
 ```
 
 **"Project analysis failed"**
 ```bash
 # Run with debug output
-node dist/cli/index.js analyze your-project --verbose
+node dist/src/cli/index.js analyze your-project --verbose
 
 # Check project structure
 ls package.json requirements.txt pyproject.toml
@@ -334,13 +334,13 @@ ls package.json requirements.txt pyproject.toml
 cd your-project && npm install  # or pip install -r requirements.txt
 
 # Run tests with verbose output
-node dist/cli/index.js run your-project --verbose
+node dist/src/cli/index.js run your-project --verbose
 ```
 
 ### Debug Mode
 ```bash
 # Enable debug logging for any command
-DEBUG=* node dist/cli/index.js analyze your-project
+DEBUG=* node dist/src/cli/index.js analyze your-project
 ```
 
 ## 🚀 Next Steps

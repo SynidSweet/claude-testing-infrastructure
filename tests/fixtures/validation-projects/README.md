@@ -87,12 +87,12 @@ npm test tests/fixtures/
 
 ```bash
 # Test minimal mixed project
-node dist/cli/index.js analyze tests/fixtures/validation-projects/mixed-minimal
-node dist/cli/index.js test tests/fixtures/validation-projects/mixed-minimal
+node dist/src/cli/index.js analyze tests/fixtures/validation-projects/mixed-minimal
+node dist/src/cli/index.js test tests/fixtures/validation-projects/mixed-minimal
 
 # Test complex mixed project
-node dist/cli/index.js analyze tests/fixtures/validation-projects/mixed-complex
-node dist/cli/index.js test tests/fixtures/validation-projects/mixed-complex
+node dist/src/cli/index.js analyze tests/fixtures/validation-projects/mixed-complex
+node dist/src/cli/index.js test tests/fixtures/validation-projects/mixed-complex
 ```
 
 ## Validation Scenarios

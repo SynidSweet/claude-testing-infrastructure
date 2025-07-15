@@ -29,8 +29,8 @@
 - **2025-06-29**: ✅ **--VERBOSE FLAG IMPLEMENTATION COMPLETED** - Successfully implemented missing `--verbose` flag for test command that was documented but non-functional. Added comprehensive verbose logging throughout test generation process showing detailed project analysis, configuration, generation settings, and file-by-file progress. Extended verbose flag to run command for consistency. All 117/117 tests passing with no regressions. Resolves documentation inconsistency and provides users valuable debugging information during test generation.
 - **2025-06-29**: ✅ **PYTHON TEST FILE EXTENSION BUG FIX COMPLETED** - Fixed critical bug where Python test files in mixed-language projects were saved with `.js` extensions. Updated `getTestFileExtension()` to accept file-specific language parameter instead of using project's primary language. Now Python files correctly get `_test.py`, JavaScript files get `.test.js`, and TypeScript files get `.test.ts` extensions. Maintained backward compatibility and achieved 117/117 tests passing (added 1 test)
 - **2025-06-29**: ✅ **GAPREPORTGENERATOR REFACTORING COMPLETED** - Successfully decomposed 847-line GapReportGenerator god class into 3 focused, single-responsibility classes using orchestrator pattern. Created MarkdownReportGenerator (220 lines), TerminalReportGenerator (290 lines), and ReportVisualizationService (267 lines). Reduced main class from 847→354 lines (58% reduction) while maintaining 100% API compatibility and test success rate (116/116 tests)
-- **2025-06-29**: ✅ **DOCUMENTATION CONSISTENCY REFACTORING COMPLETED** - Fixed critical documentation inconsistencies affecting AI agent success rates. Updated 17+ files with incorrect `npx claude-testing` commands to correct `node dist/cli/index.js` format. Completely rewrote `/docs/ai-agents/navigation.md` to match current single decoupled architecture. Enhanced `AI_AGENT_GUIDE.md` with Git requirements, system requirements, cost guidelines, framework support matrix, and comprehensive troubleshooting. Improved AI agent success rate from 60-70% to target 90%+
-- **2025-06-29**: ✅ **STABLE AI AGENT ENTRY POINT SYSTEM IMPLEMENTED** - Created `AI_AGENT_GUIDE.md` as protected, stable primary entry point immune to AI tool modifications. Fixed critical command inconsistencies (npx→node dist/cli/index.js) across all documentation. Implemented multi-layer protection with backup template and clear navigation hierarchy. Resolves architectural vulnerability where CLAUDE.md could be corrupted during AI sessions, ensuring 100% reliable guidance for all AI agents
+- **2025-06-29**: ✅ **DOCUMENTATION CONSISTENCY REFACTORING COMPLETED** - Fixed critical documentation inconsistencies affecting AI agent success rates. Updated 17+ files with incorrect `npx claude-testing` commands to correct `node dist/src/cli/index.js` format. Completely rewrote `/docs/ai-agents/navigation.md` to match current single decoupled architecture. Enhanced `AI_AGENT_GUIDE.md` with Git requirements, system requirements, cost guidelines, framework support matrix, and comprehensive troubleshooting. Improved AI agent success rate from 60-70% to target 90%+
+- **2025-06-29**: ✅ **STABLE AI AGENT ENTRY POINT SYSTEM IMPLEMENTED** - Created `AI_AGENT_GUIDE.md` as protected, stable primary entry point immune to AI tool modifications. Fixed critical command inconsistencies (npx→node dist/src/cli/index.js) across all documentation. Implemented multi-layer protection with backup template and clear navigation hierarchy. Resolves architectural vulnerability where CLAUDE.md could be corrupted during AI sessions, ensuring 100% reliable guidance for all AI agents
 - **2025-06-29**: ✅ **TESTGAPANALYZER REFACTORING COMPLETED** - Successfully decomposed 902-line TestGapAnalyzer god class into 4 focused, single-responsibility classes using orchestrator pattern. Created ComplexityCalculator (61 lines), CoverageAnalyzer (235 lines), GapIdentifier (56 lines), and ContextExtractor (168 lines). Reduced main class from 902→438 lines (51% reduction) while maintaining 100% API compatibility and test success rate (116/116 tests)
 - **2025-06-29**: ✅ **FUNCTION NAMING REFACTORING COMPLETED** - Successfully renamed 47+ unclear functions across the codebase for better AI comprehension. Key improvements: `analyzeGaps()` → `analyzeTestGaps()`, `generate()` → `generateAllTests()`, `analyzeCoverage()` → `analyzeStructuralTestCoverage()`, plus 40+ additional functions with self-documenting names. Achieved 90% function clarity goal while maintaining 100% test success rate (116/116 tests)
 - **2025-06-28**: ✅ **IMPORT CONSOLIDATION REFACTORING COMPLETED** - Successfully eliminated duplicate import statements across 37+ files by creating 2 shared import utility files (`src/utils/common-imports.ts`, `src/utils/analyzer-imports.ts`). Updated all CLI commands, analyzers, generators, and runners to use consolidated imports, achieving 80%+ reduction in import duplication while maintaining 100% test success rate (116/116 tests)
@@ -269,15 +269,15 @@ Should additional development be needed, potential areas include:
 npm install && npm run build
 
 # Complete workflow with any project
-node dist/cli/index.js analyze /path/to/project     # Detect languages/frameworks
-node dist/cli/index.js test /path/to/project --dry-run  # Preview test generation
-node dist/cli/index.js test /path/to/project        # Generate comprehensive tests
-node dist/cli/index.js run /path/to/project --coverage  # Execute with coverage
-node dist/cli/index.js analyze-gaps /path/to/project    # Identify gaps for AI generation
+node dist/src/cli/index.js analyze /path/to/project     # Detect languages/frameworks
+node dist/src/cli/index.js test /path/to/project --dry-run  # Preview test generation
+node dist/src/cli/index.js test /path/to/project        # Generate comprehensive tests
+node dist/src/cli/index.js run /path/to/project --coverage  # Execute with coverage
+node dist/src/cli/index.js analyze-gaps /path/to/project    # Identify gaps for AI generation
 
 # Incremental updates (after initial setup)
-node dist/cli/index.js incremental /path/to/project # Smart updates based on Git changes
-node dist/cli/index.js incremental /path/to/project --stats # View update statistics
+node dist/src/cli/index.js incremental /path/to/project # Smart updates based on Git changes
+node dist/src/cli/index.js incremental /path/to/project --stats # View update statistics
 ```
 
 ## 📋 Documentation Structure Reference

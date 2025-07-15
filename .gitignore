@@ -19,6 +19,9 @@ htmlcov/
 .pytest_cache/
 .tox/
 
+# Jest cache directories
+.jest-cache-*/
+
 # Logs
 logs/
 *.log
@@ -42,7 +45,8 @@ pids
 .env.production.local
 
 # IDE
-.vscode/
+.vscode/launch.json
+.vscode/tasks.json
 .idea/
 *.swp
 *.swo
@@ -68,6 +72,18 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# E2E test temporary directories
+.temp-fixtures/
+.temp-test-projects/
+
+# Session reports and analysis
+carry-on-session-report-*.md
+test-performance-investigation-report-*.md
+
+# Type safety automation reports
+.type-safety-report.json
+.type-safety-summary.md
 
 
 # OS files

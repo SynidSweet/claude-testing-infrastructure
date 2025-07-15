@@ -1,0 +1,17 @@
+{
+  "name": "test-javascript-project",
+  "version": "1.0.0",
+  "description": "Test project for Claude Testing Infrastructure E2E validation",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0"
+  }
+}

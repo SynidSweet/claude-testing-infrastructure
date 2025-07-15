@@ -1,6 +1,6 @@
 # Dry-Run Mode Feature
 
-*Last updated: 2025-06-30 | Implementation completed*
+*Last updated: 2025-07-13 | Implementation extended to analyze command*
 
 ## Overview
 
@@ -24,25 +24,38 @@ The dry-run mode enables users to preview test generation without creating any f
 
 ### CLI Integration
 ```bash
-# Basic dry-run preview
-node dist/cli/index.js test /path/to/project --dry-run
+# Analysis preview mode (NEW)
+node dist/src/cli/index.js analyze /path/to/project --dry-run
+
+# Basic test generation dry-run preview
+node dist/src/cli/index.js test /path/to/project --dry-run
 
 # Detailed preview with verbose output
-node dist/cli/index.js test /path/to/project --dry-run --verbose
+node dist/src/cli/index.js test /path/to/project --dry-run --verbose
 
 # Preview AI logical test generation
-node dist/cli/index.js test /path/to/project --only-logical --dry-run
+node dist/src/cli/index.js test /path/to/project --only-logical --dry-run
 ```
 
 ### Core Components
 
 #### 1. CLI Command Enhancement (`src/cli/index.ts`)
 - Added `--dry-run` flag to test command options
+- **NEW**: Added `--dry-run` flag to analyze command options
 - Integrated with existing command infrastructure
 
-#### 2. Test Options Interface (`src/cli/commands/test.ts`)
+#### 2. Command Options Interfaces
+**Test Command** (`src/cli/commands/test.ts`):
 ```typescript
 interface TestOptions {
+  // ... existing options
+  dryRun?: boolean;
+}
+```
+
+**Analyze Command** (`src/cli/commands/analyze.ts`):
+```typescript
+interface AnalyzeOptions {
   // ... existing options
   dryRun?: boolean;
 }
@@ -53,7 +66,13 @@ interface TestOptions {
 - Modified file operations to skip in dry-run mode
 - Enhanced setup file generation with dry-run detection
 
-#### 4. Preview System (`showDryRunPreview` function)
+#### 4. Analyze Command Enhancement
+- **NEW**: Added dry-run mode detection with user feedback
+- Shows "🔍 DRY RUN MODE - Analysis preview only" header
+- Provides guidance footer for running full analysis
+- Maintains all analysis functionality without file operations
+
+#### 5. Preview System (`showDryRunPreview` function)
 Comprehensive preview functionality including:
 - Directory structure visualization
 - File size and line count statistics
@@ -63,6 +82,8 @@ Comprehensive preview functionality including:
 ## Feature Architecture
 
 ### Data Flow
+
+**Test Generation Dry-Run**:
 ```
 User Command (--dry-run)
          ↓
@@ -77,12 +98,25 @@ showDryRunPreview Function
 Formatted Console Output
 ```
 
+**Analysis Dry-Run (NEW)**:
+```
+User Command (--dry-run)
+         ↓
+Analyze Command Handler
+         ↓
+Dry-Run Mode Detection
+         ↓
+Project Analysis (no file creation)
+         ↓
+Standard Analysis Output + Dry-Run Footer
+```
+
 ### Key Design Decisions
 
 #### 1. Option Propagation
 The `dryRun` flag is propagated through:
-- CLI command options
-- TestOptions interface  
+- CLI command options (both test and analyze commands)
+- TestOptions and AnalyzeOptions interfaces  
 - StructuralTestGeneratorOptions
 - Individual generation methods
 
@@ -205,10 +239,11 @@ async function showDryRunPreview(tests: any[], config: any, verbose = false): Pr
 ## Usage Patterns
 
 ### Configuration Validation Workflow
-1. `analyze` - Understand project structure
-2. `test --dry-run` - Preview test generation
-3. Adjust configuration if needed
-4. `test` - Generate actual tests
+1. `analyze --dry-run` - Preview project analysis (NEW)
+2. `analyze` - Understand project structure
+3. `test --dry-run` - Preview test generation
+4. Adjust configuration if needed
+5. `test` - Generate actual tests
 
 ### Development Integration
 - IDE configuration testing

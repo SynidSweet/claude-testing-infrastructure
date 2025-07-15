@@ -1,6 +1,6 @@
 # TestRunner System
 
-*Last updated: 2025-07-01 | Updated by: /document command | ES module support documentation added*
+*Last updated: 2025-07-13 | Updated by: /document command | Jest ES modules configuration enhanced - NODE_OPTIONS handling, React ES modules support improved*
 
 ## Overview
 
@@ -34,10 +34,10 @@ The TestRunner System provides a framework-agnostic test execution engine that c
 ### Framework Support
 
 #### Jest Runner ✅ ENHANCED
-- **Fixed Working Directory** - Uses test directory (`.claude-testing`) as execution root instead of project root
-- **Isolated Configuration** - Overrides project Jest config to prevent conflicts
+- **Working Directory Resolution** ✅ FIXED - Proper rootDir calculation relative to test execution directory, resolves test discovery failures
+- **Isolated Configuration** - Overrides project Jest config to prevent conflicts with proper path resolution
 - **Node Environment** - Uses `node` environment to avoid jsdom dependency issues
-- **Enhanced Configuration** - Includes `.js` test files in testMatch patterns and proper root directory mapping
+- **Enhanced Configuration** - Includes `.js` test files in testMatch patterns with correct rootDir and testPathIgnorePatterns
 - **ES Module Support** - Automatic detection and configuration for ES module projects:
   - Detects `"type": "module"` in package.json
   - Configures `ts-jest/presets/default-esm` for TypeScript ES modules
@@ -92,33 +92,33 @@ interface CoverageConfig {
 
 ```bash
 # Run all generated tests
-node dist/cli/index.js run /path/to/project
+node dist/src/cli/index.js run /path/to/project
 
 # Run with specific framework
-node dist/cli/index.js run /path/to/project --framework jest
+node dist/src/cli/index.js run /path/to/project --framework jest
 ```
 
 ### Coverage Reporting
 
 ```bash
 # Generate coverage report
-node dist/cli/index.js run /path/to/project --coverage
+node dist/src/cli/index.js run /path/to/project --coverage
 
 # Set coverage thresholds
-node dist/cli/index.js run /path/to/project --coverage --threshold "80"
+node dist/src/cli/index.js run /path/to/project --coverage --threshold "80"
 
 # Detailed thresholds
-node dist/cli/index.js run /path/to/project --coverage --threshold "statements:85,branches:80"
+node dist/src/cli/index.js run /path/to/project --coverage --threshold "statements:85,branches:80"
 ```
 
 ### Development Workflow
 
 ```bash
 # Watch mode for continuous testing
-node dist/cli/index.js run /path/to/project --watch
+node dist/src/cli/index.js run /path/to/project --watch
 
 # CI/CD integration with JUnit reports
-node dist/cli/index.js run /path/to/project --coverage --junit
+node dist/src/cli/index.js run /path/to/project --coverage --junit
 ```
 
 ## Test Result Processing
@@ -168,13 +168,50 @@ The system automatically recommends appropriate frameworks:
    - Vue projects → Jest
 4. **Default Fallback**: Jest for unknown projects
 
+## ES Modules Support ✅ ENHANCED
+
+### Configuration Improvements
+The JestRunner now provides enhanced ES modules support:
+
+#### Environment Variables
+- **NODE_OPTIONS**: Automatically sets `--experimental-vm-modules` for ES modules projects
+- **Process Environment**: Proper environment variable inheritance in Jest processes
+
+#### React ES Modules
+- **Simplified Configuration**: Avoids complex JSX transformation issues
+- **Test Environment**: Falls back to 'node' environment for compatibility
+- **Framework Detection**: Automatically detects React projects for specialized handling
+
+#### Module System Detection
+```typescript
+// Automatic detection based on project analysis
+if (moduleSystem.type === 'esm') {
+  // ES modules configuration applied
+  config.extensionsToTreatAsEsm = ['.jsx'];
+  config.moduleNameMapper = { '^(\\.{1,2}/.*)\\.jsx?$': '$1' };
+  
+  // NODE_OPTIONS set for Jest process
+  env.NODE_OPTIONS = '--experimental-vm-modules';
+}
+```
+
+#### Known Limitations
+- **React JSX**: Complex JSX transformation in ES modules requires additional setup
+- **Test Dependencies**: Some React testing libraries may need specific ES modules configuration
+
+### ES Modules Best Practices
+1. **Use `"type": "module"`** in package.json for ES modules projects
+2. **Configure transforms** sparingly to avoid configuration conflicts
+3. **Test incrementally** with simpler projects before complex React setups
+4. **Check NODE_OPTIONS** inheritance in CI/CD environments
+
 ## Integration Points
 
 ### CLI Integration
 
 ```bash
 # Available commands
-node dist/cli/index.js run <path> [options]
+node dist/src/cli/index.js run <path> [options]
 
 # Options
 --framework <framework>     # Specify test framework
@@ -187,8 +224,8 @@ node dist/cli/index.js run <path> [options]
 
 ### Project Workflow
 
-1. **Generate Tests**: `node dist/cli/index.js test /path/to/project`
-2. **Run Tests**: `node dist/cli/index.js run /path/to/project`
+1. **Generate Tests**: `node dist/src/cli/index.js test /path/to/project`
+2. **Run Tests**: `node dist/src/cli/index.js run /path/to/project`
 3. **Review Results**: Check `.claude-testing/` directory for reports
 
 ## File Structure
@@ -208,6 +245,42 @@ tests/runners/
 ├── TestRunner.test.ts     # Base class tests
 └── TestRunnerFactory.test.ts # Factory tests
 ```
+
+## Technical Implementation Details
+
+### Jest Configuration Working Directory Fix ✅ 2025-07-12
+
+**Problem Solved**: Jest configurations were running from wrong directory context, causing 0 tests to execute.
+
+**Root Cause**: Tests stored in `projectPath/.claude-testing/tests/` but Jest config referenced `<rootDir>/setupTests.js` without setting explicit rootDir, causing Jest to look for setup files in test directory instead of project root.
+
+**Solution Implemented**:
+```typescript
+// Calculate rootDir relative to test execution directory
+const testPath = this.config.testPath;      // /project/.claude-testing/tests
+const projectPath = this.config.projectPath; // /project  
+const rootDir = path.relative(testPath, projectPath); // ../..
+
+const config: JestConfig = {
+  rootDir: rootDir || '.',  // Points back to project root
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/\\.claude-testing/.*\\.claude-testing/'
+  ],
+  // Only include setupFiles if they exist
+  ...(this.hasSetupFile() && {
+    setupFilesAfterEnv: ['<rootDir>/setupTests.js']
+  }),
+};
+```
+
+**Key Improvements**:
+- **Correct Path Resolution**: Jest now finds project files correctly using relative rootDir
+- **Conditional Setup Files**: Only includes setup files if they actually exist in target project
+- **Proper Ignore Patterns**: Uses `<rootDir>` prefix for consistent path resolution
+- **TypeScript Interface**: Added `rootDir` property to JestConfig interface
+
+**Impact**: Resolves critical validation criteria for test execution success rate in production projects.
 
 ## Test Coverage
 

@@ -4,13 +4,92 @@
  */
 
 /**
+ * Gap analysis data structure
+ */
+export interface GapAnalysisData {
+  summary: {
+    totalFiles: number;
+    filesWithTests: number;
+    filesWithoutTests: number;
+    coveragePercentage: number;
+  };
+  gaps: Array<{
+    filePath: string;
+    hasTests: boolean;
+    testPath?: string;
+    complexity?: number;
+  }>;
+  averageComplexity?: number;
+}
+
+/**
+ * Coverage data structure
+ */
+export interface CoverageData {
+  summary: {
+    lines: { total: number; covered: number; percentage: number };
+    functions: { total: number; covered: number; percentage: number };
+    branches: { total: number; covered: number; percentage: number };
+    statements: { total: number; covered: number; percentage: number };
+  };
+  files: Record<
+    string,
+    {
+      lines: { total: number; covered: number };
+      functions: { total: number; covered: number };
+      branches: { total: number; covered: number };
+      statements: { total: number; covered: number };
+    }
+  >;
+}
+
+/**
+ * Test results data structure
+ */
+export interface TestResultsData {
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+    duration: number;
+  };
+  suites: Array<{
+    name: string;
+    file: string;
+    tests: Array<{
+      name: string;
+      status: 'passed' | 'failed' | 'skipped';
+      duration: number;
+      error?: string;
+    }>;
+  }>;
+}
+
+/**
+ * Project analysis data structure
+ */
+export interface ProjectAnalysisData {
+  projectPath: string;
+  language: string;
+  framework?: string;
+  metrics: {
+    totalFiles: number;
+    totalLines: number;
+    testFiles: number;
+    testLines: number;
+  };
+  dependencies?: Record<string, string>;
+}
+
+/**
  * Discriminated union for report input types
  */
 export type ReportInput =
-  | { type: 'gap-analysis'; data: any; format: ReportFormat }
-  | { type: 'coverage'; data: any; format: ReportFormat }
-  | { type: 'test-results'; data: any; format: ReportFormat }
-  | { type: 'project-analysis'; data: any; format: ReportFormat };
+  | { type: 'gap-analysis'; data: GapAnalysisData; format: ReportFormat }
+  | { type: 'coverage'; data: CoverageData; format: ReportFormat }
+  | { type: 'test-results'; data: TestResultsData; format: ReportFormat }
+  | { type: 'project-analysis'; data: ProjectAnalysisData; format: ReportFormat };
 
 /**
  * Report format specifications

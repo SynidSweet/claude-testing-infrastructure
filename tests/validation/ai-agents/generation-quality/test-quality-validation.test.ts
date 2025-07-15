@@ -54,7 +54,8 @@ describe('Test Quality Validation - Critical Issues', () => {
     try {
       await fs.access(testProjectPath);
     } catch {
-      await createTestProject(testProjectPath);
+      // Project should already exist in validation-projects directory
+      throw new Error(`Test project not found at: ${testProjectPath}`);
     }
   });
 

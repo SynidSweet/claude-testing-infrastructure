@@ -9,7 +9,15 @@ export { TestGapAnalyzer } from '../analyzers/TestGapAnalyzer';
 export { GapReportGenerator } from '../analyzers/GapReportGenerator';
 
 // Analyzer types
-export type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
+export type {
+  ProjectAnalysis,
+  DetectedLanguage,
+  DetectedFramework,
+  DetectedPackageManager,
+  TestingSetup,
+  ComplexityMetrics,
+  ProjectStructure,
+} from '../analyzers/ProjectAnalyzer';
 export type { TestGapAnalysisResult, TestGapAnalyzerConfig } from '../analyzers/TestGapAnalyzer';
 export type { ReportOptions, VisualizationConfig } from '../analyzers/GapReportGenerator';
 

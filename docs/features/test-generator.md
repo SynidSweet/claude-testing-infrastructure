@@ -245,10 +245,10 @@ if (ratio > maxRatio) {
 **CLI Override**:
 ```bash
 # Override ratio limit temporarily
-node dist/cli/index.js test <path> --max-ratio 20
+node dist/src/cli/index.js test <path> --max-ratio 20
 
 # Skip validation entirely
-node dist/cli/index.js test <path> --force
+node dist/src/cli/index.js test <path> --force
 ```
 
 ### Source File Detection
@@ -269,10 +269,10 @@ The validation system intelligently counts source files using these patterns:
 **CLI Overrides**:
 ```bash
 # Skip validation entirely
-node dist/cli/index.js test <path> --force
+node dist/src/cli/index.js test <path> --force
 
 # Override ratio limit temporarily  
-node dist/cli/index.js test <path> --max-ratio 20
+node dist/src/cli/index.js test <path> --max-ratio 20
 ```
 
 **Programmatic Override**:
@@ -551,10 +551,10 @@ class TestUser_apiApi:
 ### CLI Integration
 ```bash
 # Generate tests using CLI
-node dist/cli/index.js test /path/to/project --only-structural
+node dist/src/cli/index.js test /path/to/project --only-structural
 
 # Generate with specific options
-node dist/cli/index.js test /path/to/project --framework jest --generate-mocks
+node dist/src/cli/index.js test /path/to/project --framework jest --generate-mocks
 ```
 
 ### ProjectAnalyzer Integration

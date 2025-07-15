@@ -6,10 +6,15 @@
  */
 
 import type { TestGap, TestGapAnalysisResult } from '../analyzers/TestGapAnalyzer';
-import type { AITask, TaskContext, FrameworkInfo, AITaskBatch } from './AITaskPreparation';
-import { AITaskPreparation } from './AITaskPreparation';
-import type { FileChunk } from '../utils/file-chunking';
-import { FileChunker } from '../utils/file-chunking';
+import {
+  AITaskPreparation,
+  type AITask,
+  type TaskContext,
+  type FrameworkInfo,
+  type AITaskBatch,
+} from './AITaskPreparation';
+import { FileChunker, type FileChunk } from '../utils/file-chunking';
+import { logger } from '../utils/logger';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -136,10 +141,10 @@ export class ChunkedAITaskPreparation {
       }
 
       // File needs chunking
-      console.log(`File ${gap.sourceFile} has ~${estimatedTokens} tokens, chunking required`);
+      logger.info(`File ${gap.sourceFile} has ~${estimatedTokens} tokens, chunking required`);
       return await this.createChunkedTasks(gap, sourceCode);
     } catch (error) {
-      console.error(`Failed to create tasks for ${gap.sourceFile}:`, error);
+      logger.error(`Failed to create tasks for ${gap.sourceFile}:`, error);
       return [];
     }
   }
@@ -169,14 +174,14 @@ export class ChunkedAITaskPreparation {
     const frameworkInfo = this.detectFrameworkInfo(gap.sourceFile, sourceCode);
 
     // Chunk the file
-    const chunks = await FileChunker.chunkFile(sourceCode, {
+    const chunks = FileChunker.chunkFile(sourceCode, {
       maxTokensPerChunk: this.chunkedConfig.chunkTokenLimit,
       overlapTokens: 200,
       preserveContext: true,
-      language: frameworkInfo.language as any,
+      language: frameworkInfo.language,
     });
 
-    console.log(`Split ${gap.sourceFile} into ${chunks.length} chunks`);
+    logger.info(`Split ${gap.sourceFile} into ${chunks.length} chunks`);
 
     // Track progress
     this.chunkProgress.set(gap.sourceFile, {
@@ -282,7 +287,7 @@ export class ChunkedAITaskPreparation {
 
 **FILE CONTEXT**
 - Full file: ${gap.sourceFile}
-- ${chunk.context?.summary || 'No summary available'}
+- ${chunk.context?.summary ?? 'No summary available'}
 - Lines in this chunk: ${chunk.startLine + 1} to ${chunk.endLine + 1}
 
 **CONTEXT**
@@ -370,7 +375,7 @@ Generate comprehensive logical tests for this code chunk:`;
       // Add per-file breakdown
       const fileChunks = new Map<string, number>();
       chunkedTasks.forEach((task) => {
-        fileChunks.set(task.sourceFile, (fileChunks.get(task.sourceFile) || 0) + 1);
+        fileChunks.set(task.sourceFile, (fileChunks.get(task.sourceFile) ?? 0) + 1);
       });
 
       chunkingStats.push('### Chunks by File:');
@@ -413,7 +418,7 @@ Generate comprehensive logical tests for this code chunk:`;
       } else {
         // Multiple chunks, merge results
         const sortedTasks = fileTasks.sort(
-          (a, b) => (a.chunkInfo?.chunkIndex || 0) - (b.chunkInfo?.chunkIndex || 0)
+          (a, b) => (a.chunkInfo?.chunkIndex ?? 0) - (b.chunkInfo?.chunkIndex ?? 0)
         );
 
         const chunkResults: string[] = [];
@@ -532,17 +537,17 @@ Generate comprehensive logical tests for this code chunk:`;
     return inputCost + outputCost;
   }
 
-  private mapPriorityToNumber(priority: any): number {
+  private mapPriorityToNumber(priority: string | undefined): number {
     const priorityMap: Record<string, number> = {
       critical: 10,
       high: 8,
       medium: 5,
       low: 3,
     };
-    return priorityMap[priority] || 5;
+    return priorityMap[priority ?? 'medium'] ?? 5;
   }
 
-  private emit(_event: string, _data: any): void {
+  private emit(_event: string, _data: unknown): void {
     // Event emission for progress tracking
     // This would integrate with EventEmitter if needed
   }

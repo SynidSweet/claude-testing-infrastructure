@@ -94,7 +94,7 @@ Brief description of what this command does.
 
 ### Syntax
 ```bash
-node dist/cli/index.js command-name <required-arg> [optional-arg] [options]
+node dist/src/cli/index.js command-name <required-arg> [optional-arg] [options]
 ```
 
 ### Arguments
@@ -109,13 +109,13 @@ node dist/cli/index.js command-name <required-arg> [optional-arg] [options]
 ### Examples
 ```bash
 # Basic usage
-node dist/cli/index.js command-name project-path
+node dist/src/cli/index.js command-name project-path
 
 # With options
-node dist/cli/index.js command-name project-path --option value --flag
+node dist/src/cli/index.js command-name project-path --option value --flag
 
 # Common patterns
-node dist/cli/index.js command-name . --dry-run
+node dist/src/cli/index.js command-name . --dry-run
 ```
 
 ### Common Issues

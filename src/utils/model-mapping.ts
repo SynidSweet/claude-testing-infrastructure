@@ -76,7 +76,7 @@ for (const [fullName, info] of Object.entries(MODEL_DATABASE)) {
  * Resolve any model name (short name, alias, or full name) to full model identifier
  */
 export function resolveModelName(modelName: string): string | null {
-  return ALIAS_MAP[modelName] || null;
+  return ALIAS_MAP[modelName] ?? null;
 }
 
 /**
@@ -84,7 +84,7 @@ export function resolveModelName(modelName: string): string | null {
  */
 export function getModelInfo(modelName: string): ModelInfo | null {
   const fullName = resolveModelName(modelName);
-  return fullName ? MODEL_DATABASE[fullName] || null : null;
+  return fullName ? (MODEL_DATABASE[fullName] ?? null) : null;
 }
 
 /**
@@ -178,13 +178,17 @@ export function validateModelConfiguration(modelName: string): {
 /**
  * Calculate cost for model usage
  */
-export function calculateCost(modelName: string, inputTokens: number, outputTokens: number): number {
+export function calculateCost(
+  modelName: string,
+  inputTokens: number,
+  outputTokens: number
+): number {
   const pricing = getModelPricing(modelName);
   if (!pricing) return 0;
 
   const inputCost = (inputTokens / 1000) * pricing.inputCostPer1K;
   const outputCost = (outputTokens / 1000) * pricing.outputCostPer1K;
-  
+
   return inputCost + outputCost;
 }
 

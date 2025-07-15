@@ -1,9 +1,10 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { CoverageData } from '../CoverageParser';
-import { AggregatedCoverageData } from '../CoverageAggregator';
-import { CoverageGapAnalysis } from '../CoverageVisualizer';
-import { BaseTemplateEngine, BaseTemplateData } from './BaseTemplateEngine';
+import type { CoverageData } from '../CoverageParser';
+import type { AggregatedCoverageData } from '../CoverageAggregator';
+import type { CoverageGapAnalysis } from '../CoverageVisualizer';
+import type { BaseTemplateData } from './BaseTemplateEngine';
+import { BaseTemplateEngine } from './BaseTemplateEngine';
 
 export interface HtmlTemplateData extends BaseTemplateData {
   metrics: Array<{
@@ -55,53 +56,55 @@ export class HtmlTemplateEngine extends BaseTemplateEngine<HtmlTemplateData> {
     return this.renderTemplate(template, data);
   }
 
-
-
   prepareTemplateData(
     data: CoverageData | AggregatedCoverageData,
     gaps: CoverageGapAnalysis,
     projectName?: string
   ): HtmlTemplateData {
     const baseData = this.createBaseTemplateData(projectName);
-    
+
     const metrics = [
       {
         name: 'Statements',
         value: this.formatPercentage(data.summary.statements),
-        coverageClass: this.getCoverageClass(data.summary.statements)
+        coverageClass: this.getCoverageClass(data.summary.statements),
       },
       {
         name: 'Branches',
         value: this.formatPercentage(data.summary.branches),
-        coverageClass: this.getCoverageClass(data.summary.branches)
+        coverageClass: this.getCoverageClass(data.summary.branches),
       },
       {
         name: 'Functions',
         value: this.formatPercentage(data.summary.functions),
-        coverageClass: this.getCoverageClass(data.summary.functions)
+        coverageClass: this.getCoverageClass(data.summary.functions),
       },
       {
         name: 'Lines',
         value: this.formatPercentage(data.summary.lines),
-        coverageClass: this.getCoverageClass(data.summary.lines)
-      }
+        coverageClass: this.getCoverageClass(data.summary.lines),
+      },
     ];
 
     return {
       ...baseData,
       metrics,
-      files: this.transformFilesData(data.files, 'formatted').map(file => ({
+      files: this.transformFilesData(data.files, 'formatted').map((file) => ({
         filename: file.filename,
         summary: {
           lines: file.summary.lines as string,
           statements: file.summary.statements as string,
           branches: file.summary.branches as string,
-          functions: file.summary.functions as string
+          functions: file.summary.functions as string,
         },
-        ...(file.uncoveredLines && { uncoveredLines: file.uncoveredLines })
+        ...(file.uncoveredLines && { uncoveredLines: file.uncoveredLines }),
       })),
-      ...(gaps.suggestions.length > 0 && { suggestions: this.transformSuggestionsData(gaps.suggestions) }),
-      ...(data.uncoveredAreas.length > 0 && { uncoveredAreas: this.transformUncoveredAreasData(data.uncoveredAreas) })
+      ...(gaps.suggestions.length > 0 && {
+        suggestions: this.transformSuggestionsData(gaps.suggestions),
+      }),
+      ...(data.uncoveredAreas.length > 0 && {
+        uncoveredAreas: this.transformUncoveredAreasData(data.uncoveredAreas),
+      }),
     };
   }
 }

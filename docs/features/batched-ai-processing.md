@@ -88,40 +88,40 @@ Automatically validates if batching provides benefit:
 ### For Large Projects (50+ files)
 ```bash
 # Start batched processing
-node dist/cli/index.js generate-logical-batch /path/to/large/project --batch-size 10
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --batch-size 10
 
 # Continue processing (run same command)
-node dist/cli/index.js generate-logical-batch /path/to/large/project
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project
 
 # Check progress anytime
-node dist/cli/index.js generate-logical-batch /path/to/large/project --stats
+node dist/src/cli/index.js generate-logical-batch /path/to/large/project --stats
 ```
 
 ### Cost-Controlled Processing
 ```bash
 # Set per-batch cost limit
-node dist/cli/index.js generate-logical-batch /path/to/project --cost-limit 2.00
+node dist/src/cli/index.js generate-logical-batch /path/to/project --cost-limit 2.00
 
 # Use smaller batches for budget control
-node dist/cli/index.js generate-logical-batch /path/to/project --batch-size 5
+node dist/src/cli/index.js generate-logical-batch /path/to/project --batch-size 5
 ```
 
 ### Preview and Planning
 ```bash
 # Preview what batches would be created
-node dist/cli/index.js generate-logical-batch /path/to/project --dry-run
+node dist/src/cli/index.js generate-logical-batch /path/to/project --dry-run
 
 # Check current progress without processing
-node dist/cli/index.js generate-logical-batch /path/to/project --stats
+node dist/src/cli/index.js generate-logical-batch /path/to/project --stats
 ```
 
 ### State Management
 ```bash
 # Resume interrupted processing
-node dist/cli/index.js generate-logical-batch /path/to/project --resume
+node dist/src/cli/index.js generate-logical-batch /path/to/project --resume
 
 # Clean up and start fresh
-node dist/cli/index.js generate-logical-batch /path/to/project --clean
+node dist/src/cli/index.js generate-logical-batch /path/to/project --clean
 ```
 
 ## Integration with Existing Commands
@@ -130,7 +130,7 @@ node dist/cli/index.js generate-logical-batch /path/to/project --clean
 The existing `generate-logical` command now supports batch mode:
 ```bash
 # Enable batch mode in existing command
-node dist/cli/index.js generate-logical /path/to/project --batch-mode --batch-size 10
+node dist/src/cli/index.js generate-logical /path/to/project --batch-mode --batch-size 10
 ```
 
 This provides basic batching without the advanced state management of `generate-logical-batch`.

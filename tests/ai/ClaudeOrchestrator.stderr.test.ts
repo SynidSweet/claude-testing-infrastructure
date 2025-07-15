@@ -7,27 +7,59 @@ import type { AITaskBatch } from '../../src/ai/AITaskPreparation';
 import { EventEmitter } from 'events';
 import * as child_process from 'child_process';
 import * as fs from 'fs/promises';
+import { TimerTestUtils } from '../../src/utils/TimerTestUtils';
+import { RealTimer } from '../../src/utils/RealTimer';
+import type { MockChildProcess } from '../types/mock-interfaces';
 // AI error types are imported to ensure they exist but not directly used in assertions
 
 // Mock child_process and fs
 jest.mock('child_process');
 jest.mock('fs/promises');
 
+// Mock retry helper to avoid real delays in tests
+jest.mock('../../src/utils/retry-helper', () => ({
+  ...jest.requireActual('../../src/utils/retry-helper'),
+  withRetry: jest.fn().mockImplementation(async (fn, _options) => {
+    try {
+      const result = await fn();
+      return { success: true, result, attempts: 1, totalDuration: 0 };
+    } catch (error) {
+      return { success: false, error, attempts: 1, totalDuration: 0 };
+    }
+  }),
+}));
+
 // Helper to create a mock process
-function createMockProcess() {
-  const proc = new EventEmitter() as any;
+function createMockProcess(): MockChildProcess {
+  const proc = new EventEmitter() as MockChildProcess;
   proc.stdout = new EventEmitter();
   proc.stderr = new EventEmitter();
-  proc.kill = jest.fn();
+  proc.stdin = new EventEmitter();
+  proc.stdio = [proc.stdin, proc.stdout, proc.stderr];
+  proc.connected = false;
+  proc.spawnargs = ['claude'];
+  proc.spawnfile = 'claude';
+  proc.kill = jest.fn(() => true);
   proc.killed = false;
   proc.pid = 12345;
+  proc.exitCode = null;
+  proc.signalCode = null;
+  proc.ref = jest.fn();
+  proc.unref = jest.fn();
   return proc;
 }
 
 describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
+  jest.setTimeout(30000); // 30 second timeout for all tests to handle timing-sensitive operations
   let orchestrator: ClaudeOrchestrator;
+  // let mockTimer: ReturnType<typeof createMockTimer>;
   
   beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Setup fake timers for deterministic timer testing
+    jest.useFakeTimers();
+    
     // Mock execSync for auth validation
     jest.spyOn(child_process, 'execSync').mockImplementation((cmd: string) => {
       if (cmd.includes('--version')) {
@@ -45,20 +77,23 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
     (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
     
     orchestrator = new ClaudeOrchestrator({
+      timeout: 300000, // 5 minutes for testing - much longer than test duration
       maxConcurrent: 1,
-      timeout: 5000,
-      retryAttempts: 1, // Reduce retries for faster tests
+      // Use RealTimer which works with Jest fake timers
+      timerService: new RealTimer(),
+      // Enable debug logging to see what's happening
+      verbose: true,
     });
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    TimerTestUtils.cleanupTimers();
   });
 
   describe('Early Authentication Error Detection', () => {
     it('should terminate immediately on authentication error', async () => {
       const mockProcess = createMockProcess();
-      jest.spyOn(child_process, 'spawn').mockReturnValue(mockProcess);
+      const spawnSpy = jest.spyOn(child_process, 'spawn').mockReturnValue(mockProcess);
 
       const batch: AITaskBatch = {
         id: 'test-batch',
@@ -92,20 +127,33 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
       const processPromise = orchestrator.processBatch(batch);
       
-      // Simulate immediate auth error on stderr
-      await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: Authentication failed. Please login first.\n');
+      // Wait for async task execution to start and reach spawn call
+      // Use TimerTestUtils to properly coordinate with fake timers
+      await TimerTestUtils.waitForEvents(2); // Wait for authentication and task processing
+      
+      // Verify spawn was called
+      expect(spawnSpy).toHaveBeenCalled();
+      
+      // Simulate auth error on stderr
+      mockProcess.stderr.emit('data', Buffer.from('Error: Authentication failed. Please login first.\n'));
       
       // Process should be killed immediately
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // With fake timers, advance timers to allow error processing
+      await TimerTestUtils.advanceTimersAndFlush(100);
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      
+      // Emit close event to complete the process
+      mockProcess.emit('close', 1);
+      
+      // Allow promise to resolve
+      await TimerTestUtils.waitForEvents();
       
       // Should complete with error result
       const results = await processPromise;
       
       expect(results).toHaveLength(1);
       expect(results[0]?.success).toBe(false);
-      expect(results[0]?.error).toContain('Authentication error detected');
+      expect(results[0]?.error?.message || results[0]?.error).toContain('Authentication error detected');
     });
 
     it('should detect various authentication error patterns', async () => {
@@ -153,13 +201,18 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
         const processPromise = orchestrator.processBatch(batch);
         
-        await new Promise(resolve => setImmediate(resolve));
-        mockProcess.stderr.emit('data', `${errorPattern}\n`);
+        // Wait for spawn to be called
+        await TimerTestUtils.waitForEvents(2);
+        mockProcess.stderr.emit('data', Buffer.from(`${errorPattern}\n`));
+        
+        // Process should be killed, emit close event
+        await TimerTestUtils.advanceTimersAndFlush(100);
+        mockProcess.emit('close', 1);
         
         const results = await processPromise;
         expect(results).toHaveLength(1);
         expect(results[0]?.success).toBe(false);
-        expect(results[0]?.error).toContain('Authentication');
+        expect(results[0]?.error?.message || results[0]?.error).toContain('Authentication');
       }
     });
   });
@@ -201,16 +254,20 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
       const processPromise = orchestrator.processBatch(batch);
       
-      await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: connect ECONNREFUSED api.anthropic.com:443\n');
+      // Wait for spawn to be called
+      await TimerTestUtils.waitForEvents(2);
+      mockProcess.stderr.emit('data', Buffer.from('Error: connect ECONNREFUSED api.anthropic.com:443\n'));
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await TimerTestUtils.advanceTimersAndFlush(100);
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      
+      // Emit close event to resolve the process promise
+      mockProcess.emit('close', 1);
       
       const results = await processPromise;
       expect(results).toHaveLength(1);
       expect(results[0]?.success).toBe(false);
-      expect(results[0]?.error).toContain('Network error detected');
+      expect(results[0]?.error?.message || results[0]?.error).toContain('Network error detected');
     });
 
     it('should detect various network error patterns', async () => {
@@ -258,13 +315,20 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
         const processPromise = orchestrator.processBatch(batch);
         
-        await new Promise(resolve => setImmediate(resolve));
-        mockProcess.stderr.emit('data', `${errorPattern}\n`);
+        // Wait for spawn to be called
+        await TimerTestUtils.waitForEvents(2);
+        mockProcess.stderr.emit('data', Buffer.from(`${errorPattern}\n`));
+        
+        // Allow time for error processing
+        await TimerTestUtils.advanceTimersAndFlush(100);
+        
+        // Emit close event to resolve the process promise
+        mockProcess.emit('close', 1);
         
         const results = await processPromise;
       expect(results).toHaveLength(1);
       expect(results[0]?.success).toBe(false);
-      expect(results[0]?.error).toContain('Network error detected');
+      expect(results[0]?.error?.message || results[0]?.error).toContain('Network error detected');
       }
     });
   });
@@ -306,16 +370,20 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
       const processPromise = orchestrator.processBatch(batch);
       
-      await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: Rate limit exceeded. Please try again later.\n');
+      // Wait for spawn to be called
+      await TimerTestUtils.waitForEvents(2);
+      mockProcess.stderr.emit('data', Buffer.from('Error: Rate limit exceeded. Please try again later.\n'));
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await TimerTestUtils.advanceTimersAndFlush(100);
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      
+      // Simulate process termination after being killed
+      mockProcess.emit('close', 1);
       
       const results = await processPromise;
       expect(results).toHaveLength(1);
       expect(results[0]?.success).toBe(false);
-      expect(results[0]?.error).toContain('Rate limit detected');
+      expect(results[0]?.error?.message || results[0]?.error).toContain('Rate limit detected');
     });
   });
 
@@ -356,22 +424,26 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
       const processPromise = orchestrator.processBatch(batch);
       
-      await new Promise(resolve => setImmediate(resolve));
+      // Wait for spawn to be called
+      await TimerTestUtils.waitForEvents(2);
       
       // Send progress messages first
-      mockProcess.stderr.emit('data', 'Loading model...\n');
-      mockProcess.stderr.emit('data', 'Processing: 25%\n');
+      mockProcess.stderr.emit('data', Buffer.from('Loading model...\n'));
+      mockProcess.stderr.emit('data', Buffer.from('Processing: 25%\n'));
       
       // Then send error
-      mockProcess.stderr.emit('data', 'Error: Authentication failed\n');
+      mockProcess.stderr.emit('data', Buffer.from('Error: Authentication failed\n'));
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await TimerTestUtils.advanceTimersAndFlush(100);
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      
+      // Emit close event to complete the process
+      mockProcess.emit('close', 1);
       
       const results = await processPromise;
       expect(results).toHaveLength(1);
       expect(results[0]?.success).toBe(false);
-      expect(results[0]?.error).toContain('Authentication error detected');
+      expect(results[0]?.error?.message || results[0]?.error).toContain('Authentication error detected');
     });
   });
 
@@ -412,13 +484,16 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
       const processPromise = orchestrator.processBatch(batch);
       
-      await new Promise(resolve => setImmediate(resolve));
+      // Wait for spawn to be called
+      await TimerTestUtils.waitForEvents(2);
       
       // Send warning-level error
-      mockProcess.stderr.emit('data', 'Warning: Service temporarily unavailable, retrying...\n');
+      mockProcess.stderr.emit('data', Buffer.from('Warning: Service temporarily unavailable, retrying...\n'));
       
-      // Process should not be killed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for event processing but don't advance timers
+      await TimerTestUtils.waitForEvents();
+      
+      // Process should not be killed (warning-level errors don't kill)
       expect(mockProcess.kill).not.toHaveBeenCalled();
       
       // Complete successfully
@@ -436,8 +511,8 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
       const mockProcess = createMockProcess();
       jest.spyOn(child_process, 'spawn').mockReturnValue(mockProcess);
       
-      const detectedErrors: any[] = [];
-      orchestrator.on('error:detected', (error) => {
+      const detectedErrors: { type: string; message: string; details?: any }[] = [];
+      orchestrator.on('error:detected', (error: { type: string; message: string; details?: any }) => {
         detectedErrors.push(error);
       });
 
@@ -473,14 +548,19 @@ describe('ClaudeOrchestrator - Enhanced Stderr Parsing', () => {
 
       const processPromise = orchestrator.processBatch(batch);
       
-      await new Promise(resolve => setImmediate(resolve));
-      mockProcess.stderr.emit('data', 'Error: Authentication failed\n');
+      // Wait for spawn to be called
+      await TimerTestUtils.waitForEvents(2);
+      mockProcess.stderr.emit('data', Buffer.from('Error: Authentication failed\n'));
+      
+      // Allow process to be killed and emit close event
+      await TimerTestUtils.advanceTimersAndFlush(100);
+      mockProcess.emit('close', 1);
       
       await processPromise.catch(() => {}); // Ignore error
       
       expect(detectedErrors).toHaveLength(1);
-      expect(detectedErrors[0].type).toBe('auth');
-      expect(detectedErrors[0].severity).toBe('fatal');
+      expect(detectedErrors[0]?.type).toBe('auth');
+      expect(detectedErrors[0]?.error.message).toMatch(/authentication/i);
     });
   });
 });

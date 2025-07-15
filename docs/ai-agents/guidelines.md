@@ -4,7 +4,7 @@
 
 ## Preferred Approaches
 - **Entry point usage**: Always start with `AI_AGENT_GUIDE.md` for stable, protected guidance with comprehensive information
-- **Command execution**: Use `node dist/cli/index.js` format (never `npx claude-testing`) - all commands verified working
+- **Command execution**: Use `node dist/src/cli/index.js` format (never `npx claude-testing`) - all commands verified working
 - **Navigation**: Use `/docs/ai-agents/navigation.md` for detailed architecture understanding aligned with current implementation
 - **Requirements verification**: Check Git availability, Node.js 18+, and disk space before starting
 - **Code style**: ES6+ features, async/await for asynchronous operations, clear variable naming, comprehensive error handling
@@ -44,7 +44,7 @@
   - src/generators/TestGenerator.ts (test generation)
   - Configuration files in target projects
 - **Stable interfaces**: 
-  - CLI command structure (`node dist/cli/index.js <command>`)
+  - CLI command structure (`node dist/src/cli/index.js <command>`)
   - Configuration schema (.claude-testing.config.json)
   - Public API interfaces in TypeScript files
 - **Extension points**: 

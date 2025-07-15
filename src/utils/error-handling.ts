@@ -3,7 +3,7 @@
  * Provides consistent error classes and wrapper functions to eliminate code duplication
  */
 
-import { logger } from './common-imports';
+import { logger, chalk } from './common-imports';
 
 /**
  * Base error class with context information
@@ -108,10 +108,10 @@ export async function handleAnalysisOperation<T>(
     // Capture error details more effectively
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    const context: Record<string, unknown> = { 
+    const context: Record<string, unknown> = {
       originalError: error,
       errorMessage,
-      errorStack
+      errorStack,
     };
     if (projectPath) {
       context.projectPath = projectPath;
@@ -235,7 +235,7 @@ export function formatErrorMessage(error: unknown): string {
     if (errorMessage && errorMessage !== error.message) {
       return errorMessage;
     }
-    
+
     const contextInfo =
       Object.keys(error.context).length > 0 ? ` (${Object.keys(error.context).join(', ')})` : '';
     return `${error.message}${contextInfo}`;
@@ -246,4 +246,94 @@ export function formatErrorMessage(error: unknown): string {
   }
 
   return String(error);
+}
+
+/**
+ * CLI-specific error handling for commands
+ */
+export interface CLIErrorOptions {
+  exitCode?: number;
+  showStack?: boolean;
+  context?: Record<string, unknown>;
+}
+
+/**
+ * Standardized CLI error handler that provides consistent error formatting and exit behavior
+ */
+export function handleCLIError(
+  error: unknown,
+  operationName: string,
+  options: CLIErrorOptions = {}
+): never {
+  const { exitCode = 1, showStack = false, context = {} } = options;
+
+  // Log detailed error for debugging
+  logger.error(`CLI operation failed: ${operationName}`, {
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+    context,
+  });
+
+  // Format error message for user display
+  const errorMessage = formatErrorMessage(error);
+  console.error(chalk.red(`\n✗ ${errorMessage}`));
+
+  // Show stack trace in verbose mode
+  if (showStack && error instanceof Error && error.stack) {
+    console.error(chalk.gray('\nStack trace:'));
+    console.error(chalk.gray(error.stack));
+  }
+
+  // Show context if available and useful
+  if (Object.keys(context).length > 0) {
+    console.error(chalk.gray('\nAdditional context:'));
+    Object.entries(context).forEach(([key, value]) => {
+      console.error(chalk.gray(`  ${key}: ${String(value)}`));
+    });
+  }
+
+  process.exit(exitCode);
+}
+
+/**
+ * Standardized wrapper for CLI command execution with consistent error handling
+ */
+export async function executeCLICommand<T>(
+  commandName: string,
+  operation: () => Promise<T>,
+  errorOptions: CLIErrorOptions = {}
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    handleCLIError(error, commandName, errorOptions);
+  }
+}
+
+/**
+ * Helper to get appropriate exit code based on error type
+ */
+export function getErrorExitCode(error: unknown): number {
+  if (isClaudeTestingError(error)) {
+    // Use specific exit codes for different error types
+    if (error instanceof ValidationError) return 2;
+    if (error instanceof FileOperationError) return 3;
+    if (error instanceof AnalysisError) return 4;
+    if (error instanceof GenerationError) return 5;
+    if (error instanceof TestExecutionError) return 6;
+  }
+  return 1; // Default error exit code
+}
+
+/**
+ * Enhanced error formatting for CLI with helpful context
+ */
+export function formatCLIErrorMessage(error: unknown, operationContext?: string): string {
+  const baseMessage = formatErrorMessage(error);
+
+  if (operationContext) {
+    return `${operationContext}: ${baseMessage}`;
+  }
+
+  return baseMessage;
 }
