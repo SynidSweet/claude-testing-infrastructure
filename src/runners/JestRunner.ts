@@ -241,6 +241,11 @@ export class JestRunner extends TestRunner {
       : `module.exports = ${JSON.stringify(jestConfig, null, 2)};`;
     fs.writeFileSync(configPath, configContent);
 
+    // For React ES modules projects, ensure babel config is accessible
+    if (moduleSystem.type === 'esm' && this.analysis.frameworks?.some((f) => f.name === 'react')) {
+      this.ensureBabelConfig();
+    }
+
     args.push('--config', configPath);
     args.push('--passWithNoTests');
     args.push('--json'); // Get JSON output for parsing
@@ -678,5 +683,21 @@ export class JestRunner extends TestRunner {
     }
 
     return uncoveredLines;
+  }
+
+  private ensureBabelConfig(): void {
+    // Check if babel.config.js exists in project root
+    const projectBabelConfig = path.join(this.config.projectPath, 'babel.config.js');
+    const testBabelConfig = path.join(this.config.testPath, 'babel.config.js');
+
+    if (fs.existsSync(projectBabelConfig) && !fs.existsSync(testBabelConfig)) {
+      // Copy babel config to test directory so Jest can find it
+      try {
+        fs.copyFileSync(projectBabelConfig, testBabelConfig);
+        logger.debug('Copied babel.config.js to test directory for Jest');
+      } catch (error) {
+        logger.warn('Failed to copy babel.config.js to test directory', { error });
+      }
+    }
   }
 }
