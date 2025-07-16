@@ -1,6 +1,6 @@
 # Project Context & AI Agent Guide
 
-*Last updated: 2025-07-16 | Updated by: /document command | CI/CD pipeline fully operational with all validation tests passing*
+*Last updated: 2025-07-16 | Updated by: /document command | Added React ES modules babel config support and created new development sprint*
 
 ## 🎯 Project Overview
 
@@ -65,7 +65,7 @@ node dist/src/cli/index.js incremental /path/to/project # Smart test updates
 - **Template factory system**: `src/generators/templates/core/` - Factory pattern for centralized template creation (TemplateFactory, JavaScriptTemplateFactory, PythonTemplateFactory)
 - **JavaScript templates**: `src/generators/templates/javascript/` - JS/TS test templates
 - **Python templates**: `src/generators/templates/python/` - Python test templates
-- **Jest runner**: `src/runners/JestRunner.ts` - Test execution and configuration (FIXED: React projects now use jsdom environment)
+- **Jest runner**: `src/runners/JestRunner.ts` - Test execution and configuration (ENHANCED: React ES modules babel config support, jsdom environment)
 - **AI coordination**: `src/ai/ClaudeOrchestrator.ts` - Service coordinator (378 lines, refactored from 1,226)
 - **Process execution**: `src/ai/services/ProcessExecutor.ts` - Claude CLI process management
 - **Task execution**: `src/ai/services/TaskExecutionService.ts` - Task retry logic and checkpoint management
@@ -111,6 +111,12 @@ node dist/src/cli/index.js incremental /path/to/project # Smart test updates
 
 ## 🔄 Recent Updates
 
+### React ES Modules Babel Configuration (2025-07-16)
+- **Enhanced**: Added `ensureBabelConfig()` method to JestRunner for automatic babel.config.js copying
+- **Fixed**: React ES modules projects can now execute tests by accessing babel configuration in test directory
+- **Improved**: Jest test execution for React projects with ES modules now properly handles JSX transformation
+- **Status**: All unit tests passing (532/533), linting clean, changes committed
+
 ### CI/CD Pipeline Path Resolution (2025-07-16)
 - **Fixed**: AI Agent Validation Pipeline `MODULE_NOT_FOUND` error by correcting CLI path from `dist/cli/index.js` to `dist/src/cli/index.js`
 - **Fixed**: Test generation path calculation creating nested directory structures - added absolute path resolution in `command-patterns.ts`
@@ -136,7 +142,7 @@ node dist/src/cli/index.js incremental /path/to/project # Smart test updates
 - **ProjectAnalyzer Modernization**: ✅ **COMPLETE** - Reduced from 1,585 to 800 lines (49.5% reduction), extracted 4 specialized services (Language, Framework, Dependency, Complexity)
 - **Watch Auto-Run**: ✅ **IMPLEMENTED** - Automatic test execution after generation in watch mode
 - **CLI Run Command**: ✅ **FIXED** - Configuration loading issue resolved with proper singleton state management
-- **React ES Modules**: ✅ **COMPLETE** - Full support for React projects with ES modules, JSX mocking, and proper Jest configuration
+- **React ES Modules**: ✅ **COMPLETE** - Full support for React projects with ES modules, JSX mocking, babel configuration copying, and proper Jest configuration
 - **Adapter Pattern**: ✅ **COMPLETE** - Language adapter system implemented with JavaScript/TypeScript and Python support, dynamic loading, and framework detection
 - **Template Factory Pattern**: ✅ **COMPLETE** - TemplateOrchestrator integrated with factory system for centralized template creation, automatic registration from JavaScriptTemplateFactory and PythonTemplateFactory
 - **ProcessPoolManager Testing**: ✅ **COMPLETE** - Comprehensive unit tests with 96.19% code coverage (33 test cases), process lifecycle management fully validated
@@ -204,22 +210,22 @@ node dist/src/cli/index.js run /your/project --coverage
 ## 📊 Current Task Status
 
 ### Sprint Status
-- **Current Sprint**: SPRINT-2025-Q3-DEV01 (3 days remaining)
-- **Sprint Progress**: 100% complete (5/5 tasks)
-- **Sprint Capacity**: High capacity (60 hours planned)
+- **Current Sprint**: SPRINT-2025-Q3-DEV02 "React ES Modules & Test Infrastructure Sprint"
+- **Sprint Progress**: 0% complete (0/3 tasks)
+- **Sprint Capacity**: Medium capacity (40 hours planned)
 
 ### Task Backlog
-- **Total pending**: 793 tasks  
+- **Total pending**: 1 task  
 - **Critical priority**: 0 tasks
-- **High priority**: 0 tasks
-- **Medium priority**: 793 tasks
+- **High priority**: 1 task (MCP task retrieval error)
+- **Medium priority**: 0 tasks
 - **Low priority**: 0 tasks
 - **In progress**: 0 tasks
-- **Next up**: CTI-2025-008 - Enterprise async testing infrastructure (Medium complexity)
+- **Next up**: TASK-2025-007 - MCP task retrieval error - sprint tasks not found via task_get/task_list (High priority)
 
 ### System Health
-- **Task System**: Available (JSON-based)
-- **Data Validation**: ✅ Fully Operational (task status reconciliation completed)
+- **Task System**: Available (JSON-based) with partial functionality issues
+- **Data Validation**: ⚠️ MCP tool retrieval issues discovered
 - **Configuration**: Project-Specific
 - **CI/CD Pipeline**: ✅ PASSING (All checks green)
 

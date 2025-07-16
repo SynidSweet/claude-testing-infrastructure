@@ -34,7 +34,7 @@
       "description": "Focus on completing React ES modules support, addressing uncommitted changes, and improving test infrastructure reliability",
       "status": "active",
       "created_at": "2025-07-16T12:08:45.662314",
-      "updated_at": "2025-07-16T12:08:54.150220",
+      "updated_at": "2025-07-16T12:35:53.323731",
       "start_date": "2025-07-16T12:08:54.150224",
       "end_date": null,
       "capacity": {
@@ -44,12 +44,15 @@
       "task_ids": [
         "BACKLOG-20250716-002",
         "BACKLOG-20250716-003",
-        "BACKLOG-20250716-001"
+        "TASK-2025-010",
+        "BACKLOG-20250716-001",
+        "TASK-2025-008",
+        "TASK-2025-009"
       ],
       "progress": {
-        "total_tasks": 3,
+        "total_tasks": 6,
         "completed_tasks": 0,
-        "remaining_tasks": 0,
+        "remaining_tasks": 3,
         "completion_percentage": 0.0
       }
     }
@@ -58,6 +61,6 @@
     "created_at": "2025-07-15T19:06:17.142398Z",
     "version": "1.0.0",
     "project_initialized": true,
-    "updated_at": "2025-07-16T12:08:54.150228Z"
+    "updated_at": "2025-07-16T12:35:53.326440Z"
   }
 }
