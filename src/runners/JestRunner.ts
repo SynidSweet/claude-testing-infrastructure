@@ -306,6 +306,11 @@ export class JestRunner extends TestRunner {
     return { command: jestCommand, args };
   }
 
+  protected override getWorkingDirectory(): string {
+    // Always run Jest from the project root to ensure babel.config.js is found
+    return this.config.projectPath;
+  }
+
   protected override getEnvironment(): Record<string, string> {
     const baseEnv = super.getEnvironment();
 
@@ -590,8 +595,15 @@ export class JestRunner extends TestRunner {
         if (hasReact) {
           // React ES modules configuration - requires jsdom for DOM testing
           config.testEnvironment = 'jsdom'; // Required for React component testing
-          config.transform = {};
+          config.transform = {
+            '^.+\\.(js|jsx)$': 'babel-jest',
+          };
           config.transformIgnorePatterns = ['node_modules/(?!(.*\\.mjs$))'];
+          // Add CSS module mapper for React projects
+          config.moduleNameMapper = {
+            ...config.moduleNameMapper,
+            '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+          };
           // Mock React.createElement for JSX support in ES modules
           config.setupFilesAfterEnv = config.setupFilesAfterEnv ?? [];
           config.setupFilesAfterEnv.push('<rootDir>/setupTests.js');
