@@ -5,8 +5,11 @@
  */
 
 import { CliArgumentMapper, type CliArguments } from '../../src/config/CliArgumentMapper';
+import { setupMockCleanup } from '../utils/type-safe-mocks';
 
 describe('CliArgumentMapper', () => {
+  setupMockCleanup();
+  
   let mapper: CliArgumentMapper;
 
   beforeEach(() => {

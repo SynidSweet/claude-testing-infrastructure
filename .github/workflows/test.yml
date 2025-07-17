@@ -123,6 +123,18 @@ jobs:
           }
           echo "✅ Build completed successfully"
 
+      - name: Validate test execution configuration
+        run: |
+          echo "🔍 Validating test execution to prevent false success claims..."
+          npm run validate:test-execution 2>&1 | tee test-validation.log || {
+            echo "❌ TEST VALIDATION FAILED"
+            echo "📋 Test configuration issues detected that could cause false success"
+            echo "📋 Check test-validation-report.json for detailed findings"
+            echo "⚠️  This validation prevents CI from passing when no tests run"
+            exit 1
+          }
+          echo "✅ Test execution validation passed"
+
       - name: Verify CLI availability
         run: |
           echo "Testing CLI availability..."
@@ -272,6 +284,12 @@ jobs:
           fi
           if [ -f npm-install.log ]; then
             cp npm-install.log failure-artifacts/
+          fi
+          if [ -f test-validation.log ]; then
+            cp test-validation.log failure-artifacts/
+          fi
+          if [ -f test-validation-report.json ]; then
+            cp test-validation-report.json failure-artifacts/
           fi
           
           # Collect type safety reports

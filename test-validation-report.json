@@ -1,0 +1,48 @@
+{
+  "timestamp": "2025-07-17T23:16:07.341Z",
+  "status": "FAILED",
+  "criticalIssues": [
+    "jest.integration.config.js has empty testMatch - no tests will run",
+    "CI test suite: No tests discovered - would pass with no tests!"
+  ],
+  "warnings": [],
+  "testCommands": {
+    "npm test": {
+      "description": "Default test command",
+      "testCount": 78,
+      "status": "ok"
+    },
+    "npm run test:unit": {
+      "description": "Unit tests",
+      "testCount": 36,
+      "status": "ok"
+    },
+    "npm run test:integration": {
+      "description": "Integration tests",
+      "testCount": 11,
+      "status": "ok"
+    },
+    "npm run test:ci": {
+      "description": "CI test suite",
+      "testCount": 0,
+      "status": "critical"
+    },
+    "npm run test:coverage": {
+      "description": "Coverage tests",
+      "testCount": 78,
+      "status": "ok"
+    }
+  },
+  "configurationIssues": [
+    {
+      "file": "jest.integration.config.js",
+      "issue": "Empty testMatch array",
+      "severity": "critical"
+    }
+  ],
+  "recommendations": [
+    "Fix test discovery patterns in Jest configurations",
+    "Ensure all test commands can find and execute tests",
+    "Remove or fix any empty testMatch arrays"
+  ]
+}

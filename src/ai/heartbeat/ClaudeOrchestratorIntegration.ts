@@ -160,21 +160,11 @@ export function mapMonitorEvents(monitor: HeartbeatMonitor, orchestrator: EventE
 
 /**
  * Legacy function expected by ProcessPoolManager for backward compatibility
- * This function creates and configures the heartbeat monitoring system
+ * This function sets up event mapping between the provided heartbeat monitor and pool manager
  */
-export function setupEventMapping(poolManager: EventEmitter): {
-  heartbeatAdapter: HeartbeatMonitorAdapter;
-} {
-  // Create a new heartbeat monitor with default configuration
-  const monitor = createHeartbeatMonitor();
-
+export function setupEventMapping(monitor: HeartbeatMonitor, poolManager: EventEmitter): void {
   // Set up event mapping between the monitor and pool manager
   mapMonitorEvents(monitor, poolManager);
-
-  // Create and return the adapter
-  const heartbeatAdapter = new HeartbeatMonitorAdapter(monitor);
-
-  return { heartbeatAdapter };
 }
 
 /**

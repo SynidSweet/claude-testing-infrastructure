@@ -6,7 +6,6 @@
 import { ClaudeOrchestrator } from '../../src/ai/ClaudeOrchestrator';
 import type { AITaskBatch, TaskContext } from '../../src/ai/AITaskPreparation';
 import { EventEmitter } from 'events';
-import { TimerTestUtils } from '../../src/utils/TimerTestUtils';
 import { RealTimer } from '../../src/utils/RealTimer';
 
 // Mock child_process
@@ -25,10 +24,9 @@ jest.mock('../../src/utils/logger', () => ({
   },
 }));
 
-describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
+describe('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
   jest.setTimeout(8000); // 8 second timeout for faster CI/CD execution
-  // TEMPORARILY DISABLED: These tests are causing CI/CD timeouts due to timer handling issues
-  // TODO: Refactor to use proper test isolation and timer mocking
+  // REFACTORED: Using proper test isolation and simplified timer mocking
   let orchestrator: ClaudeOrchestrator;
   let mockProcess: any;
   const mockSpawn = require('child_process').spawn as jest.Mock;
@@ -100,13 +98,11 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
     try {
       // Kill all running operations first
       await orchestrator.killAll();
-      // Wait for cleanup to complete
-      await TimerTestUtils.waitForEvents();
       // Clear any remaining timers
       jest.clearAllTimers();
     } finally {
-      // Always clean up the timer test utilities
-      TimerTestUtils.cleanupTimers();
+      // Always restore real timers
+      jest.useRealTimers();
     }
   });
 
@@ -131,8 +127,8 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       };
 
       const batchPromise = orchestrator.processBatch(batch);
-      await TimerTestUtils.waitForEvents(); // Wait for initial setup
-      await TimerTestUtils.waitForEvents(); // Wait for process spawn
+      // Allow initial setup and process spawn
+      await Promise.resolve();
 
       // Emit data with progress markers at time 0
       mockProcess.stdout.emit('data', Buffer.from('Analyzing code structure...'));
@@ -143,11 +139,10 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       
       // Wait 31 seconds to trigger the first heartbeat check after the 30s mark
       // This should trigger slow detection since timeSinceLastActivity > 30s
-      await TimerTestUtils.advanceTimersAndFlush(31000);
+      jest.advanceTimersByTime(31000);
       
       // Wait for any pending health checks to complete
-      await TimerTestUtils.waitForEvents();
-      await TimerTestUtils.waitForEvents();
+      await Promise.resolve();
       
       // At this point, 31s have passed since the data was emitted
       // Progress markers should still be recent (31s < 60s window)
@@ -200,9 +195,12 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       await Promise.resolve();
 
       // Multiple slow checks without activity
-      await TimerTestUtils.advanceTimersAndFlush(35000); // First slow check
-      await TimerTestUtils.advanceTimersAndFlush(30000); // Second slow check  
-      await TimerTestUtils.advanceTimersAndFlush(30000); // Third slow check
+      jest.advanceTimersByTime(35000); // First slow check
+      await Promise.resolve();
+      jest.advanceTimersByTime(30000); // Second slow check
+      await Promise.resolve();
+      jest.advanceTimersByTime(30000); // Third slow check
+      await Promise.resolve();
 
       // Should have increasing consecutive slow checks
       expect(processSlowHandler).toHaveBeenCalledTimes(3);
@@ -218,7 +216,8 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
 
       // Send data to reset counter
       mockProcess.stdout.emit('data', Buffer.from('New activity'));
-      await TimerTestUtils.advanceTimersAndFlush(35000);
+      jest.advanceTimersByTime(35000);
+      await Promise.resolve();
 
       // Consecutive count should reset
       expect(processSlowHandler).toHaveBeenNthCalledWith(4,
@@ -254,7 +253,8 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       mockProcess.stdout.emit('data', Buffer.from('> '));
       
       // Wait for input detection
-      await TimerTestUtils.advanceTimersAndFlush(35000);
+      jest.advanceTimersByTime(35000);
+      await Promise.resolve();
 
       // Should detect waiting for input
       expect(waitingInputHandler).toHaveBeenCalledWith(
@@ -290,7 +290,8 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       mockProcess.stdout.emit('data', Buffer.from('Enter value: '));
       
       // Wait past dead threshold
-      await TimerTestUtils.advanceTimersAndFlush(130000); // Past 2 minute threshold
+      jest.advanceTimersByTime(130000); // Past 2 minute threshold
+      await Promise.resolve();
 
       // Should not be marked as dead if waiting for input
       expect(processDeadHandler).not.toHaveBeenCalled();
@@ -327,7 +328,8 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       // The test expects warnings during early phase (< 60s), but default config
       // requires 2 minutes of silence before warnings. This is incompatible.
       // Let's just advance to trigger a health check during early phase
-      await TimerTestUtils.advanceTimersAndFlush(45000);
+      jest.advanceTimersByTime(45000);
+      await Promise.resolve();
       await Promise.resolve();
       jest.runOnlyPendingTimers();
       await Promise.resolve();
@@ -373,13 +375,15 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       await Promise.resolve();
 
       // Wait past early phase
-      await TimerTestUtils.advanceTimersAndFlush(65000);
+      jest.advanceTimersByTime(65000);
+      await Promise.resolve();
 
       // Emit very small amount of data
       mockProcess.stdout.emit('data', Buffer.from('x'));
       
       // Wait more
-      await TimerTestUtils.advanceTimersAndFlush(35000);
+      jest.advanceTimersByTime(35000);
+      await Promise.resolve();
 
       // Should detect low output rate
       expect(processSlowHandler).toHaveBeenCalledWith(
@@ -417,7 +421,8 @@ describe.skip('Enhanced ClaudeOrchestrator Heartbeat Monitoring', () => {
       await Promise.resolve();
 
       // Wait past dead threshold with no activity
-      await TimerTestUtils.advanceTimersAndFlush(125000);
+      jest.advanceTimersByTime(125000);
+      await Promise.resolve();
 
       // Should provide detailed metrics
       expect(processDeadHandler).toHaveBeenCalledWith(

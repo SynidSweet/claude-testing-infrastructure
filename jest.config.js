@@ -15,15 +15,11 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    'tests/fixtures/.*\\.claude-testing/',
-    ...(isCIEnvironment() ? ['tests/validation/ai-agents/'] : [])
-  ],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/tests/**/*.test.ts'],
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
+  verbose: true,
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "TASK-2025-037",
+    "title": "Task TASK-2025-037",
+    "description": "Description for task TASK-2025-037",
+    "status": "completed",
+    "priority": "medium",
+    "created_at": "2025-07-16T23:28:45.145344",
+    "updated_at": "2025-07-17T02:10:54.735566",
+    "tags": [
+      "implementation",
+      "sprint",
+      "validation"
+    ],
+    "complexity": {
+      "estimate": "medium",
+      "confidence": "medium"
+    },
+    "validation": {
+      "criteria": [],
+      "evidence": []
+    },
+    "context": {
+      "files": [],
+      "commands": [],
+      "environment": "development"
+    },
+    "history": [
+      {
+        "timestamp": "2025-07-16T23:28:45.145344",
+        "event": "created",
+        "actor": "mcp-server",
+        "details": "Task created: TASK-2025-037"
+      }
+    ]
+  },
+  {
+    "id": "TASK-2025-045",
+    "title": "Task TASK-2025-045",
+    "description": "Description for task TASK-2025-045",
+    "status": "in_progress",
+    "priority": "medium",
+    "created_at": "2025-07-16T23:28:45.145344",
+    "updated_at": "2025-07-17T02:10:54.735566",
+    "tags": [
+      "implementation",
+      "sprint",
+      "validation"
+    ],
+    "complexity": {
+      "estimate": "medium",
+      "confidence": "medium"
+    },
+    "validation": {
+      "criteria": [],
+      "evidence": []
+    },
+    "context": {
+      "files": [],
+      "commands": [],
+      "environment": "development"
+    },
+    "history": [
+      {
+        "timestamp": "2025-07-16T23:28:45.145344",
+        "event": "created",
+        "actor": "mcp-server",
+        "details": "Task created: TASK-2025-045"
+      }
+    ]
+  }
+]

@@ -4,8 +4,11 @@
 
 import { ConfigurationMerger } from '../../src/config/ConfigurationMerger';
 import { ConfigurationSourceType, type ConfigurationSource } from '../../src/config/loaders';
+import { setupMockCleanup } from '../utils/type-safe-mocks';
 
 describe('ConfigurationMerger', () => {
+  setupMockCleanup();
+  
   let merger: ConfigurationMerger;
   
   beforeEach(() => {

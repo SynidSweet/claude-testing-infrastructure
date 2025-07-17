@@ -1,7 +1,10 @@
 import { TestTemplateEngine, TemplateContext, Template } from '../../src/generators/templates/TestTemplateEngine';
 import { TestType } from '../../src/generators/TestGenerator';
+import { setupMockCleanup } from '../utils/type-safe-mocks';
 
 describe('TestTemplateEngine', () => {
+  setupMockCleanup();
+  
   let engine: TestTemplateEngine;
 
   beforeEach(() => {

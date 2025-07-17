@@ -5,6 +5,9 @@
 
 import type { ProjectAnalysis } from '../analyzers/ProjectAnalyzer';
 
+// Re-export ProjectAnalysis for external use
+export type { ProjectAnalysis };
+
 /**
  * Discriminated union for analysis input types
  */

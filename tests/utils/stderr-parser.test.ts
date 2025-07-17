@@ -11,8 +11,11 @@ import {
   AIModelError,
   AIError,
 } from '../../src/types/ai-error-types';
+import { setupMockCleanup } from './type-safe-mocks';
 
 describe('StderrParser', () => {
+  setupMockCleanup();
+  
   let parser: StderrParser;
   let emitter: EventEmitter;
 

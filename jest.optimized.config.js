@@ -47,6 +47,7 @@ module.exports = {
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
+    '\.claude-testing/',
     'integration',
     'validation', 
     'fixtures',

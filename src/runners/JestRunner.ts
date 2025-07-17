@@ -13,6 +13,10 @@ import { logger } from '../utils/logger';
 import { CoverageReporterFactory, type CoverageReporter } from './CoverageReporter';
 import { FileDiscoveryType, type FileDiscoveryService } from '../types/file-discovery-types';
 import type { CoverageThresholds } from './CoverageParser';
+import {
+  createBabelConfigAdapter,
+  type BabelConfigAdaptationOptions,
+} from '../services/BabelConfigAdapter';
 
 /**
  * Jest coverage data structure
@@ -70,7 +74,7 @@ interface JestConfig {
   preset?: string;
   extensionsToTreatAsEsm?: string[];
   moduleNameMapper?: Record<string, string>;
-  transform?: Record<string, string>;
+  transform?: Record<string, string | [string, object]>;
   transformIgnorePatterns?: string[];
   testPathIgnorePatterns?: string[];
   collectCoverage?: boolean;
@@ -171,6 +175,9 @@ export class JestRunner extends TestRunner {
   }
 
   protected async executeTests(): Promise<TestResult> {
+    // Setup babel configuration before getting run command
+    await this.setupBabelConfigurationIfNeeded();
+
     const { command, args } = this.getRunCommand();
 
     return new Promise((resolve, reject) => {
@@ -221,6 +228,18 @@ export class JestRunner extends TestRunner {
     });
   }
 
+  /**
+   * Setup babel configuration if needed for React ES modules projects
+   */
+  private async setupBabelConfigurationIfNeeded(): Promise<void> {
+    const moduleSystem = this.analysis.moduleSystem;
+
+    // For React ES modules projects, ensure babel config is accessible
+    if (moduleSystem.type === 'esm' && this.analysis.frameworks?.some((f) => f.name === 'react')) {
+      await this.ensureBabelConfig();
+    }
+  }
+
   protected getRunCommand(): { command: string; args: string[] } {
     const args: string[] = ['jest']; // Add jest as first arg for npx
 
@@ -239,15 +258,19 @@ export class JestRunner extends TestRunner {
     const configContent = isESM
       ? `export default ${JSON.stringify(jestConfig, null, 2)};`
       : `module.exports = ${JSON.stringify(jestConfig, null, 2)};`;
+
+    // Debug: Log the configuration to see what's being generated
+    logger.debug(`Jest config for ${this.config.projectPath}:`, {
+      rootDir: jestConfig.rootDir,
+      projectPath: this.config.projectPath,
+      testPath: this.config.testPath,
+    });
+
     fs.writeFileSync(configPath, configContent);
 
-    // For React ES modules projects, ensure babel config is accessible
-    if (moduleSystem.type === 'esm' && this.analysis.frameworks?.some((f) => f.name === 'react')) {
-      this.ensureBabelConfig();
-    }
+    // Babel configuration is now handled in setupBabelConfigurationIfNeeded() before this method
 
     args.push('--config', configPath);
-    args.push('--passWithNoTests');
     args.push('--json'); // Get JSON output for parsing
 
     // Coverage options
@@ -552,11 +575,12 @@ export class JestRunner extends TestRunner {
     const config: JestConfig = {
       testEnvironment: 'node',
       testMatch: ['**/*.test.{js,ts,jsx,tsx}'],
-      passWithNoTests: true,
-      rootDir: '.',
+      rootDir: path.resolve(this.config.projectPath),
       // Only include setupFiles if they exist in the target project
       ...(this.hasSetupFile() && {
-        setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
+        setupFilesAfterEnv: [
+          `<rootDir>/.claude-testing/setupTests.${moduleSystem.type === 'esm' ? 'mjs' : 'js'}`,
+        ],
       }),
       testPathIgnorePatterns: [
         '<rootDir>/node_modules/',
@@ -601,7 +625,10 @@ export class JestRunner extends TestRunner {
           // React ES modules configuration - requires jsdom for DOM testing
           config.testEnvironment = 'jsdom'; // Required for React component testing
           config.transform = {
-            '^.+\\.(js|jsx)$': 'babel-jest',
+            '^.+\\.(js|jsx)$': [
+              'babel-jest',
+              { configFile: path.resolve(this.config.testPath, 'babel.config.mjs') },
+            ],
           };
           config.transformIgnorePatterns = ['node_modules/(?!(.*\\.mjs$))'];
           // Add CSS module mapper for React projects
@@ -609,9 +636,18 @@ export class JestRunner extends TestRunner {
             ...config.moduleNameMapper,
             '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
           };
-          // Mock React.createElement for JSX support in ES modules
-          config.setupFilesAfterEnv = config.setupFilesAfterEnv ?? [];
-          config.setupFilesAfterEnv.push('<rootDir>/setupTests.js');
+          // Ensure React setup file exists
+          this.ensureReactSetupFile();
+
+          // Add setup file to configuration if not already set
+          if (!config.setupFilesAfterEnv) {
+            config.setupFilesAfterEnv = [];
+          }
+          const setupExtension = moduleSystem.type === 'esm' ? 'mjs' : 'js';
+          const relativeSetupFile = `<rootDir>/.claude-testing/setupTests.${setupExtension}`;
+          if (!config.setupFilesAfterEnv.includes(relativeSetupFile)) {
+            config.setupFilesAfterEnv.push(relativeSetupFile);
+          }
         } else {
           config.transform = {};
           config.testEnvironment = 'node';
@@ -628,8 +664,19 @@ export class JestRunner extends TestRunner {
         allSourceFiles.some((f: string) => f.endsWith('.jsx') || f.endsWith('.tsx'));
       if (hasReact) {
         config.testEnvironment = 'jsdom'; // Required for React component testing
-        config.setupFilesAfterEnv = config.setupFilesAfterEnv ?? [];
-        config.setupFilesAfterEnv.push('<rootDir>/setupTests.js');
+
+        // Ensure React setup file exists
+        this.ensureReactSetupFile();
+
+        // Add setup file to configuration if not already set
+        if (!config.setupFilesAfterEnv) {
+          config.setupFilesAfterEnv = [];
+        }
+        const setupExtension = 'js'; // CommonJS projects always use .js extension
+        const relativeSetupFile = `<rootDir>/.claude-testing/setupTests.${setupExtension}`;
+        if (!config.setupFilesAfterEnv.includes(relativeSetupFile)) {
+          config.setupFilesAfterEnv.push(relativeSetupFile);
+        }
       }
     }
 
@@ -662,11 +709,26 @@ export class JestRunner extends TestRunner {
 
   private hasSetupFile(): boolean {
     try {
-      const setupPath = path.join(this.config.projectPath, 'setupTests.js');
-      return fs.existsSync(setupPath);
+      // Check if setup file exists in either project root or test directory
+      const projectSetupPathJs = path.join(this.config.projectPath, 'setupTests.js');
+      const projectSetupPathMjs = path.join(this.config.projectPath, 'setupTests.mjs');
+      const testSetupPathJs = path.join(this.config.testPath, 'setupTests.js');
+      const testSetupPathMjs = path.join(this.config.testPath, 'setupTests.mjs');
+      return (
+        fs.existsSync(projectSetupPathJs) ||
+        fs.existsSync(projectSetupPathMjs) ||
+        fs.existsSync(testSetupPathJs) ||
+        fs.existsSync(testSetupPathMjs)
+      );
     } catch {
       return false;
     }
+  }
+
+  private ensureReactSetupFile(): void {
+    // Setup file is now generated by StructuralTestGenerator with enhanced React support
+    // This method is kept for backward compatibility but no longer creates files
+    logger.debug('React setup file generation handled by StructuralTestGenerator');
   }
 
   private extractUncoveredLinesFromReport(
@@ -685,19 +747,263 @@ export class JestRunner extends TestRunner {
     return uncoveredLines;
   }
 
-  private ensureBabelConfig(): void {
-    // Check if babel.config.js exists in project root
-    const projectBabelConfig = path.join(this.config.projectPath, 'babel.config.js');
-    const testBabelConfig = path.join(this.config.testPath, 'babel.config.js');
+  private async ensureBabelConfig(): Promise<void> {
+    const isEsm = this.analysis.moduleSystem.type === 'esm';
 
-    if (fs.existsSync(projectBabelConfig) && !fs.existsSync(testBabelConfig)) {
-      // Copy babel config to test directory so Jest can find it
-      try {
-        fs.copyFileSync(projectBabelConfig, testBabelConfig);
-        logger.debug('Copied babel.config.js to test directory for Jest');
-      } catch (error) {
-        logger.warn('Failed to copy babel.config.js to test directory', { error });
+    // For ES modules, we need to create a babel config that works with ES modules
+    if (isEsm) {
+      await this.createEsmBabelConfig();
+    } else {
+      // For CommonJS, copy existing babel config if available
+      this.copyBabelConfigForCommonJS();
+    }
+  }
+
+  private async createEsmBabelConfig(): Promise<void> {
+    const testDir = this.config.testPath;
+    const projectDir = this.config.projectPath;
+
+    // Check for existing babel configuration files in test directory
+    const existingTestConfigs = this.findExistingBabelConfigs(testDir);
+    const existingProjectConfigs = this.findExistingBabelConfigs(projectDir);
+
+    // If we already have an ESM-compatible config in test directory, use it
+    const testEsmConfig = path.join(testDir, 'babel.config.mjs');
+    if (existingTestConfigs.includes(testEsmConfig)) {
+      logger.debug('Using existing babel.config.mjs in test directory');
+      return;
+    }
+
+    // Handle conflicts: if other babel configs exist in test directory, warn about potential conflicts
+    if (existingTestConfigs.length > 0) {
+      logger.warn('Existing babel configuration files detected in test directory', {
+        existingConfigs: existingTestConfigs,
+        willCreate: testEsmConfig,
+      });
+
+      // Check if there's a conflicting .js config
+      const testJsConfig = path.join(testDir, 'babel.config.js');
+      if (existingTestConfigs.includes(testJsConfig)) {
+        logger.warn(
+          'babel.config.js already exists - this may conflict with babel.config.mjs for ES modules'
+        );
       }
     }
+
+    // Try to copy/adapt existing project babel config if available
+    if (existingProjectConfigs.length > 0) {
+      const adaptedConfig = await this.tryAdaptProjectBabelConfig(existingProjectConfigs);
+      if (adaptedConfig) {
+        try {
+          fs.writeFileSync(testEsmConfig, adaptedConfig);
+          logger.debug('Created adapted babel.config.mjs from project configuration');
+          return;
+        } catch (error) {
+          logger.warn('Failed to write adapted babel configuration', { error });
+        }
+      }
+    }
+
+    // Create default ESM babel configuration
+    const defaultBabelConfig = `export default {
+  presets: [
+    ['@babel/preset-env', {
+      targets: {
+        node: 'current'
+      },
+      modules: 'auto'
+    }],
+    ['@babel/preset-react', {
+      runtime: 'automatic'
+    }]
+  ],
+  plugins: []
+};
+`;
+
+    try {
+      fs.writeFileSync(testEsmConfig, defaultBabelConfig);
+      logger.debug('Created default ES modules compatible babel.config.mjs for Jest');
+    } catch (error) {
+      logger.warn('Failed to create babel.config.mjs for ES modules', { error });
+    }
+  }
+
+  private copyBabelConfigForCommonJS(): void {
+    const projectDir = this.config.projectPath;
+    const testDir = this.config.testPath;
+
+    // Find existing babel configs in project
+    const existingProjectConfigs = this.findExistingBabelConfigs(projectDir);
+    const existingTestConfigs = this.findExistingBabelConfigs(testDir);
+
+    // If test directory already has babel config, don't overwrite
+    if (existingTestConfigs.length > 0) {
+      logger.debug('Test directory already has babel configuration', {
+        existingConfigs: existingTestConfigs,
+      });
+      return;
+    }
+
+    // Try to copy the most appropriate config
+    const preferredConfigOrder = [
+      'babel.config.js',
+      'babel.config.json',
+      '.babelrc.js',
+      '.babelrc.json',
+      '.babelrc',
+    ];
+
+    for (const configFile of preferredConfigOrder) {
+      const sourcePath = path.join(projectDir, configFile);
+      if (existingProjectConfigs.includes(sourcePath)) {
+        const targetPath = path.join(testDir, 'babel.config.js');
+
+        try {
+          fs.copyFileSync(sourcePath, targetPath);
+          logger.debug(`Copied ${configFile} to test directory as babel.config.js`);
+          return;
+        } catch (error) {
+          logger.warn(`Failed to copy ${configFile} to test directory`, { error });
+        }
+      }
+    }
+
+    logger.debug('No babel configuration found in project directory');
+  }
+
+  private findExistingBabelConfigs(directory: string): string[] {
+    const possibleConfigs = [
+      'babel.config.js',
+      'babel.config.mjs',
+      'babel.config.json',
+      '.babelrc',
+      '.babelrc.js',
+      '.babelrc.json',
+      '.babelrc.mjs',
+    ];
+
+    const existingConfigs: string[] = [];
+
+    for (const configFile of possibleConfigs) {
+      const configPath = path.join(directory, configFile);
+      if (fs.existsSync(configPath)) {
+        existingConfigs.push(configPath);
+      }
+    }
+
+    return existingConfigs;
+  }
+
+  private async tryAdaptProjectBabelConfig(existingConfigs: string[]): Promise<string | null> {
+    const babelAdapter = createBabelConfigAdapter();
+    const isEsm = this.analysis.moduleSystem.type === 'esm';
+
+    // Enhanced babel configuration adaptation options
+    const adaptationOptions: Partial<BabelConfigAdaptationOptions> = {
+      targetModuleSystem: isEsm ? 'esm' : 'commonjs',
+      validateSyntax: true,
+      preserveComments: true,
+      fallbackToBasicTransform: true, // Enable fallback for complex configs
+    };
+
+    try {
+      // Use the enhanced adapter to handle multiple configs
+      const result = await babelAdapter.adaptBestAvailableConfig(
+        existingConfigs,
+        adaptationOptions
+      );
+
+      if (result?.success && result.adaptedConfig) {
+        // Log successful adaptation with details
+        logger.debug('Successfully adapted babel configuration with enhanced adapter', {
+          configType: result.configType,
+          targetModuleSystem: adaptationOptions.targetModuleSystem,
+          warnings: result.warnings.length,
+          validationErrors: result.validationErrors.length,
+        });
+
+        // Log warnings if any
+        if (result.warnings.length > 0) {
+          logger.warn('Babel configuration adaptation warnings', {
+            warnings: result.warnings,
+          });
+        }
+
+        return result.adaptedConfig;
+      } else if (result) {
+        // Log adaptation failures
+        logger.warn('Enhanced babel configuration adaptation failed', {
+          errors: result.validationErrors,
+          warnings: result.warnings,
+        });
+
+        // Fallback to legacy method if enhanced adapter fails completely
+        logger.debug('Attempting fallback to legacy babel adaptation method');
+        return this.tryAdaptProjectBabelConfigLegacy(existingConfigs);
+      }
+
+      return null;
+    } catch (error) {
+      logger.warn(
+        'Enhanced babel configuration adapter threw error, falling back to legacy method',
+        {
+          error,
+          configPaths: existingConfigs,
+        }
+      );
+
+      // Fallback to legacy method
+      return this.tryAdaptProjectBabelConfigLegacy(existingConfigs);
+    }
+  }
+
+  /**
+   * Legacy babel configuration adaptation method (fallback)
+   * Kept for compatibility and as a fallback when enhanced adaptation fails
+   */
+  private tryAdaptProjectBabelConfigLegacy(existingConfigs: string[]): string | null {
+    const isEsm = this.analysis.moduleSystem.type === 'esm';
+
+    // Try to read and adapt the first available config
+    for (const configPath of existingConfigs) {
+      try {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const fileName = path.basename(configPath);
+
+        // Handle different config file types
+        if (fileName.endsWith('.json') || fileName === '.babelrc') {
+          // Parse JSON config and convert to target module system
+          const config = JSON.parse(content) as object;
+
+          if (isEsm) {
+            return `export default ${JSON.stringify(config, null, 2)};`;
+          } else {
+            return `module.exports = ${JSON.stringify(config, null, 2)};`;
+          }
+        } else if (fileName.endsWith('.js') || fileName.endsWith('.mjs')) {
+          // Basic transformation for JavaScript configs
+          if (isEsm) {
+            const adaptedContent = content
+              .replace(/module\.exports\s*=/, 'export default')
+              .replace(/require\(/g, 'import(')
+              .replace(/const\s+(\w+)\s*=\s*require\(['"]([^'"]+)['"]\)/g, "import $1 from '$2'");
+            return adaptedContent;
+          } else {
+            // For CommonJS, minimal transformation needed
+            return content
+              .replace(/export\s+default\s+/, 'module.exports = ')
+              .replace(/import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g, "const $1 = require('$2')");
+          }
+        }
+      } catch (error) {
+        logger.warn(`Failed to read/adapt babel config with legacy method: ${configPath}`, {
+          error,
+        });
+        continue;
+      }
+    }
+
+    return null;
   }
 }

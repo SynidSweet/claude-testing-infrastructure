@@ -4,6 +4,24 @@ This directory contains utility scripts for the Claude Testing Infrastructure pr
 
 ## Available Scripts
 
+### Sprint Validation System
+
+- **generate-sprint-validation-report.js**: Comprehensive sprint validation report generator with MCP integration
+  - Integrates with MCP task system for real-time sprint data
+  - Collects evidence from validation scripts and quality checks
+  - Generates JSON and Markdown reports with recommendations
+  - Supports evidence file collection and archival
+  ```bash
+  # Generate sprint validation report
+  node scripts/generate-sprint-validation-report.js
+  
+  # With evidence collection and JSON output
+  node scripts/generate-sprint-validation-report.js --format json --collect-evidence
+  
+  # Verbose mode with specific sprint
+  node scripts/generate-sprint-validation-report.js --sprint-id SPRINT-2025-Q3-DEV04 --verbose
+  ```
+
 ### Truth Validation System
 
 The truth validation system ensures documentation claims match actual project status:

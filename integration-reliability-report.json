@@ -1,0 +1,173 @@
+{
+  "timestamp": "2025-07-16T18:50:46.787Z",
+  "summary": {
+    "totalTestFiles": 2,
+    "reliableTestFiles": 2,
+    "unreliableTestFiles": 0,
+    "totalRuns": 20,
+    "totalPasses": 20,
+    "totalFailures": 0,
+    "overallPassRate": 100,
+    "allTestsReliable": true,
+    "overall": "PASS"
+  },
+  "testResults": {
+    "heartbeat-monitoring.optimized": {
+      "testFile": "tests/ai/heartbeat-monitoring.optimized.test.ts",
+      "totalRuns": 10,
+      "passCount": 10,
+      "failCount": 0,
+      "passRate": 100,
+      "consecutivePasses": 10,
+      "isReliable": true,
+      "timingStats": {
+        "average": 1539,
+        "min": 1404,
+        "max": 2146
+      },
+      "runs": [
+        {
+          "run": 1,
+          "passed": true,
+          "duration": 1603,
+          "error": null
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "duration": 1514,
+          "error": null
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "duration": 1404,
+          "error": null
+        },
+        {
+          "run": 4,
+          "passed": true,
+          "duration": 1414,
+          "error": null
+        },
+        {
+          "run": 5,
+          "passed": true,
+          "duration": 1455,
+          "error": null
+        },
+        {
+          "run": 6,
+          "passed": true,
+          "duration": 1489,
+          "error": null
+        },
+        {
+          "run": 7,
+          "passed": true,
+          "duration": 1449,
+          "error": null
+        },
+        {
+          "run": 8,
+          "passed": true,
+          "duration": 1486,
+          "error": null
+        },
+        {
+          "run": 9,
+          "passed": true,
+          "duration": 1425,
+          "error": null
+        },
+        {
+          "run": 10,
+          "passed": true,
+          "duration": 2146,
+          "error": null
+        }
+      ]
+    },
+    "HeartbeatMonitor.integration": {
+      "testFile": "tests/ai/heartbeat/HeartbeatMonitor.integration.test.ts",
+      "totalRuns": 10,
+      "passCount": 10,
+      "failCount": 0,
+      "passRate": 100,
+      "consecutivePasses": 10,
+      "isReliable": true,
+      "timingStats": {
+        "average": 1341,
+        "min": 1294,
+        "max": 1426
+      },
+      "runs": [
+        {
+          "run": 1,
+          "passed": true,
+          "duration": 1426,
+          "error": null
+        },
+        {
+          "run": 2,
+          "passed": true,
+          "duration": 1360,
+          "error": null
+        },
+        {
+          "run": 3,
+          "passed": true,
+          "duration": 1314,
+          "error": null
+        },
+        {
+          "run": 4,
+          "passed": true,
+          "duration": 1311,
+          "error": null
+        },
+        {
+          "run": 5,
+          "passed": true,
+          "duration": 1390,
+          "error": null
+        },
+        {
+          "run": 6,
+          "passed": true,
+          "duration": 1314,
+          "error": null
+        },
+        {
+          "run": 7,
+          "passed": true,
+          "duration": 1346,
+          "error": null
+        },
+        {
+          "run": 8,
+          "passed": true,
+          "duration": 1294,
+          "error": null
+        },
+        {
+          "run": 9,
+          "passed": true,
+          "duration": 1334,
+          "error": null
+        },
+        {
+          "run": 10,
+          "passed": true,
+          "duration": 1322,
+          "error": null
+        }
+      ]
+    }
+  },
+  "configuration": {
+    "runsPerTest": 10,
+    "timeoutMs": 120000,
+    "reliabilityThreshold": 100
+  }
+}

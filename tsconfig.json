@@ -29,6 +29,7 @@
     "exactOptionalPropertyTypes": true,
     "isolatedModules": true,
     "moduleResolution": "node",
+    "downlevelIteration": true,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"],

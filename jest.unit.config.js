@@ -15,18 +15,23 @@ function isCIEnvironment() {
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
+  roots: ['<rootDir>/tests', '<rootDir>/src'],
   
   // Only include fast CPU-bound tests
   testMatch: [
-    '**/tests/(utils|generators|analyzers|config)/**/*.test.ts'
+    '**/tests/utils/**/*.test.ts',
+    '**/tests/generators/**/*.test.ts',
+    '**/tests/analyzers/**/*.test.ts',
+    '**/tests/config/**/*.test.ts'
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
-    'integration',
-    'validation',
-    'fixtures',
-    'ai'
+    '\\.claude-testing/',
+    '/tests/integration/',
+    '/tests/validation/',
+    '/tests/fixtures/',
+    '/tests/ai/',
+    '/tests/e2e/'
   ],
   
   transform: {

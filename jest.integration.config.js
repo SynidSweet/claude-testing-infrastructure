@@ -34,8 +34,9 @@ if (process.env.SKIP_INTEGRATION_TESTS === 'true') {
     ],
     testPathIgnorePatterns: [
       '/node_modules/',
-      'tests/fixtures/.*\\.claude-testing/',
-      'validation/ai-agents'
+      '\\.claude-testing/',
+      '/tests/fixtures/.*\\.claude-testing/',
+      '/tests/validation/ai-agents/'
     ],
     
     transform: {

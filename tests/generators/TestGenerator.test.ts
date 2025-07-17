@@ -1,5 +1,6 @@
 import { TestGenerator, TestGeneratorConfig, TestType, GeneratedTest } from '../../src/generators/TestGenerator';
 import { ProjectAnalysis } from '../../src/analyzers/ProjectAnalyzer';
+import { setupMockCleanup } from '../utils/type-safe-mocks';
 
 // Mock implementation for testing
 class MockTestGenerator extends TestGenerator {
@@ -27,6 +28,8 @@ class MockTestGenerator extends TestGenerator {
 }
 
 describe('TestGenerator', () => {
+  setupMockCleanup();
+  
   let mockAnalysis: ProjectAnalysis;
   let config: TestGeneratorConfig;
 

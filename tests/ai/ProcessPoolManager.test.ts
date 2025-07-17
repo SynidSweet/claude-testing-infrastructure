@@ -13,6 +13,8 @@ import {
 import { type TestableTimer, type TimerHandle } from '../../src/types/timer-types';
 import { type ProcessResourceUsage } from '../../src/utils/ProcessMonitor';
 import type { MockProcessMonitor, MockHeartbeatMonitor } from '../types/mock-interfaces';
+import { createMockHeartbeatMonitorAdapter, createMockTimer, setupMockCleanup } from '../utils/type-safe-mocks';
+import { HeartbeatMonitorAdapter } from '../../src/ai/heartbeat/ClaudeOrchestratorIntegration';
 
 // Mock dependencies
 jest.mock('../../src/utils/ProcessMonitor');
@@ -26,7 +28,10 @@ describe('ProcessPoolManager', () => {
   let mockProcess: jest.Mocked<ChildProcess>;
   let mockProcessMonitor: MockProcessMonitor;
   let mockHeartbeatMonitor: MockHeartbeatMonitor;
-  let mockHeartbeatAdapter: jest.Mocked<any>;
+  let mockHeartbeatAdapter: jest.Mocked<HeartbeatMonitorAdapter>;
+
+  // Setup proper mock cleanup
+  setupMockCleanup();
 
   beforeEach(() => {
     // Setup mock timer
@@ -103,10 +108,7 @@ describe('ProcessPoolManager', () => {
       }))
     };
 
-    mockHeartbeatAdapter = {
-      startMonitoring: jest.fn(),
-      stopMonitoring: jest.fn(),
-    };
+    mockHeartbeatAdapter = createMockHeartbeatMonitorAdapter();
 
     // Mock the module imports
     require('../../src/utils/ProcessMonitor').ProcessMonitor.mockImplementation(() => mockProcessMonitor);

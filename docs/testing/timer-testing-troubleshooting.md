@@ -2,7 +2,7 @@
 
 *Comprehensive troubleshooting guide for timer-based test issues*
 
-*Created: 2025-07-07 | TASK-TIMER-002 | Addresses common timer test failures and solutions*
+*Created: 2025-07-07 | TASK-TIMER-002 | Updated: 2025-07-16 | TASK-2025-010 | Heartbeat monitoring test refactoring solutions*
 
 ## 🚨 Common Timer Test Issues
 
@@ -34,7 +34,15 @@ test('timer operation', async () => {
   jest.useFakeTimers();
   startTimerOperation();
   jest.advanceTimersByTime(5000);
+  await Promise.resolve(); // Allow events to be processed
   jest.useRealTimers();
+});
+
+// ✅ Alternative - Use in beforeEach/afterEach
+test('timer operation with setup', async () => {
+  startTimerOperation();
+  jest.advanceTimersByTime(5000);
+  await Promise.resolve(); // Critical for event processing
 });
 ```
 

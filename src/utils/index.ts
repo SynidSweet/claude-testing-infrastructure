@@ -9,3 +9,4 @@ export * from './AsyncTestUtils';
 export * from './RealTimer';
 export * from './MockTimer';
 export * from './TimerFactory';
+export * from './HeartbeatTestHelper';

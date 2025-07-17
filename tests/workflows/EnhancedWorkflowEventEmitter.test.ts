@@ -6,10 +6,13 @@
  */
 
 import { EnhancedWorkflowEventEmitterImpl } from '../../src/workflows/EnhancedWorkflowEventEmitter';
-// import { AIWorkflowError } from '../../src/types/ai-error-types';
-// import type { EventListenerConfig } from '../../src/types/workflow-event-types';
+import type { WorkflowResult, WorkflowDetailedReport, WorkflowConfig } from '../../src/types/ai-workflow-types';
+import type { ProjectAnalysis } from '../../src/analyzers/ProjectAnalyzer';
+import { setupMockCleanup } from '../utils/type-safe-mocks';
 
 describe('EnhancedWorkflowEventEmitter', () => {
+  setupMockCleanup();
+  
   let emitter: EnhancedWorkflowEventEmitterImpl;
 
   beforeEach(() => {
@@ -25,7 +28,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
   describe('Basic Event Emission', () => {
     it('should emit and handle events successfully', async () => {
       let eventReceived = false;
-      let receivedData: any = null;
+      let receivedData: { projectPath: string; config: WorkflowConfig } | null = null;
 
       const listenerId = emitter.on('workflow:start', {
         handler: (data) => {
@@ -37,7 +40,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       const result = await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(result.success).toBe(true);
@@ -45,7 +48,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
       expect(eventReceived).toBe(true);
       expect(receivedData).toEqual({
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
       expect(typeof listenerId).toBe('string');
     });
@@ -76,7 +79,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(executionOrder).toEqual([3, 2, 1]);
@@ -98,7 +101,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       const result = await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(result.success).toBe(true);
@@ -123,7 +126,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       const result = await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(result.success).toBe(true);
@@ -158,7 +161,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(eventReceived).toBe(true);
@@ -186,7 +189,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       const result = await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(result.success).toBe(false);
@@ -207,7 +210,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       const result = await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(result.success).toBe(false);
@@ -230,7 +233,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
       for (let i = 0; i < 4; i++) {
         await emitter.emit('workflow:start', {
           projectPath: '/test/project',
-          config: {},
+          config: {} satisfies WorkflowConfig,
         });
       }
 
@@ -251,11 +254,41 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       await emitter.emit('workflow:complete', {
-        result: {} as any,
+        result: {
+          success: true,
+          projectAnalysis: {
+            projectPath: '/test/project',
+            languages: [],
+            frameworks: [],
+            packageManagers: [],
+            projectStructure: { 
+              rootFiles: [], 
+              srcDirectory: undefined, 
+              testDirectories: [], 
+              configFiles: [], 
+              buildOutputs: [], 
+              entryPoints: [] 
+            },
+            dependencies: { production: {}, development: {}, python: undefined },
+            testingSetup: { hasTests: false, testFrameworks: [], testFiles: [], coverageTools: [] },
+            complexity: { totalFiles: 0, totalLines: 0, averageFileSize: 0, largestFiles: [] },
+            moduleSystem: { type: 'commonjs', hasPackageJsonType: false, confidence: 1, fileExtensionPattern: 'js' },
+          } satisfies ProjectAnalysis,
+          generatedTests: { structural: 0, logical: 0 },
+          duration: 0,
+          reports: {
+            summary: 'Test summary',
+            detailed: {
+              timestamp: new Date().toISOString(),
+              projectPath: '/test/project',
+              config: {} satisfies WorkflowConfig,
+            } satisfies Partial<WorkflowDetailedReport>,
+          },
+        } satisfies WorkflowResult,
       });
 
       const metrics = emitter.getMetrics();
@@ -274,7 +307,7 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       const traces = emitter.getTraces();
@@ -312,12 +345,12 @@ describe('EnhancedWorkflowEventEmitter', () => {
 
       await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       await emitter.emit('workflow:start', {
         projectPath: '/test/project',
-        config: {},
+        config: {} satisfies WorkflowConfig,
       });
 
       expect(callCount).toBe(1);
@@ -352,7 +385,39 @@ describe('EnhancedWorkflowEventEmitter', () => {
           },
           {
             name: 'workflow:complete' as const,
-            data: { result: {} as any },
+            data: { 
+              result: {
+                success: true,
+                projectAnalysis: {
+                  projectPath: '/test/project',
+                  languages: [],
+                  frameworks: [],
+                  packageManagers: [],
+                  projectStructure: { 
+                    rootFiles: [], 
+                    srcDirectory: undefined, 
+                    testDirectories: [], 
+                    configFiles: [], 
+                    buildOutputs: [], 
+                    entryPoints: [] 
+                  },
+                  dependencies: { production: {}, development: {}, python: undefined },
+                  testingSetup: { hasTests: false, testFrameworks: [], testFiles: [], coverageTools: [] },
+                  complexity: { totalFiles: 0, totalLines: 0, averageFileSize: 0, largestFiles: [] },
+                  moduleSystem: { type: 'commonjs', hasPackageJsonType: false, confidence: 1, fileExtensionPattern: 'js' },
+                } satisfies ProjectAnalysis,
+                generatedTests: { structural: 0, logical: 0 },
+                duration: 0,
+                reports: {
+                  summary: 'Test summary',
+                  detailed: {
+                    timestamp: new Date().toISOString(),
+                    projectPath: '/test/project',
+                    config: {} satisfies WorkflowConfig,
+                  } satisfies Partial<WorkflowDetailedReport>,
+                },
+              } satisfies WorkflowResult 
+            },
             context: { timestamp: Date.now(), eventId: 'test-2', workflowId: 'test', metadata: {} },
           },
         ],

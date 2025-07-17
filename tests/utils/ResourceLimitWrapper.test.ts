@@ -1,7 +1,8 @@
 import { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { ResourceLimitWrapper, ResourceLimitConfig } from '../../src/utils/ResourceLimitWrapper';
-import { ProcessMonitor, ProcessResourceUsage, ProcessHealthMetrics } from '../../src/utils/ProcessMonitor';
+import { ProcessMonitor, ProcessResourceUsage } from '../../src/utils/ProcessMonitor';
+import { createMockProcessMonitor, createMockProcessResourceUsage, createMockProcessHealthMetrics, setupMockCleanup } from './type-safe-mocks';
 
 // Mock the logger
 jest.mock('../../src/utils/logger', () => ({
@@ -29,19 +30,14 @@ describe('ResourceLimitWrapper', () => {
   let mockProcessMonitor: jest.Mocked<ProcessMonitor>;
   let mockChildProcess: jest.Mocked<ChildProcess>;
 
+  // Setup proper mock cleanup
+  setupMockCleanup();
+
   beforeEach(() => {
-    jest.clearAllMocks();
     jest.useFakeTimers();
     
-    // Reset the ProcessMonitor mock
-    mockProcessMonitor = {
-      startMonitoring: jest.fn(),
-      stopMonitoring: jest.fn(),
-      stopAll: jest.fn(),
-      getHealthMetrics: jest.fn(),
-      getResourceUsage: jest.fn(),
-    } as any;
-    
+    // Use type-safe mock factory
+    mockProcessMonitor = createMockProcessMonitor();
     (ProcessMonitor as jest.MockedClass<typeof ProcessMonitor>).mockImplementation(() => mockProcessMonitor);
     
     resourceLimitWrapper = new ResourceLimitWrapper();
@@ -55,7 +51,6 @@ describe('ResourceLimitWrapper', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-    jest.clearAllMocks();
   });
 
   describe('constructor', () => {
@@ -123,25 +118,29 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should handle successful process completion', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
-        isAlive: true,
-        isZombie: false,
-        isHighResource: false,
-        resourceUsage: {
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(
+        createMockProcessHealthMetrics({
+          isAlive: true,
+          isZombie: false,
+          isHighResource: false,
+          resourceUsage: createMockProcessResourceUsage({
+            pid: 12345,
+            cpu: 50,
+            memory: 40,
+          }),
+          healthScore: 80,
+          warnings: [],
+          recommendations: [],
+        })
+      );
+
+      mockProcessMonitor.getResourceUsage.mockReturnValue(
+        createMockProcessResourceUsage({
           pid: 12345,
           cpu: 50,
           memory: 40,
-        } as ProcessResourceUsage,
-        healthScore: 80,
-        warnings: [],
-        recommendations: [],
-      } as unknown as ProcessHealthMetrics);
-
-      mockProcessMonitor.getResourceUsage.mockReturnValue({
-        pid: 12345,
-        cpu: 50,
-        memory: 40,
-      } as ProcessResourceUsage);
+        })
+      );
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -167,15 +166,14 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should handle process error', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: false,
         isHighResource: false,
-        resourceUsage: null,
         healthScore: 100,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -193,19 +191,19 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should handle execution timeout', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: false,
         isHighResource: false,
-        resourceUsage: {
+        resourceUsage: createMockProcessResourceUsage({
           pid: 12345,
           cpu: 50,
           memory: 40,
-        } as ProcessResourceUsage,
+        }),
         healthScore: 80,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -228,19 +226,19 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should issue warning before timeout', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: false,
         isHighResource: false,
-        resourceUsage: {
+        resourceUsage: createMockProcessResourceUsage({
           pid: 12345,
           cpu: 50,
           memory: 40,
-        } as ProcessResourceUsage,
+        }),
         healthScore: 80,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -263,19 +261,19 @@ describe('ResourceLimitWrapper', () => {
       let violationCount = 0;
       mockProcessMonitor.getHealthMetrics.mockImplementation(() => {
         violationCount++;
-        return {
+        return createMockProcessHealthMetrics({
           isAlive: true,
           isZombie: false,
           isHighResource: true,
-          resourceUsage: {
+          resourceUsage: createMockProcessResourceUsage({
             pid: 12345,
             cpu: 96, // Above kill threshold (95)
             memory: 40,
-          } as ProcessResourceUsage,
+          }),
           healthScore: 20,
           warnings: ['High CPU usage'],
           recommendations: ['Reduce CPU load'],
-        } as ProcessHealthMetrics;
+        });
       });
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
@@ -303,19 +301,19 @@ describe('ResourceLimitWrapper', () => {
       let violationCount = 0;
       mockProcessMonitor.getHealthMetrics.mockImplementation(() => {
         violationCount++;
-        return {
+        return createMockProcessHealthMetrics({
           isAlive: true,
           isZombie: false,
           isHighResource: true,
-          resourceUsage: {
+          resourceUsage: createMockProcessResourceUsage({
             pid: 12345,
             cpu: 50,
             memory: 96, // Above kill threshold (95)
-          } as ProcessResourceUsage,
+          }),
           healthScore: 20,
           warnings: ['High memory usage'],
           recommendations: ['Reduce memory usage'],
-        } as ProcessHealthMetrics;
+        });
       });
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
@@ -340,19 +338,19 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should handle CPU warning threshold', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: false,
         isHighResource: false,
-        resourceUsage: {
+        resourceUsage: createMockProcessResourceUsage({
           pid: 12345,
           cpu: 85, // Above warn threshold (80) but below kill (95)
           memory: 40,
-        } as ProcessResourceUsage,
+        }),
         healthScore: 60,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -373,19 +371,19 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should handle memory warning threshold', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: false,
         isHighResource: false,
-        resourceUsage: {
+        resourceUsage: createMockProcessResourceUsage({
           pid: 12345,
           cpu: 50,
           memory: 85, // Above warn threshold (80) but below kill (95)
-        } as ProcessResourceUsage,
+        }),
         healthScore: 60,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -406,19 +404,19 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should handle zombie process detection', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: true, // Process is zombie
         isHighResource: false,
-        resourceUsage: {
+        resourceUsage: createMockProcessResourceUsage({
           pid: 12345,
           cpu: 50,
           memory: 40,
-        } as ProcessResourceUsage,
+        }),
         healthScore: 40,
         warnings: ['Process is zombie'],
         recommendations: ['Restart process'],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -438,15 +436,14 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should stop monitoring when process is no longer alive', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: false, // Process is dead
         isZombie: false,
         isHighResource: false,
-        resourceUsage: null,
         healthScore: 0,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -538,15 +535,14 @@ describe('ResourceLimitWrapper', () => {
 
   describe('edge cases', () => {
     it('should handle process with no resource usage data', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: false,
         isHighResource: false,
-        resourceUsage: null, // No resource data
         healthScore: 100,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       
@@ -567,17 +563,16 @@ describe('ResourceLimitWrapper', () => {
     });
 
     it('should handle final resource usage being null', async () => {
-      mockProcessMonitor.getHealthMetrics.mockReturnValue({
+      mockProcessMonitor.getHealthMetrics.mockReturnValue(createMockProcessHealthMetrics({
         isAlive: true,
         isZombie: false,
         isHighResource: false,
-        resourceUsage: null,
         healthScore: 100,
         warnings: [],
         recommendations: [],
-      } as unknown as ProcessHealthMetrics);
+      }));
 
-      mockProcessMonitor.getResourceUsage.mockReturnValue(null);
+      mockProcessMonitor.getResourceUsage.mockReturnValue(null as ProcessResourceUsage | null);
 
       const processPromise = resourceLimitWrapper.wrapProcess(mockChildProcess, 'test-process');
       

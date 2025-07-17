@@ -43,7 +43,15 @@ describe('Test Quality Validation - Critical Issues', () => {
         options: {},
         patterns: {
           include: ['**/*.{js,jsx,ts,tsx}'], 
-          exclude: ['**/*.test.*', '**/*.spec.*']
+          exclude: [
+            '**/*.test.*', 
+            '**/*.spec.*',
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/build/**',
+            '**/.claude-testing/**',
+            '**/coverage/**'
+          ]
         }
       },
       projectAnalysis,

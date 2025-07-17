@@ -48,6 +48,9 @@
     "status:update:verbose": "node scripts/status-documentation-updater.js --verbose",
     "perf:monitor": "node scripts/jest-performance-monitor.js",
     "perf:benchmark": "npm run perf:monitor",
+    "cleanup:temp": "node scripts/cleanup-temp-directories.js",
+    "cleanup:temp:dry-run": "node scripts/cleanup-temp-directories.js --dry-run",
+    "cleanup:temp:verbose": "node scripts/cleanup-temp-directories.js --verbose",
     "e2e:validate": "node tests/e2e/run-e2e-validation.js",
     "e2e:full": "npm run build && node tests/e2e/run-e2e-validation.js",
     "lint": "eslint src/**/*.ts",
@@ -73,7 +76,11 @@
     "validate:comprehensive:json": "node scripts/comprehensive-validation-automation.js --json",
     "validate:comprehensive:strict": "node scripts/comprehensive-validation-automation.js --strict",
     "validate:comprehensive:fast": "node scripts/comprehensive-validation-automation.js --fast",
-    "sprint:validate": "node scripts/comprehensive-validation-automation.js"
+    "sprint:validate": "node scripts/comprehensive-validation-automation.js",
+    "validate:test-execution": "node scripts/validate-test-execution.js",
+    "validate:test-quick": "node scripts/quick-test-validator.js",
+    "validate:test-counts": "node scripts/validate-test-counts.js",
+    "precommit:test-validation": "node scripts/precommit-test-validation.js"
   },
   "keywords": [
     "testing",

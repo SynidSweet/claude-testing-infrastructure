@@ -15,13 +15,13 @@ jest.mock('fs/promises');
 
 // Mock retry helper to avoid real delays in tests
 jest.mock('../../src/utils/retry-helper', () => ({
-  ...jest.requireActual('../../src/utils/retry-helper'),
-  withRetry: jest.fn().mockImplementation(async (fn, _options) => {
+  ...(jest.requireActual('../../src/utils/retry-helper') as Record<string, unknown>),
+  withRetry: jest.fn().mockImplementation(async <T>(fn: () => Promise<T>, _options?: unknown) => {
     try {
       const result = await fn();
       return { success: true, result, attempts: 1, totalDuration: 0 };
     } catch (error) {
-      return { success: false, error, attempts: 1, totalDuration: 0 };
+      return { success: false, error: error as Error, attempts: 1, totalDuration: 0 };
     }
   }),
 }));
@@ -174,8 +174,8 @@ describe('ClaudeOrchestrator - Optimized Stderr Parsing', () => {
       const process = optimizedAITestHelpers.createProcess();
       const batch = optimizedAITestHelpers.createBatch();
       
-      const detectedErrors: any[] = [];
-      orchestrator.on('error:detected', (error) => {
+      const detectedErrors: Array<{ type: string; severity: string; [key: string]: unknown }> = [];
+      orchestrator.on('error:detected', (error: { type: string; severity: string; [key: string]: unknown }) => {
         detectedErrors.push(error);
       });
 
@@ -193,8 +193,8 @@ describe('ClaudeOrchestrator - Optimized Stderr Parsing', () => {
       await processPromise.catch(() => {}); // Ignore error
       
       expect(detectedErrors).toHaveLength(1);
-      expect(detectedErrors[0].type).toBe('auth');
-      expect(detectedErrors[0].severity).toBe('fatal');
+      expect(detectedErrors[0]?.type).toBe('auth');
+      expect(detectedErrors[0]?.severity).toBe('fatal');
     });
   });
 

@@ -7,8 +7,11 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { HeartbeatScheduler, SchedulerConfig } from '../../../src/ai/heartbeat/HeartbeatScheduler';
 import { MockTimer } from '../../../src/utils/MockTimer';
+import { setupMockCleanup } from '../../utils/type-safe-mocks';
 
 describe('HeartbeatScheduler', () => {
+  setupMockCleanup();
+  
   let mockTimer: MockTimer;
   let scheduler: HeartbeatScheduler;
   const config: SchedulerConfig = {
@@ -126,6 +129,29 @@ describe('HeartbeatScheduler', () => {
       expect(onProgress).toHaveBeenCalledTimes(2);
     });
 
+    it('should use fallback default when config has no progressIntervalMs', async () => {
+      // Create scheduler with config without progressIntervalMs
+      const configWithoutProgress: SchedulerConfig = {
+        intervalMs: 30000,
+        timeoutMs: 900000
+        // No progressIntervalMs
+      };
+      
+      const schedulerWithoutProgress = new HeartbeatScheduler(mockTimer, configWithoutProgress);
+      
+      const onProgress = jest.fn();
+      const handle = schedulerWithoutProgress.scheduleProgressReporting('task-1', onProgress);
+
+      expect(handle).toBeDefined();
+
+      // Should use 10000 as fallback default
+      await mockTimer.advanceTime(10000);
+      expect(onProgress).toHaveBeenCalledTimes(1);
+
+      await mockTimer.advanceTime(10000);
+      expect(onProgress).toHaveBeenCalledTimes(2);
+    });
+
     it('should use custom interval', async () => {
       const onProgress = jest.fn();
       scheduler.scheduleProgressReporting('task-1', onProgress, 5000);
@@ -177,8 +203,9 @@ describe('HeartbeatScheduler', () => {
       scheduler.scheduleChecks('task-1', jest.fn());
       scheduler.scheduleChecks('task-2', jest.fn());
       scheduler.scheduleTimeout('task-3', jest.fn(), 5000);
+      scheduler.scheduleProgressReporting('task-4', jest.fn()); // Add progress reporting
 
-      expect(scheduler.getActiveTasks()).toHaveLength(3);
+      expect(scheduler.getActiveTasks()).toHaveLength(4);
 
       scheduler.cancelAllTasks();
 

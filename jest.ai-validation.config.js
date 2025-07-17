@@ -23,7 +23,7 @@ module.exports = {
     '/node_modules/',
     '/dist/',
     '/build/',
-    '/.claude-testing/'
+    '\.claude-testing/'
   ],
 
   // Setup files

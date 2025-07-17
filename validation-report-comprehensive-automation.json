@@ -1,0 +1,139 @@
+{
+  "timestamp": "2025-07-16T19:17:08.287Z",
+  "mode": "standard",
+  "overallScore": 99,
+  "productionReady": true,
+  "criticalFailures": [],
+  "phases": {
+    "infrastructure": {
+      "name": "Critical Infrastructure Validation",
+      "status": "completed",
+      "startTime": "2025-07-16T19:17:08.290Z",
+      "errors": [],
+      "duration": 26708
+    },
+    "testSuite": {
+      "name": "Test Suite Reliability Validation",
+      "status": "completed",
+      "startTime": "2025-07-16T19:17:34.999Z",
+      "errors": [],
+      "duration": 38924
+    },
+    "codeQuality": {
+      "name": "Code Quality Gates Validation",
+      "status": "completed",
+      "startTime": "2025-07-16T19:18:13.923Z",
+      "errors": [],
+      "duration": 22329
+    },
+    "truthValidation": {
+      "name": "Truth Validation System Check",
+      "status": "completed",
+      "startTime": "2025-07-16T19:18:36.252Z",
+      "errors": [],
+      "duration": 2200
+    },
+    "deployment": {
+      "name": "Production Deployment Readiness",
+      "status": "completed",
+      "startTime": "2025-07-16T19:18:38.452Z",
+      "errors": [],
+      "duration": 473
+    }
+  },
+  "componentScores": {
+    "build": 100,
+    "typescript": 100,
+    "linting": 100,
+    "dependencies": 100,
+    "testSuite": 100,
+    "codeQuality": 100,
+    "truthValidation": 85,
+    "cliDeployment": 100,
+    "documentation": 100
+  },
+  "evidence": {
+    "build": {
+      "status": "success",
+      "artifactsPresent": true,
+      "outputLength": 285
+    },
+    "typescript": {
+      "status": "success"
+    },
+    "linting": {
+      "status": "success",
+      "errorCount": 0,
+      "warningCount": 0,
+      "output": "\n> claude-testing-infrastructure@2.0.0 lint\n> eslint src/**/*.ts\n\n"
+    },
+    "dependencies": {
+      "status": "success",
+      "output": "\n> claude-testing-infrastructure@2.0.0 validate:dependencies\n> node scripts/dependency-validation.js\n\n🔍 Starting comprehensive dependency validation...\n\n📦 Validating package-lock.json synchronization...\n✅ Package synchronization validated\n🔗 Validating Node.js and dependency compatibility...\n✅ Compatibility validated\n🔒 Validating security vulnerabilities...\n✅ Security validated\n🎯 Validating dependency consistency...\n✅ Consistency validated\n⚡ Validating dependency performance impact...\n  Prod"
+    },
+    "testResults": {
+      "totalTests": 1360,
+      "passedTests": 1338,
+      "failedTests": 0,
+      "skippedTests": 22,
+      "effectiveTotal": 1338,
+      "passRate": 100,
+      "hasTimeouts": false,
+      "results": {
+        "Unit Tests": {
+          "passed": 557,
+          "failed": 0,
+          "skipped": 1,
+          "total": 558,
+          "hasTimeouts": false
+        },
+        "Integration Tests": {
+          "passed": 112,
+          "failed": 0,
+          "skipped": 10,
+          "total": 122,
+          "hasTimeouts": false
+        },
+        "Core Tests Combined": {
+          "passed": 669,
+          "failed": 0,
+          "skipped": 11,
+          "total": 680,
+          "hasTimeouts": false
+        }
+      }
+    },
+    "codeQuality": {
+      "Format Check": {
+        "status": "passed"
+      },
+      "Type Safety": {
+        "status": "passed"
+      }
+    },
+    "documentation": {
+      "score": 100,
+      "missingDocs": [],
+      "requiredDocs": 4
+    }
+  },
+  "truthValidation": {
+    "discrepancies": 100,
+    "criticalDiscrepancies": 0,
+    "accuracy": 85
+  },
+  "recommendations": [],
+  "metrics": {
+    "totalDuration": 0,
+    "phaseDurations": {
+      "infrastructure": 26709,
+      "testSuite": 38924,
+      "codeQuality": 22329,
+      "truthValidation": 2200,
+      "deployment": 473
+    },
+    "timeoutOccurred": false,
+    "scriptsExecuted": 3,
+    "scriptsSucceeded": 3
+  }
+}

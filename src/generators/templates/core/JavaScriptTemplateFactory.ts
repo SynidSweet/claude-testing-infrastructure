@@ -221,10 +221,22 @@ export class JavaScriptTemplateFactory extends TemplateFactory {
    */
   private createEnhancedJestTemplate(): Template | null {
     try {
-      const {
-        EnhancedJestJavaScriptTemplate,
-      } = require('../javascript/EnhancedJestJavaScriptTemplate');
-      return new EnhancedJestJavaScriptTemplate();
+      // Try ES module import first, fall back to require
+      let TemplateClass: any;
+      try {
+        const module = require('../javascript/EnhancedJestJavaScriptTemplate');
+        TemplateClass = module.EnhancedJestJavaScriptTemplate || module.default;
+      } catch (requireError) {
+        // If require fails, the module might not exist - that's ok
+        return null;
+      }
+
+      if (!TemplateClass) {
+        console.warn('EnhancedJestJavaScriptTemplate not found in module exports');
+        return null;
+      }
+
+      return new TemplateClass();
     } catch (error) {
       console.warn('EnhancedJestJavaScriptTemplate not available:', error);
       return null;

@@ -18,6 +18,7 @@ module.exports = {
   roots: ['<rootDir>/tests'],
   testPathIgnorePatterns: [
     '/node_modules/',
+    '\.claude-testing/',
     'tests/fixtures/.*\\.claude-testing/',
     ...(isCIEnvironment() ? ['tests/validation/ai-agents/'] : [])
   ],
@@ -63,7 +64,7 @@ module.exports = {
   slowTestThreshold: 5, // Identify performance bottlenecks
   
   // Heap optimization for mixed workloads
-  exposedGC: isCIEnvironment(), // Enable GC monitoring in CI
+  // exposedGC: isCIEnvironment(), // Enable GC monitoring in CI - REMOVED: not supported in jest config
   
   // Test execution optimization
   bail: false, // Continue running even if some tests fail

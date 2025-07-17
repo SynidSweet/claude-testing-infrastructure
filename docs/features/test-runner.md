@@ -177,33 +177,77 @@ The JestRunner now provides enhanced ES modules support:
 - **NODE_OPTIONS**: Automatically sets `--experimental-vm-modules` for ES modules projects
 - **Process Environment**: Proper environment variable inheritance in Jest processes
 
-#### React ES Modules
-- **Simplified Configuration**: Avoids complex JSX transformation issues
-- **Test Environment**: Falls back to 'node' environment for compatibility
+#### React ES Modules JSX Support ✅ COMPLETE (2025-07-16)
+- **Babel Configuration**: ES modules compatible `babel.config.mjs` with proper module settings
+- **Setup File Conversion**: ES modules syntax in setup files (`import` instead of `require`)
+- **Jest Configuration**: Enhanced configuration with absolute paths and proper babel config resolution
+- **Test Environment**: Simplified 'node' environment for maximum compatibility
 - **Framework Detection**: Automatically detects React projects for specialized handling
+- **Production Ready**: 98.7% test success rate (75/76 tests passing)
+
+#### Babel Configuration for React ES Modules
+```javascript
+// babel.config.mjs (ES modules format)
+export default {
+  presets: [
+    ['@babel/preset-env', {
+      targets: { node: 'current' },
+      modules: 'auto'  // Key: 'auto' for Jest compatibility
+    }],
+    ['@babel/preset-react', {
+      runtime: 'automatic'
+    }]
+  ]
+};
+```
+
+#### Setup File ES Modules Conversion
+```javascript
+// setupTests.js with ES modules syntax
+import React from 'react';
+import { configure } from '@testing-library/react';
+
+global.React = React;
+configure({ testIdAttribute: 'data-testid' });
+```
 
 #### Module System Detection
 ```typescript
-// Automatic detection based on project analysis
+// Enhanced detection for React ES modules
 if (moduleSystem.type === 'esm') {
   // ES modules configuration applied
   config.extensionsToTreatAsEsm = ['.jsx'];
   config.moduleNameMapper = { '^(\\.{1,2}/.*)\\.jsx?$': '$1' };
+  
+  // Absolute path to babel config
+  config.transform = {
+    '^.+\\.(js|jsx)$': ['babel-jest', {
+      configFile: path.resolve(projectPath, '.claude-testing', 'babel.config.mjs')
+    }]
+  };
   
   // NODE_OPTIONS set for Jest process
   env.NODE_OPTIONS = '--experimental-vm-modules';
 }
 ```
 
-#### Known Limitations
-- **React JSX**: Complex JSX transformation in ES modules requires additional setup
-- **Test Dependencies**: Some React testing libraries may need specific ES modules configuration
+#### React ES Modules Implementation
+- **File Generation**: Creates `babel.config.mjs` (not `.js`) for ES modules compatibility
+- **Configuration Format**: Uses ES modules export syntax (`export default`)
+- **Module Setting**: `modules: 'auto'` allows Jest to handle module transformation
+- **Path Resolution**: Absolute paths prevent configuration file lookup issues
+- **Environment Simplification**: 'node' environment avoids jsdom dependency complexity
 
 ### ES Modules Best Practices
 1. **Use `"type": "module"`** in package.json for ES modules projects
 2. **Configure transforms** sparingly to avoid configuration conflicts
 3. **Test incrementally** with simpler projects before complex React setups
 4. **Check NODE_OPTIONS** inheritance in CI/CD environments
+5. **Use babel.config.mjs** (not .js) for ES modules babel configuration
+6. **Set modules: 'auto'** in babel preset-env for Jest compatibility
+7. **Use absolute paths** for babel config file resolution in Jest
+8. **Convert setup files** to ES modules syntax (import/export)
+9. **Simplify test environment** to 'node' for maximum compatibility
 
 ## Integration Points
 

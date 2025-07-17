@@ -6,8 +6,11 @@
  */
 
 import { EnvironmentVariableParser } from '../../src/config/EnvironmentVariableParser';
+import { setupMockCleanup } from '../utils/type-safe-mocks';
 
 describe('EnvironmentVariableParser', () => {
+  setupMockCleanup();
+  
   let parser: EnvironmentVariableParser;
 
   beforeEach(() => {

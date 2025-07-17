@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-07-16T16:57:23.845Z",
+  "threshold": 100,
+  "overall": {
+    "status": "PASS",
+    "totalComponents": 3,
+    "passedComponents": 3,
+    "failedComponents": 0
+  },
+  "components": {
+    "HeartbeatMonitor": {
+      "passed": true,
+      "metrics": {
+        "statements": 100,
+        "branches": 100,
+        "functions": 100,
+        "lines": 100
+      },
+      "failedMetrics": []
+    },
+    "HeartbeatScheduler": {
+      "passed": true,
+      "metrics": {
+        "statements": 100,
+        "branches": 100,
+        "functions": 100,
+        "lines": 100
+      },
+      "failedMetrics": []
+    },
+    "ProcessHealthAnalyzer": {
+      "passed": true,
+      "metrics": {
+        "statements": 100,
+        "branches": 100,
+        "functions": 100,
+        "lines": 100
+      },
+      "failedMetrics": []
+    }
+  },
+  "failedComponents": []
+}

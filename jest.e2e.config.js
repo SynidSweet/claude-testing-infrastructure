@@ -15,6 +15,7 @@ module.exports = {
   ],
   testPathIgnorePatterns: [
     ...baseConfig.testPathIgnorePatterns || [],
+    '\.claude-testing/',
     'tests/fixtures/',
     'tests/validation/',
     'tests/integration/',

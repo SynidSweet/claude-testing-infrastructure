@@ -2,7 +2,7 @@
 
 *Quick navigation for AI agents working with specific features and components*
 
-*Last updated: 2025-07-14 | Updated by: /document command | CTI-2025-003 completed - Test fixture migration phase 2*
+*Last updated: 2025-07-17 | Enhanced babel configuration adaptation system with AST-based JavaScript config transformation*
 
 ## 🎯 Purpose
 
@@ -117,18 +117,19 @@ This guide helps AI agents understand and work with individual features of the C
 - `src/state/ChangeDetector.ts` - Git diff analysis
 - `src/state/IncrementalTestGenerator.ts` - Selective generation
 
-### Test Execution ✅ JEST CONFIGURATION FIXED
-**Purpose**: Run tests and generate coverage reports  
-**Status**: Jest working directory issues resolved (2025-07-12)
+### Test Execution ✅ ENHANCED BABEL CONFIGURATION
+**Purpose**: Run tests and generate coverage reports with sophisticated babel configuration adaptation  
+**Status**: Enhanced with AST-based babel configuration system (2025-07-17)
 **Key Files**:
 - `src/runners/TestRunner.ts` - Execution orchestrator
-- `src/runners/JestRunner.ts` - Jest test execution ✅ Working directory fix implemented, proper rootDir calculation
+- `src/runners/JestRunner.ts` - Jest test execution ✅ Enhanced with async babel configuration setup, AST-based adaptation
+- `src/services/BabelConfigAdapter.ts` - ✅ NEW Advanced babel configuration adaptation with AST parsing, validation, and fallback mechanisms
 - `src/runners/PytestRunner.ts` - Pytest test execution ✅ Integrated with FileDiscoveryService via singleton factory
 - `src/runners/TestRunnerFactory.ts` - Test runner creation ✅ Automatic FileDiscoveryService provisioning via singleton factory
 - `src/runners/CoverageReporter.ts` - Coverage analysis
 - `src/runners/CoverageVisualizer.ts` - Report generation
 - `src/runners/templates/` - Consolidated template engine system
-**Recent Fix**: Jest configuration now properly calculates rootDir relative to test execution directory, resolving test discovery failures
+**Recent Enhancement**: Sophisticated babel configuration adaptation supports complex JavaScript configs with functions, conditionals, and imports; ES modules/CommonJS transformation with comprehensive validation
 
 ### Progress Reporting ✅ NEW
 **Purpose**: Real-time progress tracking for test generation  

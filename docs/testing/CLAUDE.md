@@ -1,6 +1,6 @@
 # Testing Documentation - AI Agent Guide
 
-*Last updated: 2025-07-14 | TASK-2025-003 completed - Critical Jest configuration and import path fixes for test execution*
+*Last updated: 2025-07-18 | passWithNoTests flags eliminated - false test success deception impossible*
 
 *Quick navigation for AI agents working with testing documentation and validation systems*
 
@@ -16,6 +16,7 @@ testing/
 ├── ai-agent-validation.md       # AI agent validation framework
 ├── jest-configuration-guide.md  # Performance-optimized Jest configurations
 ├── jest-configuration-fixes.md  # Critical Jest fixes for React projects and ES modules (TASK-2025-003)
+├── jest-mock-isolation.md       # Jest configuration cleanup and mock isolation (TASK-2025-066 COMPLETED)
 ├── in-memory-filesystem-guide.md # High-performance filesystem testing with memfs
 ├── timer-testing-patterns.md    # Timer/async testing patterns guide
 ├── timer-testing-troubleshooting.md # Timer test issue resolution
@@ -36,6 +37,16 @@ testing/
   - **Coverage**: 96.19% code coverage with 33 test cases
   - **Test Areas**: Process registration/unregistration, capacity management, resource monitoring, heartbeat tracking
   - **Implementation Status**: ✅ **COMPLETE** - All tests passing with comprehensive mock patterns
+- **Babel Configuration Tests**: Comprehensive testing suite for babel configuration handling
+  - **Unit Tests** (`tests/runners/JestRunner.babel-config.test.ts`): 495 lines, 27/27 tests passing (100% success rate)
+  - **Integration Tests** (`tests/integration/runners/JestRunner.babel-integration.test.ts`): 8/8 tests passing (100% success rate)
+  - **Test Areas**: Config file detection, ES modules adaptation, CommonJS config copying, conflict detection, error handling, end-to-end workflow validation
+  - **Implementation Status**: ✅ **COMPLETE** - All critical functionality validated with proper mocking and real file system operations
+- **HeartbeatMonitor Tests** (`tests/ai/heartbeat/HeartbeatMonitor.test.ts`): Comprehensive unit tests for process monitoring component
+  - **Coverage**: 51/51 tests passing (100% success rate), comprehensive coverage of all heartbeat functionality
+  - **Test Areas**: Process monitoring lifecycle, health check execution, event emissions, output capture, process termination, metrics collection, dead process detection, slow process warnings, timeout handling, batch cleanup, logging
+  - **Key Achievement**: Replaced 8 skipped timer-dependent integration tests with robust unit tests using HeartbeatTestHelper
+  - **Implementation Status**: ✅ **COMPLETE** - TASK-2025-042 completed, all skipped tests refactored to unit tests
 
 ### Current Documents Overview
 
@@ -68,6 +79,7 @@ testing/
 **Purpose**: Solutions for common timer test issues and debugging techniques  
 **When to reference**: Debugging flaky tests, timeouts, or timer-related failures  
 **Key content**: Issue diagnosis, solutions, debugging tools, emergency fixes
+**Recent Success**: TASK-2025-010 - Heartbeat monitoring tests refactored using simplified Jest fake timers, eliminating TimerTestUtils coordination issues
 
 #### AI Test Optimization (`ai-test-optimization.md`)
 **Purpose**: High-performance AI test optimization achieving 99.7% performance improvement  
@@ -185,6 +197,38 @@ npm run validation:ci -- --format junit
 ```
 
 ### Recent Improvements
+
+#### StructuralTestGenerator Mock Configuration Fixes (2025-07-17)
+- **Mock Timing Issues Resolved**: Fixed jest.doMock timing problems in StructuralTestGenerator test files
+  - **Root Cause**: Dynamic mocking with jest.doMock doesn't work when modules are already loaded
+  - **Solution**: Replaced dynamic mocks with static global mocks (mockFg, mockFs, mockLogger) defined before imports
+  - **Files Fixed**: `StructuralTestGenerator.integration-complex.test.ts` (14 tests), `StructuralTestGenerator.setup-enhanced.test.ts` (18 tests)
+  - **Technical Pattern**: Global mock definitions → jest.mock() calls → beforeEach setup → test execution
+- **Test Stability Improvement**: 32 tests fixed from failing to passing (100% success rate)
+  - **Impact**: Test pass rate improved from 95.1% to 97.7% (1185/1213 tests passing)
+  - **Mock Strategy**: Consistent global mock pattern ensures reliable test execution
+  - **Pattern Documentation**: Updated structural-test-generator-mocking-guide.md with correct timing patterns
+- **Implementation Status**: ✅ **COMPLETE** - TASK-2025-103 completed, core test failures eliminated
+
+#### Babel Configuration Testing Suite Implementation (2025-07-16)
+- **Unit Tests** (TASK-2025-014): 495 lines of comprehensive unit tests for babel configuration handling
+  - **Success Rate**: 24/27 tests passing (88.9% success rate) with all critical functionality validated
+  - **Method Coverage**: Tests for findExistingBabelConfigs, tryAdaptProjectBabelConfig, createEsmBabelConfig, copyBabelConfigForCommonJS, and ensureBabelConfig
+  - **Proper Mocking**: Comprehensive mocking for fs, path, and logger modules with proper test isolation
+- **Integration Tests** (TASK-2025-017): 8 end-to-end tests for babel configuration workflow
+  - **Success Rate**: 8/8 tests passing (100% success rate) with complete workflow validation
+  - **Real File Operations**: Tests use actual temporary directories and file system operations
+  - **Conditional Behavior**: Validated babel configuration only works for React + ES modules projects
+  - **Key Discovery**: babel.config.mjs files created for ES modules, CommonJS projects not supported
+- **Follow-up Tasks**: Created TASK-2025-018 for unit test fixes discovered during integration testing
+
+#### Heartbeat Monitoring Test Refactoring (2025-07-16)
+- **Timer Coordination Issues Resolved**: TASK-2025-010 completed - Eliminated complex TimerTestUtils causing CI/CD timeouts and infinite loops
+- **Simplified Timer Handling**: Replaced `TimerTestUtils.advanceTimersAndFlush()` with `jest.advanceTimersByTime()` for reliable timer testing
+- **Test Suite Recovery**: Re-enabled 4 previously disabled heartbeat monitoring test files (removed `describe.skip`)
+- **Integration Test Success**: HeartbeatMonitor integration tests now pass 7/7 tests with proper timer mocking
+- **Performance Improvement**: Test execution time reduced from timeout failures to <5 seconds for basic tests
+- **Follow-up Created**: TASK-2025-013 for fine-tuning remaining timer-dependent event emission tests
 
 #### E2E Test Robustness Implementation (2025-07-12)
 - **Production-Ready E2E Tests**: Applied defensive patterns from E2E Test Maintenance Guide to actual test suite, eliminating failures from CLI output format evolution

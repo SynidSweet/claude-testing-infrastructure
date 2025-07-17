@@ -1,6 +1,6 @@
 # TestGenerator System
 
-*Last updated: 2025-07-04 | Updated by: /document command | Enhanced class detection and React testing configuration*
+*Last updated: 2025-07-17 | Updated by: /document command | Enhanced React setup for ES modules compatibility*
 
 ## Overview
 
@@ -92,6 +92,7 @@ Framework-specific template system with intelligent fallback and comprehensive a
 - **Proper Instantiation**: Automatically uses `new` keyword for classes
 - **Module Existence Fix**: Uses first export for named-export-only modules
 - **React Configuration**: Enhanced setupTests.js with jest-dom imports
+- **React ES Modules Setup**: Enhanced React test setup with comprehensive ES modules compatibility ✅ NEW (2025-07-17)
 
 **Built-in Templates**:
 - **JavaScript Jest**: Enhanced unit tests with meaningful assertions, fallback validation, and type checking
@@ -1585,6 +1586,229 @@ All JavaScript/TypeScript templates enhanced with module system awareness:
 - ✅ **Fallback behavior**: Graceful CommonJS fallback when module system undefined
 
 **User Feedback Resolution**: The reported ES module issue appears to have been resolved through previous infrastructure improvements. Current testing confirms ES module support is fully functional and production-ready.
+
+## React ES Modules Setup Enhancement ✅ NEW (2025-07-17)
+
+### Overview
+Enhanced React test setup file generation with comprehensive ES modules compatibility, featuring improved test environment configuration, comprehensive browser API mocks, and advanced React testing utilities.
+
+### Key Enhancements
+
+#### 1. **ES Modules File Extension Support**
+Setup files are now generated with appropriate extensions based on project module system:
+- **ES modules projects**: `setupTests.mjs` 
+- **CommonJS projects**: `setupTests.js`
+- **Automatic detection**: Based on `moduleSystem.type` from project analysis
+
+```typescript
+// Automatic file extension selection
+private getSetupFileName(): string {
+  const usesESModules = this.analysis.moduleSystem.type === 'esm';
+  return usesESModules ? 'setupTests.mjs' : 'setupTests.js';
+}
+```
+
+#### 2. **Module System Compatible Imports**
+Setup content adapts import syntax based on project module system:
+
+**ES Modules Syntax**:
+```javascript
+// ES Modules compatible setup
+try {
+  await import('@testing-library/jest-dom');
+} catch (e) {
+  // @testing-library/jest-dom not available - using basic matchers
+}
+
+// React import with dynamic loading
+try {
+  const React = await import('react');
+  React.useLayoutEffect = React.useEffect;
+} catch (e) {
+  // React not available
+}
+```
+
+**CommonJS Syntax**:
+```javascript
+// CommonJS setup
+try {
+  require('@testing-library/jest-dom');
+} catch (e) {
+  // @testing-library/jest-dom not available - using basic matchers
+}
+
+// React import with require
+try {
+  const React = require('react');
+  React.useLayoutEffect = React.useEffect;
+} catch (e) {
+  // React not available
+}
+```
+
+#### 3. **Comprehensive Fetch API Polyfills**
+Full fetch API mock implementation for testing environments:
+
+```javascript
+// Complete fetch polyfill with proper Promise-based implementation
+if (typeof globalThis.fetch === 'undefined') {
+  globalThis.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+      blob: () => Promise.resolve(new Blob()),
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      headers: new Headers(),
+      // ... complete Response interface
+    })
+  );
+  
+  // Headers, Request, Response class implementations
+  globalThis.Headers = Headers || class Headers { /* ... */ };
+  globalThis.Request = Request || class Request { /* ... */ };  
+  globalThis.Response = Response || class Response { /* ... */ };
+}
+```
+
+#### 4. **React Warning Suppression System**
+Intelligent filtering of common React test warnings while preserving error reporting:
+
+```javascript
+// Suppress React warnings in tests
+const originalError = console.error;
+beforeAll(() => {
+  console.error = (...args) => {
+    const warningPatterns = [
+      /Warning: ReactDOM.render is no longer supported/,
+      /Warning: useLayoutEffect does nothing on the server/,
+      /Warning: An update to .* inside a test was not wrapped in act/,
+      /Warning: Can't perform a React state update on an unmounted component/,
+    ];
+    
+    const message = args[0]?.toString() || '';
+    const shouldSuppress = warningPatterns.some(pattern => pattern.test(message));
+    
+    if (!shouldSuppress) {
+      originalError.call(console, ...args);
+    }
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
+```
+
+#### 5. **Enhanced Browser API Mocks**
+Comprehensive mocking of browser APIs commonly used in React components:
+
+```javascript
+// Mock window.matchMedia for responsive components
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
+
+// Mock IntersectionObserver for visibility detection
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class IntersectionObserver {
+    constructor(callback) { this.callback = callback; }
+    observe(element) { /* mock implementation */ }
+    unobserve(element) { /* mock implementation */ }
+    disconnect() { /* mock implementation */ }
+  };
+}
+
+// Mock ResizeObserver for size-responsive components  
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    constructor(callback) { this.callback = callback; }
+    observe(element) { /* mock implementation */ }
+    unobserve(element) { /* mock implementation */ }
+    disconnect() { /* mock implementation */ }
+  };
+}
+```
+
+#### 6. **Testing Library Integration**
+Automatic setup and cleanup for React Testing Library:
+
+```javascript
+// Setup React Testing Library cleanup (ES modules)
+try {
+  const { cleanup } = await import('@testing-library/react');
+  afterEach(() => {
+    cleanup();
+  });
+} catch (e) {
+  // @testing-library/react not available
+}
+
+// Setup React Testing Library cleanup (CommonJS)
+try {
+  const { cleanup } = require('@testing-library/react');
+  afterEach(() => {
+    cleanup();
+  });
+} catch (e) {
+  // @testing-library/react not available
+}
+```
+
+### JestRunner Integration
+JestRunner updated to handle both `.js` and `.mjs` setup files:
+
+```typescript
+// Enhanced setup file detection
+private hasSetupFile(): boolean {
+  const projectSetupPathJs = path.join(this.config.projectPath, 'setupTests.js');
+  const projectSetupPathMjs = path.join(this.config.projectPath, 'setupTests.mjs');
+  const testSetupPathJs = path.join(this.config.testPath, 'setupTests.js');
+  const testSetupPathMjs = path.join(this.config.testPath, 'setupTests.mjs');
+  
+  return (
+    fs.existsSync(projectSetupPathJs) ||
+    fs.existsSync(projectSetupPathMjs) ||
+    fs.existsSync(testSetupPathJs) ||
+    fs.existsSync(testSetupPathMjs)
+  );
+}
+
+// Dynamic setup file path generation
+setupFilesAfterEnv: [
+  `<rootDir>/.claude-testing/setupTests.${moduleSystem.type === 'esm' ? 'mjs' : 'js'}`,
+],
+```
+
+### Testing and Validation
+Comprehensive test suite validates all enhancements:
+
+- **10 unit tests** covering ES modules and CommonJS compatibility
+- **Module system detection** testing  
+- **Import syntax validation** for both module systems
+- **Fetch polyfill verification** with complete API coverage
+- **Browser API mocking** validation for all major APIs
+- **React warning suppression** testing with pattern matching
+
+### Benefits
+- ✅ **Complete ES Modules Support**: Native ES modules syntax with proper file extensions
+- ✅ **Backward Compatibility**: Full CommonJS support maintained  
+- ✅ **Enhanced Testing Environment**: Comprehensive browser API mocks
+- ✅ **Improved Test Quality**: Intelligent warning suppression preserves real errors
+- ✅ **Modern React Testing**: Full Testing Library integration with cleanup
+- ✅ **Zero Configuration**: Automatic module system detection and setup
 
 ## Python Import Path Handling ✅ NEW (2025-06-29)
 
