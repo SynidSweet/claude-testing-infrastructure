@@ -6,20 +6,20 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Mock external dependencies - must be defined before other imports
-const mockFg = jest.fn() as jest.Mock;
+const mockFg = jest.fn() as any;
 const mockFs = {
-  mkdir: jest.fn() as jest.Mock,
-  writeFile: jest.fn() as jest.Mock,
-  access: jest.fn() as jest.Mock,
-  readFile: jest.fn() as jest.Mock,
-  stat: jest.fn() as jest.Mock,
-  readdir: jest.fn() as jest.Mock,
+  mkdir: jest.fn() as any,
+  writeFile: jest.fn() as any,
+  access: jest.fn() as any,
+  readFile: jest.fn() as any,
+  stat: jest.fn() as any,
+  readdir: jest.fn() as any,
 };
 const mockLogger = {
-  debug: jest.fn() as jest.Mock,
-  info: jest.fn() as jest.Mock,
-  warn: jest.fn() as jest.Mock,
-  error: jest.fn() as jest.Mock,
+  debug: jest.fn() as any,
+  info: jest.fn() as any,
+  warn: jest.fn() as any,
+  error: jest.fn() as any,
 };
 
 jest.mock('fast-glob', () => mockFg);
@@ -69,7 +69,7 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
     const mockTemplateEngine = require('../../src/generators/templates/TestTemplateEngine');
     mockTemplateEngine.TestTemplateEngine.mockClear();
     mockTemplateEngine.TestTemplateEngine.mockImplementation(() => {
-      const generateTestMock = jest.fn() as jest.Mock;
+      const generateTestMock = jest.fn() as any;
       generateTestMock.mockResolvedValue('// Default test content');
       return {
         generateTest: generateTestMock
@@ -88,7 +88,7 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
       // Mock the TestTemplateEngine
       const mockTemplateEngine = require('../../src/generators/templates/TestTemplateEngine');
       mockTemplateEngine.TestTemplateEngine.mockImplementation(() => {
-        const generateTestMock = jest.fn() as jest.Mock;
+        const generateTestMock = jest.fn() as any;
         generateTestMock.mockResolvedValue('// React component test\nimport { render } from "@testing-library/react";');
         return {
           generateTest: generateTestMock
