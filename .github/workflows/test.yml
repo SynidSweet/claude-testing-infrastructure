@@ -102,6 +102,15 @@ jobs:
           }
           echo "✅ Dependency validation passed"
 
+      - name: Clear TypeScript cache
+        run: |
+          echo "🧹 Clearing TypeScript build cache to prevent stale compilation errors..."
+          # Remove any existing TypeScript build info files
+          find . -name "*.tsbuildinfo" -type f -delete 2>/dev/null || true
+          # Remove dist directory to ensure clean build
+          rm -rf dist/ 2>/dev/null || true
+          echo "✅ TypeScript cache cleared"
+
       - name: Build infrastructure
         run: |
           echo "🔨 Building infrastructure with enhanced error detection..."
@@ -608,7 +617,9 @@ jobs:
         run: npm ci
 
       - name: Build infrastructure
-        run: npm run build
+        run: |
+          echo "🔨 Building infrastructure with CI-specific cache clearing..."
+          npm run build:ci
 
       - name: Run production readiness check
         run: |
