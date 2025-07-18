@@ -43,8 +43,8 @@ echo "3️⃣  Test Helper Utility Verification"
 echo "-----------------------------------"
 if [ -f "src/utils/HeartbeatTestHelper.ts" ]; then
     echo -e "${GREEN}✓ HeartbeatTestHelper exists${NC}"
-    # Run type checking
-    if npx tsc --noEmit src/utils/HeartbeatTestHelper.ts; then
+    # Run type checking with project config
+    if npx tsc --noEmit --project tsconfig.json 2>/dev/null; then
         echo -e "${GREEN}✓ HeartbeatTestHelper type checks pass${NC}"
     else
         echo -e "${RED}✗ HeartbeatTestHelper has type errors${NC}"
