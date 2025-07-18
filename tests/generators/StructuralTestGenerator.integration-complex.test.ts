@@ -6,20 +6,20 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Mock external dependencies - must be defined before other imports
-const mockFg = jest.fn();
+const mockFg = jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<string[]>>;
 const mockFs = {
-  mkdir: jest.fn(),
-  writeFile: jest.fn(),
-  access: jest.fn(),
-  readFile: jest.fn(),
-  stat: jest.fn(),
-  readdir: jest.fn(),
+  mkdir: jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<void>>,
+  writeFile: jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<void>>,
+  access: jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<void>>,
+  readFile: jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<string>>,
+  stat: jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<any>>,
+  readdir: jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<string[]>>,
 };
 const mockLogger = {
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
+  debug: jest.fn() as jest.MockedFunction<(...args: any[]) => void>,
+  info: jest.fn() as jest.MockedFunction<(...args: any[]) => void>,
+  warn: jest.fn() as jest.MockedFunction<(...args: any[]) => void>,
+  error: jest.fn() as jest.MockedFunction<(...args: any[]) => void>,
 };
 
 jest.mock('fast-glob', () => mockFg);
@@ -33,19 +33,14 @@ jest.mock('../../src/utils/common-imports', () => ({
 
 import { StructuralTestGenerator } from '../../src/generators/StructuralTestGenerator';
 import { 
-  MockScenarioBuilder, 
   TestAssertions,
   TestPatterns,
   createMockProjectAnalysis 
 } from '../utils/structural-test-generator-mocks';
-import { FileDiscoveryType } from '../../src/types/file-discovery-types';
 
 describe('StructuralTestGenerator - Complex Integration Tests', () => {
-  let mockScenario: MockScenarioBuilder;
-
   beforeEach(() => {
     jest.clearAllMocks();
-    mockScenario = new MockScenarioBuilder();
     
     // Set up default mock behaviors
     mockFg.mockResolvedValue([
@@ -73,9 +68,13 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
     // Reset template engine to default working state
     const mockTemplateEngine = require('../../src/generators/templates/TestTemplateEngine');
     mockTemplateEngine.TestTemplateEngine.mockClear();
-    mockTemplateEngine.TestTemplateEngine.mockImplementation(() => ({
-      generateTest: jest.fn().mockResolvedValue('// Default test content')
-    }));
+    mockTemplateEngine.TestTemplateEngine.mockImplementation(() => {
+      const generateTestMock = jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<string>>;
+      generateTestMock.mockResolvedValue('// Default test content');
+      return {
+        generateTest: generateTestMock
+      };
+    });
   });
 
   afterEach(() => {
@@ -88,9 +87,13 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
       
       // Mock the TestTemplateEngine
       const mockTemplateEngine = require('../../src/generators/templates/TestTemplateEngine');
-      mockTemplateEngine.TestTemplateEngine.mockImplementation(() => ({
-        generateTest: jest.fn().mockResolvedValue('// React component test\nimport { render } from "@testing-library/react";')
-      }));
+      mockTemplateEngine.TestTemplateEngine.mockImplementation(() => {
+        const generateTestMock = jest.fn() as jest.MockedFunction<(...args: any[]) => Promise<string>>;
+        generateTestMock.mockResolvedValue('// React component test\nimport { render } from "@testing-library/react";');
+        return {
+          generateTest: generateTestMock
+        };
+      });
 
       const generator = new StructuralTestGenerator(
         {
@@ -135,7 +138,11 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
         findFiles: jest.fn().mockResolvedValue([
           '/test/project/src/App.jsx',
           '/test/project/src/utils.ts'
-        ])
+        ]),
+        findTestFiles: jest.fn().mockResolvedValue([]),
+        fileExists: jest.fn().mockResolvedValue(false),
+        invalidateCache: jest.fn(),
+        getCacheStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, size: 0 })
       };
 
       const generator = new StructuralTestGenerator(
@@ -252,7 +259,11 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
       
       // Create a mock file discovery service that fails
       const mockFileDiscoveryService = {
-        findFiles: jest.fn().mockRejectedValue(new Error('Service unavailable'))
+        findFiles: jest.fn().mockRejectedValue(new Error('Service unavailable')),
+        findTestFiles: jest.fn().mockResolvedValue([]),
+        fileExists: jest.fn().mockResolvedValue(false),
+        invalidateCache: jest.fn(),
+        getCacheStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, size: 0 })
       };
 
       const generator = new StructuralTestGenerator(
