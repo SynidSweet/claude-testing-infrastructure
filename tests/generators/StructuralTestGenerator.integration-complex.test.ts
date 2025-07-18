@@ -135,14 +135,14 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
       
       // Mock FileDiscoveryService with cache behavior
       const mockFileDiscovery = {
-        findFiles: jest.fn().mockResolvedValue([
+        findFiles: (jest.fn() as any).mockResolvedValue([
           '/test/project/src/App.jsx',
           '/test/project/src/utils.ts'
         ]),
-        findTestFiles: jest.fn().mockResolvedValue([]),
-        fileExists: jest.fn().mockResolvedValue(false),
-        invalidateCache: jest.fn(),
-        getCacheStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, size: 0 })
+        findTestFiles: (jest.fn() as any).mockResolvedValue([]),
+        fileExists: (jest.fn() as any).mockResolvedValue(false),
+        invalidateCache: jest.fn() as any,
+        getCacheStats: (jest.fn() as any).mockReturnValue({ hits: 0, misses: 0, size: 0 })
       } as any;
 
       const generator = new StructuralTestGenerator(
@@ -259,11 +259,11 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
       
       // Create a mock file discovery service that fails
       const mockFileDiscoveryService = {
-        findFiles: jest.fn().mockRejectedValue(new Error('Service unavailable')),
-        findTestFiles: jest.fn().mockResolvedValue([]),
-        fileExists: jest.fn().mockResolvedValue(false),
-        invalidateCache: jest.fn(),
-        getCacheStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, size: 0 })
+        findFiles: (jest.fn() as any).mockRejectedValue(new Error('Service unavailable')),
+        findTestFiles: (jest.fn() as any).mockResolvedValue([]),
+        fileExists: (jest.fn() as any).mockResolvedValue(false),
+        invalidateCache: jest.fn() as any,
+        getCacheStats: (jest.fn() as any).mockReturnValue({ hits: 0, misses: 0, size: 0 })
       } as any;
 
       const generator = new StructuralTestGenerator(
