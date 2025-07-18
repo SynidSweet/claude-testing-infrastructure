@@ -81,7 +81,12 @@
     "validate:test-execution": "node scripts/validate-test-execution.js",
     "validate:test-quick": "node scripts/quick-test-validator.js",
     "validate:test-counts": "node scripts/validate-test-counts.js",
-    "precommit:test-validation": "node scripts/precommit-test-validation.js"
+    "precommit:test-validation": "node scripts/precommit-test-validation.js",
+    "test:monitor": "node scripts/test-execution-monitor.js",
+    "test:monitor:all": "node scripts/test-execution-monitor.js --all-tests",
+    "sprint:complete": "./scripts/validate-sprint-completion.sh",
+    "sprint:complete:full": "./scripts/validate-sprint-completion.sh --full-validation",
+    "sprint:report": "node scripts/generate-sprint-validation-report.js"
   },
   "keywords": [
     "testing",
