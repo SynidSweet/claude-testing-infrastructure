@@ -143,7 +143,7 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
         fileExists: jest.fn().mockResolvedValue(false),
         invalidateCache: jest.fn(),
         getCacheStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, size: 0 })
-      };
+      } as any;
 
       const generator = new StructuralTestGenerator(
         {
@@ -264,7 +264,7 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
         fileExists: jest.fn().mockResolvedValue(false),
         invalidateCache: jest.fn(),
         getCacheStats: jest.fn().mockReturnValue({ hits: 0, misses: 0, size: 0 })
-      };
+      } as any;
 
       const generator = new StructuralTestGenerator(
         {

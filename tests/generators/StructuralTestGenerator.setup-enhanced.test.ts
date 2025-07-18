@@ -4,14 +4,14 @@
  */
 
 // Set up global mocks at the top BEFORE any imports to ensure they're available
-const mockFg = jest.fn();
+const mockFg = jest.fn() as any;
 const mockFs = {
-  mkdir: jest.fn(),
-  writeFile: jest.fn(),
-  access: jest.fn(),
-  readdir: jest.fn(),
-  readFile: jest.fn(),
-  stat: jest.fn(),
+  mkdir: jest.fn() as any,
+  writeFile: jest.fn() as any,
+  access: jest.fn() as any,
+  readdir: jest.fn() as any,
+  readFile: jest.fn() as any,
+  stat: jest.fn() as any,
   chmod: jest.fn(),
   copyFile: jest.fn(),
   unlink: jest.fn(),
@@ -27,14 +27,14 @@ const mockFs = {
   rm: jest.fn(),
   cp: jest.fn(),
   constants: {},
-  open: jest.fn(),
+  open: jest.fn() as any,
 };
 
 const mockLogger = {
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn()
+  debug: jest.fn() as any,
+  info: jest.fn() as any,
+  warn: jest.fn() as any,
+  error: jest.fn() as any
 };
 
 // Mock all external dependencies
