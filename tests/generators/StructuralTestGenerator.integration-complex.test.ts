@@ -6,20 +6,20 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Mock external dependencies - must be defined before other imports
-const mockFg = jest.fn() as jest.Mock<Promise<string[]>>;
+const mockFg = jest.fn() as jest.Mock;
 const mockFs = {
-  mkdir: jest.fn() as jest.Mock<Promise<void>>,
-  writeFile: jest.fn() as jest.Mock<Promise<void>>,
-  access: jest.fn() as jest.Mock<Promise<void>>,
-  readFile: jest.fn() as jest.Mock<Promise<string>>,
-  stat: jest.fn() as jest.Mock<Promise<any>>,
-  readdir: jest.fn() as jest.Mock<Promise<string[]>>,
+  mkdir: jest.fn() as jest.Mock,
+  writeFile: jest.fn() as jest.Mock,
+  access: jest.fn() as jest.Mock,
+  readFile: jest.fn() as jest.Mock,
+  stat: jest.fn() as jest.Mock,
+  readdir: jest.fn() as jest.Mock,
 };
 const mockLogger = {
-  debug: jest.fn() as jest.Mock<void>,
-  info: jest.fn() as jest.Mock<void>,
-  warn: jest.fn() as jest.Mock<void>,
-  error: jest.fn() as jest.Mock<void>,
+  debug: jest.fn() as jest.Mock,
+  info: jest.fn() as jest.Mock,
+  warn: jest.fn() as jest.Mock,
+  error: jest.fn() as jest.Mock,
 };
 
 jest.mock('fast-glob', () => mockFg);
@@ -69,7 +69,7 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
     const mockTemplateEngine = require('../../src/generators/templates/TestTemplateEngine');
     mockTemplateEngine.TestTemplateEngine.mockClear();
     mockTemplateEngine.TestTemplateEngine.mockImplementation(() => {
-      const generateTestMock = jest.fn() as jest.Mock<Promise<string>>;
+      const generateTestMock = jest.fn() as jest.Mock;
       generateTestMock.mockResolvedValue('// Default test content');
       return {
         generateTest: generateTestMock
@@ -88,7 +88,7 @@ describe('StructuralTestGenerator - Complex Integration Tests', () => {
       // Mock the TestTemplateEngine
       const mockTemplateEngine = require('../../src/generators/templates/TestTemplateEngine');
       mockTemplateEngine.TestTemplateEngine.mockImplementation(() => {
-        const generateTestMock = jest.fn() as jest.Mock<Promise<string>>;
+        const generateTestMock = jest.fn() as jest.Mock;
         generateTestMock.mockResolvedValue('// React component test\nimport { render } from "@testing-library/react";');
         return {
           generateTest: generateTestMock
